@@ -136,22 +136,23 @@ router.get('/', async (req, res) => {
 
 // POST /api/microcycles/ensure
 router.post('/ensure', async (req, res) => {
+  // Validações ANTES de pegar conexão do pool: antes havia um release() aqui
+  // e outro no finally → "Release called on client which has already been released".
+  if (!req.user.can('training:edit')) {
+    return res.status(403).json({ error: 'Sem permissão pra editar treinos' });
+  }
+  const { week, club_id, category_id } = req.body;
+  if (!week || !club_id) {
+    return res.status(400).json({ error: 'week and club_id are required' });
+  }
+  const wsId = req.user.writableWorkspaceForClub(club_id);
+  if (!wsId) return res.status(403).json({ error: 'Sem permissão de escrita nesse clube' });
+  if (category_id && !req.user.assertCanAccessCategory(category_id)) {
+    return res.status(403).json({ error: 'Sem acesso a essa categoria' });
+  }
+
   const client = await pool.connect();
   try {
-    if (!req.user.can('training:edit')) {
-      client.release();
-      return res.status(403).json({ error: 'Sem permissão pra editar treinos' });
-    }
-    const { week, club_id, category_id } = req.body;
-    if (!week || !club_id) {
-      return res.status(400).json({ error: 'week and club_id are required' });
-    }
-    const wsId = req.user.writableWorkspaceForClub(club_id);
-    if (!wsId) return res.status(403).json({ error: 'Sem permissão de escrita nesse clube' });
-    if (category_id && !req.user.assertCanAccessCategory(category_id)) {
-      return res.status(403).json({ error: 'Sem acesso a essa categoria' });
-    }
-
     await client.query('BEGIN');
 
     let microcycleResult = await client.query(
@@ -225,7 +226,7 @@ router.post('/ensure', async (req, res) => {
     const microcycle = await getFullMicrocycle(microcycleId, req.user.workspaceIds || [], req.user.allowedCategoryIds);
     res.json(microcycle);
   } catch (err) {
-    await client.query('ROLLBACK');
+    await client.query('ROLLBACK').catch(() => {});
     console.error('Ensure microcycle error:', err);
     res.status(500).json({ error: 'Failed to ensure microcycle' });
   } finally {
