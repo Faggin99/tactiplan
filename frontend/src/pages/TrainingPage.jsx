@@ -318,26 +318,27 @@ export function TrainingPage() {
 
     // Conta ocorrências de cada conteúdo nas atividades do dia
     const contentCounts = {};
-    const contentDims = {};
+    const contentMinutes = {};
     session.blocks.forEach((block) => {
       if (block.activity?.contents) {
+        const min = parseInt(block.activity.duration_minutes) || 0;
         block.activity.contents.forEach((content) => {
           contentCounts[content.name] = (contentCounts[content.name] || 0) + 1;
-          contentDims[content.name] = content.dimension;
+          contentMinutes[content.name] = (contentMinutes[content.name] || 0) + min;
         });
       }
     });
 
     if (Object.keys(contentCounts).length === 0) return [];
 
-    // Prioriza táticos: se houver algum tático no dia, predominância olha só pra eles.
-    // Caso contrário, considera todos os pilares disponíveis.
-    const taticoEntries = Object.entries(contentCounts).filter(([name]) => contentDims[name] === 'tatico');
-    const eligible = taticoEntries.length > 0 ? taticoEntries : Object.entries(contentCounts);
+    // Predominância POR TEMPO (igual às Estatísticas): ganha o conteúdo com mais
+    // minutos no dia, de qualquer pilar. Sem tempo preenchido: nº de atividades.
+    const temTempo = Object.values(contentMinutes).some((m) => m > 0);
+    const eligible = Object.keys(contentCounts).map((name) => [name, temTempo ? contentMinutes[name] : contentCounts[name]]);
 
-    const max = Math.max(...eligible.map(([, cnt]) => cnt));
+    const max = Math.max(...eligible.map(([, v]) => v));
     return eligible
-      .filter(([, cnt]) => cnt === max)
+      .filter(([, v]) => v === max)
       .map(([name]) => ({
         abbreviated: abbreviateContent(name),
         full: name,

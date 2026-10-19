@@ -254,9 +254,10 @@ router.get('/training', async (req, res) => {
       if (!sessionToContents.has(a.session_id)) sessionToContents.set(a.session_id, new Map());
       const m = sessionToContents.get(a.session_id);
       if (!m.has(a.content_id)) {
-        m.set(a.content_id, { content_id: a.content_id, name: a.content_name, dimension: a.dimension, count: 0 });
+        m.set(a.content_id, { content_id: a.content_id, name: a.content_name, dimension: a.dimension, count: 0, minutes: 0 });
       }
       m.get(a.content_id).count += 1;
+      m.get(a.content_id).minutes += Number(a.duration_minutes) || 0;
     }
     const dimPredAgg = new Map();
     const contentPredAgg = new Map();
@@ -264,13 +265,13 @@ router.get('/training', async (req, res) => {
     for (const [, m] of sessionToContents) {
       const items = Array.from(m.values());
       if (items.length === 0) continue;
-      // Prioriza Tático: se houver algum conteúdo tático na sessão, a predominância
-      // é calculada só entre eles. Outros pilares só viram predominantes quando
-      // nenhum tático foi trabalhado no dia.
-      const taticoItems = items.filter(i => i.dimension === 'tatico');
-      const eligible = taticoItems.length > 0 ? taticoItems : items;
-      const max = Math.max(...eligible.map(i => i.count));
-      const winners = eligible.filter(i => i.count === max);
+      // Predominância POR TEMPO (decisão do Arthur, 19/10/2026): ganha o conteúdo com
+      // mais minutos no dia, de qualquer pilar (antes o tático tinha prioridade).
+      // Dia sem nenhum tempo preenchido: cai para o nº de atividades.
+      const temTempo = items.some(i => i.minutes > 0);
+      const peso = (i) => (temTempo ? i.minutes : i.count);
+      const max = Math.max(...items.map(peso));
+      const winners = items.filter(i => peso(i) === max);
       // Em caso de empate, CADA empatado conta 1 (não divide). Soma final pode
       // ser maior que o nº de sessões nesse caso, mas reflete a regra do usuário:
       // "se empatar, contabiliza os dois".
