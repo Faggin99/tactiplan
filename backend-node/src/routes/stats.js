@@ -59,6 +59,75 @@ function makeBuckets(startStr, endStr, n) {
   return buckets;
 }
 
+// Distância média por jogador (training_sessions.avg_distance_km, info do dia).
+// Só dias de TREINO entram (o campo só é editável em dia de treino; dia de jogo/
+// descanso que ficou com valor antigo não distorce a média).
+// - avgKm: média simples dos dias preenchidos (dia sem registro NÃO conta como 0)
+// - totalKm: soma dos dias = quanto, em média, cada jogador acumulou no período
+// - series: por DIA quando o período tem até 14 dias; por SEMANA (seg–dom) acima disso
+function toDateStr(d) {
+  return d instanceof Date ? d.toISOString().split('T')[0] : String(d).split('T')[0];
+}
+function mondayOf(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  const dow = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() - dow + 1);
+  return d.toISOString().split('T')[0];
+}
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().split('T')[0];
+}
+const round2 = (n) => Math.round(n * 100) / 100;
+function buildDistanceStats(sessions, start, end) {
+  const days = (sessions || [])
+    .filter(s => s.avg_distance_km !== null && s.avg_distance_km !== undefined)
+    .filter(s => (s.session_type || 'training') === 'training')
+    .map(s => ({ date: toDateStr(s.date), km: Number(s.avg_distance_km) }))
+    .filter(d => Number.isFinite(d.km))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const spanDays = Math.round((new Date(end + 'T00:00:00Z') - new Date(start + 'T00:00:00Z')) / 86400000) + 1;
+  const granularity = spanDays <= 14 ? 'day' : 'week';
+  if (days.length === 0) {
+    return { daysWithData: 0, avgKm: null, totalKm: 0, maxKm: null, minKm: null, granularity, series: [], byDay: [] };
+  }
+  const total = days.reduce((s, d) => s + d.km, 0);
+
+  let series;
+  if (granularity === 'day') {
+    series = days.map(d => ({ label: d.date.slice(8, 10) + '/' + d.date.slice(5, 7), start: d.date, end: d.date, avgKm: round2(d.km), days: 1 }));
+  } else {
+    const weeks = new Map();
+    for (const d of days) {
+      const wk = mondayOf(d.date);
+      if (!weeks.has(wk)) weeks.set(wk, []);
+      weeks.get(wk).push(d.km);
+    }
+    series = Array.from(weeks.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([wk, kms]) => ({
+        label: wk.slice(8, 10) + '/' + wk.slice(5, 7),
+        start: wk,
+        end: addDays(wk, 6),
+        avgKm: round2(kms.reduce((s, k) => s + k, 0) / kms.length),
+        days: kms.length,
+      }));
+  }
+
+  return {
+    daysWithData: days.length,
+    avgKm: round2(total / days.length),
+    totalKm: round2(total),
+    maxKm: round2(Math.max(...days.map(d => d.km))),
+    minKm: round2(Math.min(...days.map(d => d.km))),
+    granularity,
+    series,
+    byDay: days.map(d => ({ date: d.date, km: round2(d.km) })),
+  };
+}
+
 // GET /api/stats/training — dashboard
 router.get('/training', async (req, res) => {
   try {
@@ -72,7 +141,7 @@ router.get('/training', async (req, res) => {
 
     const tenantIds = req.user.workspaceIds || [];
     let sessionSql = `
-      SELECT s.id, s.date
+      SELECT s.id, s.date, s.session_type, s.avg_distance_km
       FROM training_sessions s
       JOIN training_microcycles m ON s.microcycle_id = m.id
       WHERE s.workspace_id = ANY($1) AND s.date >= $2 AND s.date <= $3
@@ -84,6 +153,7 @@ router.get('/training', async (req, res) => {
     }
     const sessionsResult = await query(sessionSql, sessionParams);
     const sessionIds = sessionsResult.rows.map(s => s.id);
+    const distance = buildDistanceStats(sessionsResult.rows, start, end);
 
     const empty = {
       range: { start, end },
@@ -101,6 +171,7 @@ router.get('/training', async (req, res) => {
       sessionsWithActivity: 0,
       topTitles: [],
       trend: [],
+      distance,
     };
     if (sessionIds.length === 0) return res.json(empty);
 
@@ -441,6 +512,7 @@ router.get('/training', async (req, res) => {
       sessionsWithActivity: sessionsCount,
       topTitles,
       trend,
+      distance,
     });
   } catch (err) {
     console.error('Training stats error:', err);
@@ -897,3 +969,4 @@ router.get('/games', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.buildDistanceStats = buildDistanceStats;
