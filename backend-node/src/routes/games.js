@@ -1,21 +1,23 @@
 const express = require('express');
 const { query, pool } = require('../config/database');
 const authMiddleware = require('../middleware/auth');
+const { validarEscalacao } = require('../utils/formacao');
 
 const router = express.Router();
 
 router.use(authMiddleware);
 
-// Resolve a workspace_id (owner) da sessão. Usado pra INSERTs.
-async function workspaceForSession(client, sessionId) {
+// Resolve a workspace_id (owner) da sessão + modalidade do clube e formação atual.
+async function contextoDaSessao(client, sessionId) {
   const r = await client.query(
-    `SELECT m.workspace_id
+    `SELECT m.workspace_id, c.modality, s.formation
        FROM training_sessions s
        JOIN training_microcycles m ON m.id = s.microcycle_id
+       LEFT JOIN clubs c ON c.id = m.club_id
       WHERE s.id = $1`,
     [sessionId]
   );
-  return r.rows[0]?.workspace_id || null;
+  return r.rows[0] || null;
 }
 
 // GET /api/games/:sessionId
@@ -38,7 +40,7 @@ router.get('/:sessionId', async (req, res) => {
        FROM match_players mp
        LEFT JOIN athletes a ON mp.athlete_id = a.id
        WHERE mp.session_id = $1 AND mp.workspace_id = ANY($2)
-       ORDER BY mp.status ASC`,
+       ORDER BY mp.status ASC, mp.slot ASC NULLS LAST`,
       [req.params.sessionId, workspaceIds]
     );
 
@@ -59,6 +61,7 @@ router.get('/:sessionId', async (req, res) => {
     );
 
     res.json({
+      formation: sessionResult.rows[0].formation || null,
       players: playersResult.rows,
       events: eventsResult.rows
     });
@@ -77,6 +80,7 @@ router.post('/:sessionId', async (req, res) => {
       opponent_name, match_duration, players, events,
       competition_id, match_round, match_location,
       video_full_url, video_highlights_url, video_goals_url,
+      formation,
     } = req.body;
     const workspaceIds = req.user.workspaceIds || [];
 
@@ -86,10 +90,20 @@ router.post('/:sessionId', async (req, res) => {
     );
     if (sessionCheck.rows.length === 0) return res.status(404).json({ error: 'Session not found' });
 
-    const ownerWs = await workspaceForSession(client, req.params.sessionId);
+    const ctx = await contextoDaSessao(client, req.params.sessionId);
+    const ownerWs = ctx?.workspace_id || null;
     if (!ownerWs || !workspaceIds.includes(ownerWs)) {
       return res.status(403).json({ error: 'Sem permissão de escrita na sessão' });
     }
+
+    // Formação + vagas: valida antes de abrir a transação.
+    const escalacao = validarEscalacao({
+      modality: ctx.modality,
+      formation,
+      storedFormation: ctx.formation,
+      players: players || [],
+    });
+    if (!escalacao.ok) return res.status(400).json({ error: escalacao.error });
 
     await client.query('BEGIN');
 
@@ -103,24 +117,25 @@ router.post('/:sessionId', async (req, res) => {
               video_full_url = $6,
               video_highlights_url = $7,
               video_goals_url = $8,
+              formation = $11,
               updated_at = NOW()
         WHERE id = $9 AND workspace_id = $10`,
       [opponent_name || null, match_duration || null,
        competition_id || null, match_round || null,
        (['home','away','neutral'].includes(match_location)) ? match_location : null,
        video_full_url || null, video_highlights_url || null, video_goals_url || null,
-       req.params.sessionId, ownerWs]
+       req.params.sessionId, ownerWs, escalacao.formation]
     );
 
     await client.query('DELETE FROM match_players WHERE session_id = $1 AND workspace_id = $2', [req.params.sessionId, ownerWs]);
     if (players && players.length > 0) {
-      for (const player of players) {
+      for (const [i, player] of players.entries()) {
         const rawJersey = player.jersey_number;
         const jersey = Number.isFinite(+rawJersey) && +rawJersey > 0 ? +rawJersey : null;
         await client.query(
-          `INSERT INTO match_players (session_id, athlete_id, status, minutes_played, jersey_number, workspace_id)
-           VALUES ($1, $2, $3, $4, $5, $6)`,
-          [req.params.sessionId, player.athlete_id, player.status || 'starter', player.minutes_played || 0, jersey, ownerWs]
+          `INSERT INTO match_players (session_id, athlete_id, status, minutes_played, jersey_number, workspace_id, slot)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [req.params.sessionId, player.athlete_id, player.status || 'starter', player.minutes_played || 0, jersey, ownerWs, escalacao.slots[i]]
         );
       }
     }
