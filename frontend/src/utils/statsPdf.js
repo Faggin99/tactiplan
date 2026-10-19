@@ -173,11 +173,11 @@ export function generateStatsPDF(stats, opts = {}) {
     });
   }
 
-  // ============ Distância média por jogador (só se algum dia tiver registro) ============
+  // ============ Distância ideal (só se algum dia tiver registro) ============
   const dist = stats.distance;
   if (dist && dist.daysWithData > 0) {
     doc.addPage();
-    y = addTitleStrip(doc, { section: 'Distância Média por Jogador', clubName });
+    y = addTitleStrip(doc, { section: 'Distância Ideal', clubName });
     [
       { label: 'Média por\ndia (km)', value: formatKm(dist.avgKm, 1) },
       { label: 'Dias com\nregistro', value: String(dist.daysWithData) },

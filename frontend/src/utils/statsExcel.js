@@ -47,7 +47,7 @@ export function generateStatsExcel(stats, opts = {}) {
       ['Sessões com atividade', stats.sessionsWithActivity || 0],
       ['Atividades distintas', stats.totals?.uniqueTemplates || 0],
       ...(stats.distance?.daysWithData > 0 ? [
-        ['Distância média por jogador', `${formatKm(stats.distance.avgKm, 2)} km (${stats.distance.daysWithData} dias com registro)`],
+        ['Distância ideal', `${formatKm(stats.distance.avgKm, 2)} km (${stats.distance.daysWithData} dias com registro)`],
         ['Distância acumulada por jogador', `${formatKm(stats.distance.totalKm, 2)} km`],
       ] : []),
     ],
@@ -171,24 +171,24 @@ export function generateStatsExcel(stats, opts = {}) {
       });
   }
 
-  // Distância média por jogador (série do gráfico + lista por dia)
+  // Distância ideal (série do gráfico + lista por dia)
   const dist = stats.distance;
   const distSeries = dist?.daysWithData > 0 ? (dist.series || []) : [];
   const distPorSemana = dist?.granularity === 'week';
   if (distSeries.length > 0) {
     addFormattedSheet(wb, 'Distância',
-      [distPorSemana ? 'Semana' : 'Dia', 'Início', 'Fim', 'Dias com registro', 'Distância média (km)'],
+      [distPorSemana ? 'Semana' : 'Dia', 'Início', 'Fim', 'Dias com registro', 'Distância ideal (km)'],
       distSeries.map((s) => [s.label, fmtDate(s.start), fmtDate(s.end), s.days, Number(s.avgKm)]),
       {
         widths: [12, 14, 14, 18, 22],
-        title: `Distância média por jogador ${distPorSemana ? 'por semana' : 'por dia de treino'} · média do período ${formatKm(dist.avgKm, 2)} km`,
+        title: `Distância ideal ${distPorSemana ? 'por semana' : 'por dia de treino'} · média do período ${formatKm(dist.avgKm, 2)} km`,
         columnAlignments: ['center', 'center', 'center', 'center', 'right'],
       });
     if (distPorSemana && (dist.byDay || []).length > 0) {
       addFormattedSheet(wb, 'Distância por dia',
-        ['Data', 'Distância média (km)'],
+        ['Data', 'Distância ideal (km)'],
         dist.byDay.map((d) => [fmtDate(d.date), Number(d.km)]),
-        { widths: [14, 22], title: 'Distância média por jogador — dias com registro', columnAlignments: ['center', 'right'] });
+        { widths: [14, 22], title: 'Distância ideal — dias com registro', columnAlignments: ['center', 'right'] });
     }
   }
 
@@ -200,9 +200,9 @@ export function generateStatsExcel(stats, opts = {}) {
     chartSpecs.push({
       sheetName: 'Distância',
       type: 'stackedColumn',
-      title: 'Distância média por jogador (km)',
+      title: 'Distância ideal (km)',
       catRange: `$A$2:$A$${lastRow}`,
-      seriesList: [{ name: 'Distância média (km)', range: `$E$2:$E$${lastRow}`, color: 'F59E0B' }],
+      seriesList: [{ name: 'Distância ideal (km)', range: `$E$2:$E$${lastRow}`, color: 'F59E0B' }],
       anchor: { from: { col: 6, row: 1 }, to: { col: 16, row: 18 } },
     });
   }

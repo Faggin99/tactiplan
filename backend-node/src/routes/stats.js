@@ -59,7 +59,7 @@ function makeBuckets(startStr, endStr, n) {
   return buckets;
 }
 
-// Distância média por jogador (training_sessions.avg_distance_km, info do dia).
+// Distância ideal (training_sessions.avg_distance_km, info do dia).
 // Só dias de TREINO entram (o campo só é editável em dia de treino; dia de jogo/
 // descanso que ficou com valor antigo não distorce a média).
 // - avgKm: média simples dos dias preenchidos (dia sem registro NÃO conta como 0)

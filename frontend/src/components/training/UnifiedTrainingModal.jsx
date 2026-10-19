@@ -571,7 +571,7 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
                       Info do dia
                     </span>
                     <label htmlFor="avg-distance-km" style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.text }}>
-                      Distância média por jogador (km)
+                      Distância ideal (km)
                     </label>
                   </div>
                   <input
@@ -594,7 +594,7 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
                     }}
                   />
                   <span id="avg-distance-km-hint" style={{ fontSize: '0.7rem', color: colors.textSecondary }}>
-                    Opcional · média do dia (GPS/estimativa)
+                    Opcional · por jogador, no dia
                   </span>
                 </div>
               )}

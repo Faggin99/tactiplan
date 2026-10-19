@@ -43,7 +43,7 @@ export function TrainingSummaryModal({ isOpen, onClose, session }) {
       totals: [
         ['Atividades', activeBlocks.length],
         ['Tempo total', formatMinutes(total)],
-        ...(distanciaKm !== null ? [['Distância média por jogador', `${formatKm(distanciaKm)} km`]] : []),
+        ...(distanciaKm !== null ? [['Distância ideal', `${formatKm(distanciaKm)} km`]] : []),
       ],
     });
     const rows = [['Bloco', 'Atividade', 'Conteúdos', 'Submomentos', 'Grupos', 'Tempo (min)', 'Descrição']];
@@ -426,7 +426,7 @@ export function TrainingSummaryModal({ isOpen, onClose, session }) {
                 ⏱ Duração Total: {getTotalDuration()} minutos
                 {distanciaKm !== null && (
                   <span style={{ marginLeft: '16px' }}>
-                    📍 Distância média por jogador: {formatKm(distanciaKm)} km
+                    📍 Distância ideal: {formatKm(distanciaKm)} km
                   </span>
                 )}
               </div>

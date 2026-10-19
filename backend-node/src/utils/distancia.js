@@ -1,4 +1,4 @@
-// Distância média percorrida por jogador no dia (km) — training_sessions.avg_distance_km.
+// Distância ideal do dia no dia (km) — training_sessions.avg_distance_km.
 // Aceita número ou string com vírgula/ponto ("5,2", "5.25"). null/"" limpa o campo.
 // Regras: >= 0, < 100 (NUMERIC(5,2) com CHECK <= 99.99), no máximo 2 casas decimais.
 
@@ -20,7 +20,7 @@ function parseDistanciaKm(valor) {
   } else {
     return { ok: false, error: 'Distância inválida' };
   }
-  if (valor >= 100) return { ok: false, error: 'A distância média deve ser menor que 100 km' };
+  if (valor >= 100) return { ok: false, error: 'A distância ideal deve ser menor que 100 km' };
   return { ok: true, value: Math.round(valor * 100) / 100 };
 }
 

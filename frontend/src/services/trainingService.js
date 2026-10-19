@@ -39,7 +39,7 @@ export const trainingService = {
     return { data: result };
   },
 
-  // Distância média por jogador no dia (km). null limpa.
+  // Distância ideal no dia (km). null limpa.
   async updateSessionDistance(sessionId, avgDistanceKm) {
     const result = await api.put(`/sessions/${sessionId}/distance`, {
       avg_distance_km: avgDistanceKm ?? null,

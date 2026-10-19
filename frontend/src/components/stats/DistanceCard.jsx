@@ -5,7 +5,7 @@ import { formatKm } from '../../utils/distancia';
 // Cor do pilar Físico (DIM_COLORS.fisico): distância é carga física.
 const COR = '#f59e0b';
 
-// Distância média por jogador (info do dia, preenchida no modal do treino).
+// Distância ideal (info do dia, preenchida no modal do treino).
 // Não renderiza nada quando nenhum dia do período tem registro.
 export function DistanceCard({ distance, colors }) {
   const isMobile = useIsMobile();
@@ -40,7 +40,7 @@ export function DistanceCard({ distance, colors }) {
     <div style={cardStyle}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
         <span style={{ fontSize: '0.95rem', fontWeight: 600, color: colors.text, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-          <MapPin size={16} color={COR} /> Distância média por jogador
+          <MapPin size={16} color={COR} /> Distância ideal
         </span>
         <span style={{ fontSize: '0.7rem', color: colors.textSecondary, fontWeight: 500 }}>
           {porSemana ? 'média por semana' : 'por dia de treino'} · km

@@ -1,4 +1,4 @@
-// Distância média por jogador no dia (km). O backend guarda NUMERIC e o pg
+// Distância ideal no dia (km). O backend guarda NUMERIC e o pg
 // devolve string ("5.20"); aqui tudo vira número e é exibido em pt-BR (vírgula).
 
 export function toKm(valor) {
@@ -23,6 +23,6 @@ export function parseKmInput(texto) {
   if (s === '') return { ok: true, value: null };
   if (!/^\d+(\.\d{1,2})?$/.test(s)) return { ok: false, error: 'Distância inválida: use um número com até 2 casas decimais (ex.: 5,2).' };
   const n = Number(s);
-  if (n >= 100) return { ok: false, error: 'A distância média deve ser menor que 100 km.' };
+  if (n >= 100) return { ok: false, error: 'A distância ideal deve ser menor que 100 km.' };
   return { ok: true, value: n };
 }

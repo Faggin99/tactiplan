@@ -1022,7 +1022,7 @@ export function TrainingDashboard({ stats, colors }) {
         </div>
       </div>
 
-      {/* Distância média por jogador (info do dia) — some quando não há registro */}
+      {/* Distância ideal (info do dia) — some quando não há registro */}
       <DistanceCard distance={stats.distance} colors={colors} />
 
       {/* Top Atividades + Tendência lado a lado (altura independente) */}
