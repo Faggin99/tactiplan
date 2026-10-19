@@ -9,8 +9,23 @@ function success(message, options = {}) {
   return toast.success(message, { duration: 3500, ...options });
 }
 
+// Falta de permissão do membro (403 do servidor ou checagem na tela):
+// mensagem única e amigável, sem cara de erro do sistema.
+export const SEM_PERMISSAO_DICA = 'Peça ao responsável pelo clube para liberar em Staff.';
+function semPermissao(acao) {
+  const texto = acao
+    ? `Você não tem permissão para ${acao} neste clube. ${SEM_PERMISSAO_DICA}`
+    : `Você não tem permissão para fazer isso neste clube. ${SEM_PERMISSAO_DICA}`;
+  // id fixo: várias chamadas negadas em sequência mostram um aviso só
+  toast(texto, { id: 'sem-permissao', icon: '🔒', duration: 6000 });
+  return texto;
+}
+
 // Dispara toast.error padronizado (fica mais tempo pra dar chance de ler)
 function error(message, options = {}) {
+  // O aviso de permissão já foi mostrado (ver semPermissao): não repete como
+  // "Erro ao salvar…: Você não tem permissão…".
+  if (typeof message === 'string' && message.includes(SEM_PERMISSAO_DICA)) return null;
   return toast.error(message, { duration: 6000, ...options });
 }
 
@@ -124,5 +139,5 @@ function confirm(message, opts = {}) {
   });
 }
 
-export const notify = { success, error, info, loading, dismiss, confirm };
+export const notify = { success, error, info, loading, dismiss, confirm, semPermissao };
 export default notify;

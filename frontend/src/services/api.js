@@ -1,3 +1,4 @@
+import { notify } from '../lib/notify';
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 class ApiClient {
@@ -105,6 +106,23 @@ class ApiClient {
         if (!semRedirecionar.includes(err.code) && !window.location.hash.startsWith('#/billing')) {
           window.location.hash = '#/billing?reason=' + encodeURIComponent(err.code);
         }
+        throw err;
+      }
+      if (response.status === 403) {
+        const body = await response.json().catch(() => ({}));
+        const msg = body.error || body.message || '';
+        // "Sem permissão pra editar treinos" / "Sem acesso a essa categoria"…
+        // vira aviso amigável dizendo o que fazer (pedir ao responsável).
+        if (/^Sem (permiss|acesso)/i.test(msg)) {
+          const m = msg.match(/^Sem permissão (?:pra|para) (.+)$/i);
+          const texto = notify.semPermissao(m ? m[1] : null);
+          const err = new Error(texto);
+          err.code = 'NO_PERMISSION';
+          err.statusCode = 403;
+          throw err;
+        }
+        const err = new Error(msg || 'Acesso negado');
+        err.statusCode = 403;
         throw err;
       }
       const error = await response.json().catch(() => ({ message: 'Request failed' }));

@@ -21,9 +21,14 @@ import { usePlanFeatures } from '../hooks/usePlanFeatures';
 import { TourGuide } from '../components/common/TourGuide';
 import { useTour, useTourReplayListener } from '../hooks/useTour';
 import { notify } from '../lib/notify';
+import { useCan } from '../hooks/useCan';
 
 export function TrainingPage() {
   const { colors } = useTheme();
+  // Membro sem "Editar treinos": vê o resumo do dia no lugar do formulário
+  // e recebe um aviso de como pedir a permissão (em vez de erro ao salvar).
+  const { can } = useCan();
+  const podeEditarTreino = can('training:edit');
   const { selectedClub } = useClub();
   const isMobile = useIsMobile();
   const [monthlyThemePref] = usePreference('pref_monthly_theme', 'disabled');
@@ -584,12 +589,14 @@ export function TrainingPage() {
                   }}
                   onContextMenu={(e) => {
                     e.preventDefault();
+                    if (!podeEditarTreino) { notify.semPermissao('mudar o tipo do dia'); return; }
                     setSelectedSession(session);
                     setShowSessionTypeModal(true);
                   }}
                   onTouchStart={(e) => {
                     // Long press on mobile opens session type modal
                     const timer = setTimeout(() => {
+                      if (!podeEditarTreino) { notify.semPermissao('mudar o tipo do dia'); return; }
                       setSelectedSession(session);
                       setShowSessionTypeModal(true);
                     }, 600);
@@ -744,6 +751,11 @@ export function TrainingPage() {
                           }}
                           onClick={() => {
                             setSelectedSession(session);
+                            if (!podeEditarTreino) {
+                              setShowSummaryModal(true);
+                              notify.semPermissao('editar treinos');
+                              return;
+                            }
                             setInitialModalTab(0);
                             setShowUnifiedModal(true);
                           }}
@@ -789,7 +801,7 @@ export function TrainingPage() {
                               )}
                             </div>
                           ) : (
-                            <div style={blockContentStyle}>Clique para editar</div>
+                            <div style={blockContentStyle}>{podeEditarTreino ? 'Clique para editar' : 'Clique para ver'}</div>
                           )}
                         </div>
                       )}
@@ -812,6 +824,11 @@ export function TrainingPage() {
                     }}
                     onClick={() => {
                       setSelectedSession(session);
+                      if (!podeEditarTreino) {
+                        setShowSummaryModal(true);
+                        notify.semPermissao('editar treinos');
+                        return;
+                      }
                       setInitialModalTab(blockIndex);
                       setShowUnifiedModal(true);
                     }}
@@ -857,7 +874,7 @@ export function TrainingPage() {
                         )}
                       </div>
                     ) : (
-                      <div style={blockContentStyle}>Clique para editar</div>
+                      <div style={blockContentStyle}>{podeEditarTreino ? 'Clique para editar' : 'Clique para ver'}</div>
                     )}
                   </div>
                   );
