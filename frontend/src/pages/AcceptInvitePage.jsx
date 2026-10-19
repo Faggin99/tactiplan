@@ -6,8 +6,10 @@ import { useTheme } from '../contexts/ThemeContext';
 import { membershipService } from '../services/membershipService';
 import { Button } from '../components/common/Button';
 
-const ROLE_LABELS = { coach: 'Treinador', assistant: 'Auxiliar' };
-const ROLE_ICONS = { coach: Shield, assistant: Eye };
+import { ROLE_LABELS as PAPEIS } from '../lib/memberPermissions';
+
+const ROLE_LABELS = { coach: 'Treinador', assistant: 'Auxiliar', ...PAPEIS };
+const ROLE_ICONS = { coach: Shield, assistant: Eye, viewer: Eye };
 
 export function AcceptInvitePage() {
   const { token } = useParams();
@@ -34,9 +36,13 @@ export function AcceptInvitePage() {
     setAccepting(true);
     setError(null);
     try {
-      await membershipService.acceptInvite(token);
+      const res = await membershipService.acceptInvite(token);
       setAccepted(true);
-      setTimeout(() => navigate('/home'), 1800);
+      // Entra direto no clube de quem convidou (e não na conta pessoal vazia criada no cadastro).
+      const wsId = res?.workspace_id || invite?.workspace_id;
+      if (wsId) localStorage.setItem('active_workspace_id', wsId);
+      // Recarrega para workspace, clube e assinatura serem lidos já da conta nova.
+      setTimeout(() => { window.location.hash = '#/home'; window.location.reload(); }, 1800);
     } catch (err) {
       setError(err?.message || 'Não foi possível aceitar o convite');
     } finally {

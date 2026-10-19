@@ -5,6 +5,8 @@ import { useAuth } from './AuthContext';
 const WorkspaceContext = createContext(null);
 
 const STORAGE_KEY = 'active_workspace_id';
+// Workspace escolhida À MÃO no seletor: a escolha automática não troca ela.
+const MANUAL_KEY = 'active_workspace_manual';
 
 export function WorkspaceProvider({ children }) {
   const { isAuthenticated } = useAuth();
@@ -12,9 +14,13 @@ export function WorkspaceProvider({ children }) {
   const [activeId, setActiveIdState] = useState(() => localStorage.getItem(STORAGE_KEY) || null);
   const [loading, setLoading] = useState(true);
 
-  const setActiveId = useCallback((id) => {
+  const setActiveId = useCallback((id, { auto = false } = {}) => {
     if (id) localStorage.setItem(STORAGE_KEY, id);
     else localStorage.removeItem(STORAGE_KEY);
+    try {
+      if (!auto && id) localStorage.setItem(MANUAL_KEY, id);
+      else if (auto) localStorage.removeItem(MANUAL_KEY);
+    } catch (_) { /* storage indisponível */ }
     setActiveIdState(id);
     // Notifica outros hooks (useSubscription, etc) que workspace mudou
     window.dispatchEvent(new CustomEvent('workspace-changed', { detail: { workspaceId: id } }));
@@ -31,14 +37,20 @@ export function WorkspaceProvider({ children }) {
       const res = await api.get('/workspaces');
       const list = res?.data || [];
       setWorkspaces(list);
-      // Se workspace ativa atual não existe mais, escolhe a primeira própria.
+      // Escolha da workspace ativa:
+      // - a guardada, se ainda existe e está liberada;
+      // - senão uma liberada (própria primeiro): ex. convidado cuja conta pessoal,
+      //   criada no cadastro, está vazia e em só leitura;
+      // - senão a guardada (só leitura) ou a primeira própria.
       const stored = localStorage.getItem(STORAGE_KEY);
-      const stillValid = stored && list.some(w => w.id === stored);
-      if (!stillValid && list.length > 0) {
-        const firstOwn = list.find(w => w.is_owner) || list[0];
-        setActiveId(firstOwn.id);
+      const atual = stored ? list.find(w => w.id === stored) : null;
+      const liberada = list.find(w => w.usable && w.is_owner) || list.find(w => w.usable);
+      const manual = atual && localStorage.getItem(MANUAL_KEY) === atual.id;
+      if (list.length > 0 && !(atual && (atual.usable || manual))) {
+        const escolhida = liberada || atual || list.find(w => w.is_owner) || list[0];
+        if (escolhida.id !== stored) setActiveId(escolhida.id, { auto: true });
       } else if (list.length === 0) {
-        setActiveId(null);
+        setActiveId(null, { auto: true });
       }
     } catch (err) {
       console.error('load workspaces', err);
@@ -62,7 +74,7 @@ export function WorkspaceProvider({ children }) {
   const swapToUsableWorkspace = useCallback(() => {
     const usable = workspaces.find(w => w.usable && w.id !== activeId);
     if (usable) {
-      setActiveId(usable.id);
+      setActiveId(usable.id, { auto: true });
       return usable.id;
     }
     return null;
