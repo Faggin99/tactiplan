@@ -6,6 +6,7 @@
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { deliverPdf } from '../lib/deliverFile';
 import {
   PDF_THEME,
   addTitleStrip,
