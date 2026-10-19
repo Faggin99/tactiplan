@@ -1,4 +1,6 @@
 import { newWorkbook, addFormattedSheet, addSummarySheet, saveWorkbook, formatMinutes } from './excelTheme';
+import { notify } from '../lib/notify';
+import { formatKm } from './distancia';
 
 const DIM_LABELS = { tatico: 'Tático', tecnico: 'Técnico', fisico: 'Físico', mental: 'Mental' };
 const DIM_ORDER = ['tatico', 'fisico', 'tecnico', 'mental'];
@@ -28,7 +30,7 @@ const MODALITY_LABELS_XLSX = {
 
 export function generateStatsExcel(stats, opts = {}) {
   const { periodLabel = '', clubName = '', modality = '' } = opts;
-  if (!stats) { alert('Sem dados pra exportar.'); return; }
+  if (!stats) { notify.info('Sem dados pra exportar.'); return; }
 
   const wb = newWorkbook({ title: 'Estatísticas de Treino' });
   const periodStr = `${fmtDate(stats.range?.start)} – ${fmtDate(stats.range?.end)}`;
@@ -44,6 +46,10 @@ export function generateStatsExcel(stats, opts = {}) {
       ['Sessões', stats.totals?.sessions || 0],
       ['Sessões com atividade', stats.sessionsWithActivity || 0],
       ['Atividades distintas', stats.totals?.uniqueTemplates || 0],
+      ...(stats.distance?.daysWithData > 0 ? [
+        ['Distância média por jogador', `${formatKm(stats.distance.avgKm, 2)} km (${stats.distance.daysWithData} dias com registro)`],
+        ['Distância acumulada por jogador', `${formatKm(stats.distance.totalKm, 2)} km`],
+      ] : []),
     ],
   });
 
@@ -165,8 +171,41 @@ export function generateStatsExcel(stats, opts = {}) {
       });
   }
 
+  // Distância média por jogador (série do gráfico + lista por dia)
+  const dist = stats.distance;
+  const distSeries = dist?.daysWithData > 0 ? (dist.series || []) : [];
+  const distPorSemana = dist?.granularity === 'week';
+  if (distSeries.length > 0) {
+    addFormattedSheet(wb, 'Distância',
+      [distPorSemana ? 'Semana' : 'Dia', 'Início', 'Fim', 'Dias com registro', 'Distância média (km)'],
+      distSeries.map((s) => [s.label, fmtDate(s.start), fmtDate(s.end), s.days, Number(s.avgKm)]),
+      {
+        widths: [12, 14, 14, 18, 22],
+        title: `Distância média por jogador ${distPorSemana ? 'por semana' : 'por dia de treino'} · média do período ${formatKm(dist.avgKm, 2)} km`,
+        columnAlignments: ['center', 'center', 'center', 'center', 'right'],
+      });
+    if (distPorSemana && (dist.byDay || []).length > 0) {
+      addFormattedSheet(wb, 'Distância por dia',
+        ['Data', 'Distância média (km)'],
+        dist.byDay.map((d) => [fmtDate(d.date), Number(d.km)]),
+        { widths: [14, 22], title: 'Distância média por jogador — dias com registro', columnAlignments: ['center', 'right'] });
+    }
+  }
+
   // ─────────── Charts nativos (injetados via OOXML) ───────────
   const chartSpecs = [];
+
+  if (distSeries.length > 0) {
+    const lastRow = 1 + distSeries.length;
+    chartSpecs.push({
+      sheetName: 'Distância',
+      type: 'stackedColumn',
+      title: 'Distância média por jogador (km)',
+      catRange: `$A$2:$A$${lastRow}`,
+      seriesList: [{ name: 'Distância média (km)', range: `$E$2:$E$${lastRow}`, color: 'F59E0B' }],
+      anchor: { from: { col: 6, row: 1 }, to: { col: 16, row: 18 } },
+    });
+  }
 
   // Donut porPilar na aba "Por Pilar"
   if (dimRows.length > 0) {

@@ -281,7 +281,7 @@ export function TrainingStatsPage() {
             periodTo:   endDate,
             primaryColor: selectedClub?.primary_color || null,
           };
-          if (activeTab === 'training' && stats && stats.totals?.activities > 0) {
+          if (activeTab === 'training' && stats && (stats.totals?.activities > 0 || stats.distance?.daysWithData > 0)) {
             return (
               <ExportMenu
                 onExportPDF={() => generateStatsPDF(stats, exportOpts)}

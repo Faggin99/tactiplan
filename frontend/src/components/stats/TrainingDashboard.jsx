@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Activity, Clock, Calendar, ChevronRight, Trophy, PieChart, BarChart3 } from 'lucide-react';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { DistanceCard } from './DistanceCard';
 
 // Paleta consistente das 4 dimensões em todo o dashboard
 export const DIM_COLORS = {
@@ -1014,6 +1015,9 @@ export function TrainingDashboard({ stats, colors }) {
           )}
         </div>
       </div>
+
+      {/* Distância média por jogador (info do dia) — some quando não há registro */}
+      <DistanceCard distance={stats.distance} colors={colors} />
 
       {/* Top Atividades + Tendência lado a lado (altura independente) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(260px, 100%), 1fr))', gap: '0.75rem', alignItems: 'start' }}>

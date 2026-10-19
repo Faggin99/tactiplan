@@ -20,6 +20,8 @@ import {
   setDrawHex,
 } from './pdfTheme';
 import { DIM_LABELS, DIM_ORDER } from './statsCharts';
+import { notify } from '../lib/notify';
+import { formatKm } from './distancia';
 
 function fmtDate(s) {
   if (!s) return '';
@@ -49,7 +51,7 @@ function hexRgb(hex) {
 
 export function generateStatsPDF(stats, opts = {}) {
   const { periodLabel = '', clubName = '', modality = '', primaryColor = null } = opts;
-  if (!stats) { alert('Sem dados pra exportar.'); return; }
+  if (!stats) { notify.info('Sem dados pra exportar.'); return; }
 
   const resetColor = applyClubPrimaryColor(primaryColor);
   try {
@@ -169,6 +171,73 @@ export function generateStatsPDF(stats, opts = {}) {
       if (fY > maxFinalY) maxFinalY = fY;
       cx += cw + colGap;
     });
+  }
+
+  // ============ Distância média por jogador (só se algum dia tiver registro) ============
+  const dist = stats.distance;
+  if (dist && dist.daysWithData > 0) {
+    doc.addPage();
+    y = addTitleStrip(doc, { section: 'Distância Média por Jogador', clubName });
+    [
+      { label: 'Média por\ndia (km)', value: formatKm(dist.avgKm, 1) },
+      { label: 'Dias com\nregistro', value: String(dist.daysWithData) },
+      { label: 'Acumulado\nno período (km)', value: formatKm(dist.totalKm, 1) },
+      { label: 'Maior\ndia (km)', value: formatKm(dist.maxKm, 1) },
+    ].forEach((k, i) => {
+      drawKpiPanel(doc, { x: M.left + i * (kpiW + colGap), y: y + 4, w: kpiW, h: kpiH, label: k.label, value: k.value });
+    });
+    y += kpiH + 9;
+
+    const porSemana = dist.granularity === 'week';
+    y = addSubsectionPill(doc, porSemana ? 'Média por semana (km)' : 'Por dia de treino (km)', y);
+
+    // Barras (cor do pilar Físico) + linha tracejada da média
+    const series = dist.series || [];
+    const chartX = M.left + 10;
+    const chartW = totalW - 10;
+    const chartTop = y + 6;
+    const chartH = Math.min(70, pageH - chartTop - 30);
+    const base = chartTop + chartH;
+    const maxV = Math.max(...series.map((s) => s.avgKm), dist.avgKm || 0, 0.01) * 1.15;
+    const slot = chartW / Math.max(1, series.length);
+    const barW = Math.min(18, slot * 0.7);
+    const showVals = series.length <= 20;
+    const labelStep = series.length > 26 ? 4 : series.length > 14 ? 2 : 1;
+
+    setDrawHex(doc, PDF_THEME.colors.border);
+    doc.setLineWidth(0.3);
+    doc.line(chartX, base, chartX + chartW, base);
+    series.forEach((s, i) => {
+      const h = (s.avgKm / maxV) * chartH;
+      const bx = chartX + i * slot + (slot - barW) / 2;
+      setFillHex(doc, '#f59e0b');
+      doc.rect(bx, base - h, barW, Math.max(h, 0.4), 'F');
+      doc.setFont(PDF_THEME.fonts.family, 'bold');
+      doc.setFontSize(7.5);
+      setTextHex(doc, PDF_THEME.colors.text);
+      if (showVals) doc.text(formatKm(s.avgKm, 1), bx + barW / 2, base - h - 1.5, { align: 'center' });
+      if (i % labelStep === 0) {
+        doc.setFont(PDF_THEME.fonts.family, 'normal');
+        setTextHex(doc, PDF_THEME.colors.textMuted);
+        doc.text(s.label, bx + barW / 2, base + 4.5, { align: 'center' });
+      }
+    });
+    if (dist.avgKm > 0) {
+      const ay = base - (dist.avgKm / maxV) * chartH;
+      setDrawHex(doc, PDF_THEME.colors.textMuted);
+      doc.setLineWidth(0.35);
+      doc.setLineDashPattern([1.5, 1.2], 0);
+      doc.line(chartX, ay, chartX + chartW, ay);
+      doc.setLineDashPattern([], 0);
+      doc.setFont(PDF_THEME.fonts.family, 'bold');
+      doc.setFontSize(7.5);
+      setTextHex(doc, PDF_THEME.colors.textMuted);
+      doc.text(`média ${formatKm(dist.avgKm, 1)}`, chartX + chartW, ay - 1.2, { align: 'right' });
+    }
+    doc.setFont(PDF_THEME.fonts.family, 'normal');
+    doc.setFontSize(8);
+    setTextHex(doc, PDF_THEME.colors.textMuted);
+    doc.text('Média simples dos dias de treino com registro (dias sem registro não contam como zero).', M.left, base + 11);
   }
 
   paginate(doc);
