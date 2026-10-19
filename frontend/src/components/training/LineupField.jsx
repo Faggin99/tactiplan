@@ -1,7 +1,9 @@
-// Esquema visual da escalação no campo/quadra.
-// Lógica de posicionamento mora em lib/lineupLayout.js (compartilhada com o PDF).
+// Escalação no campo/quadra: desenha as VAGAS da formação escolhida e quem
+// ocupa cada uma. Quem decide onde o atleta aparece é a vaga (slot), nunca a
+// posição cadastrada. Geometria das vagas em lib/formation.js (compartilhada com o PDF).
 
-import { computeLineup, readJersey } from '../../lib/lineupLayout';
+import { readJersey } from '../../lib/lineupLayout';
+import { buildSlots, initials, shortName } from '../../lib/formation';
 
 // ---------- Componentes de campo por modalidade ----------
 function FutsalCourt() {
@@ -90,24 +92,22 @@ function FootballField() {
 }
 
 // ---------- Componente principal ----------
-export function LineupField({ players = [], modality = 'football_11', colors }) {
-  const starters = (players || []).filter((p) => p.status === 'starter');
-  if (starters.length === 0) {
-    return (
-      <div style={{
-        padding: '1.5rem',
-        textAlign: 'center',
-        color: colors?.textSecondary || '#94a3b8',
-        fontSize: '0.85rem',
-        fontStyle: 'italic',
-      }}>
-        Selecione os titulares para visualizar a escalação no campo.
-      </div>
-    );
-  }
-
-  const positioned = computeLineup({ players: starters, modality });
+/**
+ * @param {object}   props
+ * @param {Array}    props.players     jogadores do jogo ({ athlete_id, status, slot, ... })
+ * @param {string}   props.formation   formação efetiva (ex. "4-4-2")
+ * @param {string}   props.modality
+ * @param {Function} [props.onSlotClick] (slotIndex) => void — sem isso o campo é só leitura
+ * @param {string}   [props.movingAthleteId] atleta sendo movido (destaca as vagas de destino)
+ */
+export function LineupField({ players = [], formation, modality = 'football_11', onSlotClick, movingAthleteId = null }) {
   const isFutsal = modality === 'futsal';
+  const slots = buildSlots(formation);
+  const bySlot = new Map();
+  (players || []).forEach((p) => {
+    if (p.status === 'starter' && p.slot != null) bySlot.set(p.slot, p);
+  });
+  const interactive = typeof onSlotClick === 'function';
 
   return (
     <div style={{
@@ -119,52 +119,88 @@ export function LineupField({ players = [], modality = 'football_11', colors }) 
       borderRadius: '0.5rem',
       overflow: 'hidden',
       boxShadow: '0 6px 20px rgba(0,0,0,0.25)',
+      containerType: 'inline-size',
     }}>
       {isFutsal ? <FutsalCourt /> : <FootballField />}
 
-      {positioned.map(({ p, coords }, i) => {
-        const name = p.name || p.athlete?.name || 'Jogador';
-        const num = readJersey(p);
-        const last = name.split(' ').slice(-1)[0] || name;
+      {slots.map((s) => {
+        const p = bySlot.get(s.index);
+        const name = p ? (p.name || p.athlete?.name || 'Jogador') : '';
+        const num = p ? readJersey(p) : null;
+        const isMoving = p && movingAthleteId && p.athlete_id === movingAthleteId;
+        const isTarget = movingAthleteId && !isMoving;
+        const label = p
+          ? `${s.role}: ${name}${num != null && num !== '' ? ` (${num})` : ''}`
+          : `Vaga ${s.role} vazia — escolher atleta`;
+
         return (
-          <div
-            key={p.athlete_id || i}
-            title={name}
+          <button
+            key={s.index}
+            type="button"
+            data-slot={s.index}
+            title={label}
+            aria-label={label}
+            disabled={!interactive}
+            onClick={interactive ? () => onSlotClick(s.index) : undefined}
             style={{
               position: 'absolute',
-              left:  `${coords.x}%`,
-              top:   `${coords.y}%`,
+              left: `${s.x}%`,
+              top: `${s.y}%`,
               transform: 'translate(-50%, -50%)',
+              width: `${s.spacing}%`,
+              minWidth: 44,
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '0.18rem',
+              gap: '0.2rem',
+              padding: '0.15rem 0',
+              background: 'none',
+              border: 'none',
+              cursor: interactive ? 'pointer' : 'default',
+              WebkitTapHighlightColor: 'transparent',
+              touchAction: 'manipulation',
+              font: 'inherit',
             }}
           >
-            {/* Camisa: círculo branco com nº; se vazio mostra "-" cinza */}
+            {p ? (
+              <div style={{
+                width: 'clamp(30px, 11cqw, 40px)', height: 'clamp(30px, 11cqw, 40px)', borderRadius: '50%',
+                background: '#ffffff',
+                border: `2px solid ${isMoving ? '#facc15' : '#0f172a'}`,
+                outline: isMoving ? '3px solid #facc15' : (isTarget ? '2px dashed rgba(255,255,255,0.9)' : 'none'),
+                outlineOffset: 2,
+                color: '#0f172a',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: (num != null && num !== '') ? 'clamp(0.78rem, 4cqw, 0.95rem)' : 'clamp(0.66rem, 3.4cqw, 0.8rem)',
+                fontWeight: 800,
+                boxShadow: '0 2px 5px rgba(0,0,0,0.5)',
+              }}>
+                {num != null && num !== '' ? num : initials(name)}
+              </div>
+            ) : (
+              <div style={{
+                width: 'clamp(30px, 11cqw, 40px)', height: 'clamp(30px, 11cqw, 40px)', borderRadius: '50%',
+                background: isTarget ? 'rgba(250,204,21,0.25)' : 'rgba(255,255,255,0.12)',
+                border: `2px dashed ${isTarget ? '#facc15' : 'rgba(255,255,255,0.85)'}`,
+                color: '#ffffff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 'clamp(1rem, 5cqw, 1.2rem)', fontWeight: 600, lineHeight: 1,
+              }}>+</div>
+            )}
             <div style={{
-              width: 30, height: 30, borderRadius: '50%',
-              background: '#ffffff',
-              border: '2px solid #0f172a',
-              color: '#0f172a',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '0.78rem', fontWeight: 800,
-              boxShadow: '0 2px 5px rgba(0,0,0,0.5)',
-            }}>
-              {num != null && num !== '' ? num : '–'}
-            </div>
-            {/* Tag com sobrenome — fundo escuro semi-transparente */}
-            <div style={{
-              padding: '0.08rem 0.4rem',
-              backgroundColor: 'rgba(15,23,42,0.85)',
-              color: '#fff', fontSize: '0.62rem', fontWeight: 600,
+              maxWidth: '100%',
+              padding: '0.06rem 0.35rem',
+              backgroundColor: p ? 'rgba(15,23,42,0.85)' : 'rgba(15,23,42,0.45)',
+              color: p ? '#fff' : 'rgba(255,255,255,0.85)',
+              fontSize: 'clamp(0.56rem, 2.8cqw, 0.68rem)',
+              fontWeight: p ? 600 : 700,
               borderRadius: '0.3rem',
               whiteSpace: 'nowrap',
-              maxWidth: '90px',
               overflow: 'hidden', textOverflow: 'ellipsis',
-              letterSpacing: '0.01em',
-            }}>{last}</div>
-          </div>
+              letterSpacing: p ? '0.01em' : '0.06em',
+              boxSizing: 'border-box',
+            }}>{p ? shortName(name) : s.role}</div>
+          </button>
         );
       })}
     </div>

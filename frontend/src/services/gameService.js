@@ -23,6 +23,7 @@ export const gameService = {
 
   async saveAllMatchData(sessionId, data) {
     return await api.post(`/games/${sessionId}`, {
+      ...(data.formation !== undefined ? { formation: data.formation } : {}),
       opponent_name: data.opponent_name,
       match_duration: data.match_duration,
       players: data.players,

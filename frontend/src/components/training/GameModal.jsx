@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { deliverPdf } from '../../lib/deliverFile';
-import { X, Trophy, Users, Plus, Trash2, Goal, Shield, AlertTriangle, Clock, Edit2, UserPlus, Download, FileText } from 'lucide-react';
+import { X, Trophy, Users, Plus, Trash2, Goal, Shield, AlertTriangle, Clock, UserPlus, Wand2 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Button } from '../common/Button';
 import { PlayerSelectionModal } from './PlayerSelectionModal';
@@ -11,6 +11,9 @@ import { useSportConfig } from '../../hooks/useSportConfig';
 import { useClub } from '../../contexts/ClubContext';
 import { competitionService } from '../../services/competitionService';
 import { LineupField } from './LineupField';
+import { SlotAthletePicker } from './SlotAthletePicker';
+import { useIsMobile } from '../../hooks/useIsMobile';
+import { formationsFor, resolveFormation, buildSlots, slotCount, slotRole, remapFormation, suggestSlots } from '../../lib/formation';
 import { preloadAthletePhotos } from '../../modules/training-management/utils/pdfGenerator';
 import { drawLineupOnPdf } from '../../utils/pdfLineupRender';
 import { readJersey, computeMinutesPlayed } from '../../lib/lineupLayout';
@@ -26,6 +29,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
   const { athletes } = useAthletes();
   const sport = useSportConfig();
   const { selectedClub } = useClub();
+  const isMobile = useIsMobile(820);
 
   const [opponentName, setOpponentName] = useState('');
   const [matchDuration, setMatchDuration] = useState(sport.defaultDuration);
@@ -36,6 +40,10 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
   const [competitions, setCompetitions] = useState([]);
   const [selectedPlayers, setSelectedPlayers] = useState([]);
   const [events, setEvents] = useState([]);
+  const [formation, setFormation] = useState(() => resolveFormation(sport.modality, null));
+  // Vaga aberta no seletor de atleta (índice) e atleta sendo movido de vaga.
+  const [pickerSlot, setPickerSlot] = useState(null);
+  const [movingId, setMovingId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -77,10 +85,18 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
       setVideoFullUrl(session.video_full_url || '');
 
       const matchData = await gameService.getMatchData(session.id);
+      // Jogo sem formação (antigo) → padrão da modalidade; titulares sem vaga
+      // ficam em "sem vaga" pro usuário encaixar.
+      const f = resolveFormation(sport.modality, matchData.formation ?? session.formation);
+      const total = slotCount(f);
+      setFormation(f);
+      setPickerSlot(null);
+      setMovingId(null);
 
       setSelectedPlayers(matchData.players.map(p => ({
         athlete_id: p.athlete_id,
         status: p.status,
+        slot: (p.status === 'starter' && Number.isInteger(p.slot) && p.slot >= 0 && p.slot < total) ? p.slot : null,
         minutes_played: p.minutes_played || 0,
         // Camisa por JOGO: usa o override se existir, senão o nº permanente do plantel
         jersey_number: (p.jersey_number != null && p.jersey_number !== '') ? p.jersey_number : (p.athlete?.jersey_number ?? ''),
@@ -120,6 +136,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
           : 0,
       }));
       await gameService.saveAllMatchData(session.id, {
+        formation,
         opponent_name: opponentName,
         match_duration: matchDuration,
         players: playersToSave,
@@ -142,18 +159,110 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
       onClose();
     } catch (error) {
       console.error('Erro ao salvar:', error);
-      notify.error('Erro ao salvar dados do jogo');
+      notify.error(error?.message ? `Erro ao salvar dados do jogo: ${error.message}` : 'Erro ao salvar dados do jogo');
     } finally {
       setSaving(false);
     }
   };
 
   const handlePlayersConfirm = (players) => {
-    setSelectedPlayers(players.map(p => ({
-      ...p,
-      minutes_played: selectedPlayers.find(sp => sp.athlete_id === p.athlete_id)?.minutes_played || 0,
-    })));
+    // Mantém vaga, camisa do jogo e dados do atleta de quem já estava no jogo.
+    // Quem virou reserva (ou saiu) perde a vaga no campo.
+    setSelectedPlayers(players.map(p => {
+      const prev = selectedPlayers.find(sp => sp.athlete_id === p.athlete_id);
+      const athlete = prev?.athlete || athletes.find(a => a.id === p.athlete_id) || p.athlete;
+      return {
+        ...p,
+        athlete,
+        jersey_number: prev ? prev.jersey_number : (p.jersey_number ?? ''),
+        slot: p.status === 'starter' ? (prev?.slot ?? null) : null,
+        minutes_played: prev?.minutes_played || 0,
+      };
+    }));
+    setMovingId(null);
     setShowPlayerModal(false);
+  };
+
+  // ---------- Escalação no campo (por vaga) ----------
+  const slots = useMemo(() => buildSlots(formation), [formation]);
+  const occupantOf = (slot) => selectedPlayers.find(p => p.status === 'starter' && p.slot === slot) || null;
+
+  // Coloca um atleta do plantel numa vaga. Se ele já estava em outra vaga,
+  // as duas trocam; quem estava na vaga e não tem pra onde ir vira reserva.
+  const placeAthlete = (slot, athlete) => {
+    const occupant = occupantOf(slot);
+    const existing = selectedPlayers.find(p => p.athlete_id === athlete.id);
+    if (existing && existing.status === 'starter' && existing.slot === slot) return;
+    const fromSlot = existing && existing.status === 'starter' ? existing.slot : null;
+
+    let next = selectedPlayers.map(p => {
+      if (p.athlete_id === athlete.id) return { ...p, status: 'starter', slot };
+      if (occupant && p.athlete_id === occupant.athlete_id) {
+        return fromSlot != null ? { ...p, slot: fromSlot } : { ...p, status: 'substitute', slot: null };
+      }
+      return p;
+    });
+    if (!existing) {
+      next = [...next, {
+        athlete_id: athlete.id,
+        status: 'starter',
+        slot,
+        minutes_played: 0,
+        jersey_number: athlete.jersey_number ?? '',
+        athlete,
+        name: athlete.name,
+      }];
+    }
+    setSelectedPlayers(next);
+    if (occupant && fromSlot == null) notify.success(`${occupant.name || occupant.athlete?.name} foi para as reservas`);
+  };
+
+  // Move o atleta em "movingId" para a vaga clicada (troca com quem estiver lá).
+  const moveTo = (slot) => {
+    const mover = selectedPlayers.find(p => p.athlete_id === movingId);
+    setMovingId(null);
+    if (!mover || mover.slot === slot) return;
+    const occupant = occupantOf(slot);
+    const fromSlot = mover.status === 'starter' ? mover.slot : null;
+    setSelectedPlayers(selectedPlayers.map(p => {
+      if (p.athlete_id === mover.athlete_id) return { ...p, status: 'starter', slot };
+      if (occupant && p.athlete_id === occupant.athlete_id) return { ...p, slot: fromSlot };
+      return p;
+    }));
+  };
+
+  const handleSlotClick = (slot) => {
+    if (movingId) { moveTo(slot); return; }
+    setPickerSlot(slot);
+  };
+
+  const removeFromField = (athleteId) => {
+    setSelectedPlayers(selectedPlayers.map(p => p.athlete_id === athleteId ? { ...p, status: 'substitute', slot: null } : p));
+  };
+
+  const removeFromGame = (athleteId) => {
+    if (movingId === athleteId) setMovingId(null);
+    setSelectedPlayers(selectedPlayers.filter(p => p.athlete_id !== athleteId));
+  };
+
+  const changeFormation = (next) => {
+    if (next === formation) return;
+    const { players, displaced } = remapFormation(selectedPlayers, formation, next);
+    setSelectedPlayers(players);
+    setFormation(next);
+    setMovingId(null);
+    if (displaced.length > 0) {
+      const nomes = displaced.map(p => p.name || p.athlete?.name).filter(Boolean).join(', ');
+      notify.info(`${displaced.length === 1 ? '1 atleta ficou' : `${displaced.length} atletas ficaram`} sem vaga na ${next}: ${nomes}. Toque no atleta destacado para reposicionar.`, { icon: '⚠️', duration: 6000 });
+    }
+  };
+
+  const applySuggestion = () => {
+    const before = selectedPlayers.filter(p => p.status === 'starter' && p.slot == null).length;
+    const next = suggestSlots(selectedPlayers, formation);
+    const after = next.filter(p => p.status === 'starter' && p.slot == null).length;
+    setSelectedPlayers(next);
+    if (before - after > 0) notify.success(`${before - after} encaixado(s) pela posição cadastrada. Confira e ajuste se precisar.`);
   };
 
   const handleAddEvent = (event) => {
@@ -177,7 +286,12 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
 
   if (!isOpen) return null;
 
-  const starters = selectedPlayers.filter(p => p.status === 'starter');
+  // Titulares em ordem de vaga; quem está sem vaga vai para o fim.
+  const starters = selectedPlayers
+    .filter(p => p.status === 'starter')
+    .sort((a, b) => (a.slot ?? 99) - (b.slot ?? 99));
+  const unplaced = starters.filter(p => p.slot == null);
+  const freeSlots = slots.length - (starters.length - unplaced.length);
   const substitutes = selectedPlayers.filter(p => p.status === 'substitute');
 
   const goalsScored = events.filter(e => e.event_type === 'goal_scored').length;
@@ -274,7 +388,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
           startIdx + idx + 1,
           readJersey(p) ?? '-',
           p.name || p.athlete?.name,
-          p.athlete?.position || '—',
+          slotRole(formation, p.slot) || (p.status === 'starter' ? 'S/V' : (p.athlete?.position || '—')),
         ]),
         theme: 'plain',
         headStyles: { fillColor: hexRgb(PDF_THEME.colors.surfaceAlt), textColor: hexRgb(PDF_THEME.colors.text), fontStyle: 'bold', fontSize: 9, cellPadding: 1.8 },
@@ -313,7 +427,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
     // ============ PÁGINA 3: Escalação no campo ============
     if (starters.length > 0) {
       doc.addPage();
-      y = addTitleStrip(doc, { section: 'Escalação', clubName });
+      y = addTitleStrip(doc, { section: `Escalação · ${formation}`, clubName });
 
       // Campo no centro da página
       const fH = pageH - y - M.bottom - 12;
@@ -323,14 +437,19 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
       drawLineupOnPdf(doc, {
         x: fX, y: fY, w: fW, h: fH,
         players: selectedPlayers,
+        formation,
         modality: sport.modality,
         photoMap,
       });
 
-      // Legenda
+      // Legenda (+ titulares que ainda não têm vaga no campo)
       doc.setFont(PDF_THEME.fonts.family, 'normal');
       doc.setFontSize(8);
       setTextHex(doc, PDF_THEME.colors.textMuted);
+      if (unplaced.length > 0) {
+        const nomes = unplaced.map(p => p.name || p.athlete?.name).filter(Boolean).join(', ');
+        doc.text(doc.splitTextToSize(`Titulares sem vaga no campo: ${nomes}`, totalW)[0], M.left, pageH - M.bottom - 6);
+      }
       doc.text('Camisas exibidas são as deste jogo (fallback: nº permanente do plantel).', M.left, pageH - M.bottom - 2);
     }
 
@@ -359,10 +478,10 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
       ],
     });
 
-    const allRows = [['#', 'Status', 'Camisa', 'Nome']];
-    starters.forEach((p, i) => allRows.push([i + 1, 'Titular', p.jersey_number || '', p.name || p.athlete?.name || '']));
-    substitutes.forEach((p, i) => allRows.push([starters.length + i + 1, 'Reserva', p.jersey_number || '', p.name || p.athlete?.name || '']));
-    addSheet(wb, 'Convocação', allRows, { widths: [6, 12, 10, 32], freezeHeader: true, autoFilter: true });
+    const allRows = [['#', 'Status', `Vaga (${formation})`, 'Camisa', 'Nome']];
+    starters.forEach((p, i) => allRows.push([i + 1, 'Titular', slotRole(formation, p.slot) || 'Sem vaga', p.jersey_number || '', p.name || p.athlete?.name || '']));
+    substitutes.forEach((p, i) => allRows.push([starters.length + i + 1, 'Reserva', '', p.jersey_number || '', p.name || p.athlete?.name || '']));
+    addSheet(wb, 'Convocação', allRows, { widths: [6, 12, 14, 10, 32], freezeHeader: true, autoFilter: true });
 
     saveWorkbook(wb, `Convocacao_${opponent.replace(/\s+/g, '_')}_${gameDate.replace(/\//g, '-')}.xlsx`);
   };
@@ -378,17 +497,17 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
-    padding: '1rem',
+    padding: isMobile ? 0 : '1rem',
     backdropFilter: 'blur(2px)',
   };
 
   const modalStyle = {
     backgroundColor: colors.background,
-    borderRadius: '0.75rem',
+    borderRadius: isMobile ? 0 : '0.75rem',
     width: '100%',
     maxWidth: '1400px',
-    height: '95vh',
-    maxHeight: '95vh',
+    height: isMobile ? '100dvh' : '95vh',
+    maxHeight: isMobile ? '100dvh' : '95vh',
     display: 'flex',
     flexDirection: 'column',
     boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
@@ -407,7 +526,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
   const contentStyle = {
     flex: 1,
     overflow: 'auto',
-    padding: '0.75rem 1.25rem',
+    padding: isMobile ? '0.65rem 0.75rem' : '0.75rem 1.25rem',
     minHeight: 0,
   };
 
@@ -436,7 +555,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
     borderRadius: '0.5rem',
     border: `1px solid ${colors.border}`,
     padding: '0.6rem 0.7rem',
-    height: '100%',
+    height: isMobile ? 'auto' : '100%',
     display: 'flex',
     flexDirection: 'column',
     minHeight: 0,
@@ -449,6 +568,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
     marginBottom: '0.75rem',
     display: 'flex',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: '0.5rem',
   };
 
@@ -515,7 +635,9 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                   return (
                     <div style={{
                       display: 'grid',
-                      gridTemplateColumns: 'minmax(160px, 2.2fr) 80px 75px minmax(160px, 1.8fr) 55px minmax(140px, 1.5fr) 110px',
+                      gridTemplateColumns: isMobile
+                        ? 'repeat(2, minmax(0, 1fr))'
+                        : 'minmax(160px, 2.2fr) 80px 75px minmax(160px, 1.8fr) 55px minmax(140px, 1.5fr) 110px',
                       gap: '0.5rem',
                       alignItems: 'end',
                     }}>
@@ -580,25 +702,107 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                 {/* Row 2: 3 colunas - Campo | Jogadores | Eventos */}
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: '260px 1fr 1fr',
+                  gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : 'minmax(280px, 330px) minmax(0, 1fr) minmax(0, 1fr)',
                   gap: '0.65rem',
                   flex: 1,
                   minHeight: 0,
                 }}>
-                  {/* Coluna 1: Campo (sempre visível) */}
+                  {/* Coluna 1: Campo — vagas da formação; clicar numa vaga escolhe o atleta */}
                   <div style={sectionStyle}>
-                    <div style={{ ...sectionTitleStyle, justifyContent: 'space-between' }}>
+                    <div style={{ ...sectionTitleStyle, justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <Trophy size={18} color={colors.primary} />
                         <span>Escalação no campo</span>
                       </div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.7rem', color: colors.textSecondary, fontWeight: 600 }}>
+                        Formação
+                        <select
+                          value={formation}
+                          onChange={(e) => changeFormation(e.target.value)}
+                          aria-label="Formação tática"
+                          style={{ ...inputStyle, width: 'auto', padding: '0.3rem 0.45rem', fontSize: isMobile ? '16px' : '0.8rem', fontWeight: 700 }}
+                        >
+                          {formationsFor(sport.modality).map((f) => <option key={f} value={f}>{f}</option>)}
+                        </select>
+                      </label>
                     </div>
-                    <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0.25rem 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+
+                    {movingId && (
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.45rem',
+                        padding: '0.4rem 0.55rem', borderRadius: '0.4rem',
+                        backgroundColor: '#facc1522', border: '1px solid #facc1566',
+                        fontSize: '0.75rem', color: colors.text,
+                      }}>
+                        <span style={{ flex: 1 }}>
+                          Toque na vaga para onde vai <b>{(() => { const m = selectedPlayers.find(p => p.athlete_id === movingId); return m?.name || m?.athlete?.name; })()}</b>
+                        </span>
+                        <button type="button" onClick={() => setMovingId(null)} style={{ background: 'none', border: `1px solid ${colors.border}`, borderRadius: '0.3rem', color: colors.text, fontSize: '0.72rem', padding: '0.2rem 0.5rem', cursor: 'pointer' }}>
+                          Cancelar
+                        </button>
+                      </div>
+                    )}
+
+                    <div style={{ flex: isMobile ? 'none' : 1, minHeight: 0, overflowY: 'auto', padding: '0.15rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
                       <LineupField
                         players={selectedPlayers}
+                        formation={formation}
                         modality={sport.modality}
-                        colors={colors}
+                        onSlotClick={handleSlotClick}
+                        movingAthleteId={movingId}
                       />
+
+                      {unplaced.length > 0 && (
+                        <div style={{
+                          width: '100%', maxWidth: 430, boxSizing: 'border-box',
+                          padding: '0.45rem 0.55rem', borderRadius: '0.4rem',
+                          backgroundColor: '#f59e0b14', border: '1px dashed #f59e0b99',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
+                            <span style={{ flex: 1, fontSize: '0.68rem', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase' }}>
+                              Titulares sem vaga ({unplaced.length})
+                            </span>
+                            {freeSlots > 0 && (
+                              <button
+                                type="button"
+                                onClick={applySuggestion}
+                                title="Encaixa nas vagas livres usando a posição cadastrada como sugestão"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', background: 'none', border: `1px solid ${colors.border}`, borderRadius: '0.3rem', color: colors.text, fontSize: '0.68rem', padding: '0.2rem 0.45rem', cursor: 'pointer' }}
+                              >
+                                <Wand2 size={12} /> Encaixar sugestão
+                              </button>
+                            )}
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                            {unplaced.map((p) => {
+                              const ativo = movingId === p.athlete_id;
+                              return (
+                                <button
+                                  key={p.athlete_id}
+                                  type="button"
+                                  onClick={() => setMovingId(ativo ? null : p.athlete_id)}
+                                  title="Toque e depois escolha a vaga no campo"
+                                  style={{
+                                    minHeight: 32, padding: '0.25rem 0.55rem', borderRadius: '999px',
+                                    border: `1px solid ${ativo ? '#facc15' : '#f59e0b88'}`,
+                                    backgroundColor: ativo ? '#facc1533' : colors.background,
+                                    color: colors.text, fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer',
+                                    touchAction: 'manipulation',
+                                  }}
+                                >
+                                  {p.name || p.athlete?.name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {starters.length === 0 && (
+                        <div style={{ fontSize: '0.72rem', color: colors.textSecondary, textAlign: 'center' }}>
+                          Toque numa vaga para escolher o atleta.
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -639,7 +843,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                           Nenhum jogador selecionado
                           <br />
                           <span style={{ fontSize: '0.75rem' }}>
-                            Clique em "Selecionar" para adicionar
+                            Toque numa vaga do campo para escalar, ou em "Selecionar" para relacionar reservas
                           </span>
                         </div>
                       ) : (
@@ -656,8 +860,25 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                               }}>
                                 Titulares ({starters.length})
                               </div>
-                              {starters.map((player) => (
+                              {starters.map((player) => {
+                                const role = slotRole(formation, player.slot);
+                                return (
                                 <div key={player.athlete_id} style={playerRowStyle}>
+                                  <button
+                                    type="button"
+                                    onClick={() => (role ? setPickerSlot(player.slot) : setMovingId(movingId === player.athlete_id ? null : player.athlete_id))}
+                                    title={role ? `Vaga ${role} no campo` : 'Sem vaga no campo — toque e escolha a vaga'}
+                                    style={{
+                                      width: 38, flexShrink: 0, padding: '0.12rem 0', borderRadius: '0.25rem',
+                                      fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.04em', cursor: 'pointer',
+                                      border: `1px solid ${role ? colors.border : '#f59e0b99'}`,
+                                      backgroundColor: role ? colors.background : '#f59e0b1f',
+                                      color: role ? colors.textSecondary : '#f59e0b',
+                                      textTransform: 'uppercase',
+                                    }}
+                                  >
+                                    {role || 'S/V'}
+                                  </button>
                                   <input
                                     type="number"
                                     min="1"
@@ -702,8 +923,10 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                                       <span style={{ fontSize: '0.65rem', color: colors.textSecondary }}>min</span>
                                     </div>
                                   )}
+                                  <RemoveBtn onClick={() => removeFromGame(player.athlete_id)} />
                                 </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           )}
 
@@ -765,6 +988,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                                       <span style={{ fontSize: '0.65rem', color: colors.textSecondary }}>min</span>
                                     </div>
                                   )}
+                                  <RemoveBtn onClick={() => removeFromGame(player.athlete_id)} />
                                 </div>
                               ))}
                             </div>
@@ -891,6 +1115,20 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
         onConfirm={handlePlayersConfirm}
       />
 
+      <SlotAthletePicker
+        isOpen={pickerSlot != null}
+        onClose={() => setPickerSlot(null)}
+        slot={pickerSlot != null ? slots[pickerSlot] : null}
+        formation={formation}
+        occupant={pickerSlot != null ? occupantOf(pickerSlot) : null}
+        athletes={athletes}
+        players={selectedPlayers}
+        isMobile={isMobile}
+        onPick={(athlete) => { placeAthlete(pickerSlot, athlete); setPickerSlot(null); }}
+        onMove={() => { const o = occupantOf(pickerSlot); setPickerSlot(null); if (o) setMovingId(o.athlete_id); }}
+        onRemoveFromField={() => { const o = occupantOf(pickerSlot); setPickerSlot(null); if (o) removeFromField(o.athlete_id); }}
+      />
+
       <EventModal
         isOpen={showEventModal}
         onClose={() => setShowEventModal(false)}
@@ -899,5 +1137,21 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
         selectedPlayers={selectedPlayers}
       />
     </>
+  );
+}
+
+// Tira o atleta do jogo (sai da lista e do campo).
+function RemoveBtn({ onClick }) {
+  const { colors } = useTheme();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title="Tirar do jogo"
+      aria-label="Tirar do jogo"
+      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.3rem', color: colors.textSecondary, display: 'flex', flexShrink: 0 }}
+    >
+      <X size={14} />
+    </button>
   );
 }
