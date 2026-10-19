@@ -769,6 +769,12 @@ export function TrainingDashboard({ stats, colors }) {
         <Activity size={48} strokeWidth={1.5} style={{ opacity: 0.3 }} />
         <h3 style={{ margin: 0, fontSize: '1.1rem', color: colors.text }}>Nenhum dado encontrado</h3>
         <p style={{ margin: 0, fontSize: '0.875rem' }}>Não há treinos registrados no período selecionado.</p>
+        {/* Só a distância do dia foi preenchida (sem atividades): mostra ela mesmo assim */}
+        {stats?.distance?.daysWithData > 0 && (
+          <div style={{ width: '100%', marginTop: '1.5rem', textAlign: 'left' }}>
+            <DistanceCard distance={stats.distance} colors={colors} />
+          </div>
+        )}
       </div>
     );
   }
