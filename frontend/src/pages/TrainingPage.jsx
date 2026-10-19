@@ -22,6 +22,7 @@ import { TourGuide } from '../components/common/TourGuide';
 import { useTour, useTourReplayListener } from '../hooks/useTour';
 import { notify } from '../lib/notify';
 import { useCan } from '../hooks/useCan';
+import { formatKm, toKm } from '../utils/distancia';
 
 export function TrainingPage() {
   const { colors } = useTheme();
@@ -504,7 +505,9 @@ export function TrainingPage() {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    flexWrap: 'wrap',
     gap: '0.3rem',
+    rowGap: '0.15rem',
     flexShrink: 0,
   };
 
@@ -886,6 +889,12 @@ export function TrainingPage() {
               <div style={durationBadgeStyle}>
                 <span>⏱</span>
                 <span>{getTotalDuration(session)} min</span>
+                {toKm(session.avg_distance_km) !== null && (session.session_type || 'training') === 'training' && (
+                  <span title="Distância média percorrida por jogador" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', marginLeft: '0.35rem', paddingLeft: '0.45rem', borderLeft: `1px solid ${colors.border}` }}>
+                    <span>📍</span>
+                    <span>{formatKm(session.avg_distance_km, 1)} km</span>
+                  </span>
+                )}
               </div>
               </div>
             );
@@ -1037,6 +1046,13 @@ export function TrainingPage() {
             }
 
             console.log('All blocks saved successfully');
+
+            // Info do dia: distância média por jogador (usa o id REAL, pós-ensure)
+            if (data.distanceChanged) {
+              const sessionId = currentSession?.id || freshSession?.id;
+              if (!sessionId) throw new Error('Sessão sem id para salvar a distância');
+              await trainingService.updateSessionDistance(sessionId, data.avgDistanceKm);
+            }
 
             // Upload files to session
             if (data.files && data.files.length > 0) {

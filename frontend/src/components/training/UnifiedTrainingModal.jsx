@@ -11,6 +11,7 @@ import { useIsMobile } from '../../hooks/useIsMobile';
 import { trainingService } from '../../services/trainingService';
 import { CreateTitleModal } from './CreateTitleModal';
 import { notify } from '../../lib/notify';
+import { formatKm, parseKmInput, toKm } from '../../utils/distancia';
 
 export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initialTab = 0, isMatchDay = false }) {
   const { colors } = useTheme();
@@ -28,6 +29,11 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [existingFiles, setExistingFiles] = useState([]);
   const [previewFile, setPreviewFile] = useState(null);
+  // Info do DIA (não por atividade): distância média percorrida por jogador, em km.
+  // Só em dia de treino — no dia de jogo este modal edita apenas os "Não
+  // relacionados" (quem não foi pro jogo), então o número não representaria o dia.
+  const [distanceInput, setDistanceInput] = useState('');
+  const showDistance = !isMatchDay;
 
   // Tab navigation: Blocos de treino apenas (sem tab de Anexos)
   const [activeTab, setActiveTab] = useState(0);
@@ -75,6 +81,7 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
     if (isOpen) {
       // initialTab now directly refers to the block index (0-based)
       setActiveTab(Math.max(0, initialTab));
+      setDistanceInput(formatKm(session?.avg_distance_km));
       loadData();
     } else {
       // Reset state when modal closes
@@ -89,6 +96,7 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
       setAttachmentTitleInput('');
       setShowTitlePrompt(false);
       setPendingFile(null);
+      setDistanceInput('');
     }
   }, [isOpen, initialTab, session]);
 
@@ -316,6 +324,18 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
   };
 
   const handleSave = async () => {
+    // Distância do dia: valida antes de qualquer coisa (sem salvar meia alteração)
+    let distance = { changed: false, value: null };
+    if (showDistance) {
+      const parsed = parseKmInput(distanceInput);
+      if (!parsed.ok) {
+        notify.error(parsed.error);
+        return;
+      }
+      const atual = toKm(session?.avg_distance_km);
+      distance = { changed: parsed.value !== atual, value: parsed.value };
+    }
+
     // Check if session date is in the past
     if (session?.date) {
       const [sy, sm, sd] = session.date.split('-').map(Number);
@@ -339,7 +359,7 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
 
     setLoading(true);
     try {
-      await onSave({ blockData, files: uploadedFiles });
+      await onSave({ blockData, files: uploadedFiles, avgDistanceKm: distance.value, distanceChanged: distance.changed });
       onClose();
     } catch (error) {
       console.error('Error saving:', error);
@@ -531,6 +551,54 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
           <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '0' : '1rem', height: '100%' }}>
             {/* Main Content Area */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+              {/* Info do dia — fixa acima das abas (vale pro dia todo, não pra um bloco) */}
+              {showDistance && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: isMobile ? 'stretch' : 'center',
+                    flexDirection: isMobile ? 'column' : 'row',
+                    gap: isMobile ? '0.4rem' : '0.75rem',
+                    padding: '0.6rem 0.75rem',
+                    marginBottom: '0.75rem',
+                    border: `1px solid ${colors.border}`,
+                    borderRadius: '0.5rem',
+                    backgroundColor: `${colors.primary}08`,
+                  }}
+                >
+                  <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: colors.textSecondary }}>
+                      Info do dia
+                    </span>
+                    <label htmlFor="avg-distance-km" style={{ fontSize: '0.8rem', fontWeight: 600, color: colors.text }}>
+                      Distância média por jogador (km)
+                    </label>
+                  </div>
+                  <input
+                    id="avg-distance-km"
+                    type="text"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    value={distanceInput}
+                    onChange={(e) => setDistanceInput(e.target.value.replace(/[^0-9.,]/g, ''))}
+                    placeholder="Ex.: 5,2"
+                    aria-describedby="avg-distance-km-hint"
+                    style={{
+                      width: isMobile ? '100%' : '140px',
+                      padding: '0.5rem 0.75rem',
+                      fontSize: isMobile ? '16px' : '0.875rem',
+                      border: `1px solid ${parseKmInput(distanceInput).ok ? colors.border : '#ef4444'}`,
+                      borderRadius: '0.375rem',
+                      backgroundColor: colors.background,
+                      color: colors.text,
+                    }}
+                  />
+                  <span id="avg-distance-km-hint" style={{ fontSize: '0.7rem', color: colors.textSecondary }}>
+                    Opcional · média do dia (GPS/estimativa)
+                  </span>
+                </div>
+              )}
+
               {/* Tab Navigation */}
               <div style={tabContainerStyle}>
                 <button

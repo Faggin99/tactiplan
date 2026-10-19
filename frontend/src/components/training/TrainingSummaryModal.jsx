@@ -6,6 +6,8 @@ import { newWorkbook, addSheet, saveWorkbook, addMetaSheet, formatMinutes } from
 import { ExportMenu } from '../common/ExportMenu';
 import { deliverFile } from '../../lib/deliverFile';
 import { isNative } from '../../lib/platform';
+import { notify } from '../../lib/notify';
+import { formatKm, toKm } from '../../utils/distancia';
 
 export function TrainingSummaryModal({ isOpen, onClose, session }) {
   const { colors } = useTheme();
@@ -21,12 +23,15 @@ export function TrainingSummaryModal({ isOpen, onClose, session }) {
     }, 0);
   };
 
+  // Info do dia: distância média por jogador (só dia de treino, como no modal)
+  const distanciaKm = (session.session_type || 'training') === 'training' ? toKm(session.avg_distance_km) : null;
+
   // Filter blocks with activities
   const activeBlocks = session.blocks?.filter(block => block.activity) || [];
 
   const handleDownloadExcel = () => {
     if (activeBlocks.length === 0) {
-      alert('Nenhuma atividade pra exportar.');
+      notify.info('Nenhuma atividade pra exportar.');
       return;
     }
     const wb = newWorkbook({ title: `Treino - ${session.day_name}` });
@@ -38,6 +43,7 @@ export function TrainingSummaryModal({ isOpen, onClose, session }) {
       totals: [
         ['Atividades', activeBlocks.length],
         ['Tempo total', formatMinutes(total)],
+        ...(distanciaKm !== null ? [['Distância média por jogador', `${formatKm(distanciaKm)} km`]] : []),
       ],
     });
     const rows = [['Bloco', 'Atividade', 'Conteúdos', 'Submomentos', 'Grupos', 'Tempo (min)', 'Descrição']];
@@ -418,6 +424,11 @@ export function TrainingSummaryModal({ isOpen, onClose, session }) {
               {/* Total Duration - MOVED TO BOTTOM */}
               <div style={totalDurationBoxStyle}>
                 ⏱ Duração Total: {getTotalDuration()} minutos
+                {distanciaKm !== null && (
+                  <span style={{ marginLeft: '16px' }}>
+                    📍 Distância média por jogador: {formatKm(distanciaKm)} km
+                  </span>
+                )}
               </div>
             </div>
           </div>
