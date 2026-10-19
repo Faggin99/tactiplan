@@ -34,7 +34,9 @@ export const PERMISSION_LABELS = {
   'billing:manage':      'Gerenciar assinatura',
 };
 
-export const ROLES = ['owner', 'manager', 'head_coach', 'assistant_coach', 'specialist', 'viewer'];
+// Papéis oferecidos na tela. 'manager' e 'viewer' saíram (19/10/2026) mas seguem
+// reconhecidos abaixo para membros antigos (hoje não há nenhum).
+export const ROLES = ['owner', 'head_coach', 'assistant_coach', 'specialist', 'other'];
 
 export const ROLE_LABELS = {
   owner:           'Proprietário',
@@ -43,6 +45,7 @@ export const ROLE_LABELS = {
   assistant_coach: 'Treinador Auxiliar',
   specialist:      'Especialista (Fisio/PF/Analista)',
   viewer:          'Somente leitura',
+  other:           'Outros',
 };
 
 export const ROLE_DESCRIPTIONS = {
@@ -51,6 +54,7 @@ export const ROLE_DESCRIPTIONS = {
   assistant_coach: 'Auxiliar — edita treinos, vê jogos/atletas/táticas',
   specialist:      'Fisio/PF/Analista — gerencia lesões, vê stats, edita biblioteca',
   viewer:          'Apenas leitura',
+  other:           'Outra função: escolha abaixo o que a pessoa pode ver e editar',
 };
 
 export const ROLE_DEFAULTS = {
@@ -89,6 +93,14 @@ export const ROLE_DEFAULTS = {
     'library:edit',
   ],
   viewer: [
+    'training:view',
+    'games:view',
+    'athletes:view',
+    'tactical:view',
+    'stats:view',
+  ],
+  // Outros: começa só vendo; o dono marca o resto nas permissões.
+  other: [
     'training:view',
     'games:view',
     'athletes:view',

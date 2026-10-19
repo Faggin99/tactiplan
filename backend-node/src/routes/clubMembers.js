@@ -57,7 +57,7 @@ function escapeHtml(s) {
 }
 
 function buildInviteEmail({ workspaceName, role, inviterName, acceptUrl }) {
-  const roleLabel = role === 'assistant' ? 'auxiliar' : 'treinador';
+  const roleLabel = ({ head_coach: 'treinador principal', assistant_coach: 'treinador auxiliar', specialist: 'especialista', assistant: 'auxiliar' })[role] || 'membro da comissão';
   const wsName = escapeHtml(workspaceName);
   const invName = escapeHtml(inviterName || 'Um treinador');
   const url = escapeHtml(acceptUrl);
@@ -87,7 +87,7 @@ Pra aceitar, abra: ${acceptUrl}`;
 
 const router = express.Router();
 const { isValidRole, isValidPermission } = require('../utils/permissions');
-const VALID_ROLES = ['manager', 'head_coach', 'assistant_coach', 'specialist', 'viewer'];
+const VALID_ROLES = ['head_coach', 'assistant_coach', 'specialist', 'other'];
 
 // Resolve workspace a partir de clubId (1 conta = 1 clube = 1 workspace)
 async function resolveWorkspaceFromClub(clubId) {

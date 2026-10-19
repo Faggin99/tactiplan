@@ -15,7 +15,7 @@ import { notify } from '../lib/notify';
 import { isNative } from '../lib/platform';
 import { NOME_CLUBE } from '../config/planos';
 
-const ROLE_ICONS = { owner: Crown, manager: Shield, head_coach: Shield, assistant_coach: Shield, specialist: Shield, viewer: Eye };
+const ROLE_ICONS = { owner: Crown, manager: Shield, head_coach: Shield, assistant_coach: Shield, specialist: Shield, viewer: Eye, other: Shield };
 
 export function TeamConfigPage() {
   const { colors } = useTheme();

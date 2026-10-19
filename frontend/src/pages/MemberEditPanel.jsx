@@ -65,6 +65,8 @@ export function MemberEditPanel({ isOpen, onClose, member, categories = [], onSa
     setRole(newRole);
     // Trocar de role reseta permissions pros defaults (a menos que advanced esteja com override explícito)
     if (!showAdvanced) setPermissions(null);
+    // "Outros" não tem perfil pronto: abre as permissões para o dono escolher.
+    if (newRole === 'other') setShowAdvanced(true);
   }
 
   function toggleCat(id) {
@@ -137,7 +139,7 @@ export function MemberEditPanel({ isOpen, onClose, member, categories = [], onSa
             <Select
               value={role}
               onChange={(e) => handleRoleChange(e.target.value)}
-              options={ROLES.filter(r => r !== 'owner').map(r => ({ value: r, label: ROLE_LABELS[r] }))}
+              options={[...ROLES.filter(r => r !== 'owner'), ...(ROLES.includes(role) ? [] : [role])].map(r => ({ value: r, label: ROLE_LABELS[r] || r }))}
               fullWidth
             />
             {ROLE_DESCRIPTIONS[role] && (

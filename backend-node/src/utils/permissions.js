@@ -23,7 +23,8 @@ const PERMISSIONS = [
   'billing:manage',
 ];
 
-const ROLES = ['owner', 'manager', 'head_coach', 'assistant_coach', 'specialist', 'viewer'];
+// 'manager'/'viewer' não são mais oferecidos (19/10/2026), mas seguem válidos p/ membros antigos.
+const ROLES = ['owner', 'manager', 'head_coach', 'assistant_coach', 'specialist', 'viewer', 'other'];
 
 const ROLE_DEFAULTS = {
   owner: PERMISSIONS.slice(), // tudo
@@ -61,6 +62,14 @@ const ROLE_DEFAULTS = {
     'library:edit',
   ],
   viewer: [
+    'training:view',
+    'games:view',
+    'athletes:view',
+    'tactical:view',
+    'stats:view',
+  ],
+  // Outros: começa só vendo; o dono marca o resto nas permissões.
+  other: [
     'training:view',
     'games:view',
     'athletes:view',
