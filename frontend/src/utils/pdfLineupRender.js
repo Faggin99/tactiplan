@@ -1,9 +1,11 @@
-// Renderiza a escalação no PDF: quadra/gramado limpo + chips dos jogadores.
+// Renderiza a escalação no PDF: quadra/gramado limpo + chips dos jogadores,
+// cada um na VAGA (slot) da formação do jogo — a mesma geometria da tela
+// (lib/formation.js). Titular sem vaga não entra no desenho.
 // Aceita um photoMap (athlete_id → dataURL) pra pintar a foto do atleta dentro
-// do círculo da camisa. Se a foto não estiver disponível, mostra a inicial do
-// sobrenome.
+// do círculo. Sem foto, mostra as iniciais do nome.
 
-import { computeLineup, readJersey } from '../lib/lineupLayout';
+import { readJersey } from '../lib/lineupLayout';
+import { buildSlots, resolveFormation, initials, shortName } from '../lib/formation';
 
 const RGB = {
   white:    [255, 255, 255],
@@ -108,7 +110,7 @@ function drawArc(doc, cx, cy, r, a0, a1, lw) {
 }
 
 // ----------- Desenha um chip de jogador -----------
-function drawPlayerChip(doc, { cx, cy, num, name, photoDataUrl, chipR }) {
+function drawPlayerChip(doc, { cx, cy, num, name, photoDataUrl, chipR, maxNameW }) {
   const R = chipR;
 
   // Sombra
@@ -127,9 +129,15 @@ function drawPlayerChip(doc, { cx, cy, num, name, photoDataUrl, chipR }) {
         cx - imgR, cy - imgR, imgR * 2, imgR * 2, undefined, 'FAST');
     } catch (err) { /* ignora — fica só o círculo branco */ }
   } else {
-    // Sem foto: círculo branco com borda navy
+    // Sem foto: círculo branco com o nº da camisa (ou as iniciais, sem nº)
     setColor(doc, 'fill', RGB.white);
     doc.circle(cx, cy, R, 'F');
+    const hasNum = num != null && num !== '';
+    const center = hasNum ? String(num) : initials(name);
+    setColor(doc, 'text', RGB.navy);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(R * (hasNum ? 3.2 : 2.4));
+    doc.text(center, cx - doc.getTextWidth(center) / 2, cy + R * (hasNum ? 0.4 : 0.3));
   }
 
   // Aro escuro
@@ -138,7 +146,8 @@ function drawPlayerChip(doc, { cx, cy, num, name, photoDataUrl, chipR }) {
   doc.circle(cx, cy, R, 'S');
 
   // Badge inferior preto com nº (sobrescrevendo a foto/círculo só na parte de baixo)
-  const numTxt = (num != null && num !== '') ? String(num) : '';
+  // Só com foto: o nº vai numa tag no canto (sem foto ele já está no centro).
+  const numTxt = (photoDataUrl && num != null && num !== '') ? String(num) : '';
   if (numTxt) {
     // Pequena tag circular preta no canto superior direito do chip — não cobre o rosto
     const tagR = R * 0.55;
@@ -158,12 +167,17 @@ function drawPlayerChip(doc, { cx, cy, num, name, photoDataUrl, chipR }) {
   }
 
   // Sobrenome embaixo do chip — fundo escuro arredondado
-  const last = String(name || '').split(' ').filter(Boolean).slice(-1)[0] || name || '';
+  let last = shortName(name);
   if (last) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(R * 2.3);
-    const tw = doc.getTextWidth(last);
     const padX = R * 0.35, padY = R * 0.45;
+    // Corta o nome pra não invadir a vaga vizinha
+    if (maxNameW) {
+      while (last.length > 3 && doc.getTextWidth(last) + padX * 2 > maxNameW) last = last.slice(0, -1);
+      if (last !== shortName(name)) last = `${last.slice(0, -1)}.`;
+    }
+    const tw = doc.getTextWidth(last);
     const boxW = tw + padX * 2;
     const boxH = R * 1.25;
     const boxX = cx - boxW / 2;
@@ -178,14 +192,16 @@ function drawPlayerChip(doc, { cx, cy, num, name, photoDataUrl, chipR }) {
 /**
  * Renderiza a escalação dentro do retângulo (x, y, w, h) em mm no PDF.
  * @param {jsPDF} doc
- * @param {object} opts - { x, y, w, h, players, modality, photoMap }
+ * @param {object} opts - { x, y, w, h, players, formation, modality, photoMap }
  */
-export function drawLineupOnPdf(doc, { x, y, w, h, players = [], modality = 'football_11', photoMap }) {
+export function drawLineupOnPdf(doc, { x, y, w, h, players = [], formation, modality = 'football_11', photoMap }) {
   drawField(doc, { x, y, w, h, modality });
 
-  const starters = players.filter((p) => p.status === 'starter');
-  if (starters.length === 0) return;
-  const positioned = computeLineup({ players: starters, modality });
+  const slots = buildSlots(resolveFormation(modality, formation));
+  const positioned = players
+    .filter((p) => p.status === 'starter' && p.slot != null && slots[p.slot])
+    .map((p) => ({ p, coords: slots[p.slot] }));
+  if (positioned.length === 0) return;
 
   // Chip menor pra não invadir bordas/linhas. ~4% da largura é o ponto de equilíbrio.
   const chipR = w * 0.042;
@@ -204,6 +220,7 @@ export function drawLineupOnPdf(doc, { x, y, w, h, players = [], modality = 'foo
       name: p.name || p.athlete?.name || 'Jogador',
       photoDataUrl: photoMap?.get(p.athlete_id),
       chipR,
+      maxNameW: (coords.spacing / 100) * usableW * 0.96,
     });
   });
 }
