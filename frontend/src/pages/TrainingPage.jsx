@@ -24,10 +24,13 @@ import { notify } from '../lib/notify';
 import { useCan } from '../hooks/useCan';
 import { formatKm, toKm } from '../utils/distancia';
 import { ExportMenu } from '../components/common/ExportMenu';
-import { downloadReport, safeFileName } from '../services/reportsService';
+import { safeFileName } from '../services/reportsService';
+import { useReportPhotosExport } from '../components/reports/useReportPhotosExport';
 
 export function TrainingPage() {
   const { colors } = useTheme();
+  // "Exportar semana": com fotos na semana abre o modal "Fotos do relatório"
+  const photoExport = useReportPhotosExport();
   // Membro sem "Editar treinos": vê o resumo do dia no lugar do formulário
   // e recebe um aviso de como pedir a permissão (em vez de erro ao salvar).
   const { can } = useCan();
@@ -522,7 +525,7 @@ export function TrainingPage() {
     const sunday = new Date(monday);
     sunday.setDate(monday.getDate() + 6);
     try {
-      await downloadReport('treino', {
+      await photoExport.start('treino', {
         club_id: selectedClub.id,
         start_date: ymd(monday),
         end_date: ymd(sunday),
@@ -548,6 +551,7 @@ export function TrainingPage() {
   return (
     <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <TourGuide isOpen={tour.isOpen} onClose={tour.stop} steps={tourSteps} storageKey={tour.storageKey} />
+      {photoExport.modal}
       {/* Loading overlay - only shows when reloading with existing data */}
       <LoadingOverlay isLoading={loading && !initialLoad} message="Atualizando..." />
       <div style={headerStyle}>

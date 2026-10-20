@@ -15,11 +15,14 @@ import { usePlanFeatures } from '../hooks/usePlanFeatures';
 import { usePreference } from '../hooks/usePreference';
 import { generateStatsExcel } from '../utils/statsExcel';
 import { downloadReport, safeFileName } from '../services/reportsService';
+import { useReportPhotosExport } from '../components/reports/useReportPhotosExport';
 import { notify } from '../lib/notify';
 import { ExportMenu } from '../components/common/ExportMenu';
 
 export function TrainingStatsPage() {
   const { colors } = useTheme();
+  // Exportar PDF de treino (1 microciclo com fotos) abre o modal "Fotos do relatório"
+  const photoExport = useReportPhotosExport();
   const { selectedClub } = useClub();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('training');
@@ -255,6 +258,7 @@ export function TrainingStatsPage() {
   return (
     <div style={pageStyle}>
       <TourGuide isOpen={tour.isOpen} onClose={tour.stop} steps={tourSteps} storageKey={tour.storageKey} />
+      {photoExport.modal}
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
@@ -287,7 +291,7 @@ export function TrainingStatsPage() {
             if (!dr || !selectedClub?.id) return;
             const prefix = tipo === 'jogos' ? 'Desempenho' : 'Estatisticas_Treino';
             try {
-              await downloadReport(tipo, {
+              await (tipo === 'treino' ? photoExport.start : downloadReport)(tipo, {
                 club_id: selectedClub.id,
                 start_date: dr.start_date,
                 end_date: dr.end_date,

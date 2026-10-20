@@ -2,12 +2,14 @@ import { X } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { newWorkbook, addSheet, saveWorkbook, addMetaSheet, formatMinutes } from '../../utils/excelTheme';
 import { ExportMenu } from '../common/ExportMenu';
-import { downloadReport } from '../../services/reportsService';
+import { useReportPhotosExport } from '../reports/useReportPhotosExport';
 import { notify } from '../../lib/notify';
 import { formatKm, toKm } from '../../utils/distancia';
 
 export function TrainingSummaryModal({ isOpen, onClose, session }) {
   const { colors } = useTheme();
+  // Exportar PDF: com fotos no dia abre o modal "Fotos do relatório"
+  const photoExport = useReportPhotosExport();
 
   if (!isOpen || !session) return null;
 
@@ -68,7 +70,7 @@ export function TrainingSummaryModal({ isOpen, onClose, session }) {
     }
     const filename = `treino-${session.day_name}-${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
     try {
-      await downloadReport('sessao', { session_id: session.id }, filename);
+      await photoExport.start('sessao', { session_id: session.id }, filename);
     } catch (error) {
       console.error('Error generating PDF:', error);
       notify.error(error.message || 'Erro ao gerar PDF. Por favor, tente novamente.');
@@ -268,6 +270,9 @@ export function TrainingSummaryModal({ isOpen, onClose, session }) {
   };
 
   return (
+    <>
+    {/* fora do overlay: cliques no modal de fotos (portal) não podem fechar o resumo */}
+    {photoExport.modal}
     <div style={overlayStyle} onClick={onClose}>
       <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
         {/* Action Buttons */}
@@ -402,5 +407,6 @@ export function TrainingSummaryModal({ isOpen, onClose, session }) {
         </div>
       </div>
     </div>
+    </>
   );
 }
