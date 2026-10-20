@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, Trophy, Users, Plus, Trash2, Goal, Shield, AlertTriangle, Clock, UserPlus, Wand2 } from 'lucide-react';
+import { X, Trophy, Users, Plus, Trash2, Goal, Shield, AlertTriangle, Clock, UserPlus, Wand2, ArrowLeftRight, Square, RotateCcw } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Button } from '../common/Button';
 import { PlayerSelectionModal } from './PlayerSelectionModal';
@@ -13,7 +13,7 @@ import { LineupField } from './LineupField';
 import { SlotAthletePicker } from './SlotAthletePicker';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { formationsFor, resolveFormation, buildSlots, slotCount, slotRole, remapFormation, suggestSlots } from '../../lib/formation';
-import { computeMinutesPlayed } from '../../lib/lineupLayout';
+import { computeMinutagem } from '../../lib/minutagem';
 import { newWorkbook, addSheet, saveWorkbook, addMetaSheet } from '../../utils/excelTheme';
 import { ExportMenu } from '../common/ExportMenu';
 import { notify } from '../../lib/notify';
@@ -54,6 +54,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
   // Sub-modais
   const [showPlayerModal, setShowPlayerModal] = useState(false);
   const [showEventModal, setShowEventModal] = useState(false);
+  const [editingEvent, setEditingEvent] = useState(null);
 
   useEffect(() => {
     if (isOpen && session) {
@@ -102,6 +103,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
         status: p.status,
         slot: (p.status === 'starter' && Number.isInteger(p.slot) && p.slot >= 0 && p.slot < total) ? p.slot : null,
         minutes_played: p.minutes_played || 0,
+        minutes_manual: !!p.minutes_manual,
         // Camisa por JOGO: usa o override se existir, senão o nº permanente do plantel
         jersey_number: (p.jersey_number != null && p.jersey_number !== '') ? p.jersey_number : (p.athlete?.jersey_number ?? ''),
         athlete: p.athlete,
@@ -133,13 +135,12 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
 
     setSaving(true);
     try {
-      // Recalcula minutos jogados a partir dos eventos antes de salvar.
-      // Em futsal o cálculo retorna 0 pra todos (não rastreamos).
+      // Minutagem calculada das substituições/expulsão (o servidor refaz a mesma conta);
+      // ajuste manual explícito vai marcado e não é recalculado. Futsal não rastreia.
       const playersToSave = selectedPlayers.map((p) => ({
         ...p,
-        minutes_played: sport.tracksMinutes
-          ? computeMinutesPlayed(p, events, matchDuration)
-          : 0,
+        minutes_played: sport.tracksMinutes ? (minutagem[p.athlete_id]?.minutes ?? 0) : 0,
+        minutes_manual: sport.tracksMinutes ? !!p.minutes_manual : false,
       }));
       await gameService.saveAllMatchData(session.id, {
         formation,
@@ -151,6 +152,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
         match_round: matchRound || null,
         match_location: matchLocation || null,
         video_full_url: videoFullUrl || null,
+        subs_check: true,
       });
 
       onSave?.({
@@ -183,6 +185,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
         jersey_number: prev ? prev.jersey_number : (p.jersey_number ?? ''),
         slot: p.status === 'starter' ? (prev?.slot ?? null) : null,
         minutes_played: prev?.minutes_played || 0,
+        minutes_manual: !!prev?.minutes_manual,
       };
     }));
     setMovingId(null);
@@ -192,6 +195,12 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
   // ---------- Escalação no campo (por vaga) ----------
   const slots = useMemo(() => buildSlots(formation), [formation]);
   const occupantOf = (slot) => selectedPlayers.find(p => p.status === 'starter' && p.slot === slot) || null;
+
+  // Minutagem ao vivo: substituições + expulsão (lib/minutagem.js), ajuste manual respeitado.
+  const minutagem = useMemo(
+    () => computeMinutagem({ players: selectedPlayers, events, duration: matchDuration }),
+    [selectedPlayers, events, matchDuration],
+  );
 
   // Coloca um atleta do plantel numa vaga. Se ele já estava em outra vaga,
   // as duas trocam; quem estava na vaga e não tem pra onde ir vira reserva.
@@ -272,16 +281,40 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
   };
 
   const handleAddEvent = (event) => {
-    setEvents([...events, { ...event, id: Date.now() }]);
+    if (editingEvent) {
+      setEvents(events.map(e => (e === editingEvent || (e.id != null && e.id === editingEvent.id)) ? { ...e, ...event, id: e.id } : e));
+    } else {
+      setEvents([...events, { ...event, id: Date.now() }]);
+    }
+    setEditingEvent(null);
     setShowEventModal(false);
   };
+
+  // Substituição gravada antes do formulário novo pode estar incompleta (sem quem sai
+  // ou sem quem entra) ou inconsistente (titular como "quem entrou"): mostra o aviso e
+  // abre para corrigir. Enquanto isso ela não conta na minutagem.
+  const subProblem = (event) => {
+    if (event.event_type !== 'substitution') return null;
+    if (!event.player_id || !event.secondary_player_id) return 'incompleta';
+    const pin = selectedPlayers.find(p => p.athlete_id === event.player_id);
+    if (pin && pin.status === 'starter') return 'titular';
+    return null;
+  };
+  const openEditEvent = (event) => { setEditingEvent(event); setShowEventModal(true); };
 
   const handleRemoveEvent = (eventId) => {
     setEvents(events.filter(e => e.id !== eventId));
   };
 
-  // Minutos jogados não são editáveis manualmente — vêm dos eventos de
-  // substituição (calculados em tempo real). Em futsal nem rastreamos.
+  // Minutos jogados: automáticos (substituições/expulsão). Ajuste manual explícito
+  // fica marcado (minutes_manual) e não é sobrescrito; "↺" volta ao automático.
+  const setManualMinutes = (athleteId, raw) => {
+    const v = raw === '' ? 0 : Math.max(0, Math.min(200, parseInt(raw, 10) || 0));
+    setSelectedPlayers(selectedPlayers.map(p => p.athlete_id === athleteId ? { ...p, minutes_manual: true, minutes_played: v } : p));
+  };
+  const resetManualMinutes = (athleteId) => {
+    setSelectedPlayers(selectedPlayers.map(p => p.athlete_id === athleteId ? { ...p, minutes_manual: false } : p));
+  };
 
   const updatePlayerJersey = (athleteId, raw) => {
     const v = raw === '' ? '' : Math.min(99, Math.max(1, parseInt(raw) || 0));
@@ -303,33 +336,84 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
   const goalsScored = events.filter(e => e.event_type === 'goal_scored').length;
   const goalsConceded = events.filter(e => e.event_type === 'goal_conceded').length;
 
+  const nameOf = (id, fallback) => {
+    if (!id) return fallback?.name || null;
+    const p = selectedPlayers.find(sp => sp.athlete_id === id);
+    return p?.name || p?.athlete?.name || fallback?.name || athletes.find(a => a.id === id)?.name || null;
+  };
+
   const getEventIcon = (type) => {
     switch (type) {
       case 'goal_scored': return <Goal size={16} color="#22c55e" />;
       case 'goal_conceded': return <Shield size={16} color="#ef4444" />;
-      case 'red_card': return <AlertTriangle size={16} color="#dc2626" />;
-      default: return null;
+      case 'yellow_card': return <Square size={14} color="#eab308" fill="#eab308" />;
+      case 'red_card': return <Square size={14} color="#dc2626" fill="#dc2626" />;
+      case 'substitution': return <ArrowLeftRight size={16} color="#3b82f6" />;
+      case 'accumulated_foul':
+      case 'sixth_foul': return <AlertTriangle size={16} color="#f59e0b" />;
+      default: return <Clock size={14} color={colors.textSecondary} />;
     }
   };
 
   const getEventLabel = (event) => {
+    const own = event.team === 'own' || !event.team;
     switch (event.event_type) {
-      case 'goal_scored': return 'Gol Feito';
-      case 'goal_conceded': return 'Gol Tomado';
-      case 'red_card': return `Expulsão (${event.team === 'own' ? 'Nosso' : 'Adv.'})`;
-      default: return '';
+      case 'goal_scored': return 'Gol';
+      case 'goal_conceded': return 'Gol sofrido';
+      case 'yellow_card': return own ? 'Amarelo' : 'Amarelo (adv.)';
+      case 'red_card': return own ? 'Expulsão' : 'Expulsão (adv.)';
+      case 'substitution': return 'Substituição';
+      case 'accumulated_foul': return 'Falta acumulada';
+      case 'sixth_foul': return '6ª falta';
+      default: return event.event_type || 'Evento';
     }
   };
 
+  // Quem participou do evento, em texto: gol → autor (assist.), sub → Sai X · Entra Y.
+  const getEventDetail = (event) => {
+    const p1 = nameOf(event.player_id, event.player);
+    const p2 = nameOf(event.secondary_player_id, event.secondary_player);
+    if (event.event_type === 'substitution' && subProblem(event)) {
+      const prob = subProblem(event);
+      return (
+        <span style={{ color: '#f59e0b', fontWeight: 600 }}>
+          {prob === 'incompleta'
+            ? <>⇄ Substituição (incompleta){p2 ? `: sai ${p2}` : ''}{p1 ? `: entra ${p1}` : ''}. Toque para completar.</>
+            : <>⇄ {p1} é titular e está como "quem entrou". Toque para corrigir.</>}
+        </span>
+      );
+    }
+    if (event.event_type === 'substitution') {
+      return (
+        <>
+          <span style={{ color: '#ef4444', fontWeight: 700 }}>↓</span> Sai <b>{p2 || '—'}</b>
+          <span style={{ margin: '0 0.3rem', color: colors.textSecondary }}>·</span>
+          <span style={{ color: '#22c55e', fontWeight: 700 }}>↑</span> Entra <b>{p1 || '—'}</b>
+        </>
+      );
+    }
+    if (event.event_type === 'goal_scored') {
+      if (!p1 && !p2) return null;
+      return <>{p1 ? <b>{p1}</b> : 'Sem autor'}{p2 ? <span style={{ color: colors.textSecondary }}> · assist. {p2}</span> : null}</>;
+    }
+    return p1 ? <b>{p1}</b> : null;
+  };
+
+  // Rótulos dos tipos de gol (valores novos org_off… e os antigos).
   const getGoalTypeLabel = (goalType) => {
-    const types = {
-      'offensive_org': 'Org. Ofensiva',
-      'offensive_transition': 'Transição Of.',
-      'free_kick': 'Falta',
-      'corner': 'Escanteio',
-      'penalty': 'Pênalti',
+    if (!goalType) return '';
+    const legacy = { offensive_org: 'Org. ofensiva', offensive_transition: 'Transição of.', free_kick: 'Falta', corner: 'Escanteio', penalty: 'Pênalti' };
+    if (legacy[goalType]) return legacy[goalType];
+    const m = String(goalType).match(/^(org|trans|bp)_(off|def)(?:_(.+))?$/);
+    if (!m) return '';
+    const of = m[2] === 'off';
+    if (m[1] === 'org') return of ? 'Org. ofensiva' : 'Org. defensiva';
+    if (m[1] === 'trans') return of ? 'Transição of.' : 'Transição def.';
+    const bp = {
+      falta: 'Falta', falta_frontal: 'Falta frontal', falta_lateral: 'Falta lateral', corner: 'Escanteio', lateral: 'Lateral',
+      penalty: 'Pênalti', shootout: 'Shootout', tiro_livre: 'Tiro livre', falta_acumulada: 'Falta acumulada',
     };
-    return types[goalType] || '';
+    return `Bola parada${m[3] && bp[m[3]] ? ` · ${bp[m[3]]}` : ''}`;
   };
 
   // PDF da convocação gerado no servidor (POST /api/reports/convocacao), a partir
@@ -596,7 +680,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                 {/* Row 2: 3 colunas - Campo | Jogadores | Eventos */}
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : 'minmax(280px, 330px) minmax(0, 1fr) minmax(0, 1fr)',
+                  gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : 'minmax(230px, 280px) minmax(0, 1fr) minmax(0, 1fr)',
                   gap: '0.65rem',
                   flex: 1,
                   minHeight: 0,
@@ -644,11 +728,12 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                         modality={sport.modality}
                         onSlotClick={handleSlotClick}
                         movingAthleteId={movingId}
+                        maxWidth={isMobile ? 'min(100%, 300px)' : 'min(100%, 264px, calc((95vh - 250px) * 68 / 105))'}
                       />
 
                       {unplaced.length > 0 && (
                         <div style={{
-                          width: '100%', maxWidth: 430, boxSizing: 'border-box',
+                          width: '100%', maxWidth: 300, boxSizing: 'border-box',
                           padding: '0.45rem 0.55rem', borderRadius: '0.4rem',
                           backgroundColor: '#f59e0b14', border: '1px dashed #f59e0b99',
                         }}>
@@ -802,20 +887,11 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                                     {player.name || player.athlete?.name}
                                   </span>
                                   {sport.tracksMinutes && (
-                                    <div
-                                      title="Calculado das substituições"
-                                      style={{
-                                        display: 'flex', alignItems: 'baseline', gap: '0.2rem',
-                                        flexShrink: 0,
-                                        minWidth: 52,
-                                        justifyContent: 'flex-end',
-                                      }}
-                                    >
-                                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.text, fontVariantNumeric: 'tabular-nums' }}>
-                                        {computeMinutesPlayed(player, events, matchDuration)}
-                                      </span>
-                                      <span style={{ fontSize: '0.65rem', color: colors.textSecondary }}>min</span>
-                                    </div>
+                                    <MinutesCell
+                                      info={minutagem[player.athlete_id]}
+                                      onManual={(v) => setManualMinutes(player.athlete_id, v)}
+                                      onReset={() => resetManualMinutes(player.athlete_id)}
+                                    />
                                   )}
                                   <RemoveBtn onClick={() => removeFromGame(player.athlete_id)} />
                                 </div>
@@ -867,20 +943,11 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                                     {player.name || player.athlete?.name}
                                   </span>
                                   {sport.tracksMinutes && (
-                                    <div
-                                      title="Calculado das substituições"
-                                      style={{
-                                        display: 'flex', alignItems: 'baseline', gap: '0.2rem',
-                                        flexShrink: 0,
-                                        minWidth: 52,
-                                        justifyContent: 'flex-end',
-                                      }}
-                                    >
-                                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: colors.text, fontVariantNumeric: 'tabular-nums' }}>
-                                        {computeMinutesPlayed(player, events, matchDuration)}
-                                      </span>
-                                      <span style={{ fontSize: '0.65rem', color: colors.textSecondary }}>min</span>
-                                    </div>
+                                    <MinutesCell
+                                      info={minutagem[player.athlete_id]}
+                                      onManual={(v) => setManualMinutes(player.athlete_id, v)}
+                                      onReset={() => resetManualMinutes(player.athlete_id)}
+                                    />
                                   )}
                                   <RemoveBtn onClick={() => removeFromGame(player.athlete_id)} />
                                 </div>
@@ -902,7 +969,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                       <Button
                         size="sm"
                         variant="secondary"
-                        onClick={() => setShowEventModal(true)}
+                        onClick={() => { setEditingEvent(null); setShowEventModal(true); }}
                         icon={<Plus size={14} />}
                       >
                         Adicionar
@@ -920,14 +987,19 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                           Nenhum evento registrado
                           <br />
                           <span style={{ fontSize: '0.75rem' }}>
-                            Clique em "Adicionar" para registrar gols e cartões
+                            Clique em "Adicionar" para registrar gols, cartões{sport.tracksMinutes ? ' e substituições' : ''}
                           </span>
                         </div>
                       ) : (
-                        events
-                          .sort((a, b) => a.minute - b.minute)
+                        [...events]
+                          .sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0))
                           .map((event) => (
-                          <div key={event.id} style={eventRowStyle}>
+                          <div
+                            key={event.id}
+                            style={{ ...eventRowStyle, ...(event.event_type === 'substitution' ? { cursor: 'pointer' } : {}), ...(subProblem(event) ? { border: '1px dashed #f59e0b99', backgroundColor: '#f59e0b10' } : {}) }}
+                            onClick={event.event_type === 'substitution' ? () => openEditEvent(event) : undefined}
+                            title={event.event_type === 'substitution' ? 'Toque para editar a substituição' : undefined}
+                          >
                             <div style={{
                               width: '32px',
                               height: '32px',
@@ -941,33 +1013,28 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                             }}>
                               {getEventIcon(event.event_type)}
                             </div>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: '0.8rem', fontWeight: '500', color: colors.text }}>
-                                {getEventLabel(event)}
-                                {event.goal_type && (
-                                  <span style={{
-                                    fontSize: '0.7rem',
-                                    color: colors.textSecondary,
-                                    fontWeight: '400',
-                                    marginLeft: '0.5rem'
-                                  }}>
-                                    ({getGoalTypeLabel(event.goal_type)})
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', flexWrap: 'wrap', fontSize: '0.8rem', fontWeight: 600, color: colors.text }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.72rem', fontWeight: 700, color: colors.textSecondary, fontVariantNumeric: 'tabular-nums' }}>
+                                  <Clock size={10} />{event.minute != null ? `${event.minute}'` : '—'}
+                                </span>
+                                <span>{getEventLabel(event)}</span>
+                                {getGoalTypeLabel(event.goal_type) && (
+                                  <span style={{ fontSize: '0.68rem', color: colors.textSecondary, fontWeight: 400 }}>
+                                    {getGoalTypeLabel(event.goal_type)}
                                   </span>
                                 )}
                               </div>
-                              <div style={{
-                                fontSize: '0.7rem',
-                                color: colors.textSecondary,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.25rem',
-                              }}>
-                                <Clock size={10} />
-                                {event.minute}'
-                              </div>
+                              {getEventDetail(event) && (
+                                <div style={{ fontSize: '0.74rem', color: colors.text, marginTop: '0.1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {getEventDetail(event)}
+                                </div>
+                              )}
                             </div>
                             <button
-                              onClick={() => handleRemoveEvent(event.id)}
+                              onClick={(ev) => { ev.stopPropagation(); handleRemoveEvent(event.id); }}
+                              title="Excluir evento"
+                              aria-label="Excluir evento"
                               style={{
                                 background: 'none',
                                 border: 'none',
@@ -1025,10 +1092,12 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
 
       <EventModal
         isOpen={showEventModal}
-        onClose={() => setShowEventModal(false)}
+        onClose={() => { setShowEventModal(false); setEditingEvent(null); }}
         onAdd={handleAddEvent}
+        editingEvent={editingEvent}
         matchDuration={matchDuration}
         selectedPlayers={selectedPlayers}
+        events={events}
       />
     </>
   );
@@ -1047,5 +1116,53 @@ function RemoveBtn({ onClick }) {
     >
       <X size={14} />
     </button>
+  );
+}
+
+// Minutos do atleta no jogo: automático (substituições/expulsão) com ajuste manual.
+// Tocar no número edita; o valor manual fica marcado e não é recalculado; ↺ volta ao automático.
+function MinutesCell({ info, onManual, onReset }) {
+  const { colors } = useTheme();
+  const [editing, setEditing] = useState(false);
+  const minutes = info?.minutes ?? 0;
+  const manual = !!info?.manual;
+  const hint = !info ? '' : [
+    info.started ? 'Titular' : (info.entered ? `Entrou aos ${info.enteredAt}'` : 'Não entrou'),
+    info.sentOffAt != null ? `expulso aos ${info.sentOffAt}'` : (info.leftAt != null ? `saiu aos ${info.leftAt}'` : null),
+  ].filter(Boolean).join(' · ');
+  const title = manual
+    ? `Ajuste manual (automático seria ${info?.auto ?? 0} min). ${hint}`
+    : `Automático pelas substituições. ${hint}. Toque para ajustar.`;
+  const marker = info && !manual
+    ? (info.sentOffAt != null ? { t: `exp. ${info.sentOffAt}'`, c: '#dc2626' }
+      : info.entered ? { t: `↑${info.enteredAt}'`, c: '#22c55e' }
+        : (info.leftAt != null && info.started ? { t: `↓${info.leftAt}'`, c: '#ef4444' } : null))
+    : null;
+  return (
+    <div title={title} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexShrink: 0, minWidth: 64, justifyContent: 'flex-end' }}>
+      {marker && <span style={{ fontSize: '0.62rem', fontWeight: 700, color: marker.c, fontVariantNumeric: 'tabular-nums' }}>{marker.t}</span>}
+      {manual && (
+        <button type="button" onClick={onReset} title="Voltar ao automático" aria-label="Voltar minutagem ao automático"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 2, background: '#f59e0b1f', border: '1px solid #f59e0b66', borderRadius: 4, color: '#f59e0b', fontSize: '0.56rem', fontWeight: 700, padding: '0.05rem 0.25rem', cursor: 'pointer', textTransform: 'uppercase' }}>
+          manual <RotateCcw size={9} />
+        </button>
+      )}
+      {editing ? (
+        <input
+          type="number" min="0" max="200" autoFocus
+          defaultValue={minutes}
+          onBlur={(e) => { setEditing(false); if (String(e.target.value) !== String(minutes)) onManual(e.target.value); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setEditing(false); }}
+          aria-label="Minutos jogados"
+          style={{ width: 44, padding: '0.1rem 0.2rem', borderRadius: 4, border: `1px solid ${colors.primary}`, background: colors.background, color: colors.text, fontSize: '0.8rem', fontWeight: 600, textAlign: 'right' }}
+        />
+      ) : (
+        <button type="button" onClick={() => setEditing(true)} aria-label={`${minutes} minutos — ajustar`}
+          style={{ display: 'inline-flex', alignItems: 'baseline', gap: '0.15rem', background: 'none', border: 'none', borderBottom: `1px dashed ${manual ? '#f59e0b' : 'transparent'}`, padding: '0.1rem 0', cursor: 'pointer', color: colors.text }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: manual ? '#f59e0b' : colors.text }}>{minutes}</span>
+          <span style={{ fontSize: '0.65rem', color: colors.textSecondary }}>min</span>
+        </button>
+      )}
+    </div>
   );
 }

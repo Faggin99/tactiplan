@@ -32,6 +32,8 @@ export const gameService = {
       match_round: data.match_round ?? null,
       match_location: data.match_location ?? null,
       video_full_url: data.video_full_url ?? null,
+      // formulário novo de substituição: o servidor pode recusar substituição inválida (400)
+      ...(data.subs_check ? { subs_check: true } : {}),
     });
   },
 };

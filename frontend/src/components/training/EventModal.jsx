@@ -4,6 +4,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useSportConfig } from '../../hooks/useSportConfig';
 import { Button } from '../common/Button';
 import { notify } from '../../lib/notify';
+import { emCampo, reservasDisponiveis, validarSubstituicao } from '../../lib/minutagem';
 
 // ───────────────────────────────────────────────────────────────
 // Helpers de goal_type — momento do jogo + subtipo de bola parada.
@@ -53,7 +54,7 @@ const SUBTYPE_KEY_MAP = {
   falta_acumulada: 'falta_acumulada',
 };
 
-export function EventModal({ isOpen, onClose, onAdd, matchDuration = 90, editingEvent = null, selectedPlayers = [] }) {
+export function EventModal({ isOpen, onClose, onAdd, matchDuration = 90, editingEvent = null, selectedPlayers = [], events = [] }) {
   const { colors } = useTheme();
   const sport = useSportConfig();
   const BP_SUBTYPES = sport.bolaParadaSubtypes.map(b => ({
@@ -145,7 +146,7 @@ export function EventModal({ isOpen, onClose, onAdd, matchDuration = 90, editing
     { value: 'sixth_foul',       label: '6ª Falta',     icon: AlertTriangle, color: '#b91c1c' },
   ];
   const eventTypes = sport.modality === 'futsal'
-    ? [...baseEventTypes, ...futsalExtras]
+    ? [...baseEventTypes.filter(t => t.value !== 'substitution'), ...futsalExtras] // futsal: troca livre, sem evento de substituição
     : baseEventTypes;
 
   const isGoal = eventType === 'goal_scored' || eventType === 'goal_conceded';
@@ -172,14 +173,30 @@ export function EventModal({ isOpen, onClose, onAdd, matchDuration = 90, editing
         { value: 'bp',    label: 'Bola Parada Defensiva',  short: 'BP Def.' },
       ];
 
-  // Pra substituição, restringe selects: quem entrou vs quem saiu (sem o mesmo)
-  const inOptions  = playersList.filter(p => p.id !== secondaryPlayerId);
-  const outOptions = playersList.filter(p => p.id !== playerId);
+  // Substituição (player_id = quem ENTRA, secondary_player_id = quem SAI):
+  // sai → quem está em campo no minuto; entra → reservas relacionados ainda não usados.
+  const subMinute = calculateTotalMinute();
+  const toOption = (p) => ({ id: p.athlete_id, name: p.name || p.athlete?.name || '—', jersey_number: p.jersey_number || p.athlete?.jersey_number });
+  const byName = (a, b) => (a.name || '').localeCompare(b.name || '');
+  const subOutOptions = isSub
+    ? emCampo({ players: selectedPlayers, events, duration: matchDuration, minute: subMinute, ignore: editingEvent }).map(toOption).sort(byName)
+    : [];
+  const subInOptions = isSub
+    ? reservasDisponiveis({ players: selectedPlayers, events, ignore: editingEvent }).map(toOption).sort(byName)
+    : [];
+  const inOptions  = isSub ? subInOptions : playersList.filter(p => p.id !== secondaryPlayerId);
+  const outOptions = isSub ? subOutOptions : playersList.filter(p => p.id !== playerId);
 
   const handleAdd = async () => {
     // Validações simples por tipo
     if (isCard && !playerId) { notify.error('Selecione o atleta que recebeu o cartão.'); return; }
-    if (isSub && (!playerId || !secondaryPlayerId)) { notify.error('Selecione quem entrou e quem saiu.'); return; }
+    if (isSub) {
+      const v = validarSubstituicao({
+        players: selectedPlayers, events, duration: matchDuration, ignore: editingEvent,
+        sub: { minute: calculateTotalMinute(), player_id: playerId, secondary_player_id: secondaryPlayerId },
+      });
+      if (!v.ok) { notify.error(v.error); return; }
+    }
     if (isGoal && eventType === 'goal_scored' && !playerId) {
       const ok = await notify.confirm('Salvar gol sem atribuir ao atleta?', {
         confirmText: 'Salvar', cancelText: 'Cancelar',
@@ -348,10 +365,40 @@ export function EventModal({ isOpen, onClose, onAdd, matchDuration = 90, editing
             </div>
           )}
 
-          {/* Jogador — gol nosso, cartão nosso (não pra adversário), substituição */}
-          {((eventType === 'goal_scored') || (isCard && team === 'own') || isSub) && (
+          {/* Substituição: quem sai (em campo no minuto) e quem entra (reserva não usado) */}
+          {isSub && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.6rem' }}>
+              <div>
+                <label style={labelStyle}><span style={{ color: '#ef4444', fontWeight: 700 }}>↓</span> Quem saiu</label>
+                <select style={selectStyle} value={secondaryPlayerId} onChange={(e) => setSecondaryPlayerId(e.target.value)} aria-label="Quem saiu">
+                  <option value="">{subOutOptions.length ? 'Quem saiu…' : `Ninguém em campo aos ${formatMinuteDisplay()}`}</option>
+                  {subOutOptions.map(p => (
+                    <option key={p.id} value={p.id}>{p.jersey_number ? `#${p.jersey_number} — ` : ''}{p.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}><span style={{ color: '#22c55e', fontWeight: 700 }}>↑</span> Quem entrou</label>
+                {subInOptions.length > 0 ? (
+                  <select style={selectStyle} value={playerId} onChange={(e) => setPlayerId(e.target.value)} aria-label="Quem entrou">
+                    <option value="">Quem entrou…</option>
+                    {subInOptions.map(p => (
+                      <option key={p.id} value={p.id}>{p.jersey_number ? `#${p.jersey_number} — ` : ''}{p.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <div role="status" style={{ padding: '0.5rem 0.6rem', borderRadius: '0.4rem', border: '1px dashed #f59e0b99', backgroundColor: '#f59e0b14', color: colors.text, fontSize: '0.74rem', lineHeight: 1.35 }}>
+                    Nenhum reserva disponível: todos já entraram ou não há reservas relacionados. Use "Selecionar" no jogo para relacionar reservas.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Jogador — gol nosso, cartão nosso (não pra adversário) */}
+          {((eventType === 'goal_scored') || (isCard && team === 'own')) && (
             <div>
-              <label style={labelStyle}>{isSub ? 'Quem entrou' : 'Atleta'}</label>
+              <label style={labelStyle}>{eventType === 'goal_scored' ? 'Autor do gol' : 'Atleta'}</label>
               <select style={selectStyle} value={playerId} onChange={(e) => setPlayerId(e.target.value)}>
                 <option value="">{playersList.length ? 'Selecione um atleta…' : 'Nenhum jogador na escalação'}</option>
                 {inOptions.map(p => (
@@ -361,12 +408,12 @@ export function EventModal({ isOpen, onClose, onAdd, matchDuration = 90, editing
             </div>
           )}
 
-          {/* Assistência (gol) ou Quem saiu (substituição) */}
-          {(eventType === 'goal_scored' || isSub) && (
+          {/* Assistência (gol) */}
+          {eventType === 'goal_scored' && (
             <div>
-              <label style={labelStyle}>{isSub ? 'Quem saiu' : 'Assistência (opcional)'}</label>
+              <label style={labelStyle}>Assistência (opcional)</label>
               <select style={selectStyle} value={secondaryPlayerId} onChange={(e) => setSecondaryPlayerId(e.target.value)}>
-                <option value="">{isSub ? 'Selecione quem saiu…' : 'Sem assistência'}</option>
+                <option value="">Sem assistência</option>
                 {outOptions.map(p => (
                   <option key={p.id} value={p.id}>{p.jersey_number ? `#${p.jersey_number} — ` : ''}{p.name}</option>
                 ))}
@@ -439,7 +486,7 @@ export function EventModal({ isOpen, onClose, onAdd, matchDuration = 90, editing
                 if (eventType === 'goal_conceded') return `Gol sofrido${momentText} aos ${min}`;
                 if (eventType === 'yellow_card')   return `Amarelo ${team === 'own' ? `${playerName ? `pra ${playerName}` : '(nosso time)'}` : '(adversário)'} aos ${min}`;
                 if (eventType === 'red_card')      return `Vermelho ${team === 'own' ? `${playerName ? `pra ${playerName}` : '(nosso time)'}` : '(adversário)'} aos ${min}`;
-                if (eventType === 'substitution')  return `Substituição: ${secondName || '—'} sai, ${playerName || '—'} entra aos ${min}`;
+                if (eventType === 'substitution')  return `Sai ${secondName || '—'}, entra ${playerName || '—'} aos ${min}`;
                 return '';
               })()}
             </div>
