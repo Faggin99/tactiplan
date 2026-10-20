@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react';
-import { deliverPdf } from '../../lib/deliverFile';
 import { X, Trophy, Users, Plus, Trash2, Goal, Shield, AlertTriangle, Clock, UserPlus, Wand2 } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Button } from '../common/Button';
@@ -14,15 +13,19 @@ import { LineupField } from './LineupField';
 import { SlotAthletePicker } from './SlotAthletePicker';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { formationsFor, resolveFormation, buildSlots, slotCount, slotRole, remapFormation, suggestSlots } from '../../lib/formation';
-import { preloadAthletePhotos } from '../../modules/training-management/utils/pdfGenerator';
-import { drawLineupOnPdf } from '../../utils/pdfLineupRender';
-import { readJersey, computeMinutesPlayed } from '../../lib/lineupLayout';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { PDF_THEME, addTitleStrip, drawCover, paginate, applyClubPrimaryColor, setFillHex, setTextHex, setDrawHex } from '../../utils/pdfTheme';
+import { computeMinutesPlayed } from '../../lib/lineupLayout';
 import { newWorkbook, addSheet, saveWorkbook, addMetaSheet } from '../../utils/excelTheme';
 import { ExportMenu } from '../common/ExportMenu';
 import { notify } from '../../lib/notify';
+import { downloadReport } from '../../services/reportsService';
+
+// Assinatura do que sai na convocação, para saber se há alteração não salva.
+function lineupSig(players, formation, opponent, competitionId, matchRound, matchLocation) {
+  return JSON.stringify([
+    formation, String(opponent || ''), String(competitionId || ''), String(matchRound || ''), String(matchLocation || ''),
+    players.map((p) => [p.athlete_id, p.status, p.slot ?? null, String(p.jersey_number ?? '')]),
+  ]);
+}
 
 export function GameModal({ isOpen, onClose, session, onSave }) {
   const { colors } = useTheme();
@@ -46,6 +49,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
   const [movingId, setMovingId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savedSig, setSavedSig] = useState(null);
 
   // Sub-modais
   const [showPlayerModal, setShowPlayerModal] = useState(false);
@@ -93,7 +97,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
       setPickerSlot(null);
       setMovingId(null);
 
-      setSelectedPlayers(matchData.players.map(p => ({
+      const loaded = matchData.players.map(p => ({
         athlete_id: p.athlete_id,
         status: p.status,
         slot: (p.status === 'starter' && Number.isInteger(p.slot) && p.slot >= 0 && p.slot < total) ? p.slot : null,
@@ -102,7 +106,9 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
         jersey_number: (p.jersey_number != null && p.jersey_number !== '') ? p.jersey_number : (p.athlete?.jersey_number ?? ''),
         athlete: p.athlete,
         name: p.athlete?.name,
-      })));
+      }));
+      setSelectedPlayers(loaded);
+      setSavedSig(lineupSig(loaded, f, session.opponent_name, session.competition_id, session.match_round, session.match_location));
 
       setEvents(matchData.events.map(e => ({
         id: e.id,
@@ -326,137 +332,25 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
     return types[goalType] || '';
   };
 
+  // PDF da convocação gerado no servidor (POST /api/reports/convocacao), a partir
+  // do jogo SALVO: com alteração pendente no modal, pede para salvar antes.
   const exportToPdf = async () => {
     if (selectedPlayers.length === 0) {
       notify.error('Selecione jogadores antes de exportar');
       return;
     }
-    const resetColor = applyClubPrimaryColor(selectedClub?.primary_color || null);
-    try {
-
+    if (savedSig && savedSig !== lineupSig(selectedPlayers, formation, opponentName, competitionId, matchRound, matchLocation)) {
+      notify.info('Salve o jogo antes de exportar: o PDF usa a convocação salva.', { duration: 5000 });
+      return;
+    }
     const gameDate = session?.date ? session.date.split('-').reverse().join('/') : '';
     const opponent = opponentName || 'Adversário';
-    const clubName = selectedClub?.name || '';
-
-    // Pré-carrega fotos
-    const photoMap = await preloadAthletePhotos(
-      selectedPlayers.map(p => ({ id: p.athlete_id, photo_url: p.athlete?.photo_url }))
-    );
-    const detectFmt = (dataUrl) => dataUrl?.startsWith('data:image/png') ? 'PNG'
-      : dataUrl?.startsWith('data:image/webp') ? 'WEBP' : 'JPEG';
-
-    // LANDSCAPE — estilo U.E.C.
-    const doc = new jsPDF({ orientation: PDF_THEME.orientation, unit: 'mm', format: PDF_THEME.pageFormat });
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-    const M = PDF_THEME.margins;
-    const totalW = pageW - M.left - M.right;
-    const colGap = 4;
-
-    // ============ PÁGINA 1: Capa ============
-    drawCover(doc, {
-      title: 'Convocação',
-      subtitle: `vs ${opponent}`,
-      clubName,
-      periodLabel: gameDate,
-    });
-
-    // ============ PÁGINA 2: Tabelas (Titulares | Reservas em colunas) ============
-    doc.addPage();
-    let y = addTitleStrip(doc, { section: `Convocação · vs ${opponent}`, clubName });
-
-    const hexRgb = (hex) => {
-      const h = hex.replace('#', '');
-      return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
-    };
-
-    const PHOTO_W = 10;
-    const drawTable = (label, rows, startIdx, x, w) => {
-      // Pill do título
-      setFillHex(doc, PDF_THEME.colors.primary);
-      doc.roundedRect(x, y + 4, w, 8, 1, 1, 'F');
-      doc.setFont(PDF_THEME.fonts.family, 'bold');
-      doc.setFontSize(11);
-      setTextHex(doc, PDF_THEME.colors.light);
-      doc.text(`${label} (${rows.length})`.toUpperCase(), x + w / 2, y + 9.5, { align: 'center' });
-
-      autoTable(doc, {
-        startY: y + 14,
-        head: [['', '#', 'Cam.', 'Nome', 'Pos.']],
-        body: rows.map((p, idx) => [
-          '',
-          startIdx + idx + 1,
-          readJersey(p) ?? '-',
-          p.name || p.athlete?.name,
-          slotRole(formation, p.slot) || (p.status === 'starter' ? 'S/V' : (p.athlete?.position || '—')),
-        ]),
-        theme: 'plain',
-        headStyles: { fillColor: hexRgb(PDF_THEME.colors.surfaceAlt), textColor: hexRgb(PDF_THEME.colors.text), fontStyle: 'bold', fontSize: 9, cellPadding: 1.8 },
-        bodyStyles: { fontSize: 9, textColor: hexRgb(PDF_THEME.colors.text), cellPadding: 1.8, minCellHeight: 11, valign: 'middle' },
-        alternateRowStyles: { fillColor: hexRgb(PDF_THEME.colors.surface) },
-        columnStyles: {
-          0: { cellWidth: PHOTO_W, halign: 'center' },
-          1: { cellWidth: 8, halign: 'center', fontStyle: 'bold' },
-          2: { cellWidth: 12, halign: 'center', fontStyle: 'bold' },
-          3: { cellWidth: 'auto' },
-          4: { cellWidth: 16, halign: 'center' },
-        },
-        margin: { left: x, right: pageW - (x + w) },
-        tableWidth: w,
-        styles: { lineColor: hexRgb(PDF_THEME.colors.border), lineWidth: 0.05 },
-        didDrawCell: (hookData) => {
-          if (hookData.section !== 'body' || hookData.column.index !== 0) return;
-          const player = rows[hookData.row.index];
-          const dataUrl = player && photoMap.get(player.athlete_id);
-          if (!dataUrl) return;
-          const { x, y, width, height } = hookData.cell;
-          const side = Math.min(width, height) - 1.2;
-          const cx = x + (width - side) / 2;
-          const cy = y + (height - side) / 2;
-          try { doc.addImage(dataUrl, detectFmt(dataUrl), cx, cy, side, side, undefined, 'FAST'); }
-          catch (err) { /* ignora */ }
-        },
-      });
-    };
-
-    // 2 colunas: Titulares (esquerda) | Reservas (direita)
-    const halfW = (totalW - colGap) / 2;
-    if (starters.length > 0)    drawTable('Titulares', starters, 0, M.left, halfW);
-    if (substitutes.length > 0) drawTable('Reservas',  substitutes, starters.length, M.left + halfW + colGap, halfW);
-
-    // ============ PÁGINA 3: Escalação no campo ============
-    if (starters.length > 0) {
-      doc.addPage();
-      y = addTitleStrip(doc, { section: `Escalação · ${formation}`, clubName });
-
-      // Campo no centro da página
-      const fH = pageH - y - M.bottom - 12;
-      const fW = fH / 1.5;
-      const fX = (pageW - fW) / 2;
-      const fY = y + 4;
-      drawLineupOnPdf(doc, {
-        x: fX, y: fY, w: fW, h: fH,
-        players: selectedPlayers,
-        formation,
-        modality: sport.modality,
-        photoMap,
-      });
-
-      // Legenda (+ titulares que ainda não têm vaga no campo)
-      doc.setFont(PDF_THEME.fonts.family, 'normal');
-      doc.setFontSize(8);
-      setTextHex(doc, PDF_THEME.colors.textMuted);
-      if (unplaced.length > 0) {
-        const nomes = unplaced.map(p => p.name || p.athlete?.name).filter(Boolean).join(', ');
-        doc.text(doc.splitTextToSize(`Titulares sem vaga no campo: ${nomes}`, totalW)[0], M.left, pageH - M.bottom - 6);
-      }
-      doc.text('Camisas exibidas são as deste jogo (fallback: nº permanente do plantel).', M.left, pageH - M.bottom - 2);
-    }
-
-    paginate(doc);
     const fileName = `Convocacao_${opponent.replace(/\s+/g, '_')}_${gameDate.replace(/\//g, '-')}.pdf`;
-    deliverPdf(doc, fileName);
-    } finally { resetColor(); }
+    try {
+      await downloadReport('convocacao', { session_id: session.id }, fileName);
+    } catch (err) {
+      notify.error(err.message || 'Não foi possível gerar o PDF.');
+    }
   };
 
   const exportToExcel = () => {
