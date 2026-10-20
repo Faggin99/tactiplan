@@ -1,6 +1,16 @@
 # Redesign dos relatórios PDF do TactiPlan
 
-> Documento de implementação para o Claude Code. Substitui os layouts atuais dos **quatro** relatórios exportados pela plataforma (Desempenho em jogos, Estatísticas de treino, Ficha de sessão e Convocação). A referência visual exata está em **`relatorios-preview.html`** (relatórios 1–3) e **`convocacao-preview.html`** (relatório 4), anexos; colocar em `docs/reports/`. Abra no navegador: a barra no topo troca a cor do time ao vivo e Ctrl+P gera o PDF A4.
+> Documento de implementação para o Claude Code. Substitui os layouts atuais dos **cinco** relatórios exportados pela plataforma:
+>
+> | # | Relatório | Formato | Págs. (antes → depois) | Referência visual |
+> |---|---|---|---|---|
+> | 1 | Desempenho em jogos | A4 retrato | 4 → 2 | `relatorios-preview.html` |
+> | 2 | Estatísticas de treino | A4 retrato | 4 → 2 | `relatorios-preview.html` |
+> | 3 | Ficha de sessão | A4 retrato | 2 → 1 | `relatorios-preview.html` |
+> | 4 | Convocação | A4 **paisagem** | 3 → 1 | `convocacao-preview.html` |
+> | 5 | Relatório do clube (temporada) | A4 retrato | 4 (paisagem) → 2 | `relatorios-preview.html` |
+>
+> Os HTMLs vão anexos; colocar em `docs/reports/`. Abra no navegador: a barra no topo troca a cor do time ao vivo e Ctrl+P gera o PDF A4.
 
 ---
 
@@ -11,6 +21,7 @@
    - `ESTATÍSTICAS DE TREINO`, `DISTRIBUIÇÃO POR PILAR`, `TOP CONTEÚDOS POR PILAR`, `DISTÂNCIA IDEAL`
    - `Duração Total`, `Distância ideal`, `Treino -` (ficha diária)
    - `CONVOCAÇÃO`, `TITULARES (`, `RESERVAS (`, `ESCALAÇÃO ·`, `Camisas exibidas são as deste jogo`
+   - `RELATÓRIO DO CLUBE`, `SESSÕES DE TREINO`, `MINUTOS TRABALHADOS`, `PLANTEL`, `SEM GRUPO (`
    - `TACTIPLAN pg`, `Gerado em`
    - Também o botão **Exportar** da tela Planejamento › Estatísticas e a exportação da tela Programação.
 2. **Identifique o pipeline de geração** (jsPDF desenhando à mão, `@react-pdf/renderer`, html2pdf/html2canvas, Puppeteer/Playwright no backend, `window.print()`…).
@@ -27,12 +38,14 @@
 
 | Problema atual | Solução |
 |---|---|
-| Capa inteira só com título (pg 1/4) e páginas com 4 números perdidos | Header de time integrado na pág. 1; conteúdo começa imediatamente. Jogos: **4 → 2 págs**. Treino: **4 → 2 págs**. Ficha: **2 → 1 pág** |
+| Capa inteira só com título (pg 1/4) e páginas com 4 números perdidos | Header de time integrado na pág. 1; conteúdo começa imediatamente. Jogos **4 → 2**, Treino **4 → 2**, Ficha **2 → 1**, Convocação **3 → 1**, Clube **4 → 2** |
 | Gráficos vazios renderizados mesmo sem dados ("Formas de gols sofridos" em branco) | **Empty states** explícitos ("Nenhum gol sofrido no período") |
 | Pizza de 100% com uma fatia | Barras horizontais com **todas as categorias** (zeros em cinza), comparáveis entre feitos/sofridos |
 | Sem identidade do clube | Header, destaques e gráficos na **cor do time** (variável) |
 | Ficha de sessão: lista solta + página 2 só com o total | Linha do tempo proporcional por pilar, blocos com minuto inicial/final, total no header, área de observações para campo |
 | "Participação" ambígua (% de atividades) | Tabela mostra **% atividades** e **% tempo** lado a lado |
+| Coluna "Camisa" quebrando em "Camis / a", cheia de "-", e `#` que é só o índice | Coluna única de nº de camisa; nulo = "—" em cinza |
+| Pilar em minúsculo e sem acento ("fisico", "tatico") vindo direto do banco | Rótulos sempre pelo mapa de exibição (`Físico`, `Tático`, `Técnico`, `Psicológico`) |
 | Hierarquia tipográfica fraca | Poppins (números/títulos) + Inter (texto), números tabulares, rótulos em caixa-alta pequena |
 
 ---
@@ -158,6 +171,17 @@ Criar em `reports/components/` (nomes sugeridos; seguir a convenção do repo):
 | `Chip` | pílula `--line-2` para grupos/submomentos |
 
 Gráficos: **SVG inline ou divs com altura em %**. Não usar Chart.js/Recharts nos PDFs (canvas rasteriza e animações atrapalham a captura).
+
+### 2.6 Setores de posição (compartilhado: Convocação e Relatório do clube)
+
+| Setor | Rótulo plural | Códigos | Cor |
+|---|---|---|---|
+| `gol` | Goleiros | GOL | `#D97706` (`--s-gol`) |
+| `def` | Defensores | ZAG, LD, LE, DEF | `#334155` (`--s-def`) |
+| `mei` | Meio-campistas | VOL, MC, MD, ME, MEI, MOF | `--team-ink` (`--s-mei`) |
+| `ata` | Atacantes | ED, EE, PD, PE, DD, DE, CA, ATA | `#DC2626` (`--s-ata`) |
+
+Implementar **um único** `positionSector.ts` com esse mapa e a ordem de exibição dentro do setor (`GOL, ZAG, LD, LE, VOL, MC, MD, ME, MEI, MOF, ED, EE, PD, PE, DD, DE, CA, ATA`; empate → nome A–Z). Código desconhecido: setor "Outros", cor `--faint`. Ajustar aos códigos reais do projeto (os que aparecem hoje: GOL, ZAG, LD, LE, VOL, MEI, MOF, MD, DD, ED, CA, DEF, ATA). Componente `PositionChip`: fundo na cor do setor, texto branco, Inter 600 6.5pt, raio 1mm, largura mínima 9mm.
 
 ---
 
@@ -323,15 +347,7 @@ interface CallUpSheet {
    - Nota de rodapé da coluna (6.5pt `--faint`): "Camisas exibidas são as deste jogo (fallback: nº permanente do plantel)."
 3. **Rodapé** padrão.
 
-### Cores por setor (fixas, exceto meio-campo)
-| Setor | Posições | Cor |
-|---|---|---|
-| Goleiro | GOL | `#D97706` |
-| Defesa | ZAG, LD, LE, DEF | `#334155` |
-| Meio-campo | VOL, MD, ME, MOF, MEI | `--team-ink` |
-| Ataque | PD, PE, DD, DE, ATA, CA | `#DC2626` |
-
-Mapear os códigos de posição reais do projeto para esses 4 setores, num único lugar (`positionSector.ts`). Código desconhecido usa `--faint`.
+Cores e agrupamento de posições: ver **§2.6**.
 
 ### Casos de borda
 - **Mais de 7 reservas:** a coluna de reservas continua com as linhas mais compactas (padding 1 mm); acima de 12, quebrar em 2 subcolunas.
@@ -345,6 +361,62 @@ Mapear os códigos de posição reais do projeto para esses 4 setores, num únic
 - [ ] Com dados reais: 11 titulares 4-4-2 e 3 reservas idênticos ao protótipo.
 - [ ] Testar sem camisas (iniciais / "—") e com camisas.
 - [ ] Testar cores `#1B8A3E`, `#C8102E`, `#FFD200`, `#111111`: goleiro, tokens e header legíveis em todas.
+
+---
+
+## 5c. Relatório 5 — Relatório do clube / temporada (2 páginas, A4 retrato)
+
+Visão consolidada do período (padrão: temporada 01/01–31/12). Hoje são 4 páginas em paisagem: capa vazia, Desempenho, Treinos e Plantel. Referência: últimas 2 páginas de `relatorios-preview.html` ("Relatório 5").
+
+### O que muda
+| Atual | Novo |
+|---|---|
+| Capa sem conteúdo | Header do time com período e contagens ("2 jogos · 2 sessões · 14 atletas") |
+| "Sequência V / invicta 0/2", número ambíguo | KPI "Invicto há **2** jogos", com sub-legenda "0 vitórias seguidas" |
+| "1·1·0" para V·E·D | Barra proporcional V/E/D + legenda por extenso |
+| Tabela de conteúdos com pilar em minúsculo (`fisico`) e coluna "Atividades" sempre 1 | Conteúdos como chips agrupados sob o pilar, com total de atividades do pilar |
+| "185 minutos trabalhados" solto | `3h05` com sub-legenda `185 min` e média por sessão |
+| Plantel numa lista única "SEM GRUPO (14)" com a coluna "Camisa" quebrada | Barra de composição por setor + 4 cards (Goleiros, Defensores, Meio-campistas, Atacantes) ordenados por posição |
+
+### Contrato de dados
+```ts
+interface ClubReport {
+  team: { name: string; shortName: string; color: string; logoUrl?: string; modality: string };
+  period: { start: Date; end: Date; label: string };      // "Temporada 2026"
+  generatedAt: Date;
+  games: GamesReport['games'];                            // mesmo tipo do Relatório 1
+  goalsFor: number; goalsAgainst: number;
+  winStreak: number; unbeatenStreak: number;
+  training: {
+    sessions: number; activities: number; minutes: number;
+    pillars: Array<{ key: Pillar; activities: number; minutes?: number }>;
+    contents: Array<{ name: string; pillar: Pillar; activities: number; minutes?: number }>;
+  };
+  squad: Array<{ name: string; pos: string; shirt?: number | null; group?: string | null;
+                 stats?: { games: number; minutes: number; goals: number; assists: number } }>;
+}
+type Pillar = 'tatico' | 'fisico' | 'tecnico' | 'psicologico';
+```
+
+### Página 1: Desempenho + Treinos
+1. **Header completo:** eyebrow "Relatório do clube"; H1 time; meta "Futebol 11 · Temporada 2026"; badge "01/01 – 31/12" + "2026 · N jogos · N sessões · N atletas".
+2. **Desempenho** (título de seção com meta "N jogos"): grid `1.15fr | 1fr`. À esquerda, o mesmo card de Pontuação do Relatório 1 (anel + `4/6` + barra V/E/D). À direita, 2×2 KPIs: Gols pró (média/jogo), Gols contra (média/jogo), Saldo (`pos`/`neg`), Invicto há N (sub "x vitórias seguidas"; se a sequência atual for de derrotas, trocar para "Sem vencer há N" com `neg`).
+3. **Histórico de jogos:** mesma tabela do Relatório 1; na meta do título vão os chips dos últimos 5 resultados. Mais de ~8 jogos: a tabela continua na página seguinte, com o cabeçalho repetido, **antes** do Plantel.
+4. **Treinos:** 3 KPIs (Minutos trabalhados `accent` em `XhYY` com sub em min · Sessões com média de min/sessão · Atividades com nº de conteúdos distintos). Card **Distribuição por pilar**: `StackBar` (por minutos se existir `minutes` por pilar; senão por atividades, e a meta diz qual), e abaixo 1 coluna por pilar presente com o título "● Tático · 3 ativ." e os conteúdos como `Chip`, ordenados por atividades desc. Mais de 8 conteúdos num pilar: mostrar 8 e um chip "+N".
+
+### Página 2: Plantel
+1. **Header compacto** com o subtítulo "Plantel".
+2. **Composição do plantel:** barra segmentada por setor (largura = nº de atletas, número dentro do segmento, cores de §2.6) e legenda "Goleiros 1 · Defensores 5 · …". Meta: "N atletas" + "todos sem grupo definido" se nenhum atleta tiver grupo.
+3. **Cards por setor (grid 2×2):** borda superior 1mm na cor do setor; título com o rótulo plural e "N atletas"; linhas `nº · nome · PositionChip`. Setor vazio: `EmptyState` "Nenhum atleta".
+4. **Com estatísticas do atleta** (`stats` presente para pelo menos 1 atleta): trocar os cards por **uma tabela única agrupada por setor** (subtítulo do setor como linha separadora), com as colunas `# · Atleta · Pos. · Jogos · Min · Gols · Ast.`, ordenada por setor e depois por posição. Zeros em `--faint`. É a versão mais útil. O protótipo mostra a versão sem estatísticas porque os dados de exemplo não as têm.
+5. **Grupos** (G1/G2/G3): se existirem, mostrar como `Chip` ao lado do nome. Não agrupar a página por grupo; o agrupamento é por setor.
+6. Elenco grande (> 28 atletas): a tabela quebra de página normalmente com o header compacto.
+7. Nota de rodapé: "“—” = sem número de camisa cadastrado no plantel."
+
+### Aceite
+- [ ] 2 páginas retrato com os dados de exemplo; nenhuma capa vazia.
+- [ ] Pilares sempre exibidos com acento e maiúscula.
+- [ ] Setores corretos para os 14 atletas do exemplo (GOL 1 · DEF 5 · MEI 3 · ATA 5).
 
 ---
 
@@ -366,15 +438,16 @@ Mapear os códigos de posição reais do projeto para esses 4 setores, num únic
 
 ## 7. Critérios de aceite
 
-- [ ] Os três relatórios usam o novo layout e o botão Exportar / exportação da Programação gera os novos PDFs.
-- [ ] Número de páginas com os dados do exemplo: Jogos **2**, Treino **2**, Ficha **1**, Convocação **1** (paisagem).
+- [ ] Os cinco relatórios usam o novo layout, e todos os pontos de exportação (Estatísticas, Programação, Convocação e Relatório do clube) geram os PDFs novos.
+- [ ] Número de páginas com os dados do exemplo: Jogos **2**, Treino **2**, Ficha **1**, Convocação **1** (paisagem), Clube **2**.
 - [ ] Trocar a cor do time muda header, anel, barras, títulos de seção e dia de jogo; **amarelo `#FFD200` e preto `#111111`** continuam legíveis (texto do header escuro no amarelo; títulos com `--team-ink`).
 - [ ] V/E/D mantêm verde/âmbar/vermelho independentemente da cor do time.
 - [ ] Nenhum gráfico vazio é desenhado: sempre `EmptyState`.
 - [ ] Fundos coloridos aparecem no PDF (print-color-adjust) e as fontes são as embutidas.
 - [ ] Tabelas longas quebram de página com cabeçalho repetido; nenhum card/bloco cortado ao meio.
 - [ ] Texto selecionável no PDF (não rasterizado).
-- [ ] Comparar visualmente com `relatorios-preview.html` (mesmos dados de exemplo: Uberlândia EC, semana 43/2026, 1×0 vs Cruzeiro, sessão de 231 min).
+- [ ] Comparar visualmente com `relatorios-preview.html` e `convocacao-preview.html` usando os dados da §8.
+- [ ] Componentes (`ReportPage`, `ReportHeader`, `Kpi`, `Ring`, `StackBar`, `PositionChip`, `EmptyState`…) compartilhados entre os 5 relatórios, sem cópia de CSS por relatório.
 - [ ] Remover o código antigo dos relatórios após a troca (sem flags paralelas, a menos que o projeto já use feature flags).
 
 ---
@@ -387,3 +460,14 @@ Uberlândia EC · Futebol 11 · Semana 43/2026 (19/10–25/10)
 - Seg 19/10 (foco BP Def, 5,0 km): Aquecimento 10' Aeróbio (Físico, G1, desc.: "desenvolvimento da via aeróbia por meio de ações combinadas") · Preparatório 20' Anaer. Láctico (Físico) · Atividade 1 100' Escanteios — Bola Parada Defensiva, Falta Frontal (Tático, G1–G3) · Atividade 2 56' Formação da linha defensiva — coberturas, rebatidas, tempo de bola — Organização Defensiva, Bloco Alto (Tático) · Atividade 3 30' Ataque x defesa — Organização Defensiva, Blocos Alto/Médio/Baixo (Tático) · Complementos 15' Cruzamentos e Finalizações — Finalização (Técnico). Total 231'.
 - Ter 20/10: Jogo vs Cruzeiro + Não relacionados 60' Força (Físico). Qua 21/10: Descanso.
 - Totais: 2 sessões, 7 atividades, 4 distintas, 291 min. Tático 186' (3 ativ.), Físico 90' (3 ativ., 2 sessões), Técnico 15' (1 ativ.).
+
+**Convocação** · vs mmmm · 22/10/2026 · 4-4-2
+- Titulares: Jeferson (GOL); Luis Felipe, Nathan, Marcelo, Max (DEF); Fumaça, Pablo Thomaz, Calazans, Da Silva (MEI); Léo Reis, Kaike (ATA).
+- Reservas: Thomas Bastos (MOF), Rafinha (MD), Samuel (DD). Nenhuma camisa cadastrada.
+
+**Relatório do clube** · Temporada 2026 (01/01–31/12)
+- Jogos: 20/10/26 Rod. 1 Casa Cruzeiro 1×0 V; 22/10/26 Rod. 2 Fora Atlético MG 1×1 E → 4/6 pts, 67%, GP 2, GC 1, saldo +1, invicto há 2, 0 vitórias seguidas.
+- Treinos: 2 sessões, 7 atividades, 185 min. Tático 3 (Bola Parada Def., Org. Ofensiva, Org. Defensiva) · Físico 3 (Aeróbio, Velocidade, Força) · Técnico 1 (Finalização).
+- Plantel (14, sem grupo, sem camisa): Jeferson GOL · Marcelo ZAG, Max ZAG, Samuel LD, Luis Felipe LE, Nathan LE · Fumaça VOL, Rafinha VOL, Thomas Bastos MEI · Calazans ED, Léo Reis ED, Da Silva CA, Kaike CA, Pablo Thomaz CA.
+
+> Atenção à consistência dos dados de exemplo: o Relatório do clube mostra 185 min em 2 sessões, e as Estatísticas de treino da semana 43 mostram 291 min. Se os dois cobrem as mesmas sessões, um dos cálculos está errado (provável causa: o clube não soma os "Não relacionados" ou soma só as atividades com conteúdo). **Verificar e unificar a regra de "minutos trabalhados" antes de implementar.**

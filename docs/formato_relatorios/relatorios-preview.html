@@ -178,6 +178,23 @@ body{background:#D9DEE5;font-family:Inter,system-ui,sans-serif;color:var(--ink);
 .notes{flex:1;min-height:20mm;border:1px solid var(--line);border-radius:2.5mm;padding:3mm 4mm;
   background:repeating-linear-gradient(transparent 0 6.5mm,var(--line-2) 6.5mm calc(6.5mm + 1px))}
 
+/* ============ RELATÓRIO DO CLUBE ============ */
+:root{--s-gol:#D97706;--s-def:#334155;--s-mei:var(--team-ink);--s-ata:#DC2626}
+.poschip{display:inline-block;font:600 6.5pt Inter;letter-spacing:.06em;padding:.4mm 1.6mm;border-radius:1mm;color:#fff;background:var(--c);min-width:9mm;text-align:center}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:3mm}
+.cchips{display:flex;flex-wrap:wrap;gap:1.2mm}
+.cchips .chip{gap:1.4mm}
+.sector{border:1px solid var(--line);border-radius:3mm;padding:3.5mm 4mm;border-top:1mm solid var(--c)}
+.sector h4{margin:0 0 1.5mm;display:flex;align-items:baseline;gap:2mm;font:600 9pt Poppins}
+.sector h4 small{font:500 7pt Inter;color:var(--muted);margin-left:auto}
+.prow{display:grid;grid-template-columns:7mm 1fr auto;gap:2mm;align-items:center;padding:1.7mm 0;border-bottom:1px solid var(--line-2)}
+.prow:last-child{border-bottom:0}
+.prow .n{font:700 8.5pt Poppins;text-align:center}.prow .n.nil{color:var(--faint);font-weight:500}
+.prow .nm{font-weight:600;font-size:9pt}
+.comp{display:flex;height:7mm;border-radius:1.5mm;overflow:hidden;gap:.5mm}
+.comp i{display:flex;align-items:center;justify-content:center;color:#fff;font:600 7pt Inter;background:var(--c)}
+.comp i.gol{color:#fff}
+
 /* ============ TOOLBAR (só tela) ============ */
 .toolbar{position:sticky;top:0;z-index:10;background:#0F172A;color:#E2E8F0;display:flex;gap:3mm;align-items:center;
   padding:10px 16px;font:500 13px Inter;flex-wrap:wrap}
@@ -462,6 +479,101 @@ body{background:#D9DEE5;font-family:Inter,system-ui,sans-serif;color:var(--ink);
   <footer class="ftr"><span><b>TACTIPLAN</b> · Gerado em 20/10/2026, 09:33 · Grupos: G1, G2, G3</span><span>1 / 1</span></footer>
 </section>
 
+<!-- =====================================================================
+     RELATÓRIO 5 — RELATÓRIO DO CLUBE (temporada)
+====================================================================== -->
+<div class="doc-label">Relatório 5 · Relatório do clube</div>
+<section class="page">
+  <header class="hdr">
+    <div class="crest">UEC</div>
+    <div>
+      <div class="eyebrow">Relatório do clube</div>
+      <h1>Uberlândia EC</h1>
+      <div class="meta">Futebol 11 · Temporada 2026</div>
+    </div>
+    <div class="badge"><b>01/01 – 31/12</b><span>2026 · 2 jogos · 2 sessões · 14 atletas</span></div>
+  </header>
+  <main class="body">
+    <div>
+      <div class="sec">Desempenho <small>2 jogos</small></div>
+      <div class="hero">
+        <div class="card">
+          <div class="pts">
+            <div class="ring">
+              <svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.9" fill="none" style="stroke:var(--team-soft)" stroke-width="3.6"/>
+                <circle cx="18" cy="18" r="15.9" fill="none" style="stroke:var(--team)" stroke-width="3.6" stroke-linecap="round" pathLength="100" stroke-dasharray="67 100"/></svg>
+              <div class="t"><div><b>67%</b><span>aprov.</span></div></div>
+            </div>
+            <div>
+              <div class="big">4<small>/6</small></div>
+              <div style="color:var(--muted);font-size:7.5pt">pontos ganhos / disputados</div>
+            </div>
+          </div>
+          <div class="ved"><i style="width:50%;background:var(--win)"></i><i style="width:50%;background:var(--draw)"></i></div>
+          <div class="ved-l"><span><b>1</b> vitória</span><span><b>1</b> empate</span><span><b>0</b> derrotas</span></div>
+        </div>
+        <div class="grid g2" style="align-content:start">
+          <div class="kpi"><div class="l">Gols pró</div><div class="v">2</div><div class="s">1,0 por jogo</div></div>
+          <div class="kpi"><div class="l">Gols contra</div><div class="v">1</div><div class="s">0,5 por jogo</div></div>
+          <div class="kpi pos"><div class="l">Saldo</div><div class="v">+1</div><div class="s">&nbsp;</div></div>
+          <div class="kpi"><div class="l">Invicto há</div><div class="v">2</div><div class="s">jogos · 0 vitórias seguidas</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="padding-bottom:2mm">
+      <div class="sec">Histórico de jogos <small>Últimos: <span class="res V" style="vertical-align:middle">V</span> <span class="res E" style="vertical-align:middle">E</span></small></div>
+      <table class="tbl">
+        <thead><tr><th>Data</th><th class="c">Rod.</th><th>Local</th><th>Adversário</th><th class="c">Placar</th><th class="c">Res.</th></tr></thead>
+        <tbody>
+          <tr><td>20/10/26</td><td class="c">1</td><td>Casa</td><td><b>Cruzeiro</b></td><td class="c"><b>1 × 0</b></td><td class="c"><span class="res V">V</span></td></tr>
+          <tr><td>22/10/26</td><td class="c">2</td><td>Fora</td><td><b>Atlético MG</b></td><td class="c"><b>1 × 1</b></td><td class="c"><span class="res E">E</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div>
+      <div class="sec">Treinos <small>2 sessões</small></div>
+      <div class="grid g3" style="margin-bottom:3mm">
+        <div class="kpi accent"><div class="l">Minutos trabalhados</div><div class="v">3h05</div><div class="s">185 min</div></div>
+        <div class="kpi"><div class="l">Sessões</div><div class="v">2</div><div class="s">93 min por sessão</div></div>
+        <div class="kpi"><div class="l">Atividades</div><div class="v">7</div><div class="s">7 conteúdos distintos</div></div>
+      </div>
+      <div class="card">
+        <div class="sec">Distribuição por pilar <small>por nº de atividades</small></div>
+        <div class="stack">
+          <i style="width:43%;background:var(--p-tat)">Tático 43%</i>
+          <i style="width:43%;background:var(--p-fis)">Físico 43%</i>
+          <i style="width:14%;background:var(--p-tec)">14%</i>
+        </div>
+        <div class="grid g3" style="margin-top:3mm">
+          <div><div class="legend" style="margin-bottom:1.5mm"><span><i class="dot" style="background:var(--p-tat)"></i><b>Tático</b>&nbsp;· 3 ativ.</span></div>
+            <div class="cchips"><span class="chip">Bola Parada Def.</span><span class="chip">Org. Ofensiva</span><span class="chip">Org. Defensiva</span></div></div>
+          <div><div class="legend" style="margin-bottom:1.5mm"><span><i class="dot" style="background:var(--p-fis)"></i><b>Físico</b>&nbsp;· 3 ativ.</span></div>
+            <div class="cchips"><span class="chip">Aeróbio</span><span class="chip">Velocidade</span><span class="chip">Força</span></div></div>
+          <div><div class="legend" style="margin-bottom:1.5mm"><span><i class="dot" style="background:var(--p-tec)"></i><b>Técnico</b>&nbsp;· 1 ativ.</span></div>
+            <div class="cchips"><span class="chip">Finalização</span></div></div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <footer class="ftr"><span><b>TACTIPLAN</b> · Gerado em 20/10/2026, 20:20</span><span>1 / 2</span></footer>
+</section>
+
+<section class="page">
+  <header class="hdr-c"><div class="crest">UEC</div><b>Relatório do clube</b><span>· Plantel</span><div class="r">Temporada 2026 · 01/01 – 31/12</div></header>
+  <main class="body">
+    <div>
+      <div class="sec">Composição do plantel <small>14 atletas · todos sem grupo definido</small></div>
+      <div class="comp" id="comp"></div>
+      <div class="legend" id="compLeg" style="margin-top:2mm"></div>
+    </div>
+    <div class="grid g2" id="sectors"></div>
+    <div class="note" style="font-size:6.5pt;color:var(--faint);margin-top:auto">“—” = sem número de camisa cadastrado no plantel.</div>
+  </main>
+  <footer class="ftr"><span><b>TACTIPLAN</b> · Gerado em 20/10/2026, 20:20</span><span>2 / 2</span></footer>
+</section>
+
 <script>
 /* ===== Paleta derivada da cor do time (mesma função descrita no .md) ===== */
 function hexToRgb(h){h=h.replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');const n=parseInt(h,16);return[(n>>16)&255,(n>>8)&255,n&255]}
@@ -514,6 +626,17 @@ document.getElementById('blocks').innerHTML=blocks.map(b=>{const a=acc;acc+=b.mi
    ${b.desc?`<div class="desc">${b.desc}</div>`:''}
   </div></div>`}).join('');
 document.getElementById('ticks').innerHTML=[ticks[0],...ticks.slice(1).filter((t,i,arr)=>true)].join('');
+
+/* ===== Relatório do clube: plantel ===== */
+const SECTOR_OF={GOL:'gol',ZAG:'def',LD:'def',LE:'def',DEF:'def',VOL:'mei',MC:'mei',MD:'mei',ME:'mei',MEI:'mei',MOF:'mei',ED:'ata',EE:'ata',PD:'ata',PE:'ata',CA:'ata',ATA:'ata',DD:'ata'};
+const SECTORS=[['gol','Goleiros','var(--s-gol)'],['def','Defensores','var(--s-def)'],['mei','Meio-campistas','var(--s-mei)'],['ata','Atacantes','var(--s-ata)']];
+const squad=[['Calazans','ED'],['Da Silva','CA'],['Fumaça','VOL'],['Jeferson','GOL'],['Kaike','CA'],['Léo Reis','ED'],['Luis Felipe','LE'],['Marcelo','ZAG'],['Max','ZAG'],['Nathan','LE'],['Pablo Thomaz','CA'],['Rafinha','VOL'],['Samuel','LD'],['Thomas Bastos','MEI']].map(([name,pos])=>({name,pos,shirt:null}));
+const posOrder=['GOL','ZAG','LD','LE','VOL','MC','MEI','MOF','ED','EE','CA'];
+const bySec=SECTORS.map(([k,l,c])=>({k,l,c,ps:squad.filter(p=>SECTOR_OF[p.pos]===k).sort((a,b)=>posOrder.indexOf(a.pos)-posOrder.indexOf(b.pos)||a.name.localeCompare(b.name))}));
+document.getElementById('comp').innerHTML=bySec.filter(s=>s.ps.length).map(s=>`<i style="flex:${s.ps.length};--c:${s.c}">${s.ps.length}</i>`).join('');
+document.getElementById('compLeg').innerHTML=bySec.map(s=>`<span><i class="dot" style="background:${s.c}"></i>${s.l} <b>${s.ps.length}</b></span>`).join('');
+document.getElementById('sectors').innerHTML=bySec.map(s=>`<div class="sector" style="--c:${s.c}"><h4>${s.l}<small>${s.ps.length} atleta${s.ps.length!==1?'s':''}</small></h4>
+ ${s.ps.length?s.ps.map(p=>`<div class="prow"><span class="n ${p.shirt==null?'nil':''}">${p.shirt??'—'}</span><span class="nm">${p.name}</span><span class="poschip" style="--c:${s.c}">${p.pos}</span></div>`).join(''):'<div class="empty">Nenhum atleta</div>'}</div>`).join('');
 </script>
 </body>
 </html>
