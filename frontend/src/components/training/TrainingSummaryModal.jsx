@@ -1,17 +1,13 @@
-import { useRef } from 'react';
 import { X } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
-import html2pdf from 'html2pdf.js';
 import { newWorkbook, addSheet, saveWorkbook, addMetaSheet, formatMinutes } from '../../utils/excelTheme';
 import { ExportMenu } from '../common/ExportMenu';
-import { deliverFile } from '../../lib/deliverFile';
-import { isNative } from '../../lib/platform';
+import { downloadReport } from '../../services/reportsService';
 import { notify } from '../../lib/notify';
 import { formatKm, toKm } from '../../utils/distancia';
 
 export function TrainingSummaryModal({ isOpen, onClose, session }) {
   const { colors } = useTheme();
-  const contentRef = useRef(null);
 
   if (!isOpen || !session) return null;
 
@@ -63,48 +59,19 @@ export function TrainingSummaryModal({ isOpen, onClose, session }) {
     saveWorkbook(wb, `treino-${session.day_name}-${dateStr}.xlsx`);
   };
 
+  // Ficha de sessão em PDF, gerada no servidor (layout novo + registro fotográfico
+  // com os anexos de imagem do dia). Nome do arquivo igual ao de antes.
   const handleDownloadPDF = async () => {
+    if (!session.id) {
+      notify.info('Nenhuma atividade pra exportar.');
+      return;
+    }
+    const filename = `treino-${session.day_name}-${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
     try {
-      const element = contentRef.current;
-      if (!element) return;
-
-      // Hide buttons
-      const buttons = document.querySelectorAll('.no-print');
-      buttons.forEach(btn => btn.style.display = 'none');
-
-      // Configuração do PDF com margens simétricas
-      const opt = {
-        margin: 15, // Margem única para todos os lados
-        filename: `treino-${session.day_name}-${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`,
-        image: { type: 'jpeg', quality: 0.85 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          letterRendering: true,
-        },
-        jsPDF: {
-          unit: 'mm',
-          format: 'a4',
-          orientation: 'portrait',
-          compress: true
-        },
-        pagebreak: { mode: 'avoid-all', avoid: '.avoid-break' }
-      };
-
-      if (isNative()) {
-        // WebView não baixa arquivos: gera o blob e abre a folha de compartilhar
-        const blob = await html2pdf().set(opt).from(element).outputPdf('blob');
-        await deliverFile(blob, opt.filename, 'Compartilhar PDF');
-      } else {
-        await html2pdf().set(opt).from(element).save();
-      }
-
-      // Show buttons again
-      buttons.forEach(btn => btn.style.display = '');
+      await downloadReport('sessao', { session_id: session.id }, filename);
     } catch (error) {
       console.error('Error generating PDF:', error);
-      alert('Erro ao gerar PDF. Por favor, tente novamente.');
+      notify.error(error.message || 'Erro ao gerar PDF. Por favor, tente novamente.');
     }
   };
 
@@ -330,7 +297,7 @@ export function TrainingSummaryModal({ isOpen, onClose, session }) {
 
         {/* Scrollable Content */}
         <div style={scrollContainerStyle}>
-          <div ref={contentRef}>
+          <div>
             {/* Single Page: Training Summary */}
             <div style={pageStyle}>
               {/* Brand discreto + linha fina azul (acento único) */}

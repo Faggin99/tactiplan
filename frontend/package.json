@@ -43,7 +43,6 @@
     "date-fns": "^4.1.0",
     "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",
-    "html2pdf.js": "^0.12.1",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
     "konva": "^10.2.3",

@@ -13,9 +13,9 @@ import { GameStatsContent } from '../components/stats/GameStatsContent';
 import { MonthlyThemeAdherenceCard } from '../components/stats/MonthlyThemeAdherenceCard';
 import { usePlanFeatures } from '../hooks/usePlanFeatures';
 import { usePreference } from '../hooks/usePreference';
-import { generateStatsPDF } from '../utils/statsPdf';
 import { generateStatsExcel } from '../utils/statsExcel';
-import { generateGameStatsPDF } from '../utils/gameStatsPdf';
+import { downloadReport, safeFileName } from '../services/reportsService';
+import { notify } from '../lib/notify';
 import { ExportMenu } from '../components/common/ExportMenu';
 
 export function TrainingStatsPage() {
@@ -281,10 +281,27 @@ export function TrainingStatsPage() {
             periodTo:   endDate,
             primaryColor: selectedClub?.primary_color || null,
           };
+          // PDF gerado no servidor (mesmos dados da tela, layout novo, fotos na semana)
+          const exportPdf = async (tipo) => {
+            const dr = getDateRangeParams();
+            if (!dr || !selectedClub?.id) return;
+            const prefix = tipo === 'jogos' ? 'Desempenho' : 'Estatisticas_Treino';
+            try {
+              await downloadReport(tipo, {
+                club_id: selectedClub.id,
+                start_date: dr.start_date,
+                end_date: dr.end_date,
+                filter_type: filterType,
+                period_label: exportOpts.periodLabel,
+              }, `${prefix}_${safeFileName(exportOpts.clubName)}_${safeFileName(exportOpts.periodLabel || 'periodo')}.pdf`);
+            } catch (err) {
+              notify.error(err.message || 'Não foi possível gerar o PDF.');
+            }
+          };
           if (activeTab === 'training' && stats && (stats.totals?.activities > 0 || stats.distance?.daysWithData > 0)) {
             return (
               <ExportMenu
-                onExportPDF={() => generateStatsPDF(stats, exportOpts)}
+                onExportPDF={() => exportPdf('treino')}
                 onExportExcel={() => generateStatsExcel(stats, exportOpts)}
               />
             );
@@ -292,7 +309,7 @@ export function TrainingStatsPage() {
           if (activeTab === 'game' && gameStats && (gameStats.totalMatches || 0) > 0) {
             return (
               <ExportMenu
-                onExportPDF={() => generateGameStatsPDF(gameStats, exportOpts)}
+                onExportPDF={() => exportPdf('jogos')}
                 onExportExcel={null}
               />
             );

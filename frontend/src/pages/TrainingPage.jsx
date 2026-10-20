@@ -23,6 +23,8 @@ import { useTour, useTourReplayListener } from '../hooks/useTour';
 import { notify } from '../lib/notify';
 import { useCan } from '../hooks/useCan';
 import { formatKm, toKm } from '../utils/distancia';
+import { ExportMenu } from '../components/common/ExportMenu';
+import { downloadReport, safeFileName } from '../services/reportsService';
 
 export function TrainingPage() {
   const { colors } = useTheme();
@@ -512,6 +514,25 @@ export function TrainingPage() {
     flexShrink: 0,
   };
 
+  // Relatório de treino da semana visível (o mesmo das Estatísticas, com as
+  // fotos dos anexos do microciclo), gerado no servidor.
+  async function handleExportWeek() {
+    const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const monday = new Date(currentWeek.startDate);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    try {
+      await downloadReport('treino', {
+        club_id: selectedClub.id,
+        start_date: ymd(monday),
+        end_date: ymd(sunday),
+        filter_type: '1-micro',
+      }, `Estatisticas_Treino_${safeFileName(selectedClub.name)}_Semana_${currentWeek.week}_${currentWeek.year}.pdf`);
+    } catch (err) {
+      notify.error(err.message || 'Não foi possível gerar o PDF da semana.');
+    }
+  }
+
   const dayNames = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
   const dayNamesShort = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
@@ -546,6 +567,15 @@ export function TrainingPage() {
             label="Microciclo"
             rangeCount={1}
           />
+          {selectedClub?.id && microcycle?.sessions?.some((s) => s.id) && (
+            <ExportMenu
+              size="sm"
+              variant="outline"
+              label="Exportar semana"
+              onExportPDF={handleExportWeek}
+              onExportExcel={null}
+            />
+          )}
         </div>
 
         {showMonthlyTheme && selectedClub?.id && (
