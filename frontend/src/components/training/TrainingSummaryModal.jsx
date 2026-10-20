@@ -1,8 +1,10 @@
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { newWorkbook, addSheet, saveWorkbook, addMetaSheet, formatMinutes } from '../../utils/excelTheme';
 import { ExportMenu } from '../common/ExportMenu';
 import { useReportPhotosExport } from '../reports/useReportPhotosExport';
+import { ReportSheetView } from '../reports/ReportSheetView';
 import { notify } from '../../lib/notify';
 import { formatKm, toKm } from '../../utils/distancia';
 
@@ -10,6 +12,9 @@ export function TrainingSummaryModal({ isOpen, onClose, session }) {
   const { colors } = useTheme();
   // Exportar PDF: com fotos no dia abre o modal "Fotos do relatório"
   const photoExport = useReportPhotosExport();
+  // Tela = a ficha nova (mesmo modelo do PDF). Se não carregar, cai na visualização antiga.
+  const [usarAntiga, setUsarAntiga] = useState(false);
+  useEffect(() => { setUsarAntiga(false); }, [session?.id]);
 
   if (!isOpen || !session) return null;
 
@@ -302,6 +307,9 @@ export function TrainingSummaryModal({ isOpen, onClose, session }) {
 
         {/* Scrollable Content */}
         <div style={scrollContainerStyle}>
+          {session.id && !usarAntiga ? (
+            <ReportSheetView sessionId={session.id} onFallback={() => setUsarAntiga(true)} />
+          ) : (
           <div>
             {/* Single Page: Training Summary */}
             <div style={pageStyle}>
@@ -404,6 +412,7 @@ export function TrainingSummaryModal({ isOpen, onClose, session }) {
               </div>
             </div>
           </div>
+          )}
         </div>
       </div>
     </div>

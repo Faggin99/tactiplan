@@ -11,7 +11,7 @@
 const express = require('express');
 const authMiddleware = require('../middleware/auth');
 const { hasFeature } = require('../utils/planFeatures');
-const { generateReport, listReportPhotos, previewReportPhotos, ReportError, PERMISSION } = require('../reports');
+const { generateReport, listReportPhotos, previewReportPhotos, viewSessionSheet, ReportError, PERMISSION } = require('../reports');
 const { featureMessage } = require('../middleware/requireActiveSubscription');
 
 const router = express.Router();
@@ -23,6 +23,10 @@ router.post('/:tipo', async (req, res) => {
   if (!perm) return res.status(404).json({ error: 'Tipo de relatório desconhecido' });
   if (!req.user.can(perm)) return res.status(403).json({ error: 'Sem permissão' });
   try {
+    // Ver a ficha do dia na tela não é exportar: vale para qualquer um com training:view
+    if (tipo === 'sessao' && (req.body || {}).formato === 'visualizar') {
+      return res.set('Cache-Control', 'no-store').json(await viewSessionSheet(req.body, req.user));
+    }
     if (!(await hasFeature(req.user, 'pdf_export'))) {
       return res.status(402).json({ error: featureMessage('pdf_export'), code: 'PLAN_REQUIRED', required_feature: 'pdf_export' });
     }

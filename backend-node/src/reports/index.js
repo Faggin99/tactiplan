@@ -253,10 +253,12 @@ async function buildSessao(body, user, assets, mode = 'pdf') {
   const date = F.toDateStr(session.date);
   const withPhotos = body.include_photos !== false;
   if (mode === 'fotos' && !withPhotos) return { list: emptyList(false) };
-  const photos = withPhotos ? await preparePhotos({ sessions: [session], workspaceIds, body, mode, assets, week: false }) : null;
+  // 'visualizar' = a ficha inteira na tela (resumo do dia), com miniaturas como a prévia
+  const photoMode = mode === 'visualizar' ? 'html' : mode;
+  const photos = withPhotos ? await preparePhotos({ sessions: [session], workspaceIds, body, mode: photoMode, assets, week: false }) : null;
   if (mode === 'fotos') return { list: photos };
   let game = null;
-  if (mode === 'pdf' && session.session_type === 'match') {
+  if ((mode === 'pdf' || mode === 'visualizar') && session.session_type === 'match') {
     const g = await stats.getGameStats({ workspaceIds, start: date, end: date, clubId: team.id });
     game = (g.matchesHistory || []).find((m) => m.session_id === session.id) || null;
   }
@@ -265,6 +267,7 @@ async function buildSessao(body, user, assets, mode = 'pdf') {
   if (mode === 'html') {
     return photos ? { html: renderSession(vm, { now: new Date(), onlyPhotos: true }), count: photos.items.length } : { html: null };
   }
+  if (mode === 'visualizar') return { html: renderSession(vm, { now: new Date() }) };
   return {
     html: renderSession(vm, { now: new Date() }),
     filename: `treino-${safeName(session.day_name || F.weekdayLong(date))}-${date}.pdf`,
@@ -300,4 +303,12 @@ async function previewReportPhotos(tipo, body, user) {
   return { html: html ? toPreviewHtml(html, assets) : null, fotos: count || 0 };
 }
 
-module.exports = { generateReport, listReportPhotos, previewReportPhotos, ReportError, PERMISSION, BUILDERS };
+// Ficha de sessão inteira em HTML para VER na tela (resumo do dia): mesmo template
+// do PDF, fontes e miniaturas embutidas, paginada no navegador. Não usa o Chromium.
+async function viewSessionSheet(body, user) {
+  const assets = new Map();
+  const { html } = await buildSessao(body || {}, user, assets, 'visualizar');
+  return { html: toPreviewHtml(html, assets) };
+}
+
+module.exports = { generateReport, listReportPhotos, previewReportPhotos, viewSessionSheet, ReportError, PERMISSION, BUILDERS };
