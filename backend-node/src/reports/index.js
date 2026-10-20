@@ -267,7 +267,10 @@ async function buildSessao(body, user, assets, mode = 'pdf') {
   const weekNumber = micro.week_identifier ? Number(String(micro.week_identifier).split('-')[1]) || null : (F.isoWeek(date)?.week || null);
   const vm = B.buildSessionSheet({ session, team, weekNumber, game, photos });
   if (mode === 'html') {
-    return photos ? { html: renderSession(vm, { now: new Date(), onlyPhotos: true }), count: photos.items.length } : { html: null };
+    if (!photos) return { html: null };
+    // fotos junto dos blocos: a prévia precisa mostrar a ficha inteira
+    const inteira = photos.posicao === 'blocos';
+    return { html: renderSession(vm, { now: new Date(), onlyPhotos: !inteira }), count: photos.items.length };
   }
   if (mode === 'visualizar') return { html: renderSession(vm, { now: new Date() }) };
   return {

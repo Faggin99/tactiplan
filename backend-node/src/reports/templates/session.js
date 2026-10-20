@@ -1,7 +1,7 @@
 // Relatório 3 — Ficha de sessão (1 página; + "Registro fotográfico" se houver fotos).
 const F = require('../format');
 const C = require('./components');
-const { photoPageBody } = require('./photos');
+const { photoPageBody, photoGrid } = require('./photos');
 
 const esc = F.esc;
 
@@ -36,7 +36,7 @@ function timeline(vm) {
   return `<div>${C.sec('Linha do tempo', pillarLegend(vm))}<div class="tl">${segs}</div><div class="tl-ticks">${tickHtml}</div></div>`;
 }
 
-function blockCard(b) {
+function blockCard(b, fotos = null) {
   const info = C.dimInfo(b.pillar);
   const groups = b.groups.length ? b.groups.map((g) => C.chip(g)).join('') : C.chip('Todos', { nil: true });
   const metaParts = [];
@@ -51,6 +51,7 @@ function blockCard(b) {
       <div class="grp">${groups}</div>
       ${metaParts.length ? `<div class="meta">${metaParts.join(' &nbsp;·&nbsp; ')}</div>` : ''}
       ${b.description ? `<div class="desc">${esc(b.description)}</div>` : ''}
+      ${fotos && fotos.items.length ? `<div class="blk-photos">${photoGrid(fotos.items, fotos.grid)}</div>` : ''}
     </div></div>`;
 }
 
@@ -61,8 +62,11 @@ function gameCard(vm) {
     ${g.score ? `<div class="sc">${esc(g.score)} ${C.resultChip(({ V: 'win', E: 'draw', D: 'loss' })[g.result])}</div>` : ''}</div>`;
 }
 
-function notes() {
-  return `<div class="notes-wrap">${C.sec('Observações')}<div class="notes"></div></div>`;
+// Observações só aparecem quando o dia tem texto de observação (sem área em branco).
+function notes(vm) {
+  const txt = String((vm && vm.notes) || '').trim();
+  if (!txt) return '';
+  return `<div class="notes-wrap">${C.sec('Observações')}<div class="notes-txt">${esc(txt)}</div></div>`;
 }
 
 function renderSession(vm, { now, onlyPhotos = false }) {
@@ -75,22 +79,45 @@ function renderSession(vm, { now, onlyPhotos = false }) {
   const header1 = C.fullHeader({
     team, eyebrow: vm.eyebrow, title: vm.title, metaHtml: metaParts.join(' · '), badgeTop: vm.badgeTop, badgeSub: vm.badgeSub,
   });
-  const blocksHtml = vm.blocks.length ? `<div class="blocks" data-split=".blk">${vm.blocks.map(blockCard).join('')}</div>` : '';
+  // Fotos junto dos blocos (opção do modal): cada foto vai abaixo do bloco da sua
+  // atividade; as que não têm bloco (anexo do dia) seguem para a página do final.
+  const ph0 = vm.photos;
+  const inline = !!(ph0 && ph0.items.length && ph0.posicao === 'blocos');
+  const porBloco = new Map();
+  let sobra = ph0 ? ph0.items : [];
+  if (inline) {
+    const ids = new Set(vm.blocks.map((b) => b.activityId).filter(Boolean));
+    sobra = [];
+    for (const it of ph0.items) {
+      if (it.activity_id && ids.has(it.activity_id)) {
+        if (!porBloco.has(it.activity_id)) porBloco.set(it.activity_id, []);
+        porBloco.get(it.activity_id).push(it);
+      } else sobra.push(it);
+    }
+  }
+  const fotosDo = (b) => {
+    const items = inline ? porBloco.get(b.activityId) : null;
+    if (!items || !items.length) return null;
+    // ao lado do bloco a foto fica menor: no máx. 3 por linha
+    const grid = { ...ph0.grid, layout: ph0.grid.layout === 'grande' && items.length > 1 ? 'medio' : (ph0.grid.layout === 'mosaico' ? 'compacto' : ph0.grid.layout) };
+    return { items, grid };
+  };
+  const blocksHtml = vm.blocks.length ? `<div class="blocks" data-split=".blk">${vm.blocks.map((b) => blockCard(b, fotosDo(b))).join('')}</div>` : '';
   let body;
   if (vm.type === 'rest') {
-    body = `<div class="reststate"><b>Descanso</b>Dia sem treino programado.</div>${notes()}`;
+    body = `<div class="reststate"><b>Descanso</b>Dia sem treino programado.</div>${notes(vm)}`;
   } else if (vm.type === 'match') {
     const nr = vm.blocks.length ? `<div>${C.sec('Não relacionados', esc(F.plural(vm.total, 'minuto', 'minutos')))}</div>${blocksHtml}` : '';
-    body = gameCard(vm) + nr + notes();
+    body = gameCard(vm) + nr + notes(vm);
   } else if (!vm.blocks.length) {
-    body = `<div class="empty big"><b>Nenhuma atividade cadastrada para este dia</b>Preencha os blocos na Programação.</div>${notes()}`;
+    body = `<div class="empty big"><b>Nenhuma atividade cadastrada para este dia</b>Preencha os blocos na Programação.</div>${notes(vm)}`;
   } else {
-    body = timeline(vm) + blocksHtml + notes();
+    body = timeline(vm) + blocksHtml + notes(vm);
   }
   const right = `${F.weekdayShort(vm.date)} ${F.ddmmyyyy(vm.date)}${vm.weekNumber ? ` · Semana ${vm.weekNumber}` : ''}`;
   // onlyPhotos: só a(s) página(s) de fotos (prévia do modal "Fotos do relatório")
   const pages = onlyPhotos ? [] : [C.page({ header: header1, subtitle: 'Blocos', body, bodyStyle: 'gap:5mm', foot })];
-  const ph = vm.photos;
+  const ph = vm.photos && inline ? { ...vm.photos, items: sobra, total: sobra.length, hidden: 0 } : vm.photos;
   if (ph && ph.items.length) {
     pages.push(C.page({
       header: C.compactHeader({ team, reportName, subtitle: 'Registro fotográfico', right }),

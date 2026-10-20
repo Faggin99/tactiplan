@@ -387,6 +387,7 @@ function buildSessionSheet({ session, team, weekNumber = null, game = null, phot
     const contents = (a.contents || []).map((c) => c.name).filter(Boolean);
     const pillar = blockPillar(a);
     return {
+      activityId: a.id || null,
       phase: type === 'match' ? 'Não relacionados' : (b.name || ''),
       minutes,
       from,
@@ -510,6 +511,7 @@ function buildPhotoSection({ items, hidden = 0, config = null, sessionsById = nu
     hidden: hid,
     total: items.length + hid,
     grid: gridOptions(config, items.length),
+    posicao: (config && config.posicao) || 'fim',
   };
 }
 

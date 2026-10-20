@@ -76,6 +76,7 @@ export function ReportPhotosModal({ tipo, body, filename, list, onClose }) {
       proporcao: PROPORCOES.some((x) => x.id === p.proporcao) ? p.proporcao : (padrao.proporcao || '4:3'),
       legendas: typeof p.legendas === 'boolean' ? p.legendas : true,
       agrupar: typeof p.agrupar === 'boolean' ? p.agrupar : true,
+      posicao: p.posicao === 'blocos' ? 'blocos' : 'fim',
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -83,6 +84,8 @@ export function ReportPhotosModal({ tipo, body, filename, list, onClose }) {
   const [proporcao, setProporcao] = useState(initial.proporcao);
   const [legendas, setLegendas] = useState(initial.legendas);
   const [agrupar, setAgrupar] = useState(initial.agrupar);
+  // Ficha do dia: fotos numa página no final ou logo abaixo de cada bloco
+  const [posicao, setPosicao] = useState(initial.posicao);
   const [order, setOrder] = useState(() => fotos.map((f) => f.id));
   const [selected, setSelected] = useState(() => new Set(padrao.ids || []));
   const [custom, setCustom] = useState({});
@@ -94,8 +97,8 @@ export function ReportPhotosModal({ tipo, body, filename, list, onClose }) {
   const grouped = semana && agrupar;
 
   useEffect(() => {
-    writePrefs(user?.id, { layout, proporcao, legendas, agrupar });
-  }, [user?.id, layout, proporcao, legendas, agrupar]);
+    writePrefs(user?.id, { layout, proporcao, legendas, agrupar, posicao });
+  }, [user?.id, layout, proporcao, legendas, agrupar, posicao]);
 
   // Escape fecha; trava o scroll da página por baixo
   useEffect(() => {
@@ -129,8 +132,8 @@ export function ReportPhotosModal({ tipo, body, filename, list, onClose }) {
     for (const id of ids) {
       if (custom[id] !== undefined && custom[id] !== (byId.get(id)?.titulo || '')) legendasCustom[id] = custom[id].slice(0, MAX_LEGENDA);
     }
-    return { ids, layout, proporcao, legendas, agrupar, legendasCustom };
-  }, [displayOrder, selected, custom, layout, proporcao, legendas, agrupar, byId]);
+    return { ids, layout, proporcao, legendas, agrupar, legendasCustom, ...(semana ? {} : { posicao }) };
+  }, [displayOrder, selected, custom, layout, proporcao, legendas, agrupar, posicao, semana, byId]);
 
   // ------------------------------------------------------------ prévia
   const [preview, setPreview] = useState({ html: null, loading: true, error: null });
@@ -275,7 +278,8 @@ export function ReportPhotosModal({ tipo, body, filename, list, onClose }) {
   const spin = <Loader2 size={15} style={{ animation: 'tp-spin 0.9s linear infinite' }} />;
 
   const selCount = config.ids.length;
-  const pagesLabel = !selCount ? 'Sem fotos' : (pageInfo.pages ? `Fotos: ${pageInfo.pages} ${pageInfo.pages === 1 ? 'página' : 'páginas'}` : 'Fotos: …');
+  const rotuloPrevia = !semana && posicao === 'blocos' ? 'Ficha' : 'Fotos';
+  const pagesLabel = !selCount ? 'Sem fotos' : (pageInfo.pages ? `${rotuloPrevia}: ${pageInfo.pages} ${pageInfo.pages === 1 ? 'página' : 'páginas'}` : `${rotuloPrevia}: …`);
 
   // ------------------------------------------------------------ partes
   const controls = (
@@ -292,6 +296,17 @@ export function ReportPhotosModal({ tipo, body, filename, list, onClose }) {
           ))}
         </div>
       </section>
+
+      {!semana && (
+        <section>
+          <p style={label}>Onde ficam as fotos</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+            <button type="button" style={chipBtn(posicao === 'fim')} onClick={() => setPosicao('fim')} aria-pressed={posicao === 'fim'}>No final da ficha</button>
+            <button type="button" style={chipBtn(posicao === 'blocos')} onClick={() => setPosicao('blocos')} aria-pressed={posicao === 'blocos'}>Abaixo de cada bloco</button>
+          </div>
+          {posicao === 'blocos' && <p style={{ fontSize: '0.72rem', color: sub, margin: '0.35rem 0 0' }}>Cada foto vai logo abaixo do treino a que pertence. Fotos do dia sem bloco ficam no final.</p>}
+        </section>
+      )}
 
       <section>
         <p style={label}>Proporção</p>

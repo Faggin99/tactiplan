@@ -9,6 +9,9 @@ const MAX_FOTOS = 24;
 const MAX_LEGENDA = 120;
 const LAYOUTS = ['grande', 'medio', 'compacto', 'mosaico'];
 const PROPORCOES = ['4:3', '1:1', 'original'];
+// Ficha do dia: 'fim' = página própria no final (padrão); 'blocos' = cada foto logo abaixo
+// do bloco/atividade a que pertence (as sem bloco continuam no final).
+const POSICOES = ['fim', 'blocos'];
 
 class PhotoConfigError extends Error {
   constructor(message) { super(message); this.status = 400; }
@@ -50,6 +53,7 @@ function parseFotosConfig(raw, candidateIds) {
     proporcao,
     legendas: raw.legendas !== false,
     agrupar: raw.agrupar !== false,
+    posicao: POSICOES.includes(raw.posicao) ? raw.posicao : 'fim',
     legendasCustom,
   };
 }
