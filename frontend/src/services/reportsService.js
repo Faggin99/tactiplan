@@ -21,7 +21,7 @@ async function fetchReport(tipo, body) {
 }
 
 // Nomes de arquivo no mesmo padrão dos PDFs antigos.
-export const safeFileName = (s) => String(s || '').replace(/\s+/g, '_').replace(/[^\w-]/g, '');
+export const safeFileName = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '_').replace(/[^\w-]/g, '');
 
 export async function downloadReport(tipo, body, filename) {
   const blob = await fetchReport(tipo, body);

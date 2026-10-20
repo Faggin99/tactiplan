@@ -295,7 +295,7 @@ export async function generateClubReportPDF({
   }
 
   paginate(doc);
-  const safe = (s) => String(s || '').replace(/\s+/g, '_').replace(/[^\w-]/g, '');
+  const safe = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '_').replace(/[^\w-]/g, '');
   await deliverPdf(doc, `Relatorio_${safe(clubName)}_${safe(periodLabel || 'periodo')}.pdf`);
   } finally { resetColor(); }
 }

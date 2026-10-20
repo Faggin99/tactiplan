@@ -21,7 +21,7 @@ class ReportError extends Error {
 }
 
 function safeName(s) {
-  return String(s || '').replace(/\s+/g, '_').replace(/[^\w-]/g, '');
+  return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '_').replace(/[^\w-]/g, '');
 }
 
 function scope(user) {
