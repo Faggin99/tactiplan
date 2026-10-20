@@ -7,7 +7,7 @@ const { getSessionDetail } = require('../services/sessionData');
 const B = require('./builders');
 const F = require('./format');
 const { teamPalette, normalizeHex } = require('./theme');
-const { loadLogoBuffer, loadPhotos, filterImageAttachments } = require('./photos');
+const { loadLogo, loadPhotos, filterImageAttachments } = require('./photos');
 const { renderPdf } = require('./renderer');
 const { renderGames } = require('./templates/games');
 const { renderTraining } = require('./templates/training');
@@ -48,10 +48,10 @@ async function loadTeam(clubId, workspaceIds, assets, colorOverride) {
   if (!club) throw new ReportError(404, 'Clube não encontrado');
   let logoUrl = null;
   if (club.logo_path) {
-    const buf = await loadLogoBuffer(club.logo_path);
-    if (buf) {
-      assets.set('img/logo.png', { body: buf, contentType: 'image/png' });
-      logoUrl = 'img/logo.png';
+    const logo = await loadLogo(club.logo_path);
+    if (logo) {
+      assets.set('img/logo', logo);
+      logoUrl = 'img/logo';
     }
   }
   const color = normalizeHex(colorOverride) || club.primary_color;

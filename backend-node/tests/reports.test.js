@@ -101,6 +101,22 @@ test('filtro de anexos: só imagens (sem SVG), mime ou extensão', () => {
   assert.deepStrictEqual(kept, ['a.jpg', 'b.png', 'c.webp', 'd.heic', 'h.jpeg']);
 });
 
+test('fotos: reduz no processo filho (lado máx. 1400px, JPEG) e pula arquivo ilegível', async () => {
+  const fs = require('fs');
+  const os = require('os');
+  const sharp = require('sharp');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rel-fotos-'));
+  const big = path.join(dir, 'grande.png');
+  await sharp({ create: { width: 3000, height: 2000, channels: 3, background: '#1d4ed8' } }).png().toFile(big);
+  const bad = path.join(dir, 'quebrada.jpg');
+  fs.writeFileSync(bad, 'isto não é uma imagem');
+  const [ok, broken] = await P.resizeInWorker([{ path: big }, { path: bad }]);
+  assert.strictEqual(broken, null);
+  const meta = await sharp(ok).metadata();
+  assert.deepStrictEqual([meta.format, meta.width, meta.height], ['jpeg', 1400, 933]);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
 test('caminho do anexo fica preso na pasta de uploads', () => {
   const root = '/srv/uploads';
   assert.strictEqual(P.resolveUploadPath('/uploads/session-files/x.jpg', root), '/srv/uploads/session-files/x.jpg');
@@ -110,8 +126,7 @@ test('caminho do anexo fica preso na pasta de uploads', () => {
 });
 
 test('arquivo ausente no disco é ignorado sem erro', async () => {
-  const buf = await P.loadPhotoBuffer('/uploads/session-files/nao-existe-' + Date.now() + '.jpg');
-  assert.strictEqual(buf, null);
+  assert.strictEqual(await P.loadLogo('/uploads/club-logos/nao-existe.png'), null);
   const { photos, hidden } = await P.loadPhotos([{ file_path: '/uploads/session-files/nao-existe.jpg' }], 9);
   assert.deepStrictEqual([photos.length, hidden], [0, 0]);
 });

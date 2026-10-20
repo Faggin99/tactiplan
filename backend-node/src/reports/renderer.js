@@ -26,7 +26,13 @@ function launchOptions() {
     handleSIGINT: false,
     handleSIGTERM: false,
     handleSIGHUP: false,
-    args: ['--disable-dev-shm-usage', '--disable-gpu', '--no-zygote', '--disable-extensions', '--mute-audio'],
+    // poupar RAM: 1 renderer, sem isolamento por site, sem GPU/extensões
+    args: [
+      '--disable-dev-shm-usage', '--disable-gpu', '--no-zygote', '--disable-extensions', '--mute-audio',
+      '--renderer-process-limit=1', '--disable-site-isolation-trials',
+      '--disable-features=site-per-process,Translate,BackForwardCache,MediaRouter,OptimizationHints',
+      '--js-flags=--max-old-space-size=192',
+    ],
   };
   if (process.env.REPORTS_CHROMIUM_PATH) opts.executablePath = process.env.REPORTS_CHROMIUM_PATH;
   return opts;

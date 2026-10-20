@@ -34,72 +34,71 @@ function resolveUploadPath(filePath, root = uploadRoot()) {
   return full;
 }
 
-let sharpLib;
-function getSharp() {
-  if (sharpLib === undefined) {
-    try { sharpLib = require('sharp'); } catch (_) { sharpLib = null; }
-  }
-  return sharpLib;
+// A redução roda num processo filho de vida curta (imageWorker.js): o libvips
+// fragmenta o malloc e o RSS da API subia ~200MB e não devolvia; no filho a
+// memória volta pro sistema quando ele sai.
+const WORKER = path.join(__dirname, 'imageWorker.js');
+const WORKER_TIMEOUT_MS = 30 * 1000;
+
+// jobs: [{ path }] → [Buffer|null] na mesma ordem
+function resizeInWorker(jobs, { maxSide = MAX_SIDE, quality = JPEG_QUALITY } = {}) {
+  if (!jobs.length) return Promise.resolve([]);
+  return new Promise((resolve) => {
+    const { fork } = require('child_process');
+    let done = false;
+    const child = fork(WORKER, [], {
+      serialization: 'advanced',
+      execArgv: [],
+      env: { ...process.env, MALLOC_ARENA_MAX: '2' },
+      stdio: ['ignore', 'ignore', 'inherit', 'ipc'],
+    });
+    const finish = (out) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      if (child.connected) child.disconnect();
+      child.kill();
+      resolve(out);
+    };
+    const timer = setTimeout(() => finish(jobs.map(() => null)), WORKER_TIMEOUT_MS);
+    child.on('message', (msg) => finish((msg && msg.results || []).map((b) => (b ? Buffer.from(b) : null))));
+    child.on('error', () => finish(jobs.map(() => null)));
+    child.on('exit', () => finish(jobs.map(() => null)));
+    child.send({ jobs, maxSide, quality });
+  });
 }
 
-// Reduz para JPEG (lado máx. 1400px, q78), respeitando a orientação EXIF.
-async function loadPhotoBuffer(filePath, { maxSide = MAX_SIDE, quality = JPEG_QUALITY } = {}) {
-  const full = resolveUploadPath(filePath);
-  if (!full) return null;
-  let input;
-  try {
-    input = await fs.promises.readFile(full);
-  } catch (_) {
-    return null; // arquivo sumiu do disco
-  }
-  const sharp = getSharp();
-  if (!sharp) return null;
-  try {
-    const out = await sharp(input, { failOn: 'none' })
-      .rotate()
-      .resize({ width: maxSide, height: maxSide, fit: 'inside', withoutEnlargement: true })
-      .flatten({ background: '#ffffff' })
-      .jpeg({ quality, mozjpeg: true })
-      .toBuffer();
-    return out;
-  } catch (_) {
-    return null; // formato que o sharp não lê (ex.: HEIC sem codec)
-  }
-}
-
-// Escudo do clube (logo_path) → PNG pequeno com transparência.
-async function loadLogoBuffer(logoPath) {
+// Escudo do clube: arquivo pequeno, vai como está (sem processar).
+const LOGO_TYPES = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
+async function loadLogo(logoPath) {
   const full = resolveUploadPath(logoPath);
-  if (!full) return null;
-  const sharp = getSharp();
-  if (!sharp) return null;
+  const type = full && LOGO_TYPES[path.extname(full).toLowerCase()];
+  if (!type) return null;
   try {
-    const input = await fs.promises.readFile(full);
-    return await sharp(input, { failOn: 'none' })
-      .resize({ width: 240, height: 240, fit: 'inside', withoutEnlargement: true })
-      .png()
-      .toBuffer();
+    const st = await fs.promises.stat(full);
+    if (!st.isFile() || st.size > 3 * 1024 * 1024) return null;
+    return { body: await fs.promises.readFile(full), contentType: type };
   } catch (_) {
     return null;
   }
 }
 
 // Carrega uma lista de anexos (já filtrados/ordenados) até `limit` fotos válidas.
-// Retorna { photos: [{...file, buffer}], hidden } — hidden = imagens que existiam
-// mas ficaram de fora pelo limite.
+// Arquivo ausente no disco ou ilegível é pulado. Retorna { photos: [{...file,
+// buffer}], hidden } — hidden = imagens existentes que ficaram de fora pelo limite.
 async function loadPhotos(files, limit) {
+  const existing = files
+    .map((f) => ({ f, full: resolveUploadPath(f.file_path) }))
+    .filter((x) => x.full && fs.existsSync(x.full));
+  const candidates = existing.slice(0, limit + 3); // folga p/ arquivo que não decodifica
+  const buffers = await resizeInWorker(candidates.map((x) => ({ path: x.full })));
   const photos = [];
-  let hidden = 0;
-  for (const f of files) {
-    if (photos.length >= limit) {
-      const full = resolveUploadPath(f.file_path);
-      if (full && fs.existsSync(full)) hidden++;
-      continue;
-    }
-    const buffer = await loadPhotoBuffer(f.file_path);
-    if (buffer) photos.push({ ...f, buffer });
+  let used = 0;
+  for (let i = 0; i < candidates.length && photos.length < limit; i++) {
+    used = i + 1;
+    if (buffers[i]) photos.push({ ...candidates[i].f, buffer: buffers[i] });
   }
-  return { photos, hidden };
+  return { photos, hidden: Math.max(0, existing.length - used) };
 }
 
 module.exports = {
@@ -108,7 +107,7 @@ module.exports = {
   isImageAttachment,
   filterImageAttachments,
   resolveUploadPath,
-  loadPhotoBuffer,
-  loadLogoBuffer,
+  resizeInWorker,
+  loadLogo,
   loadPhotos,
 };
