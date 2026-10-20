@@ -112,6 +112,7 @@ function buildGamesReport({ stats, team, period, defaultDuration = 90 }) {
       goalsAgainst: m.goals_conceded,
       result: m.result,
       hasVideo: !!(m.video_full_url || m.video_highlights_url || m.video_goals_url),
+      subs: (m.substitutions || []).length,
     }));
   const home = (s.matchesHistory || []).filter((m) => m.match_location === 'home').length;
   const away = (s.matchesHistory || []).filter((m) => m.match_location === 'away').length;
@@ -138,14 +139,47 @@ function buildGamesReport({ stats, team, period, defaultDuration = 90 }) {
   const bucketMax = Math.max(0, ...buckets.map((b) => Math.max(b.for, b.against)));
   const anyAgainstByMin = buckets.some((b) => b.against > 0);
 
-  const possible = defaultDuration * total;
-  const minutes = (s.topMinutes || []).slice(0, 10).map((p) => ({
+  // Minutos possíveis = soma das durações dos jogos do período (cai na duração padrão
+  // × jogos se a estatística não trouxer). Minutagem: TODOS que jogaram (a tabela
+  // quebra de página sozinha), com titularidades e entradas.
+  const possible = Number.isFinite(Number(s.minutesPossible)) && Number(s.minutesPossible) > 0
+    ? Number(s.minutesPossible)
+    : defaultDuration * total;
+  const minuteRows = Array.isArray(s.playerStats) && s.playerStats.some((p) => p.minutes > 0)
+    ? s.playerStats.filter((p) => p.minutes > 0).slice().sort((a, b) => b.minutes - a.minutes || String(a.name).localeCompare(String(b.name), 'pt-BR'))
+    : (s.topMinutes || []);
+  const minutes = minuteRows.map((p) => ({
     name: F.truncate(p.name, 28),
     minutes: p.minutes,
     games: p.appearances,
+    starts: p.starts ?? null,
+    entries: p.sub_entries ?? null,
     pctPossible: possible > 0 ? Math.round((p.minutes / possible) * 100) : 0,
     bar: possible > 0 ? Math.min(100, Math.round((p.minutes / possible) * 100)) : 0,
   }));
+
+  // Substituições de cada jogo (minuto, sai, entra), em ordem de data
+  const subGames = (s.matchesHistory || [])
+    .slice()
+    .sort((a, b) => String(F.toDateStr(a.date)).localeCompare(String(F.toDateStr(b.date))))
+    .filter((m) => (m.substitutions || []).length > 0)
+    .map((m) => ({
+      dateLabel: F.ddmmyy(m.date),
+      opponent: m.opponent || 'Adversário',
+      rows: m.substitutions.map((x) => ({
+        minute: x.minute != null ? `${x.minute}'` : '—',
+        out: x.out_name || '—',
+        in: x.in_name || '—',
+      })),
+    }));
+  const subsTotal = Number(s.substitutionsTotal) || subGames.reduce((n, g) => n + g.rows.length, 0);
+  const substitutions = {
+    total: subsTotal,
+    perGame: total ? subsTotal / total : 0,
+    avgMinute: s.avgSubstitutionMinute ?? null,
+    games: subGames,
+    topEntries: (s.topSubEntries || []).slice(0, 5).map((p) => ({ name: p.name, value: p.sub_entries })),
+  };
 
   return {
     kind: 'jogos',
@@ -193,6 +227,7 @@ function buildGamesReport({ stats, team, period, defaultDuration = 90 }) {
     assists: (s.topAssisters || []).slice(0, 5).map((p) => ({ name: p.name, value: p.assists })),
     minutes,
     minutesPossible: possible,
+    substitutions,
   };
 }
 

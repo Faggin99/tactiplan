@@ -55,10 +55,12 @@ function kpis(vm) {
 }
 
 function history(vm) {
+  const withSubs = vm.substitutions && vm.substitutions.total > 0;
   const rows = vm.games.map((g) => `<tr><td>${esc(g.dateLabel)}</td><td class="c">${esc(g.round || '—')}</td><td>${esc(g.location)}</td>`
-    + `<td><b>${esc(g.opponent)}</b></td><td class="c"><b>${g.goalsFor} × ${g.goalsAgainst}</b></td><td class="c">${C.resultChip(g.result)}</td></tr>`).join('');
+    + `<td><b>${esc(g.opponent)}</b></td><td class="c"><b>${g.goalsFor} × ${g.goalsAgainst}</b></td>`
+    + `${withSubs ? `<td class="c">${g.subs ? g.subs : '<span style="color:var(--faint)">—</span>'}</td>` : ''}<td class="c">${C.resultChip(g.result)}</td></tr>`).join('');
   return `<div class="card" style="padding-bottom:2mm" data-split="tbody tr">${C.sec('Histórico de jogos', esc(F.plural(vm.total, 'jogo', 'jogos')))}
-    <table class="tbl"><thead><tr><th>Data</th><th class="c">Rod.</th><th>Local</th><th>Adversário</th><th class="c">Placar</th><th class="c">Res.</th></tr></thead>
+    <table class="tbl"><thead><tr><th>Data</th><th class="c">Rod.</th><th>Local</th><th>Adversário</th><th class="c">Placar</th>${withSubs ? '<th class="c">Subst.</th>' : ''}<th class="c">Res.</th></tr></thead>
     <tbody>${rows}</tbody></table></div>`;
 }
 
@@ -103,11 +105,29 @@ function minutes(vm) {
   if (!vm.minutes.length) {
     return `<div class="card">${C.sec('Minutagem')}${C.emptyState('Sem escalação registrada nos jogos do período')}</div>`;
   }
+  const detail = vm.minutes.some((m) => m.starts != null);
+  const n = (v) => (v == null ? '—' : v);
   const rows = vm.minutes.map((m, i) => `<tr><td class="rank">${i + 1}</td><td><b>${esc(m.name)}</b></td>`
     + `<td><div class="bar"><i style="width:${m.bar}%"></i></div></td><td class="r"><b>${m.minutes}'</b></td>`
-    + `<td class="c">${m.games}</td><td class="r">${m.pctPossible}%</td></tr>`).join('');
+    + `<td class="c">${m.games}</td>${detail ? `<td class="c">${n(m.starts)}</td><td class="c">${n(m.entries)}</td>` : ''}<td class="r">${m.pctPossible}%</td></tr>`).join('');
   return `<div class="card" data-split="tbody tr">${C.sec('Minutagem', `de ${F.int(vm.minutesPossible)} min possíveis`)}
-    <table class="tbl dense"><thead><tr><th class="rank">#</th><th>Jogador</th><th style="width:60mm"></th><th class="r">Min</th><th class="c">Jogos</th><th class="r">% poss.</th></tr></thead>
+    <table class="tbl dense"><thead><tr><th class="rank">#</th><th>Jogador</th><th style="width:${detail ? 46 : 60}mm"></th><th class="r">Min</th><th class="c">Jogos</th>${detail ? '<th class="c">Tit.</th><th class="c">Entrou</th>' : ''}<th class="r">% poss.</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>`;
+}
+
+// Substituições de cada jogo: minuto, quem sai, quem entra.
+function substitutions(vm) {
+  const sb = vm.substitutions;
+  if (!sb || sb.total === 0) return '';
+  const meta = [F.plural(sb.total, 'substituição', 'substituições'), `${F.dec1(sb.perGame)} por jogo`]
+    .concat(sb.avgMinute != null ? [`em média aos ${sb.avgMinute}'`] : []).join(' · ');
+  const rows = sb.games.map((g) => g.rows.map((r, i) => `<tr>`
+    + `<td>${i === 0 ? esc(g.dateLabel) : ''}</td><td>${i === 0 ? `<b>${esc(g.opponent)}</b>` : ''}</td>`
+    + `<td class="c"><b>${esc(r.minute)}</b></td>`
+    + `<td><span style="color:var(--loss);font-weight:700">↓</span> ${esc(r.out)}</td>`
+    + `<td><span style="color:var(--win);font-weight:700">↑</span> ${esc(r.in)}</td></tr>`).join('')).join('');
+  return `<div class="card" data-split="tbody tr">${C.sec('Substituições', esc(meta))}
+    <table class="tbl dense"><thead><tr><th style="width:18mm">Data</th><th>Adversário</th><th class="c" style="width:12mm">Min</th><th>Sai</th><th>Entra</th></tr></thead>
     <tbody>${rows}</tbody></table></div>`;
 }
 
@@ -140,7 +160,8 @@ function renderGames(vm, { now }) {
         + `${goalsByType('Gols sofridos por tipo', vm.goalsAgainst, 'Nenhum gol sofrido no período', 'loss')}</div>`
         + byPeriod(vm)
         + `<div class="grid g2">${rank('Artilharia', vm.scorers, 'var(--team-bar)', 'Nenhum gol no período')}${rank('Assistências', vm.assists, 'var(--ink-2)', 'Nenhuma assistência registrada')}</div>`
-        + minutes(vm),
+        + minutes(vm)
+        + substitutions(vm),
       foot,
     }));
   }

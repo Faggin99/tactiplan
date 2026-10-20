@@ -212,6 +212,54 @@ test('relatório de jogos: pontuação, legenda no plural certo, gols por tipo e
   assert.strictEqual(vm.minutesPossible, 90);
 });
 
+test('relatório de jogos: substituições por jogo e minutagem real de todos', () => {
+  const stats = {
+    ...GAME_STATS,
+    minutesPossible: 93,
+    substitutionsTotal: 2,
+    avgSubstitutionMinute: 60,
+    matchesHistory: [{ ...GAME_STATS.matchesHistory[0], substitutions: [
+      { minute: 32, out_name: 'Da Silva', in_name: 'Kaike' },
+      { minute: 88, out_name: 'Nathan', in_name: 'Luis Felipe' },
+    ] }],
+    topSubEntries: [{ name: 'Kaike', sub_entries: 1 }, { name: 'Luis Felipe', sub_entries: 1 }],
+    playerStats: [
+      { name: 'Kaike', minutes: 61, appearances: 1, starts: 0, sub_entries: 1 },
+      { name: 'Pablo Thomaz', minutes: 93, appearances: 1, starts: 1, sub_entries: 0 },
+      { name: 'Reserva sem entrar', minutes: 0, appearances: 0, starts: 0, sub_entries: 0 },
+      { name: 'Luis Felipe', minutes: 5, appearances: 1, starts: 0, sub_entries: 1 },
+    ],
+  };
+  const vm = B.buildGamesReport({ stats, team: TEAM, period: WEEK, defaultDuration: 90 });
+  assert.strictEqual(vm.minutesPossible, 93, 'usa a soma das durações reais');
+  assert.deepStrictEqual(vm.minutes.map((m) => [m.name, m.minutes, m.starts, m.entries, m.pctPossible]),
+    [['Pablo Thomaz', 93, 1, 0, 100], ['Kaike', 61, 0, 1, 66], ['Luis Felipe', 5, 0, 1, 5]], 'todos que jogaram, sem quem não entrou');
+  assert.strictEqual(vm.substitutions.total, 2);
+  assert.strictEqual(vm.substitutions.perGame, 2);
+  assert.deepStrictEqual(vm.substitutions.games[0].rows, [
+    { minute: "32'", out: 'Da Silva', in: 'Kaike' },
+    { minute: "88'", out: 'Nathan', in: 'Luis Felipe' },
+  ]);
+  assert.strictEqual(vm.games[0].subs, 2);
+  const { renderGames } = require('../src/reports/templates/games');
+  const html = renderGames(vm, { now: new Date(2026, 9, 20, 10, 0) });
+  assert.match(html, /Substituições/);
+  assert.match(html, /2 substituições · 2,0 por jogo · em média aos 60&#39;/);
+  assert.match(html, /↓<\/span> Da Silva/);
+  assert.match(html, /↑<\/span> Kaike/);
+  assert.match(html, /<th class="c">Entrou<\/th>/);
+  assert.match(html, /<th class="c">Subst\.<\/th>/);
+});
+
+test('relatório de jogos sem substituições: sem seção e sem coluna', () => {
+  const vm = B.buildGamesReport({ stats: GAME_STATS, team: TEAM, period: WEEK, defaultDuration: 90 });
+  assert.strictEqual(vm.substitutions.total, 0);
+  const { renderGames } = require('../src/reports/templates/games');
+  const html = renderGames(vm, { now: new Date(2026, 9, 20, 10, 0) });
+  assert.doesNotMatch(html, /Subst\./);
+  assert.doesNotMatch(html, />Substituições</);
+});
+
 test('relatório de jogos sem jogos no período → vazio', () => {
   const vm = B.buildGamesReport({ stats: { totalMatches: 0, matchesHistory: [] }, team: TEAM, period: WEEK });
   assert.strictEqual(vm.empty, true);
