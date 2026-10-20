@@ -113,10 +113,17 @@ export function remapFormation(players, fromFormation, toFormation) {
 // Papel sugerido pela posição cadastrada — usado SÓ no botão "Encaixar
 // sugestão" (o usuário pede). Nunca posiciona ninguém sozinho.
 const PAPEL_POR_POSICAO = {
-  GR: 'GOL', GOL: 'GOL',
-  DD: 'DEF', DC: 'DEF', DE: 'DEF', Z: 'DEF', LD: 'DEF', LE: 'DEF', FIX: 'DEF',
-  MD: 'MEI', MC: 'MEI', ME: 'MEI', MOF: 'MEI', M: 'MEI', 'ALA-D': 'MEI', 'ALA-E': 'MEI',
-  ED: 'ATA', EE: 'ATA', PL: 'ATA', SA: 'ATA', A: 'ATA', PIV: 'ATA',
+  // Futebol 11/7 (nomenclatura atual)
+  GOL: 'GOL',
+  ZAG: 'DEF', LD: 'DEF', LE: 'DEF',
+  VOL: 'MEI', MEI: 'MEI',
+  ED: 'ATA', EE: 'ATA', CA: 'ATA',
+  // Futsal
+  FIX: 'DEF', 'ALA-D': 'MEI', 'ALA-E': 'MEI', PIV: 'ATA',
+  // Códigos antigos (dado legado, antes da migration 051)
+  GR: 'GOL', DD: 'DEF', DC: 'DEF', DE: 'DEF', Z: 'DEF',
+  MD: 'MEI', MC: 'MEI', ME: 'MEI', MOF: 'MEI', M: 'MEI',
+  PL: 'ATA', SA: 'ATA', A: 'ATA',
 };
 
 /**

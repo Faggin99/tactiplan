@@ -187,13 +187,18 @@ export default function PlantelPage() {
     return athletes.filter(a => String(a.group) === String(groupNumber));
   };
 
-  // Ordem de posições para ordenação
+  // Ordem de posições para ordenação (códigos antigos = sinônimos, dado legado)
   const positionOrder = {
-    'GR': 1,
-    'DD': 2, 'DC': 3, 'DE': 4,
-    'MD': 5, 'MC': 6, 'ME': 7, 'MOF': 8,
-    'ED': 9, 'EE': 10,
-    'PL': 11, 'SA': 12
+    GOL: 1, GR: 1,
+    LD: 2, DD: 2,
+    ZAG: 3, DC: 3, Z: 3,
+    LE: 4, DE: 4,
+    VOL: 5, MC: 5,
+    MEI: 6, MD: 6, ME: 6, MOF: 6, M: 6,
+    ED: 7, EE: 8,
+    CA: 9, PL: 9, SA: 9, A: 9,
+    // Futsal
+    FIX: 3, 'ALA-D': 5, 'ALA-E': 6, PIV: 9,
   };
 
   // Filtrar por categoria + ordenar

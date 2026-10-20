@@ -246,7 +246,7 @@ export default function TacticalBoardPage() {
   const handleAddGoalkeeper = useCallback((team) => {
     clearDrawingMode();
     board.addElement({
-      type: 'player', team, jerseyNumber: 1, name: 'GK', athleteId: null, isGoalkeeper: true,
+      type: 'player', team, jerseyNumber: 1, name: 'GOL', athleteId: null, isGoalkeeper: true,
       x: team === 'A' ? 5 : 95, y: 50,
     });
   }, [board, clearDrawingMode]);

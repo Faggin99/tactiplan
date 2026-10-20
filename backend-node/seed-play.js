@@ -25,7 +25,7 @@ const movers = [
   { id: 'p-b9',  type: 'player', team: 'A', jerseyNumber: 9,  name: 'ATA', athleteId: null, isGoalkeeper: false, p0: [72, 66], p1: [82, 60] },
   { id: 'p-r5',  type: 'player', team: 'B', jerseyNumber: 5,  name: 'ZAG', athleteId: null, isGoalkeeper: false, p0: [60, 50], p1: [66, 50] },
   { id: 'p-r4',  type: 'player', team: 'B', jerseyNumber: 4,  name: 'ZAG', athleteId: null, isGoalkeeper: false, p0: [80, 58], p1: [82, 55] },
-  { id: 'p-gk',  type: 'player', team: 'B', jerseyNumber: 1,  name: 'GK',  athleteId: null, isGoalkeeper: true,  p0: [94, 50], p1: [92, 51] },
+  { id: 'p-gk',  type: 'player', team: 'B', jerseyNumber: 1,  name: 'GOL', athleteId: null, isGoalkeeper: true,  p0: [94, 50], p1: [92, 51] },
   { id: 'ball',  type: 'ball',   team: null,                                                                     p0: [46, 54], p1: [69, 52] },
 ];
 const at = (m, k) => {

@@ -16,29 +16,25 @@ export const MODALITY_DESCRIPTIONS = {
 };
 
 // Posições aceitas por modalidade (códigos curtos + nomes)
+// Futebol 11 e Futebol 7 usam a mesma lista (nomenclatura brasileira).
+// Códigos antigos (GR, DD, DC, DE, MD, MC, ME, MOF, PL, SA, Z, M, A) foram
+// migrados na migration 051_posicoes_br.sql; o setor ainda os aceita como
+// sinônimo (backend-node/src/reports/positionSector.js e lib/formation.js).
+const FIELD_POSITIONS = [
+  { code: 'GOL', name: 'Goleiro' },
+  { code: 'ZAG', name: 'Zagueiro' },
+  { code: 'LD',  name: 'Lateral Direito' },
+  { code: 'LE',  name: 'Lateral Esquerdo' },
+  { code: 'VOL', name: 'Volante' },
+  { code: 'MEI', name: 'Meia' },
+  { code: 'ED',  name: 'Extremo Direito' },
+  { code: 'EE',  name: 'Extremo Esquerdo' },
+  { code: 'CA',  name: 'Centroavante' },
+];
+
 export const POSITIONS = {
-  football_11: [
-    { code: 'GR',  name: 'Goleiro' },
-    { code: 'DD',  name: 'Defesa Direito' },
-    { code: 'DC',  name: 'Defesa Central' },
-    { code: 'DE',  name: 'Defesa Esquerdo' },
-    { code: 'MD',  name: 'Médio Direito' },
-    { code: 'MC',  name: 'Médio Centro' },
-    { code: 'ME',  name: 'Médio Esquerdo' },
-    { code: 'MOF', name: 'Médio Ofensivo' },
-    { code: 'ED',  name: 'Extremo Direito' },
-    { code: 'EE',  name: 'Extremo Esquerdo' },
-    { code: 'PL',  name: 'Ponta de Lança' },
-    { code: 'SA',  name: 'Segundo Avançado' },
-  ],
-  football_7: [
-    { code: 'GR', name: 'Goleiro' },
-    { code: 'Z',  name: 'Zagueiro' },
-    { code: 'LD', name: 'Lateral Direito' },
-    { code: 'LE', name: 'Lateral Esquerdo' },
-    { code: 'M',  name: 'Meia' },
-    { code: 'A',  name: 'Atacante' },
-  ],
+  football_11: FIELD_POSITIONS,
+  football_7:  FIELD_POSITIONS,
   futsal: [
     { code: 'GOL',   name: 'Goleiro' },
     { code: 'FIX',   name: 'Fixo' },

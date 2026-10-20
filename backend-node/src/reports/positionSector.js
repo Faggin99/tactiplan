@@ -1,14 +1,12 @@
 // Setor (Goleiro / Defesa / Meio-campo / Ataque) de cada código de posição.
 // ÚNICO lugar com esse mapa nos relatórios (docs/formato_relatorios, seção 5b).
 //
-// Os códigos do projeto seguem frontend/src/lib/sportConfig.js (POSITIONS):
-//   Futebol 11: GR · DD/DC/DE = Defesa Direito/Central/Esquerdo · MD/MC/ME/MOF =
-//               Médio · ED/EE = Extremo · PL = Ponta de Lança · SA = Segundo Avançado
-//   Futebol 7:  GR · Z, LD, LE · M · A
-//   Futsal:     GOL · FIX · ALA-D, ALA-E · PIV
-// A tabela da especificação usa códigos "brasileiros" (ZAG, VOL, PD, CA…) e põe
-// DD/DE no Ataque; AQUI DD/DE são laterais (Defesa Direito/Esquerdo), então
-// ficam na Defesa. Os códigos da especificação também são aceitos.
+// Os códigos do projeto seguem frontend/src/lib/sportConfig.js (POSITIONS),
+// nomenclatura brasileira (migration 051_posicoes_br.sql):
+//   Futebol 11 e 7: GOL · ZAG, LD, LE · VOL, MEI · ED, EE, CA
+//   Futsal:         GOL · FIX · ALA-D, ALA-E · PIV
+// Códigos antigos (GR, DD/DC/DE, MD/MC/ME/MOF, PL/SA, Z, M, A) e os da
+// especificação (GK, PD/PE, ATA…) continuam aceitos como sinônimo — dado legado.
 // Alas do futsal ficam no Meio, como no "Encaixar sugestão" do editor
 // (PAPEL_POR_POSICAO em frontend/src/lib/formation.js).
 
@@ -22,10 +20,10 @@ const SECTORS = {
 const SECTOR_ORDER = ['gol', 'def', 'mei', 'ata', 'outros'];
 
 const BY_CODE = {
-  gol: ['GR', 'GOL', 'GK'],
-  def: ['DD', 'DC', 'DE', 'Z', 'LD', 'LE', 'FIX', 'ZAG', 'DEF'],
-  mei: ['MD', 'MC', 'ME', 'MOF', 'M', 'ALA-D', 'ALA-E', 'VOL', 'MEI'],
-  ata: ['ED', 'EE', 'PL', 'SA', 'A', 'PIV', 'PD', 'PE', 'ATA', 'CA'],
+  gol: ['GOL', /* legado */ 'GR', 'GK'],
+  def: ['ZAG', 'LD', 'LE', 'FIX', /* legado */ 'DD', 'DC', 'DE', 'Z', 'DEF'],
+  mei: ['VOL', 'MEI', 'ALA-D', 'ALA-E', /* legado */ 'MD', 'MC', 'ME', 'MOF', 'M'],
+  ata: ['ED', 'EE', 'CA', 'PIV', /* legado */ 'PL', 'SA', 'A', 'PD', 'PE', 'ATA'],
 };
 const CODE_TO_SECTOR = new Map();
 for (const [sector, codes] of Object.entries(BY_CODE)) for (const c of codes) CODE_TO_SECTOR.set(c, sector);
