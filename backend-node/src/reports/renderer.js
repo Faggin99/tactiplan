@@ -83,9 +83,12 @@ function withTimeout(promise, ms, onTimeout) {
 }
 
 // assets: Map 'img/<id>' → { body: Buffer, contentType }
-async function renderJob(html, assets) {
+// landscape: A4 deitado (Convocação). O @page do template também diz o tamanho
+// (preferCSSPageSize); o viewport acompanha para o layout bater com o papel.
+async function renderJob(html, assets, { landscape = false } = {}) {
   const b = await getBrowser();
-  const context = await b.newContext({ viewport: { width: 794, height: 1123 }, deviceScaleFactor: 1, javaScriptEnabled: true });
+  const viewport = landscape ? { width: 1123, height: 794 } : { width: 794, height: 1123 };
+  const context = await b.newContext({ viewport, deviceScaleFactor: 1, javaScriptEnabled: true });
   try {
     const page = await context.newPage();
     await page.route('**/*', (route) => {
@@ -107,7 +110,7 @@ async function renderJob(html, assets) {
     await page.waitForFunction(() => window.__reportReady === true, null, { timeout: TIMEOUT_MS });
     const info = await page.evaluate(() => ({ pages: window.__reportPages, error: window.__reportError || null }));
     if (info.error) throw new Error('Falha na paginação: ' + info.error);
-    const pdf = await page.pdf({ format: 'A4', printBackground: true, preferCSSPageSize: true, margin: { top: 0, right: 0, bottom: 0, left: 0 } });
+    const pdf = await page.pdf({ format: 'A4', landscape, printBackground: true, preferCSSPageSize: true, margin: { top: 0, right: 0, bottom: 0, left: 0 } });
     return { pdf, pages: info.pages };
   } finally {
     await context.close().catch(() => {});
@@ -117,7 +120,7 @@ async function renderJob(html, assets) {
 // Enfileira (concorrência 1). Rejeita com code REPORT_BUSY se a fila lotar.
 // isStale(): quem pediu já desistiu (fechou a conexão) → o job é descartado
 // antes de abrir página no Chromium.
-function renderPdf(html, assets, { isStale } = {}) {
+function renderPdf(html, assets, { isStale, landscape = false } = {}) {
   if (pending >= MAX_QUEUE) {
     return Promise.reject(Object.assign(new Error('Gerador de relatórios ocupado. Tente de novo em instantes.'), { code: 'REPORT_BUSY' }));
   }
@@ -127,7 +130,7 @@ function renderPdf(html, assets, { isStale } = {}) {
     if (isStale && isStale()) {
       throw Object.assign(new Error('Pedido cancelado'), { code: 'REPORT_CANCELED' });
     }
-    return withTimeout(renderJob(html, assets), TIMEOUT_MS, () => {
+    return withTimeout(renderJob(html, assets, { landscape }), TIMEOUT_MS, () => {
       // travou: derruba o browser para não deixar processo zumbi
       const b = browser;
       browser = null;

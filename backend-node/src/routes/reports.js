@@ -1,7 +1,8 @@
 // POST /api/reports/:tipo — relatórios PDF gerados no servidor (HTML → Chromium).
-//   tipo = treino | jogos | sessao
+//   tipo = treino | jogos | sessao | convocacao
 //   body treino/jogos: { club_id, start_date, end_date, filter_type?, period_label?, include_photos? }
 //   body sessao:       { session_id, include_photos? }
+//   body convocacao:   { session_id }  (A4 paisagem, games:view)
 //   + fotos?   { ids: [ordem], layout, proporcao, legendas, agrupar, legendasCustom } (modal "Fotos do relatório")
 //   + formato? 'pdf' (padrão) | 'fotos' (JSON: miniaturas p/ o modal) | 'html' (JSON { html }: prévia
 //              só das páginas de fotos, sem Chromium)

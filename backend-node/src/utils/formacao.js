@@ -69,4 +69,41 @@ function validarEscalacao({ modality, formation, storedFormation = null, players
   return { ok: true, formation: formacaoFinal, mudouFormacao, slots };
 }
 
-module.exports = { FORMACOES, formacaoPadrao, formacaoValida, totalVagas, validarEscalacao };
+// Vagas da formação com as MESMAS coordenadas que o editor desenha
+// (porte fiel de buildSlots em frontend/src/lib/formation.js; o teste
+// tests/convocacao.test.js compara os dois). Em %: y=0 é a meta adversária.
+function linhasDaFormacao(formation) {
+  return String(formation).split('-').map((n) => parseInt(n, 10) || 0).filter((n) => n > 0);
+}
+
+function rotulosDasLinhas(qtd) {
+  if (qtd <= 1) return ['LIN'];
+  if (qtd === 2) return ['DEF', 'ATA'];
+  return ['DEF', ...Array(qtd - 2).fill('MEI'), 'ATA'];
+}
+
+function buildSlots(formation) {
+  const ls = linhasDaFormacao(formation);
+  const roles = rotulosDasLinhas(ls.length);
+  const slots = [{ index: 0, role: 'GOL', line: 0, x: 50, y: 90, spacing: 40 }];
+  const yDef = 72;
+  const yAta = 18;
+  let idx = 1;
+  ls.forEach((n, li) => {
+    const y = ls.length === 1 ? 50 : yDef - (li * (yDef - yAta)) / (ls.length - 1);
+    const spacing = 84 / Math.max(n, 1);
+    for (let i = 0; i < n; i++) {
+      slots.push({
+        index: idx++,
+        role: roles[li],
+        line: li + 1,
+        x: n === 1 ? 50 : 8 + spacing * (i + 0.5),
+        y,
+        spacing: Math.min(spacing, 40),
+      });
+    }
+  });
+  return slots;
+}
+
+module.exports = { FORMACOES, formacaoPadrao, formacaoValida, totalVagas, validarEscalacao, buildSlots, rotulosDasLinhas };

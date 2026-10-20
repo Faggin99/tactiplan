@@ -5,6 +5,8 @@
 const F = require('./format');
 const { filterImageAttachments } = require('./photos');
 const { gridOptions } = require('./photoConfig');
+const { positionSector, roleSector, sectorInfo, SECTOR_ORDER, normCode } = require('./positionSector');
+const { slotPosition, playerInitials } = require('./lineup');
 
 const PERIOD_LABELS = {
   '1-micro': 'Microciclo',
@@ -511,7 +513,124 @@ function buildPhotoSection({ items, hidden = 0, config = null, sessionsById = nu
   };
 }
 
+// ---------------------------------------------------------------- convocação (5b)
+// Camisa DESTE jogo → nº permanente do plantel → null.
+function shirtOf(p) {
+  for (const v of [p.jersey_number, p.athlete_jersey]) {
+    if (v === null || v === undefined || v === '') continue;
+    const n = Number(v);
+    if (Number.isInteger(n) && n >= 0) return n;
+  }
+  return null;
+}
+
+// H1 "Time vs Adversário": 20pt; nomes longos encolhem até 14pt (e reticências no CSS).
+function callUpTitleSize(team, opponent) {
+  const len = String(team || '').length + String(opponent || '').length + 4;
+  return Math.max(14, Math.min(20, 20 - (len - 30) * 0.25));
+}
+
+function byName(a, b) { return String(a.name).localeCompare(String(b.name), 'pt-BR'); }
+
+/**
+ * players: [{ athlete_id, status, slot, jersey_number (do jogo), athlete_jersey, name, position }]
+ * formation: a formação EFETIVA (a mesma que o editor usa: salva se válida, senão a padrão).
+ */
+function buildCallUp({ session, team, players = [], formation, competitionName = null }) {
+  const opponent = String(session.opponent_name || '').trim() || 'Adversário';
+  const date = F.toDateStr(session.date);
+  const starters = [];
+  const bench = [];
+  for (const p of players) {
+    const name = String(p.name || '').trim() || 'Atleta';
+    const pos = normCode(p.position) || null;
+    const base = { name, pos, shirt: shirtOf(p), posSector: positionSector(pos) };
+    if ((p.status || 'starter') === 'starter') starters.push({ ...base, slot: p.slot ?? null });
+    else bench.push(base);
+  }
+
+  // Campo: posição pela VAGA; setor pela LINHA da vaga (não pela posição cadastrada).
+  const field = [];
+  const unplaced = [];
+  for (const s of starters) {
+    const at = slotPosition(formation, s.slot);
+    if (!at) {
+      s.sector = s.posSector || 'outros';
+      s.offField = true;
+      unplaced.push(s);
+      continue;
+    }
+    // 'LIN' (futsal 4-0): a linha não diz o setor → posição cadastrada (fora goleiro), senão Meio
+    s.sector = roleSector(at.role) || (s.posSector && s.posSector !== 'gol' ? s.posSector : 'mei');
+    s.at = at;
+    field.push({
+      name: s.name,
+      token: s.shirt != null ? String(s.shirt) : playerInitials(s.name),
+      hasShirt: s.shirt != null,
+      gk: at.role === 'GOL',
+      x: Math.round(at.x * 100) / 100,
+      y: Math.round(at.y * 100) / 100,
+      small: at.perLine > 5,
+      maxWidthPct: Math.round(Math.min(at.spacing, 40) * 100) / 100,
+    });
+  }
+
+  const row = (p, groupSector) => {
+    const posKey = p.pos ? p.posSector : null;
+    return {
+      name: p.name,
+      shirt: p.shirt,
+      pos: p.pos || (p.at ? p.at.role : null),
+      posColor: sectorInfo(posKey || groupSector).color,
+      offField: !!p.offField,
+    };
+  };
+  const groups = SECTOR_ORDER.map((key) => {
+    const placed = starters.filter((s) => s.sector === key && s.at).sort((a, b) => a.slot - b.slot);
+    const off = starters.filter((s) => s.sector === key && !s.at).sort(byName);
+    const rows = placed.concat(off).map((s) => row(s, key));
+    return rows.length ? { key, label: sectorInfo(key).label, color: sectorInfo(key).color, rows } : null;
+  }).filter(Boolean);
+
+  // Reservas sem agrupamento, na ordem do jogo (a mesma da lista do modal)
+  const benchRows = bench
+    .map((p) => ({ name: p.name, shirt: p.shirt, pos: p.pos, posColor: sectorInfo(p.posSector).color }));
+
+  const meta = [];
+  if (competitionName) meta.push(competitionName);
+  const rd = roundLabel(session.match_round);
+  if (rd) meta.push(/^\d+$/.test(rd) ? `Rodada ${rd}` : rd);
+  if (LOCATION_LABELS[session.match_location]) meta.push(LOCATION_LABELS[session.match_location]);
+
+  return {
+    team,
+    opponent,
+    date,
+    weekday: F.weekdayLong(date),
+    ddmm: F.ddmm(date),
+    titleSizePt: callUpTitleSize(team.name, opponent),
+    meta,
+    // Não existem no modelo do jogo hoje: aparecem como "—" (seção 5b, item 1)
+    info: [
+      { label: 'Horário', value: session.kickoff || null },
+      { label: 'Local', value: session.venue || null },
+      { label: 'Apresentação', value: session.meet_time || null },
+    ],
+    formation,
+    field,
+    hasLineup: field.length > 0,
+    groups,
+    bench: benchRows,
+    benchLayout: benchRows.length > 12 ? 'two' : benchRows.length > 7 ? 'compact' : '',
+    startersCompact: starters.length + groups.length > 15,
+    unplaced: unplaced.map((s) => s.name),
+    counts: { total: starters.length + bench.length, starters: starters.length, bench: bench.length },
+  };
+}
+
 module.exports = {
+  shirtOf,
+  buildCallUp,
   PERIOD_LABELS,
   SPECIAL_LIMITS,
   abbreviateContent,

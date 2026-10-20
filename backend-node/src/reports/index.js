@@ -14,6 +14,8 @@ const { toPreviewHtml } = require('./preview');
 const { renderGames } = require('./templates/games');
 const { renderTraining } = require('./templates/training');
 const { renderSession } = require('./templates/session');
+const { renderConvocacao } = require('./templates/convocacao');
+const { formacaoValida, formacaoPadrao } = require('../utils/formacao');
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_SPAN_DAYS = 400;
@@ -274,15 +276,63 @@ async function buildSessao(body, user, assets, mode = 'pdf') {
   };
 }
 
-const BUILDERS = { jogos: buildJogos, treino: buildTreino, sessao: buildSessao };
-const PERMISSION = { jogos: 'stats:view', treino: 'stats:view', sessao: 'training:view' };
+// Convocação (A4 paisagem): jogo salvo + jogadores do jogo. Mesma regra do
+// editor para a formação: a salva se valer para a modalidade, senão a padrão;
+// vaga fora da formação efetiva = titular sem vaga (fora do campo).
+async function buildConvocacao(body, user, assets) {
+  const { workspaceIds } = scope(user);
+  const sessionId = String(body.session_id || '');
+  if (!/^[0-9a-f-]{36}$/i.test(sessionId)) throw new ReportError(400, 'session_id inválido');
+  const r = await query(
+    `SELECT s.id, s.date, s.session_type, s.opponent_name, s.match_location, s.match_round, s.formation,
+            s.competition_id, s.club_id AS session_club_id, m.club_id, m.category_id
+       FROM training_sessions s
+       LEFT JOIN training_microcycles m ON m.id = s.microcycle_id
+      WHERE s.id = $1 AND s.workspace_id = ANY($2)`,
+    [sessionId, workspaceIds],
+  );
+  const session = r.rows[0];
+  if (!session || session.session_type !== 'match') throw new ReportError(404, 'Jogo não encontrado');
+  if (session.category_id && !user.assertCanAccessCategory(session.category_id)) {
+    throw new ReportError(403, 'Sem acesso a essa categoria');
+  }
+  const team = await loadTeam(session.club_id || session.session_club_id, workspaceIds, assets, body.primary_color);
+  const [players, comp] = await Promise.all([
+    query(
+      `SELECT mp.athlete_id, mp.status, mp.slot, mp.jersey_number, a.jersey_number AS athlete_jersey, a.name, a.position
+         FROM match_players mp
+         JOIN athletes a ON a.id = mp.athlete_id
+        WHERE mp.session_id = $1 AND mp.workspace_id = ANY($2)
+        -- mesma ordem da lista do modal do jogo (GET /api/games/:id): reservas na ordem em que foram salvas
+        ORDER BY mp.slot ASC NULLS LAST, mp.created_at ASC, mp.ctid ASC`,
+      [session.id, workspaceIds],
+    ),
+    session.competition_id
+      ? query('SELECT name FROM competitions WHERE id = $1 AND workspace_id = ANY($2)', [session.competition_id, workspaceIds])
+      : Promise.resolve({ rows: [] }),
+  ]);
+  const formation = formacaoValida(team.modality, session.formation) ? session.formation : formacaoPadrao(team.modality);
+  const vm = B.buildCallUp({ session, team, players: players.rows, formation, competitionName: comp.rows[0]?.name || null });
+  const date = F.toDateStr(session.date);
+  const [y, m, d] = date.split('-');
+  return {
+    html: renderConvocacao(vm, { now: new Date() }),
+    // mesmo nome do PDF antigo: Convocacao_<adversario>_<dd-mm-aaaa>.pdf
+    filename: `Convocacao_${safeName(vm.opponent) || 'Adversario'}_${d}-${m}-${y}.pdf`,
+    landscape: true,
+  };
+}
+
+const BUILDERS = { jogos: buildJogos, treino: buildTreino, sessao: buildSessao, convocacao: buildConvocacao };
+// convocacao: a mesma permissão de abrir o jogo (GET /api/games/:id)
+const PERMISSION = { jogos: 'stats:view', treino: 'stats:view', sessao: 'training:view', convocacao: 'games:view' };
 
 async function generateReport(tipo, body, user, { isStale } = {}) {
   const build = BUILDERS[tipo];
   if (!build) throw new ReportError(404, 'Tipo de relatório desconhecido');
   const assets = new Map();
-  const { html, filename } = await build(body || {}, user, assets, 'pdf');
-  const { pdf, pages } = await renderPdf(html, assets, { isStale });
+  const { html, filename, landscape = false } = await build(body || {}, user, assets, 'pdf');
+  const { pdf, pages } = await renderPdf(html, assets, { isStale, landscape });
   return { pdf, pages, filename };
 }
 
