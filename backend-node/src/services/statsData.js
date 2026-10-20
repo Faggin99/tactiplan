@@ -2,6 +2,7 @@
 // rotas GET /api/stats/* (JSON das telas) e POST /api/reports/* (PDF).
 // Regra de negócio fica SÓ aqui; as rotas validam permissão e repassam.
 const { query } = require('../config/database');
+const { computeMinutagem } = require('../utils/minutagem');
 
 // Restringe por categoria quando o membro só enxerga algumas (mesma regra da
 // listagem de microciclos: microciclo sem categoria é visível a todos).
@@ -559,7 +560,12 @@ async function getGameStats({ workspaceIds, start, end, clubId = null, allowedCa
       topScorers: [],
       topAssisters: [],
       topMinutes: [],
+      topSubEntries: [],
       playerStats: [],
+      minutesPossible: 0,
+      substitutionsTotal: 0,
+      avgSubstitutionsPerGame: 0,
+      avgSubstitutionMinute: null,
       avgGoalsScored: 0,
       avgGoalsConceded: 0,
       cleanSheets: 0,
@@ -588,6 +594,7 @@ async function getGameStats({ workspaceIds, start, end, clubId = null, allowedCa
   // Get all match_players (escalações) pra calcular minutagem
   const playersResult = await query(
     `SELECT mp.session_id, mp.athlete_id, mp.status,
+            mp.minutes_played, mp.minutes_manual,
             a.name, a.jersey_number
      FROM match_players mp
      LEFT JOIN athletes a ON mp.athlete_id = a.id
@@ -799,11 +806,16 @@ async function getGameStats({ workspaceIds, start, end, clubId = null, allowedCa
   // Estatísticas por atleta — goals, assists, yellow, red, minutes, appearances
   // Minutagem reconstruída a partir de match_players + eventos de substituição.
   // ─────────────────────────────────────────────────────────────
-  const playerStatsMap = new Map(); // athlete_id → { name, jersey_number, goals, assists, yellow, red, minutes, appearances }
+  const playerStatsMap = new Map(); // athlete_id → { name, jersey_number, goals, assists, yellow, red, minutes, appearances, ... }
   function ensure(id, name, jersey) {
     if (!id) return null;
     if (!playerStatsMap.has(id)) {
-      playerStatsMap.set(id, { athlete_id: id, name: name || '—', jersey_number: jersey || null, goals: 0, assists: 0, yellow_cards: 0, red_cards: 0, minutes: 0, appearances: 0 });
+      playerStatsMap.set(id, {
+        athlete_id: id, name: name || '—', jersey_number: jersey || null,
+        goals: 0, assists: 0, yellow_cards: 0, red_cards: 0,
+        minutes: 0, appearances: 0, starts: 0, sub_entries: 0, subbed_off: 0,
+        called_up: 0, minutes_possible: 0,
+      });
     }
     return playerStatsMap.get(id);
   }
@@ -811,6 +823,7 @@ async function getGameStats({ workspaceIds, start, end, clubId = null, allowedCa
   // Gols / cartões / assists (só do próprio time)
   for (const e of events) {
     if (e.team !== 'own') continue;
+    if (e.event_type === 'substitution') continue; // quem entra/sai: tratado na minutagem
     const p = ensure(e.player_id, e.athlete_name, e.jersey_number);
     if (!p) continue;
     if (e.event_type === 'goal_scored') p.goals++;
@@ -822,45 +835,62 @@ async function getGameStats({ workspaceIds, start, end, clubId = null, allowedCa
     }
   }
 
-  // Minutagem — por sessão, reconstrói com starters + substitutions
+  // Minutagem — por jogo, a MESMA regra do modal (utils/minutagem.js):
+  // substituições + expulsão; ajuste manual (minutes_manual) vale como está.
   const sessionsById = new Map(sessionsResult.rows.map(s => [s.id, s]));
   const playersBySession = new Map();
   for (const mp of matchPlayers) {
     if (!playersBySession.has(mp.session_id)) playersBySession.set(mp.session_id, []);
     playersBySession.get(mp.session_id).push(mp);
   }
+  const durationOf = (session) => session.match_duration || DEFAULT_DURATION_BY_MODALITY[modality] || 90;
+  let minutesPossible = 0;
+  for (const session of sessionsResult.rows) minutesPossible += durationOf(session);
+
+  // Substituições por jogo (só do nosso time), já com nomes
+  const nameById = new Map(matchPlayers.map(mp => [mp.athlete_id, mp.name]));
+  const subsBySession = new Map();
+  for (const e of events) {
+    if (e.event_type !== 'substitution' || (e.team && e.team !== 'own')) continue;
+    if (!subsBySession.has(e.session_id)) subsBySession.set(e.session_id, []);
+    subsBySession.get(e.session_id).push({
+      minute: e.minute ?? null,
+      in_id: e.player_id || null,
+      in_name: e.athlete_name || nameById.get(e.player_id) || null,
+      out_id: e.secondary_player_id || null,
+      out_name: e.secondary_athlete_name || nameById.get(e.secondary_player_id) || null,
+    });
+  }
+  for (const list of subsBySession.values()) list.sort((a, b) => (a.minute ?? 999) - (b.minute ?? 999));
 
   for (const [sessionId, players] of playersBySession) {
     const session = sessionsById.get(sessionId);
     if (!session) continue;
-    const duration = session.match_duration || DEFAULT_DURATION_BY_MODALITY[modality] || 90;
-    const subs = events.filter(e => e.session_id === sessionId && e.event_type === 'substitution');
-
-    // Mapas: minuto em que jogador saiu (substituído) / minuto em que jogador entrou
-    const wentOutAt = new Map();
-    const cameInAt = new Map();
-    for (const ev of subs) {
-      if (ev.secondary_player_id) wentOutAt.set(ev.secondary_player_id, ev.minute ?? duration);
-      if (ev.player_id)            cameInAt.set(ev.player_id, ev.minute ?? 0);
-    }
+    const duration = durationOf(session);
+    const sessionEvents = events.filter(e => e.session_id === sessionId);
+    const st = computeMinutagem({ players, events: sessionEvents, duration });
 
     for (const mp of players) {
       const p = ensure(mp.athlete_id, mp.name, mp.jersey_number);
       if (!p) continue;
-      const isStarter = mp.status === 'starter';
-      if (isStarter) {
-        const exitMin = wentOutAt.get(mp.athlete_id);
-        p.minutes += (exitMin != null ? exitMin : duration);
-        p.appearances++;
-      } else {
-        const entryMin = cameInAt.get(mp.athlete_id);
-        if (entryMin != null) {
-          p.minutes += Math.max(0, duration - entryMin);
-          p.appearances++;
-        }
-      }
+      const s = st[mp.athlete_id];
+      p.called_up++;
+      p.minutes_possible += duration;
+      if (!s) continue;
+      p.minutes += s.minutes;
+      if (s.played) p.appearances++;
+      if (s.started) p.starts++;
+      if (s.entered) p.sub_entries++;
+      if (s.leftAt != null && s.sentOffAt == null && s.leftAt < duration) p.subbed_off++;
     }
   }
+
+  // Substituições no período
+  const allSubs = Array.from(subsBySession.values()).flat();
+  const substitutionsTotal = allSubs.length;
+  const subMinutes = allSubs.map(x => x.minute).filter(m => m != null);
+  const avgSubstitutionMinute = subMinutes.length ? Math.round(subMinutes.reduce((a, b) => a + b, 0) / subMinutes.length) : null;
+  for (const m of matchesHistory) m.substitutions = subsBySession.get(m.session_id) || [];
 
   const playerStats = Array.from(playerStatsMap.values())
     .sort((a, b) => b.goals - a.goals || b.assists - a.assists || b.minutes - a.minutes);
@@ -880,7 +910,14 @@ async function getGameStats({ workspaceIds, start, end, clubId = null, allowedCa
     .filter(p => p.minutes > 0)
     .sort((a, b) => b.minutes - a.minutes)
     .slice(0, 10)
-    .map(p => ({ athlete_id: p.athlete_id, name: p.name, jersey_number: p.jersey_number, minutes: p.minutes, appearances: p.appearances }));
+    .map(p => ({ athlete_id: p.athlete_id, name: p.name, jersey_number: p.jersey_number, minutes: p.minutes, appearances: p.appearances, starts: p.starts, sub_entries: p.sub_entries }));
+
+  // Quem mais entrou no decorrer dos jogos
+  const topSubEntries = playerStats
+    .filter(p => p.sub_entries > 0)
+    .sort((a, b) => b.sub_entries - a.sub_entries || b.minutes - a.minutes)
+    .slice(0, 10)
+    .map(p => ({ athlete_id: p.athlete_id, name: p.name, jersey_number: p.jersey_number, sub_entries: p.sub_entries, minutes: p.minutes }));
 
   return {
     totalMatches,
@@ -908,7 +945,12 @@ async function getGameStats({ workspaceIds, start, end, clubId = null, allowedCa
     topScorers,
     topAssisters,
     topMinutes,
+    topSubEntries,
     playerStats,
+    minutesPossible,
+    substitutionsTotal,
+    avgSubstitutionsPerGame: totalMatches > 0 ? Math.round((substitutionsTotal / totalMatches) * 10) / 10 : 0,
+    avgSubstitutionMinute,
     avgGoalsScored: totalMatches > 0 ? Math.round((totalGoalsScored / totalMatches) * 100) / 100 : 0,
     avgGoalsConceded: totalMatches > 0 ? Math.round((totalGoalsConceded / totalMatches) * 100) / 100 : 0,
     cleanSheets,

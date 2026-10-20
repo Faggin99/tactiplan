@@ -2,6 +2,10 @@ const express = require('express');
 const { query, pool } = require('../config/database');
 const authMiddleware = require('../middleware/auth');
 const { validarEscalacao } = require('../utils/formacao');
+const { computeMinutagem, checarSubstituicoes } = require('../utils/minutagem');
+
+// Modalidades em que a minutagem sai das substituições (futsal: troca livre, não rastreia).
+const RASTREIA_MINUTOS = new Set(['football_11', 'football_7']);
 
 const router = express.Router();
 
@@ -105,6 +109,16 @@ router.post('/:sessionId', async (req, res) => {
     });
     if (!escalacao.ok) return res.status(400).json({ error: escalacao.error });
 
+    // Substituições: quem entra precisa ser reserva relacionado e entrar uma vez só.
+    // Só recusa (400) quando o pedido vem do formulário NOVO (subs_check: true). Cliente
+    // antigo / eventos legados ou incompletos: registra aviso e salva (a minutagem ignora
+    // a substituição incompleta).
+    const subsOk = checarSubstituicoes({ players: players || [], events: events || [] });
+    if (!subsOk.ok) {
+      if (req.body.subs_check === true) return res.status(400).json({ error: subsOk.error, code: 'INVALID_SUBSTITUTION' });
+      console.warn(`[games] substituição inconsistente salva (cliente antigo) sessão ${req.params.sessionId}: ${subsOk.error}`);
+    }
+
     await client.query('BEGIN');
 
     await client.query(
@@ -127,15 +141,26 @@ router.post('/:sessionId', async (req, res) => {
        req.params.sessionId, ownerWs, escalacao.formation]
     );
 
+    // Minutagem: o servidor recalcula a partir das substituições/expulsão (a mesma
+    // regra do modal). Ajuste manual explícito (minutes_manual) é mantido.
+    const rastreia = RASTREIA_MINUTOS.has(ctx.modality || 'football_11');
+    const minutagem = rastreia
+      ? computeMinutagem({ players: players || [], events: events || [], duration: match_duration })
+      : {};
+
     await client.query('DELETE FROM match_players WHERE session_id = $1 AND workspace_id = $2', [req.params.sessionId, ownerWs]);
     if (players && players.length > 0) {
       for (const [i, player] of players.entries()) {
         const rawJersey = player.jersey_number;
         const jersey = Number.isFinite(+rawJersey) && +rawJersey > 0 ? +rawJersey : null;
+        const manual = rastreia && !!player.minutes_manual;
+        const minutes = rastreia
+          ? (minutagem[player.athlete_id]?.minutes ?? 0)
+          : (Math.max(0, parseInt(player.minutes_played, 10) || 0));
         await client.query(
-          `INSERT INTO match_players (session_id, athlete_id, status, minutes_played, jersey_number, workspace_id, slot)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [req.params.sessionId, player.athlete_id, player.status || 'starter', player.minutes_played || 0, jersey, ownerWs, escalacao.slots[i]]
+          `INSERT INTO match_players (session_id, athlete_id, status, minutes_played, jersey_number, workspace_id, slot, minutes_manual)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [req.params.sessionId, player.athlete_id, player.status || 'starter', minutes, jersey, ownerWs, escalacao.slots[i], manual]
         );
       }
     }
