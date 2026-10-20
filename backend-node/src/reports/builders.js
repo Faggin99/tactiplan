@@ -4,6 +4,7 @@
 // templates só desenham — nenhuma regra de negócio nova aqui.
 const F = require('./format');
 const { filterImageAttachments } = require('./photos');
+const { gridOptions } = require('./photoConfig');
 
 const PERIOD_LABELS = {
   '1-micro': 'Microciclo',
@@ -495,6 +496,21 @@ function groupPhotosByDay(photos, sessionsById) {
   return Array.from(groups.values()).sort((a, b) => a.date.localeCompare(b.date));
 }
 
+// Seção de fotos pronta para o template. config = escolha do modal (ou null =
+// padrão). sessionsById só na semana: agrupa por dia, salvo "lista corrida".
+// Com escolha do usuário não há "+N não exibidas" (ele tirou de propósito).
+function buildPhotoSection({ items, hidden = 0, config = null, sessionsById = null }) {
+  const grouped = !!sessionsById && (!config || config.agrupar);
+  const hid = config ? 0 : hidden;
+  return {
+    items,
+    groups: grouped ? groupPhotosByDay(items, sessionsById) : null,
+    hidden: hid,
+    total: items.length + hid,
+    grid: gridOptions(config, items.length),
+  };
+}
+
 module.exports = {
   PERIOD_LABELS,
   SPECIAL_LIMITS,
@@ -514,4 +530,6 @@ module.exports = {
   selectSessionPhotos,
   groupPhotosByDay,
   interleaveByDay,
+  buildPhotoSection,
+  periodRight,
 };

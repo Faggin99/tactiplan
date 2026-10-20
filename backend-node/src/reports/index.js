@@ -7,8 +7,10 @@ const { getSessionDetail } = require('../services/sessionData');
 const B = require('./builders');
 const F = require('./format');
 const { teamPalette, normalizeHex } = require('./theme');
-const { loadLogo, loadPhotos, filterImageAttachments } = require('./photos');
+const { loadLogo, loadPhotos, loadThumbs, filterImageAttachments } = require('./photos');
 const { renderPdf } = require('./renderer');
+const PC = require('./photoConfig');
+const { toPreviewHtml } = require('./preview');
 const { renderGames } = require('./templates/games');
 const { renderTraining } = require('./templates/training');
 const { renderSession } = require('./templates/session');
@@ -109,18 +111,86 @@ async function sessionImageFiles(sessionIds, workspaceIds) {
   return files;
 }
 
-async function preparePhotos(files, limit, assets, sessionsById = null) {
+// Candidatas: TODAS as fotos (imagem) das sessões, ordem de envio, com legenda
+// e o dia da sessão. É contra esta lista que os ids do modal são validados
+// (sessões já filtradas por clube/workspace/categoria do usuário).
+async function photoCandidates(sessions, workspaceIds) {
+  const files = await sessionImageFiles(sessions.map((s) => s.id), workspaceIds);
+  if (!files.length) return [];
+  const bySession = new Map(sessions.map((s) => [s.id, s]));
   const info = await activitiesInfo(Array.from(new Set(files.map((f) => f.activity_id).filter(Boolean))));
-  let selected = B.selectSessionPhotos(files, info);
-  if (sessionsById) selected = B.interleaveByDay(selected, sessionsById);
-  const { photos, hidden } = await loadPhotos(selected, limit);
-  photos.forEach((p, i) => {
+  return B.selectSessionPhotos(files, info).map((f) => {
+    const sess = bySession.get(f.session_id);
+    return { ...f, id: String(f.id), date: sess ? F.toDateStr(sess.date) : null };
+  });
+}
+
+const LIST_MAX = 60; // miniaturas no modal (o relatório aceita até PC.MAX_FOTOS)
+
+// Lista do modal "Fotos do relatório": miniaturas + seleção padrão.
+async function photoList(cands, byDay, limit) {
+  const ordered = cands.slice().sort((a, b) => String(a.date || '9999').localeCompare(String(b.date || '9999')));
+  const thumbs = await loadThumbs(ordered.slice(0, LIST_MAX));
+  const loaded = new Set(thumbs.map((t) => t.id));
+  const defaultOrder = byDay ? B.interleaveByDay(cands, byDay) : cands;
+  const ids = defaultOrder.filter((c) => loaded.has(c.id)).slice(0, limit).map((c) => c.id);
+  return {
+    fotos: thumbs.map((t) => ({
+      id: t.id,
+      date: t.date,
+      dia: t.date ? F.weekdayLong(t.date) : null,
+      dd: t.date ? F.ddmm(t.date) : null,
+      titulo: t.caption?.title || '',
+      origem: t.caption?.context || '',
+      thumb: `data:image/jpeg;base64,${t.buffer.toString('base64')}`,
+    })),
+    total: cands.length,
+    semana: !!byDay,
+    limite: PC.MAX_FOTOS,
+    padrao: { ids, layout: PC.gridOptions(null, ids.length).layout, proporcao: '4:3', legendas: true, agrupar: true },
+  };
+}
+
+function emptyList(week) {
+  return { fotos: [], total: 0, semana: !!week, limite: PC.MAX_FOTOS, padrao: { ids: [], layout: 'medio', proporcao: '4:3', legendas: true, agrupar: true } };
+}
+
+// Seção de fotos do relatório. mode: 'pdf' (fotos em 1400px) | 'html' (prévia,
+// miniaturas) | 'fotos' (lista do modal). Sem body.fotos = padrão de antes.
+async function preparePhotos({ sessions, workspaceIds, body, mode, assets, week }) {
+  const byDay = week ? new Map(sessions.map((s) => [s.id, s])) : null;
+  const limit = week ? B.SPECIAL_LIMITS.weekPhotos : B.SPECIAL_LIMITS.sessionPhotos;
+  const cands = await photoCandidates(sessions, workspaceIds);
+  if (mode === 'fotos') return cands.length ? photoList(cands, byDay, limit) : emptyList(week);
+  let config;
+  try {
+    config = PC.parseFotosConfig(body.fotos, new Set(cands.map((c) => c.id)));
+  } catch (e) {
+    throw new ReportError(400, e.message);
+  }
+  if (!cands.length || (config && !config.ids.length)) return null;
+  let items;
+  let hidden = 0;
+  if (config) {
+    const chosen = PC.applyFotosConfig(cands, config);
+    items = mode === 'html' ? await loadThumbs(chosen) : (await loadPhotos(chosen, chosen.length)).photos;
+  } else {
+    const ordered = byDay ? B.interleaveByDay(cands, byDay) : cands;
+    if (mode === 'html') {
+      items = (await loadThumbs(ordered.slice(0, limit + 3))).slice(0, limit);
+      hidden = Math.max(0, ordered.length - items.length);
+    } else {
+      ({ photos: items, hidden } = await loadPhotos(ordered, limit));
+    }
+  }
+  if (!items.length) return null;
+  items.forEach((p, i) => {
     const key = `img/foto-${i + 1}.jpg`;
     assets.set(key, { body: p.buffer, contentType: 'image/jpeg' });
     p.src = key;
     delete p.buffer;
   });
-  return { items: photos, hidden, total: photos.length + hidden };
+  return B.buildPhotoSection({ items, hidden, config, sessionsById: byDay });
 }
 
 // ------------------------------------------------------------------ tipos
@@ -138,27 +208,29 @@ async function buildJogos(body, user, assets) {
   };
 }
 
-async function buildTreino(body, user, assets) {
+async function buildTreino(body, user, assets, mode = 'pdf') {
   const { workspaceIds, allowedCategoryIds } = scope(user);
   const period = validPeriod(body);
   const team = await loadTeam(body.club_id, workspaceIds, assets, body.primary_color);
   const q = { workspaceIds, start: period.start, end: period.end, clubId: team.id, allowedCategoryIds };
+  // Fotos só no relatório de 1 microciclo (ver decisão no relatório da entrega)
+  const withPhotos = period.isSingleWeek && body.include_photos !== false;
+  if (mode !== 'pdf') {
+    // lista/prévia das fotos: não precisa das estatísticas
+    if (!withPhotos) return mode === 'fotos' ? { list: emptyList(true) } : { html: null };
+    const sessions = await stats.getPeriodSessions(q);
+    const r = await preparePhotos({ sessions, workspaceIds, body, mode, assets, week: true });
+    if (mode === 'fotos') return { list: r };
+    if (!r) return { html: null };
+    return { html: renderTraining({ team, right: B.periodRight(period), photos: r }, { now: new Date(), onlyPhotos: true }), count: r.items.length };
+  }
   const [data, sessions, games] = await Promise.all([
     stats.getTrainingStats(q),
     stats.getPeriodSessions(q),
     stats.getGameStats(q),
   ]);
   const gamesById = new Map((games.matchesHistory || []).map((m) => [m.session_id, m]));
-  // Fotos só no relatório de 1 microciclo (ver decisão no relatório da entrega)
-  let photos = null;
-  if (period.isSingleWeek && body.include_photos !== false) {
-    const files = await sessionImageFiles(sessions.map((s) => s.id), workspaceIds);
-    if (files.length) {
-      const sessionsById = new Map(sessions.map((s) => [s.id, s]));
-      const p = await preparePhotos(files, B.SPECIAL_LIMITS.weekPhotos, assets, sessionsById);
-      if (p.items.length) photos = { groups: B.groupPhotosByDay(p.items, sessionsById), hidden: p.hidden, total: p.total };
-    }
-  }
+  const photos = withPhotos ? await preparePhotos({ sessions, workspaceIds, body, mode, assets, week: true }) : null;
   const vm = B.buildTrainingReport({ stats: data, sessions, gamesById, team, period, photos });
   return {
     html: renderTraining(vm, { now: new Date() }),
@@ -166,7 +238,7 @@ async function buildTreino(body, user, assets) {
   };
 }
 
-async function buildSessao(body, user, assets) {
+async function buildSessao(body, user, assets, mode = 'pdf') {
   const { workspaceIds } = scope(user);
   const sessionId = String(body.session_id || '');
   if (!/^[0-9a-f-]{36}$/i.test(sessionId)) throw new ReportError(400, 'session_id inválido');
@@ -179,21 +251,20 @@ async function buildSessao(body, user, assets) {
   }
   const team = await loadTeam(micro.club_id || session.club_id, workspaceIds, assets, body.primary_color);
   const date = F.toDateStr(session.date);
+  const withPhotos = body.include_photos !== false;
+  if (mode === 'fotos' && !withPhotos) return { list: emptyList(false) };
+  const photos = withPhotos ? await preparePhotos({ sessions: [session], workspaceIds, body, mode, assets, week: false }) : null;
+  if (mode === 'fotos') return { list: photos };
   let game = null;
-  if (session.session_type === 'match') {
+  if (mode === 'pdf' && session.session_type === 'match') {
     const g = await stats.getGameStats({ workspaceIds, start: date, end: date, clubId: team.id });
     game = (g.matchesHistory || []).find((m) => m.session_id === session.id) || null;
   }
-  let photos = null;
-  if (body.include_photos !== false) {
-    const files = await sessionImageFiles([session.id], workspaceIds);
-    if (files.length) {
-      const p = await preparePhotos(files, B.SPECIAL_LIMITS.sessionPhotos, assets);
-      if (p.items.length) photos = p;
-    }
-  }
   const weekNumber = micro.week_identifier ? Number(String(micro.week_identifier).split('-')[1]) || null : (F.isoWeek(date)?.week || null);
   const vm = B.buildSessionSheet({ session, team, weekNumber, game, photos });
+  if (mode === 'html') {
+    return photos ? { html: renderSession(vm, { now: new Date(), onlyPhotos: true }), count: photos.items.length } : { html: null };
+  }
   return {
     html: renderSession(vm, { now: new Date() }),
     filename: `treino-${safeName(session.day_name || F.weekdayLong(date))}-${date}.pdf`,
@@ -203,13 +274,30 @@ async function buildSessao(body, user, assets) {
 const BUILDERS = { jogos: buildJogos, treino: buildTreino, sessao: buildSessao };
 const PERMISSION = { jogos: 'stats:view', treino: 'stats:view', sessao: 'training:view' };
 
-async function generateReport(tipo, body, user) {
+async function generateReport(tipo, body, user, { isStale } = {}) {
   const build = BUILDERS[tipo];
   if (!build) throw new ReportError(404, 'Tipo de relatório desconhecido');
   const assets = new Map();
-  const { html, filename } = await build(body || {}, user, assets);
-  const { pdf, pages } = await renderPdf(html, assets);
+  const { html, filename } = await build(body || {}, user, assets, 'pdf');
+  const { pdf, pages } = await renderPdf(html, assets, { isStale });
   return { pdf, pages, filename };
 }
 
-module.exports = { generateReport, ReportError, PERMISSION, BUILDERS };
+// Fotos que o modal "Fotos do relatório" lista (só ficha do dia e semana).
+async function listReportPhotos(tipo, body, user) {
+  if (tipo !== 'treino' && tipo !== 'sessao') return emptyList(false);
+  const { list } = await BUILDERS[tipo](body || {}, user, new Map(), 'fotos');
+  return list;
+}
+
+// Prévia: HTML só da(s) página(s) de fotos, com miniaturas e fontes embutidas,
+// para o iframe do modal. Não usa o Chromium (a paginação roda no navegador
+// de quem vê, com o MESMO template e o mesmo paginador do PDF).
+async function previewReportPhotos(tipo, body, user) {
+  if (tipo !== 'treino' && tipo !== 'sessao') throw new ReportError(400, 'Este relatório não tem fotos');
+  const assets = new Map();
+  const { html, count } = await BUILDERS[tipo](body || {}, user, assets, 'html');
+  return { html: html ? toPreviewHtml(html, assets) : null, fotos: count || 0 };
+}
+
+module.exports = { generateReport, listReportPhotos, previewReportPhotos, ReportError, PERMISSION, BUILDERS };

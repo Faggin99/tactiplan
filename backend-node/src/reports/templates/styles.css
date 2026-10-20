@@ -222,3 +222,16 @@ body{font-family:Inter,sans-serif;color:var(--ink);font-size:8.5pt;line-height:1
 .ph-day .dh{display:flex;align-items:baseline;gap:2mm;margin:0 0 2mm;font:600 8.5pt Poppins}
 .ph-day .dh small{font:500 7pt Inter;color:var(--muted)}
 .ph-more{font-size:7.5pt;color:var(--muted);text-align:right}
+/* fotos escolhidas no modal: layout (c1/c2/c3/mosaic) e proporção (r43/r11/rorig) */
+.photos.c1{grid-template-columns:1fr;justify-items:center;gap:5mm}
+.photos.c1 .ph-item{width:min(100%,136mm)}
+.photos.c1.r11 .ph-item{width:min(100%,102mm)}
+.photos.c1 .ph-item .cap{font-size:8pt}
+.photos.c1 .ph-item .cap span{font-size:7pt}
+.photos.r43 .ph-item .img,.photos.rorig .ph-item .img{aspect-ratio:4/3}
+.photos.r11 .ph-item .img{aspect-ratio:1/1}
+.photos.rorig .ph-item img{object-fit:contain}
+.photos.mosaic .ph-hero{grid-column:1 / -1;display:grid;grid-template-columns:repeat(3,1fr);gap:3mm;break-inside:avoid}
+.photos.mosaic .ph-item.hero{grid-column:span 2;grid-row:span 2;display:flex;flex-direction:column}
+.photos.mosaic .ph-item.hero .img{flex:1;min-height:0;position:relative;aspect-ratio:auto}
+.photos.mosaic .ph-item.hero img{position:absolute;inset:0}

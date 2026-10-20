@@ -1,7 +1,7 @@
 // Relatório 3 — Ficha de sessão (1 página; + "Registro fotográfico" se houver fotos).
 const F = require('../format');
 const C = require('./components');
-const { photoGrid } = require('./photos');
+const { photoPageBody } = require('./photos');
 
 const esc = F.esc;
 
@@ -65,7 +65,7 @@ function notes() {
   return `<div class="notes-wrap">${C.sec('Observações')}<div class="notes"></div></div>`;
 }
 
-function renderSession(vm, { now }) {
+function renderSession(vm, { now, onlyPhotos = false }) {
   const team = vm.team;
   const groupsTxt = vm.groupsAll.length ? ` · Grupos: ${esc(vm.groupsAll.join(', '))}` : '';
   const foot = C.footer({ now, extraHtml: groupsTxt });
@@ -88,15 +88,14 @@ function renderSession(vm, { now }) {
     body = timeline(vm) + blocksHtml + notes();
   }
   const right = `${F.weekdayShort(vm.date)} ${F.ddmmyyyy(vm.date)}${vm.weekNumber ? ` · Semana ${vm.weekNumber}` : ''}`;
-  const pages = [C.page({ header: header1, subtitle: 'Blocos', body, bodyStyle: 'gap:5mm', foot })];
+  // onlyPhotos: só a(s) página(s) de fotos (prévia do modal "Fotos do relatório")
+  const pages = onlyPhotos ? [] : [C.page({ header: header1, subtitle: 'Blocos', body, bodyStyle: 'gap:5mm', foot })];
   const ph = vm.photos;
   if (ph && ph.items.length) {
-    const more = ph.hidden > 0 ? `<div class="ph-more">+${F.plural(ph.hidden, 'foto não exibida', 'fotos não exibidas')}</div>` : '';
     pages.push(C.page({
       header: C.compactHeader({ team, reportName, subtitle: 'Registro fotográfico', right }),
       subtitle: 'Registro fotográfico',
-      body: `<div>${C.sec('Registro fotográfico', esc(F.plural(ph.total, 'foto', 'fotos')))}</div>`
-        + `<div data-split=".ph-item">${photoGrid(ph.items, { cols: ph.items.length <= 4 ? 2 : 3, showContext: true })}</div>${more}`,
+      body: photoPageBody('Registro fotográfico', ph),
       bodyStyle: 'gap:3mm',
       foot,
     }));

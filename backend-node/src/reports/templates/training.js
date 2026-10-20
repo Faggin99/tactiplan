@@ -1,7 +1,7 @@
 // Relatório 2 — Estatísticas de treino (2 páginas + fotos da semana).
 const F = require('../format');
 const C = require('./components');
-const { photoGrid } = require('./photos');
+const { photoPageBody } = require('./photos');
 
 const esc = F.esc;
 
@@ -107,16 +107,7 @@ function distance(vm) {
     <div class="collab${dense ? ' dense' : ''}">${labs}</div></div>`;
 }
 
-function weekPhotos(vm) {
-  const ph = vm.photos;
-  if (!ph || !ph.groups.length) return null;
-  const blocks = ph.groups.map((g) => `<div class="ph-day" data-split=".ph-item"><div class="dh">${esc(g.label)} <small>${esc(g.dd)}</small></div>`
-    + photoGrid(g.items, { cols: vm.photos.total <= 4 ? 2 : 3, showContext: true }) + '</div>');
-  if (ph.hidden > 0) blocks.push(`<div class="ph-more">+${F.plural(ph.hidden, 'foto não exibida', 'fotos não exibidas')}</div>`);
-  return blocks.join('');
-}
-
-function renderTraining(vm, { now }) {
+function renderTraining(vm, { now, onlyPhotos = false }) {
   const team = vm.team;
   const foot = C.footer({ now });
   const reportName = 'Estatísticas de treino';
@@ -124,7 +115,9 @@ function renderTraining(vm, { now }) {
     team, eyebrow: reportName, title: team.name, metaHtml: esc(vm.meta), badgeTop: vm.badgeTop, badgeSub: vm.badgeSub,
   });
   const pages = [];
-  if (vm.empty) {
+  if (onlyPhotos) {
+    // prévia do modal "Fotos do relatório": só a(s) página(s) de fotos
+  } else if (vm.empty) {
     pages.push(C.page({
       header: header1,
       subtitle: 'Visão do período',
@@ -145,12 +138,12 @@ function renderTraining(vm, { now }) {
       foot,
     }));
   }
-  const photos = weekPhotos(vm);
-  if (photos) {
+  const ph = vm.photos;
+  if (ph && ph.items.length) {
     pages.push(C.page({
       header: C.compactHeader({ team, reportName, subtitle: 'Fotos da semana', right: vm.right }),
       subtitle: 'Fotos da semana',
-      body: `<div>${C.sec('Fotos da semana', esc(F.plural(vm.photos.total, 'foto', 'fotos')))}</div>${photos}`,
+      body: photoPageBody('Fotos da semana', ph),
       bodyStyle: 'gap:4mm',
       foot,
     }));

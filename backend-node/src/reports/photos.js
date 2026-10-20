@@ -101,8 +101,65 @@ async function loadPhotos(files, limit) {
   return { photos, hidden: Math.max(0, existing.length - used) };
 }
 
+// Miniaturas (lista do modal e prévia): lado máx. 480px, guardadas em memória
+// (LRU por arquivo+mtime, teto de bytes) para a prévia, que é refeita a cada
+// mudança no modal, não abrir um processo do sharp toda vez.
+const THUMB_SIDE = 480;
+const THUMB_QUALITY = 70;
+const THUMB_CACHE_MAX_BYTES = 16 * 1024 * 1024;
+const thumbCache = new Map(); // chave → Buffer (ordem de inserção = LRU)
+let thumbCacheBytes = 0;
+
+function thumbCacheSet(key, buf) {
+  if (thumbCache.has(key)) { thumbCacheBytes -= thumbCache.get(key).length; thumbCache.delete(key); }
+  thumbCache.set(key, buf);
+  thumbCacheBytes += buf.length;
+  for (const [k, v] of thumbCache) {
+    if (thumbCacheBytes <= THUMB_CACHE_MAX_BYTES) break;
+    thumbCache.delete(k);
+    thumbCacheBytes -= v.length;
+  }
+}
+
+// files: anexos → [{ ...file, buffer }] na mesma ordem, sem os que não existem
+// no disco ou não decodificam.
+async function loadThumbs(files) {
+  const entries = [];
+  for (const f of files) {
+    const full = resolveUploadPath(f.file_path);
+    if (!full) continue;
+    let st;
+    try { st = await fs.promises.stat(full); } catch (_) { continue; }
+    if (!st.isFile()) continue;
+    entries.push({ f, full, key: `${full}:${st.mtimeMs}:${st.size}` });
+  }
+  const missing = entries.filter((e) => !thumbCache.has(e.key));
+  if (missing.length) {
+    const bufs = await resizeInWorker(missing.map((e) => ({ path: e.full })), { maxSide: THUMB_SIDE, quality: THUMB_QUALITY });
+    missing.forEach((e, i) => { e.fresh = bufs[i] || null; });
+  }
+  const out = [];
+  for (const e of entries) {
+    let buf;
+    if (e.fresh === undefined) {
+      buf = thumbCache.get(e.key);
+      if (!buf) continue; // saiu do cache enquanto as outras eram reduzidas
+      thumbCache.delete(e.key); // renova a posição no LRU (mesmo tamanho)
+      thumbCache.set(e.key, buf);
+    } else {
+      buf = e.fresh;
+      if (buf) thumbCacheSet(e.key, buf);
+    }
+    if (!buf) continue;
+    out.push({ ...e.f, buffer: buf });
+  }
+  return out;
+}
+
 module.exports = {
   MAX_SIDE,
+  THUMB_SIDE,
+  loadThumbs,
   JPEG_QUALITY,
   isImageAttachment,
   filterImageAttachments,

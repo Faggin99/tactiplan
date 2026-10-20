@@ -115,18 +115,25 @@ async function renderJob(html, assets) {
 }
 
 // Enfileira (concorrência 1). Rejeita com code REPORT_BUSY se a fila lotar.
-function renderPdf(html, assets) {
+// isStale(): quem pediu já desistiu (fechou a conexão) → o job é descartado
+// antes de abrir página no Chromium.
+function renderPdf(html, assets, { isStale } = {}) {
   if (pending >= MAX_QUEUE) {
     return Promise.reject(Object.assign(new Error('Gerador de relatórios ocupado. Tente de novo em instantes.'), { code: 'REPORT_BUSY' }));
   }
   pending++;
   clearTimeout(idleTimer);
-  const run = chain.then(() => withTimeout(renderJob(html, assets), TIMEOUT_MS, () => {
-    // travou: derruba o browser para não deixar processo zumbi
-    const b = browser;
-    browser = null;
-    if (b) b.close().catch(() => {});
-  }));
+  const run = chain.then(() => {
+    if (isStale && isStale()) {
+      throw Object.assign(new Error('Pedido cancelado'), { code: 'REPORT_CANCELED' });
+    }
+    return withTimeout(renderJob(html, assets), TIMEOUT_MS, () => {
+      // travou: derruba o browser para não deixar processo zumbi
+      const b = browser;
+      browser = null;
+      if (b) b.close().catch(() => {});
+    });
+  });
   chain = run.catch(() => {});
   return run.finally(() => {
     pending--;
@@ -141,4 +148,4 @@ async function closeBrowser() {
   if (b) await b.close().catch(() => {});
 }
 
-module.exports = { renderPdf, closeBrowser, ORIGIN };
+module.exports = { renderPdf, closeBrowser, fontBuffer, ORIGIN };

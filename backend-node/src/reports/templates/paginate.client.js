@@ -115,5 +115,11 @@
   Promise.all([document.fonts.ready, waitImages()]).then(function () {
     try { paginate(); } catch (e) { window.__reportError = String(e && e.stack || e); }
     window.__reportReady = true;
+    // prévia no app (iframe): avisa nº de páginas e altura para escalar
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'tp-report-preview', pages: window.__reportPages || 0, height: document.documentElement.scrollHeight }, '*');
+      }
+    } catch (e) { /* sem pai acessível */ }
   });
 })();

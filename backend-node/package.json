@@ -7,7 +7,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "smoke": "node tests/smoke.test.js",
-    "test": "node --test tests/revenuecat-sandbox.test.js tests/f1-somente-leitura.test.js tests/f1-membros-cortesia.test.js tests/f1-documento.test.js tests/f1-virada.test.js tests/distancia.test.js tests/escalacao.test.js tests/reports.test.js"
+    "test": "node --test tests/revenuecat-sandbox.test.js tests/f1-somente-leitura.test.js tests/f1-membros-cortesia.test.js tests/f1-documento.test.js tests/f1-virada.test.js tests/distancia.test.js tests/escalacao.test.js tests/reports.test.js tests/reports-fotos.test.js"
   },
   "dependencies": {
     "@sentry/node": "^10.53.1",
