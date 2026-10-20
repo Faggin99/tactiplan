@@ -30,7 +30,6 @@ function launchOptions() {
     args: [
       '--disable-dev-shm-usage', '--disable-gpu', '--no-zygote', '--disable-extensions', '--mute-audio',
       '--renderer-process-limit=1', '--disable-site-isolation-trials',
-      '--disable-features=site-per-process,Translate,BackForwardCache,MediaRouter,OptimizationHints',
       '--js-flags=--max-old-space-size=192',
     ],
   };
