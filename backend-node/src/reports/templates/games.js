@@ -54,12 +54,13 @@ function kpis(vm) {
   </div></div>`;
 }
 
-function history(vm) {
+// metaHtml: o Relatório do clube põe ali os chips dos últimos resultados
+function history(vm, { metaHtml = null } = {}) {
   const withSubs = vm.substitutions && vm.substitutions.total > 0;
   const rows = vm.games.map((g) => `<tr><td>${esc(g.dateLabel)}</td><td class="c">${esc(g.round || '—')}</td><td>${esc(g.location)}</td>`
     + `<td><b>${esc(g.opponent)}</b></td><td class="c"><b>${g.goalsFor} × ${g.goalsAgainst}</b></td>`
     + `${withSubs ? `<td class="c">${g.subs ? g.subs : '<span style="color:var(--faint)">—</span>'}</td>` : ''}<td class="c">${C.resultChip(g.result)}</td></tr>`).join('');
-  return `<div class="card" style="padding-bottom:2mm" data-split="tbody tr">${C.sec('Histórico de jogos', esc(F.plural(vm.total, 'jogo', 'jogos')))}
+  return `<div class="card" style="padding-bottom:2mm" data-split="tbody tr">${C.sec('Histórico de jogos', metaHtml ?? esc(F.plural(vm.total, 'jogo', 'jogos')))}
     <table class="tbl"><thead><tr><th>Data</th><th class="c">Rod.</th><th>Local</th><th>Adversário</th><th class="c">Placar</th>${withSubs ? '<th class="c">Subst.</th>' : ''}<th class="c">Res.</th></tr></thead>
     <tbody>${rows}</tbody></table></div>`;
 }
@@ -174,4 +175,4 @@ function renderGames(vm, { now }) {
   });
 }
 
-module.exports = { renderGames };
+module.exports = { renderGames, heroPoints, history };

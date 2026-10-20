@@ -59,17 +59,15 @@ function pillars(vm) {
   }
   const totalMin = vm.pillars.reduce((s, p) => s + p.minutes, 0);
   const useTime = totalMin > 0;
-  const stack = vm.pillars.map((p) => {
+  const stack = C.stackBar(vm.pillars.map((p) => {
     const info = C.dimInfo(p.key);
-    const w = useTime ? p.pctTime : p.pctActivities;
-    if (w <= 0) return '';
-    return `<i class="${info.light ? 'lt' : ''}" style="width:${w}%;background:${info.color}">${w >= 12 ? `${esc(p.label)} ${w}%` : ''}</i>`;
-  }).join('');
+    return { pct: useTime ? p.pctTime : p.pctActivities, color: info.color, light: info.light, label: p.label };
+  }));
   const rows = vm.pillars.map((p) => `<tr><td><span class="dot" style="background:${C.dimInfo(p.key).color}"></span>&nbsp; <b>${esc(p.label)}</b></td>`
     + `<td class="c">${p.sessions}</td><td class="c">${p.activities}</td><td class="r">${p.pctActivities}%</td>`
     + `<td class="r"><b>${F.duration(p.minutes, 'table')}</b></td><td class="r">${p.pctTime}%</td></tr>`).join('');
   return `<div class="card">${C.sec('Distribuição por pilar', useTime ? 'por tempo de treino' : 'por nº de atividades (sem tempo registrado)')}
-    <div class="stack">${stack}</div>
+    ${stack}
     <table class="tbl"><thead><tr><th>Pilar</th><th class="c">Sessões</th><th class="c">Atividades</th><th class="r">% ativ.</th><th class="r">Tempo</th><th class="r">% tempo</th></tr></thead>
     <tbody>${rows}</tbody></table></div>`;
 }

@@ -11,11 +11,11 @@
 // (PAPEL_POR_POSICAO em frontend/src/lib/formation.js).
 
 const SECTORS = {
-  gol: { key: 'gol', label: 'Goleiro', color: 'var(--s-gol)' },
-  def: { key: 'def', label: 'Defesa', color: 'var(--s-def)' },
-  mei: { key: 'mei', label: 'Meio-campo', color: 'var(--s-mei)' },
-  ata: { key: 'ata', label: 'Ataque', color: 'var(--s-ata)' },
-  outros: { key: 'outros', label: 'Outros', color: 'var(--faint)' },
+  gol: { key: 'gol', label: 'Goleiro', plural: 'Goleiros', color: 'var(--s-gol)' },
+  def: { key: 'def', label: 'Defesa', plural: 'Defensores', color: 'var(--s-def)' },
+  mei: { key: 'mei', label: 'Meio-campo', plural: 'Meio-campistas', color: 'var(--s-mei)' },
+  ata: { key: 'ata', label: 'Ataque', plural: 'Atacantes', color: 'var(--s-ata)' },
+  outros: { key: 'outros', label: 'Outros', plural: 'Outros', color: 'var(--faint)' },
 };
 const SECTOR_ORDER = ['gol', 'def', 'mei', 'ata', 'outros'];
 
@@ -49,4 +49,21 @@ function sectorInfo(key) {
   return SECTORS[key] || SECTORS.outros;
 }
 
-module.exports = { SECTORS, SECTOR_ORDER, positionSector, roleSector, sectorInfo, normCode };
+// Ordem de exibição dentro do setor (seção 2.6, com os códigos reais do projeto
+// e os de futsal); desconhecido vai para o fim. Empate → nome A–Z.
+const POSITION_ORDER = [
+  'GOL', 'GR', 'GK',
+  'ZAG', 'Z', 'DC', 'FIX', 'LD', 'DD', 'LE', 'DE', 'DEF',
+  'VOL', 'MC', 'MD', 'ME', 'MEI', 'M', 'MOF', 'ALA-D', 'ALA-E',
+  'ED', 'EE', 'PD', 'PE', 'CA', 'PL', 'SA', 'PIV', 'A', 'ATA',
+];
+const POSITION_RANK = new Map(POSITION_ORDER.map((c, i) => [c, i]));
+function positionRank(code) {
+  const r = POSITION_RANK.get(normCode(code));
+  return r === undefined ? POSITION_ORDER.length : r;
+}
+function comparePlayers(a, b) {
+  return positionRank(a.pos) - positionRank(b.pos) || String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR');
+}
+
+module.exports = { SECTORS, SECTOR_ORDER, positionSector, roleSector, sectorInfo, normCode, positionRank, comparePlayers };

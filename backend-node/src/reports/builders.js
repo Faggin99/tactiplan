@@ -5,7 +5,7 @@
 const F = require('./format');
 const { filterImageAttachments } = require('./photos');
 const { gridOptions } = require('./photoConfig');
-const { positionSector, roleSector, sectorInfo, SECTOR_ORDER, normCode } = require('./positionSector');
+const { positionSector, roleSector, sectorInfo, SECTOR_ORDER, normCode, comparePlayers } = require('./positionSector');
 const { slotPosition, playerInitials } = require('./lineup');
 const { posicaoEmCampo } = require('../utils/posicaoEmCampo');
 
@@ -671,7 +671,147 @@ function buildCallUp({ session, team, players = [], formation, competitionName =
   };
 }
 
+// ---------------------------------------------------------------- CLUBE
+// Relatório 5 (seção 5c). Junta o que as outras telas já calculam:
+// getGameStats (jogos + minutagem pelas substituições), getTrainingStats
+// (minutos trabalhados = statsData.minutosTrabalhados) e o Plantel.
+
+const GROUP_LABELS = { 1: 'G1', 2: 'G2', 3: 'G3', 'Transição': 'Transição', DM: 'DM' };
+const CONTENTS_PER_PILLAR = 8;
+
+// Temporada = 01/01–31/12 do mesmo ano.
+function isSeason(period) {
+  return period.start.slice(5) === '01-01' && period.end.slice(5) === '12-31' && period.start.slice(0, 4) === period.end.slice(0, 4);
+}
+
+// Sequência atual a partir do jogo mais recente: invicto (V/E) ou, se o último
+// foi derrota, há quantos jogos sem vencer (E/D).
+function clubStreak(matchesHistory, winStreak, unbeatenStreak) {
+  const desc = (matchesHistory || []).slice().sort((a, b) => String(F.toDateStr(b.date)).localeCompare(String(F.toDateStr(a.date))));
+  if (!desc.length) return { kind: 'none', value: 0, wins: 0 };
+  if (unbeatenStreak > 0) return { kind: 'unbeaten', value: unbeatenStreak, wins: winStreak };
+  let winless = 0;
+  for (const m of desc) {
+    if (m.result === 'win') break;
+    winless++;
+  }
+  return { kind: 'winless', value: winless, wins: 0 };
+}
+
+function buildClubTraining(ts) {
+  const s = ts || {};
+  const totals = s.totals || {};
+  const pillars = buildPillars(s);
+  const useTime = pillars.some((p) => p.minutes > 0);
+  const contents = s.byContent || [];
+  const pillarCols = pillars.map((p) => {
+    const list = contents
+      .filter((c) => c.dimension === p.key)
+      .sort((a, b) => (b.count - a.count) || (b.minutes - a.minutes) || String(a.name).localeCompare(String(b.name), 'pt-BR'));
+    return {
+      key: p.key,
+      label: p.label,
+      activities: p.activities,
+      minutes: p.minutes,
+      pct: useTime ? p.pctTime : p.pctActivities,
+      chips: list.slice(0, CONTENTS_PER_PILLAR).map((c) => c.name),
+      more: Math.max(0, list.length - CONTENTS_PER_PILLAR),
+    };
+  });
+  const sessions = totals.sessions || 0;
+  const minutes = totals.minutes || 0;
+  return {
+    empty: (totals.activities || 0) === 0,
+    minutes,
+    sessions,
+    activities: totals.activities || 0,
+    distinctContents: contents.length,
+    avgPerSession: sessions ? Math.round(minutes / sessions) : null,
+    useTime,
+    pillars: pillarCols,
+  };
+}
+
+// Plantel: setor pela posição CADASTRADA; estatísticas do período por atleta
+// (getGameStats.playerStats: jogos, minutos pelas substituições/minutes_manual, gols, assistências).
+function buildSquad(athletes, playerStats) {
+  const statsById = new Map((playerStats || []).map((p) => [p.athlete_id, p]));
+  const withStats = (playerStats || []).length > 0;
+  const players = (athletes || []).map((a) => {
+    const pos = normCode(a.position) || null;
+    const st = statsById.get(a.id);
+    const g = a.group != null && a.group !== '' ? (GROUP_LABELS[a.group] || String(a.group)) : null;
+    return {
+      id: a.id,
+      name: String(a.name || '').trim() || 'Atleta',
+      pos,
+      shirt: a.jersey_number != null && a.jersey_number !== '' ? Number(a.jersey_number) : null,
+      group: g,
+      sector: positionSector(pos) || 'outros',
+      posColor: sectorInfo(positionSector(pos)).color,
+      stats: withStats ? {
+        games: st ? st.appearances || 0 : 0,
+        minutes: st ? st.minutes || 0 : 0,
+        goals: st ? st.goals || 0 : 0,
+        assists: st ? st.assists || 0 : 0,
+      } : null,
+    };
+  });
+  // os 4 setores sempre aparecem (card vazio = "Nenhum atleta"); "Outros" só se houver
+  const sectors = SECTOR_ORDER
+    .map((key) => {
+      const list = players.filter((p) => p.sector === key).sort(comparePlayers);
+      const info = sectorInfo(key);
+      return { key, label: info.plural, color: info.color, players: list, count: list.length };
+    })
+    .filter((x) => x.key !== 'outros' || x.count > 0);
+  return {
+    total: players.length,
+    withStats,
+    noGroup: players.length > 0 && players.every((p) => !p.group),
+    sectors,
+    composition: sectors.filter((x) => x.count > 0).map((x) => ({ key: x.key, label: x.label, color: x.color, count: x.count, pct: (x.count / players.length) * 100 })),
+  };
+}
+
+function buildClubReport({ gameStats, trainingStats, athletes, team, period, squadAllowed = true, defaultDuration = 90 }) {
+  const games = buildGamesReport({ stats: gameStats, team, period, defaultDuration });
+  const g = gameStats || {};
+  const training = buildClubTraining(trainingStats);
+  const squad = buildSquad(squadAllowed ? athletes : [], g.playerStats);
+  const season = isSeason(period);
+  const label = season ? `Temporada ${period.start.slice(0, 4)}` : period.label;
+  const k = games.kpis;
+  return {
+    kind: 'clube',
+    team,
+    period: { ...period, label },
+    meta: [team.modalityLabel, label].filter(Boolean).join(' · '),
+    right: `${label} · ${period.rangeShort}`,
+    badgeTop: period.rangeShort,
+    badgeSub: [period.year, F.plural(games.total, 'jogo', 'jogos'), F.plural(training.sessions, 'sessão', 'sessões')]
+      .concat(squadAllowed ? [F.plural(squad.total, 'atleta', 'atletas')] : []).join(' · '),
+    games,
+    kpis: {
+      goalsFor: k.goalsFor,
+      goalsAgainst: k.goalsAgainst,
+      avgFor: k.avgFor,
+      avgAgainst: k.avgAgainst,
+      diff: k.diff,
+      streak: clubStreak(g.matchesHistory, g.winStreak || 0, g.unbeatenStreak || 0),
+    },
+    training,
+    squad,
+    squadAllowed,
+  };
+}
+
 module.exports = {
+  buildClubReport,
+  buildSquad,
+  buildClubTraining,
+  clubStreak,
+  isSeason,
   shirtOf,
   buildCallUp,
   PERIOD_LABELS,

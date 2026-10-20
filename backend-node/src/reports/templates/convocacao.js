@@ -39,7 +39,7 @@ function pitch(vm) {
 function row(r) {
   const n = r.shirt != null ? `<span class="n">${esc(r.shirt)}</span>` : '<span class="n nil">—</span>';
   const off = r.offField ? '<small>sem vaga</small>' : '';
-  const pos = r.pos ? `<span class="pos" style="--c:${r.posColor}">${esc(r.pos)}</span>` : '<span></span>';
+  const pos = r.pos ? C.positionChip(r.pos, r.posColor) : '<span></span>';
   return `<div class="row">${n}<span class="nm">${esc(r.name)}${off}</span>${pos}</div>`;
 }
 

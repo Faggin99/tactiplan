@@ -15,6 +15,7 @@ const { renderGames } = require('./templates/games');
 const { renderTraining } = require('./templates/training');
 const { renderSession } = require('./templates/session');
 const { renderConvocacao } = require('./templates/convocacao');
+const { renderClube } = require('./templates/clube');
 const { formacaoValida, formacaoPadrao } = require('../utils/formacao');
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -326,9 +327,49 @@ async function buildConvocacao(body, user, assets) {
   };
 }
 
-const BUILDERS = { jogos: buildJogos, treino: buildTreino, sessao: buildSessao, convocacao: buildConvocacao };
+// Plantel do clube: mesma consulta/escopo de GET /api/athletes?club_id (categoria do membro).
+async function loadSquad(clubId, workspaceIds, allowedCategoryIds) {
+  if (Array.isArray(allowedCategoryIds) && allowedCategoryIds.length === 0) return [];
+  const params = [clubId, workspaceIds];
+  let sql = 'SELECT id, name, position, jersey_number, "group" FROM athletes WHERE club_id = $1 AND workspace_id = ANY($2)';
+  if (Array.isArray(allowedCategoryIds)) {
+    params.push(allowedCategoryIds);
+    sql += ` AND category_id = ANY($${params.length})`;
+  }
+  const r = await query(`${sql} ORDER BY name ASC`, params);
+  return r.rows;
+}
+
+// Relatório do clube (temporada). Período padrão: ano corrente (01/01–31/12),
+// como o botão da Início sempre mandou. Plantel só com athletes:view (sem ela,
+// a página do plantel diz que não há permissão — o resto do relatório sai).
+async function buildClube(body, user, assets) {
+  const { workspaceIds, allowedCategoryIds } = scope(user);
+  const y = new Date().getFullYear();
+  const period = validPeriod({ start_date: `${y}-01-01`, end_date: `${y}-12-31`, ...body });
+  const team = await loadTeam(body.club_id, workspaceIds, assets, body.primary_color);
+  const q = { workspaceIds, start: period.start, end: period.end, clubId: team.id, allowedCategoryIds };
+  const squadAllowed = typeof user.can !== 'function' || user.can('athletes:view');
+  const [gameStats, trainingStats, athletes] = await Promise.all([
+    stats.getGameStats(q),
+    stats.getTrainingStats(q),
+    squadAllowed ? loadSquad(team.id, workspaceIds, allowedCategoryIds) : Promise.resolve([]),
+  ]);
+  const vm = B.buildClubReport({
+    gameStats, trainingStats, athletes, team, period, squadAllowed,
+    defaultDuration: stats.DEFAULT_DURATION_BY_MODALITY[gameStats.modality || team.modality] || 90,
+  });
+  // mesmo nome do PDF antigo (jsPDF): Relatorio_<Clube>_<ano>.pdf
+  const label = body.period_label || (B.isSeason(period) ? period.start.slice(0, 4) : `${period.start}_${period.end}`);
+  return {
+    html: renderClube(vm, { now: new Date() }),
+    filename: `Relatorio_${safeName(team.name)}_${safeName(label) || 'periodo'}.pdf`,
+  };
+}
+
+const BUILDERS = { jogos: buildJogos, treino: buildTreino, sessao: buildSessao, convocacao: buildConvocacao, clube: buildClube };
 // convocacao: a mesma permissão de abrir o jogo (GET /api/games/:id)
-const PERMISSION = { jogos: 'stats:view', treino: 'stats:view', sessao: 'training:view', convocacao: 'games:view' };
+const PERMISSION = { jogos: 'stats:view', treino: 'stats:view', sessao: 'training:view', convocacao: 'games:view', clube: 'stats:view' };
 
 async function generateReport(tipo, body, user, { isStale } = {}) {
   const build = BUILDERS[tipo];

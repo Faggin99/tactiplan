@@ -85,6 +85,17 @@ function chip(text, { nil = false } = {}) {
   return `<span class="chip${nil ? ' nil' : ''}">${esc(text)}</span>`;
 }
 
+// PositionChip (seção 2.6): fundo na cor do setor, texto branco.
+function positionChip(code, color) {
+  return `<span class="poschip" style="--c:${color}">${esc(code)}</span>`;
+}
+
+// StackBar: segmentos proporcionais [{ pct, color, label, light }]; rótulo só se ≥ 12%.
+function stackBar(segments) {
+  return `<div class="stack">${segments.filter((g) => g.pct > 0).map((g) => `<i class="${g.light ? 'lt' : ''}" style="width:${g.pct}%;background:${g.color}">`
+    + `${g.pct >= 12 ? `${esc(g.label)} ${g.pct}%` : ''}</i>`).join('')}</div>`;
+}
+
 function ring(pctValue, label = 'aprov.') {
   const v = Math.max(0, Math.min(100, Math.round(pctValue)));
   return `<div class="ring"><svg viewBox="0 0 36 36">`
@@ -120,5 +131,7 @@ module.exports = {
   emptyState,
   chip,
   ring,
+  positionChip,
+  stackBar,
   ICON,
 };

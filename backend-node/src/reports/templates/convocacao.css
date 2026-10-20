@@ -1,7 +1,7 @@
 /* Relatório 4 — Convocação (A4 PAISAGEM). Portado de docs/formato_relatorios/convocacao-preview.html.
    Carregado DEPOIS de styles.css: só ajusta página/header/rodapé e acrescenta campo e listas. */
 @page{size:A4 landscape;margin:0}
-:root{--pitch:#16233A;--pitch-2:#1A2942;--s-gol:#D97706;--s-def:#334155;--s-mei:var(--team-ink);--s-ata:#DC2626}
+:root{--pitch:#16233A;--pitch-2:#1A2942}
 .page{width:297mm;height:210mm}
 
 /* header */
@@ -54,7 +54,6 @@
 .row .n.nil{color:var(--faint);font-weight:500}
 .row .nm{font-weight:600;font-size:9pt;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row .nm small{font:500 6.5pt Inter;color:var(--faint);margin-left:1.2mm}
-.pos{font:600 6.5pt Inter;letter-spacing:.06em;padding:.4mm 1.6mm;border-radius:1mm;color:#fff;background:var(--c);min-width:9mm;text-align:center}
 .bench .row .nm{font-weight:500}
 .bench.compact .row,.starters.compact .row{padding:1mm 0}
 .bench.two{display:grid;grid-template-columns:1fr 1fr;gap:0 4mm}
