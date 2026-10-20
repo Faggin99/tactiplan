@@ -102,6 +102,21 @@ function buildDistanceStats(sessions, start, end) {
 
 
 // Estatísticas de treino do período (dashboard). start/end = 'YYYY-MM-DD'.
+// MINUTOS TRABALHADOS — regra ÚNICA (tela de Estatísticas, Estatísticas de treino,
+// Relatório do clube): soma da duração de TODAS as atividades do período, cada
+// atividade UMA vez (as linhas chegam repetidas por conteúdo), inclusive as de
+// dia de jogo ("Não relacionados") e as sem conteúdo. Atividade sem duração = 0.
+function minutosTrabalhados(activities) {
+  const vistas = new Set();
+  let total = 0;
+  for (const a of activities || []) {
+    if (!a || !a.id || vistas.has(a.id)) continue;
+    vistas.add(a.id);
+    total += Number(a.duration_minutes) || 0;
+  }
+  return total;
+}
+
 async function getTrainingStats({ workspaceIds, start, end, clubId = null, allowedCategoryIds = null }) {
 
   const tenantIds = workspaceIds || [];
@@ -158,7 +173,7 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
 
   const activities = activitiesResult.rows;
   const activityIds = activities.map(a => a.id);
-  const totalMinutes = activities.reduce((sum, a) => sum + (a.duration_minutes || 0), 0);
+  const totalMinutes = minutosTrabalhados(activities);
   const sessionsWithActivities = new Set(activities.map(a => a.session_id));
   const uniqueTemplates = new Set(activities.filter(a => a.title_id).map(a => a.title_id));
 
@@ -988,6 +1003,7 @@ async function getPeriodSessions({ workspaceIds, start, end, clubId = null, allo
 }
 
 module.exports = {
+  minutosTrabalhados,
   getTrainingStats,
   getGameStats,
   getPeriodSessions,
