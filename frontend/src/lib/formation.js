@@ -7,6 +7,9 @@
 
 import formacoes from '../../../shared/formacoes.json';
 
+// Posição em campo derivada da vaga (GOL, ZAG, LD… / FIX, ALA-D… no futsal).
+export { posicaoEmCampo } from './posicaoEmCampo';
+
 const MODALIDADE_PADRAO = 'football_11';
 
 function cfg(modality) {

@@ -20,6 +20,7 @@ const FRONT = path.join(__dirname, '../../frontend/src/lib');
 function frontendFormation() {
   const src = fs.readFileSync(path.join(FRONT, 'formation.js'), 'utf8')
     .replace(/^import .*$/m, '')
+    .replace(/^export \{[^}]*\} from .*$/gm, '')
     .replace(/^export /gm, '');
   // eslint-disable-next-line no-new-func
   return new Function('formacoes', `${src}\nreturn { buildSlots };`)(FORMACOES);
@@ -119,10 +120,13 @@ test('builder: 4-4-2 do protótipo (11 titulares por setor da vaga, 3 reservas)'
   assert.deepStrictEqual(vm.meta, ['Mineiro', 'Rodada 2']);
   assert.deepStrictEqual(vm.info.map((i) => i.value), [null, null, null], 'horário/local/apresentação não existem no modelo');
   assert.deepStrictEqual(vm.groups.map((g) => [g.label, g.rows.length]), [['Goleiro', 1], ['Defesa', 4], ['Meio-campo', 4], ['Ataque', 2]]);
-  // Pablo Thomaz (CA, atacante) escalado no meio: grupo Meio-campo, etiqueta CA na cor do Ataque
+  // Pablo Thomaz (CA cadastrado) escalado no meio: grupo Meio-campo, etiqueta = posição EM CAMPO (MEI)
   const meio = vm.groups.find((g) => g.label === 'Meio-campo').rows;
   assert.deepStrictEqual(meio.map((r) => r.name), ['Fumaça', 'Pablo Thomaz', 'Calazans', 'Da Silva']);
-  assert.deepStrictEqual([meio[1].pos, meio[1].posColor], ['CA', 'var(--s-ata)']);
+  assert.deepStrictEqual([meio[1].pos, meio[1].posColor], ['MEI', 'var(--s-mei)']);
+  // defesa de 4: 1ª vaga (esquerda da tela) = LE, última = LD
+  assert.deepStrictEqual(vm.groups.find((g) => g.key === 'def').rows.map((r) => r.pos), ['LE', 'ZAG', 'ZAG', 'LD']);
+  assert.deepStrictEqual(vm.groups.find((g) => g.key === 'ata').rows.map((r) => r.pos), ['CA', 'CA']);
   assert.deepStrictEqual(vm.bench.map((r) => [r.name, r.pos]), [['Thomas Bastos', 'MEI'], ['Rafinha', 'MEI'], ['Samuel', 'LD']]);
   assert.strictEqual(vm.field.length, 11);
   assert.ok(vm.field.every((f) => !f.hasShirt), 'sem camisa → iniciais');

@@ -7,6 +7,7 @@ const { filterImageAttachments } = require('./photos');
 const { gridOptions } = require('./photoConfig');
 const { positionSector, roleSector, sectorInfo, SECTOR_ORDER, normCode } = require('./positionSector');
 const { slotPosition, playerInitials } = require('./lineup');
+const { posicaoEmCampo } = require('../utils/posicaoEmCampo');
 
 const PERIOD_LABELS = {
   '1-micro': 'Microciclo',
@@ -600,6 +601,8 @@ function buildCallUp({ session, team, players = [], formation, competitionName =
     // 'LIN' (futsal 4-0): a linha não diz o setor → posição cadastrada (fora goleiro), senão Meio
     s.sector = roleSector(at.role) || (s.posSector && s.posSector !== 'gol' ? s.posSector : 'mei');
     s.at = at;
+    // Etiqueta = posição EM CAMPO (pela vaga), não a cadastrada. null (futsal 4-0) = cadastrada.
+    s.fieldPos = posicaoEmCampo(formation, s.slot, team.modality);
     field.push({
       name: s.name,
       token: s.shirt != null ? String(s.shirt) : playerInitials(s.name),
@@ -613,6 +616,9 @@ function buildCallUp({ session, team, players = [], formation, competitionName =
   }
 
   const row = (p, groupSector) => {
+    if (p.fieldPos) {
+      return { name: p.name, shirt: p.shirt, pos: p.fieldPos, posColor: sectorInfo(positionSector(p.fieldPos)).color, offField: false };
+    }
     const posKey = p.pos ? p.posSector : null;
     return {
       name: p.name,

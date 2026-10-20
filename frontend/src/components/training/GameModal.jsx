@@ -12,7 +12,7 @@ import { competitionService } from '../../services/competitionService';
 import { LineupField } from './LineupField';
 import { SlotAthletePicker } from './SlotAthletePicker';
 import { useIsMobile } from '../../hooks/useIsMobile';
-import { formationsFor, resolveFormation, buildSlots, slotCount, slotRole, remapFormation, suggestSlots } from '../../lib/formation';
+import { formationsFor, resolveFormation, buildSlots, slotCount, slotRole, remapFormation, suggestSlots, posicaoEmCampo } from '../../lib/formation';
 import { computeMinutagem } from '../../lib/minutagem';
 import { newWorkbook, addSheet, saveWorkbook, addMetaSheet } from '../../utils/excelTheme';
 import { ExportMenu } from '../common/ExportMenu';
@@ -457,7 +457,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
     });
 
     const allRows = [['#', 'Status', `Vaga (${formation})`, 'Camisa', 'Nome']];
-    starters.forEach((p, i) => allRows.push([i + 1, 'Titular', slotRole(formation, p.slot) || 'Sem vaga', p.jersey_number || '', p.name || p.athlete?.name || '']));
+    starters.forEach((p, i) => allRows.push([i + 1, 'Titular', (posicaoEmCampo(formation, p.slot, sport.modality) || slotRole(formation, p.slot) || 'Sem vaga'), p.jersey_number || '', p.name || p.athlete?.name || '']));
     substitutes.forEach((p, i) => allRows.push([starters.length + i + 1, 'Reserva', '', p.jersey_number || '', p.name || p.athlete?.name || '']));
     addSheet(wb, 'Convocação', allRows, { widths: [6, 12, 14, 10, 32], freezeHeader: true, autoFilter: true });
 
@@ -841,12 +841,14 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                               </div>
                               {starters.map((player) => {
                                 const role = slotRole(formation, player.slot);
+                                // etiqueta: posição EM CAMPO pela vaga (futsal 4-0 não define → papel da linha)
+                                const label = role ? (posicaoEmCampo(formation, player.slot, sport.modality) || role) : null;
                                 return (
                                 <div key={player.athlete_id} style={playerRowStyle}>
                                   <button
                                     type="button"
                                     onClick={() => (role ? setPickerSlot(player.slot) : setMovingId(movingId === player.athlete_id ? null : player.athlete_id))}
-                                    title={role ? `Vaga ${role} no campo` : 'Sem vaga no campo — toque e escolha a vaga'}
+                                    title={role ? `Vaga ${label} no campo` : 'Sem vaga no campo — toque e escolha a vaga'}
                                     style={{
                                       width: 38, flexShrink: 0, padding: '0.12rem 0', borderRadius: '0.25rem',
                                       fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.04em', cursor: 'pointer',
@@ -856,7 +858,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                                       textTransform: 'uppercase',
                                     }}
                                   >
-                                    {role || 'S/V'}
+                                    {label || 'S/V'}
                                   </button>
                                   <input
                                     type="number"
