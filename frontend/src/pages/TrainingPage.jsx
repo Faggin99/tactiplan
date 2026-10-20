@@ -835,18 +835,7 @@ export function TrainingPage() {
                           <div style={blockNameStyle}>Não relacionados</div>
                           {session.blocks[0]?.activity ? (
                             <div style={{ fontSize: '0.7rem', color: colors.text, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                              {session.blocks[0].activity.title?.title && (
-                                <Tooltip
-                                  content={session.blocks[0].activity.title.title}
-                                  position="bottom"
-                                  delay={400}
-                                  maxWidth={180}
-                                >
-                                  <div style={{ fontWeight: '600', display: 'block', width: '100%' }}>
-                                    {session.blocks[0].activity.title.title}
-                                  </div>
-                                </Tooltip>
-                              )}
+                              {/* Conteúdo em destaque; a atividade é o último nível (mais discreta) */}
                               {session.blocks[0].activity.contents?.length > 0 && (
                                 <Tooltip
                                   content={session.blocks[0].activity.contents.map(c => c.name).join(' | ')}
@@ -854,8 +843,20 @@ export function TrainingPage() {
                                   delay={400}
                                   maxWidth={180}
                                 >
-                                  <div style={{ fontSize: '0.65rem', color: colors.textSecondary, display: 'block', width: '100%' }}>
+                                  <div style={{ fontWeight: '600', display: 'block', width: '100%' }}>
                                     {session.blocks[0].activity.contents.map(c => abbreviateContent(c.name)).join(', ')}
+                                  </div>
+                                </Tooltip>
+                              )}
+                              {session.blocks[0].activity.title?.title && (
+                                <Tooltip
+                                  content={session.blocks[0].activity.title.title}
+                                  position="bottom"
+                                  delay={400}
+                                  maxWidth={180}
+                                >
+                                  <div style={{ fontSize: '0.65rem', color: colors.textSecondary, display: 'block', width: '100%' }}>
+                                    {session.blocks[0].activity.title.title}
                                   </div>
                                 </Tooltip>
                               )}
@@ -908,18 +909,7 @@ export function TrainingPage() {
                     <div style={blockNameStyle}>{block.name}</div>
                     {block.activity ? (
                       <div style={{ fontSize: '0.7rem', color: colors.text, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                        {block.activity.title?.title && (
-                          <Tooltip
-                            content={block.activity.title.title}
-                            position="bottom"
-                            delay={400}
-                            maxWidth={180}
-                          >
-                            <div style={{ fontWeight: '600', display: 'block', width: '100%' }}>
-                              {block.activity.title.title}
-                            </div>
-                          </Tooltip>
-                        )}
+                        {/* Conteúdo em destaque; a atividade é o último nível (mais discreta) */}
                         {block.activity.contents?.length > 0 && (
                           <Tooltip
                             content={block.activity.contents.map(c => c.name).join(' | ')}
@@ -927,8 +917,20 @@ export function TrainingPage() {
                             delay={400}
                             maxWidth={180}
                           >
-                            <div style={{ fontSize: '0.65rem', color: colors.textSecondary, display: 'block', width: '100%' }}>
+                            <div style={{ fontWeight: '600', display: 'block', width: '100%' }}>
                               {block.activity.contents.map(c => abbreviateContent(c.name)).join(', ')}
+                            </div>
+                          </Tooltip>
+                        )}
+                        {block.activity.title?.title && (
+                          <Tooltip
+                            content={block.activity.title.title}
+                            position="bottom"
+                            delay={400}
+                            maxWidth={180}
+                          >
+                            <div style={{ fontSize: '0.65rem', color: colors.textSecondary, display: 'block', width: '100%' }}>
+                              {block.activity.title.title}
                             </div>
                           </Tooltip>
                         )}
