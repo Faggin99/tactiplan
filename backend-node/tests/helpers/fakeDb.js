@@ -72,7 +72,7 @@ async function query(sql, params = []) {
     }
     for (const m of cenario.members.filter((x) => x.user_id === params[0] && x.accepted)) {
       const w = cenario.workspaces[m.workspace_id];
-      out.push({ workspace_id: m.workspace_id, name: w.name, owner_id: w.owner_id, role: m.role || 'head_coach', category_ids: null, permissions: null, is_owner: false });
+      out.push({ workspace_id: m.workspace_id, name: w.name, owner_id: w.owner_id, role: m.role || 'head_coach', category_ids: m.category_ids || null, permissions: m.permissions || null, is_owner: false });
     }
     return rows(out);
   }

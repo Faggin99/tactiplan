@@ -7,7 +7,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "smoke": "node tests/smoke.test.js",
-    "test": "node --test tests/revenuecat-sandbox.test.js tests/f1-somente-leitura.test.js tests/f1-membros-cortesia.test.js tests/f1-documento.test.js tests/f1-virada.test.js tests/distancia.test.js tests/escalacao.test.js"
+    "test": "node --test tests/revenuecat-sandbox.test.js tests/f1-somente-leitura.test.js tests/f1-membros-cortesia.test.js tests/f1-documento.test.js tests/f1-virada.test.js tests/distancia.test.js tests/escalacao.test.js tests/reports.test.js"
   },
   "dependencies": {
     "@sentry/node": "^10.53.1",
@@ -26,6 +26,8 @@
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^8.0.7",
     "pg": "^8.13.0",
+    "playwright-core": "1.62.1",
+    "sharp": "^0.35.5",
     "uuid": "^10.0.0"
   },
   "devDependencies": {

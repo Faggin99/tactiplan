@@ -25,6 +25,7 @@ const ALWAYS_ALLOWED_PREFIXES = [
 const READ_ONLY_WRITE_EXEMPT = [
   /^\/api\/microcycles\/ensure\/?$/,             // get-or-create da semana ao abrir o planejamento
   /^\/api\/announcements\/[^/]+\/dismiss\/?$/,   // fechar aviso do admin
+  /^\/api\/reports\/[^/]+\/?$/,                 // gerar PDF não grava nada (gate: feature pdf_export)
 ];
 
 const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
@@ -35,7 +36,12 @@ const READ_ONLY_MESSAGE =
 // Rotas exclusivas dos planos pagos → feature exigida no plano.
 const PREMIUM_ROUTES = [
   { prefix: '/api/plays', feature: 'quadro_tatico', message: 'O Quadro Tático não está incluído no seu plano atual.' },
+  { prefix: '/api/reports', feature: 'pdf_export', message: 'As exportações não estão incluídas no seu plano atual.' },
 ];
+
+function featureMessage(feature) {
+  return PREMIUM_ROUTES.find((r) => r.feature === feature)?.message || 'Recurso não incluído no seu plano atual.';
+}
 
 function isAlwaysAllowed(path) {
   return ALWAYS_ALLOWED_PREFIXES.some((p) => path === p.replace(/\/$/, '') || path.startsWith(p));
@@ -137,4 +143,5 @@ async function requireActiveSubscription(req, res, next) {
 
 requireActiveSubscription.READ_ONLY_MESSAGE = READ_ONLY_MESSAGE;
 requireActiveSubscription._isWriteRequest = isWriteRequest;
+requireActiveSubscription.featureMessage = featureMessage;
 module.exports = requireActiveSubscription;

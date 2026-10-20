@@ -921,9 +921,34 @@ async function getGameStats({ workspaceIds, start, end, clubId = null, allowedCa
   };
 }
 
+// Sessões (dias) do período com tipo, adversário, distância e minutos somados
+// das atividades — base do microciclo/semanas do relatório de treino.
+async function getPeriodSessions({ workspaceIds, start, end, clubId = null, allowedCategoryIds = null }) {
+  const params = [workspaceIds || [], start, end];
+  let sql = `
+    SELECT s.id, s.date, s.session_type, s.opponent_name, s.avg_distance_km,
+           s.match_round, s.match_location,
+           COALESCE(SUM(a.duration_minutes), 0)::int AS minutes,
+           COUNT(a.id)::int AS activities
+      FROM training_sessions s
+      JOIN training_microcycles m ON s.microcycle_id = m.id
+      LEFT JOIN training_activity_blocks b ON b.session_id = s.id
+      LEFT JOIN training_activities a ON a.block_id = b.id AND a.workspace_id = ANY($1)
+     WHERE s.workspace_id = ANY($1) AND s.date >= $2 AND s.date <= $3`;
+  if (clubId) {
+    params.push(clubId);
+    sql += ` AND m.club_id = $${params.length}`;
+  }
+  sql += categoryFilterSql(params, allowedCategoryIds);
+  sql += ' GROUP BY s.id ORDER BY s.date ASC';
+  const r = await query(sql, params);
+  return r.rows;
+}
+
 module.exports = {
   getTrainingStats,
   getGameStats,
+  getPeriodSessions,
   buildDistanceStats,
   categoryFilterSql,
   MINUTE_RANGES_BY_MODALITY,

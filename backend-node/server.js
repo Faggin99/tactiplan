@@ -41,6 +41,7 @@ const competitionsRoutes = require('./src/routes/competitions');
 const externalCompetitionsRoutes = require('./src/routes/externalCompetitions');
 const publicStatsRoutes = require('./src/routes/publicStats');
 const contaRoutes = require('./src/routes/conta'); // seletor de produtos Faggin (F3)
+const reportsRoutes = require('./src/routes/reports'); // PDFs (HTML → Chromium)
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -98,6 +99,7 @@ app.use('/api/activities', activitiesRoutes);
 app.use('/api/titles', titlesRoutes);
 app.use('/api/games', gamesRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/reports', reportsRoutes);
 app.use('/api/plays', playsRoutes);
 app.use('/api/themes', themesRoutes);
 app.use('/api/files', filesRoutes);
