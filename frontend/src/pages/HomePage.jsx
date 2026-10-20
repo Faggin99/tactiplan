@@ -11,10 +11,8 @@ import { useClub } from '../contexts/ClubContext';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { Layout } from '../components/layout/Layout';
 import { homeService } from '../services/homeService';
-import { athleteService } from '../modules/training-management/services/athleteService';
-import { trainingService } from '../services/trainingService';
-import { gameStatsService } from '../services/gameStatsService';
-import { generateClubReportPDF } from '../utils/clubReportPdf';
+import { downloadReport, safeFileName } from '../services/reportsService';
+import { notify } from '../lib/notify';
 import { useFeatureGuard } from '../components/common/PlanGate';
 
 const QUICK_LINKS = [
@@ -71,44 +69,32 @@ export function HomePage() {
   const [loading, setLoading] = useState(true);
   const [reportLoading, setReportLoading] = useState(false);
 
-  // Gera o "Relatório do Clube" — PDF consolidado do ano vigente em 1 clique.
+  // Gera o "Relatório do Clube" — PDF consolidado do ano vigente em 1 clique,
+  // gerado no servidor (POST /api/reports/clube, mesmo pipeline dos outros relatórios).
   // Período padrão: 01/jan → 31/dez do ano atual (mesmo critério da Estatísticas).
   // Pra recortes diferentes, o usuário usa o Exportar dentro de Estatísticas.
   const handleGenerateReport = useCallback(async () => {
     if (!selectedClub?.id) {
-      alert('Selecione um clube antes de gerar o relatório.');
+      notify.error('Selecione um clube antes de gerar o relatório.');
       return;
     }
     if (!guardFeature('pdf_export')) return;
     setReportLoading(true);
     try {
-      const y = new Date().getFullYear();
-      const start_date = `${y}-01-01`;
-      const end_date   = `${y}-12-31`;
-      const [athletes, trainingResp, gameStats] = await Promise.all([
-        athleteService.getAll({ club_id: selectedClub.id }).catch(() => []),
-        trainingService.getStats({ start_date, end_date, clubId: selectedClub.id }).catch(() => null),
-        gameStatsService.getStats({ start_date, end_date, clubId: selectedClub.id }).catch(() => null),
-      ]);
-      const trainingStats = trainingResp?.data || trainingResp || null;
-      await generateClubReportPDF({
-        athletes: Array.isArray(athletes) ? athletes : [],
-        trainingStats,
-        gameStats,
-        clubName: selectedClub.name || '',
-        modality: selectedClub.modality || '',
-        periodFrom: start_date,
-        periodTo:   end_date,
-        periodLabel: String(y),
-        primaryColor: selectedClub.primary_color || null,
-      });
+      const y = String(new Date().getFullYear());
+      await downloadReport('clube', {
+        club_id: selectedClub.id,
+        start_date: `${y}-01-01`,
+        end_date: `${y}-12-31`,
+        period_label: y,
+      }, `Relatorio_${safeFileName(selectedClub.name)}_${y}.pdf`);
     } catch (err) {
       console.error('Erro ao gerar relatório:', err);
-      alert('Falha ao gerar o relatório. Tente novamente.');
+      notify.error(err.message || 'Falha ao gerar o relatório. Tente novamente.');
     } finally {
       setReportLoading(false);
     }
-  }, [selectedClub?.id, selectedClub?.name, selectedClub?.modality, selectedClub?.primary_color]);
+  }, [selectedClub?.id, selectedClub?.name, guardFeature]);
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
