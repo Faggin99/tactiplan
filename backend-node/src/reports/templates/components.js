@@ -20,7 +20,8 @@ function dimInfo(key) { return DIM[key] || DIM.outros; }
 
 function crest(team, { compact = false } = {}) {
   if (team.logoUrl) {
-    return `<div class="crest${compact ? ' logo' : ''}"><img src="${esc(team.logoUrl)}" alt=""></div>`;
+    // Escudo com logo: sem fundo nem círculo (o PNG já vem recortado)
+    return `<div class="crest has-logo"><img src="${esc(team.logoUrl)}" alt=""></div>`;
   }
   return `<div class="crest">${esc(team.short)}</div>`;
 }

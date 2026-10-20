@@ -33,6 +33,8 @@ body{font-family:Inter,sans-serif;color:var(--ink);font-size:8.5pt;line-height:1
 .crest{width:15mm;height:15mm;border-radius:50%;background:var(--on-team);color:var(--team);display:grid;place-items:center;
   font:800 11pt Poppins;flex:none;letter-spacing:-.02em;overflow:hidden}
 .crest img{width:80%;height:80%;object-fit:contain}
+.crest.has-logo{background:none;border-radius:0;overflow:visible;width:17mm;height:17mm}
+.crest.has-logo img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 .4mm .8mm rgba(0,0,0,.18))}
 .hdr .ttl{min-width:0}
 .hdr .eyebrow{font:600 7pt Inter;text-transform:uppercase;letter-spacing:.14em;opacity:.8}
 .hdr h1{font:700 19pt/1.1 Poppins;margin:1mm 0 1.2mm;letter-spacing:-.01em}
@@ -44,7 +46,8 @@ body{font-family:Inter,sans-serif;color:var(--ink);font-size:8.5pt;line-height:1
 /* header compacto (pág. 2+) */
 .hdr-c{display:flex;align-items:center;gap:3mm;padding:7mm 14mm 4mm;border-top:3mm solid var(--team);flex:none}
 .hdr-c .crest{width:8mm;height:8mm;font-size:6.5pt;background:var(--team);color:var(--on-team)}
-.hdr-c .crest.logo{background:#fff;border:1px solid var(--line)}
+.hdr-c .crest.has-logo{background:none;border:0;width:9mm;height:9mm}
+.hdr-c .crest.has-logo img{filter:none}
 .hdr-c b{font:600 9.5pt Poppins}
 .hdr-c span{color:var(--muted);font-size:8pt}
 .hdr-c .r{margin-left:auto;color:var(--muted);font-size:8pt}
