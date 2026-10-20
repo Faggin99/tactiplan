@@ -341,8 +341,9 @@ router.delete('/clubs/:clubId/members/:memberId', authMiddleware, async (req, re
 
 // ───────── Endpoints PÚBLICOS — fluxo de aceite ─────────
 
-// GET /api/invites/:token
-router.get('/invites/:token', async (req, res) => {
+// GET /api/invites/:token — PÚBLICO (montado também antes do auth global em server.js):
+// quem abre o link ainda pode não estar logado; o token (48 hex) é o segredo.
+async function getInviteHandler(req, res) {
   try {
     const result = await query(
       `SELECT m.id, m.invited_email, m.role, m.invited_at, m.accepted_at, m.category_ids,
@@ -369,6 +370,30 @@ router.get('/invites/:token', async (req, res) => {
   } catch (err) {
     console.error('Get invite error:', err);
     res.status(500).json({ error: 'Failed to get invite' });
+  }
+}
+router.get('/invites/:token', getInviteHandler);
+
+// GET /api/invites-pending — convites ainda não aceitos para o e-mail do usuário logado.
+// Rede de segurança: se a pessoa se cadastrou/entrou por outro caminho e não aceitou o link,
+// o app oferece aceitar (o token só vai para o dono do e-mail convidado).
+router.get('/invites-pending', authMiddleware, async (req, res) => {
+  try {
+    const r = await query(
+      `SELECT m.invite_token AS token, m.role, w.name AS workspace_name,
+              (SELECT c.name FROM clubs c WHERE c.workspace_id = w.id ORDER BY c.created_at LIMIT 1) AS club_name,
+              inv.name AS invited_by_name
+         FROM workspace_members m
+         JOIN workspaces w ON w.id = m.workspace_id
+         LEFT JOIN users inv ON inv.id = m.invited_by
+        WHERE m.accepted_at IS NULL AND m.invite_token IS NOT NULL
+          AND LOWER(m.invited_email) = LOWER($1)`,
+      [req.user.email]
+    );
+    res.json({ data: r.rows });
+  } catch (err) {
+    console.error('Pending invites error:', err);
+    res.status(500).json({ error: 'Failed to list invites' });
   }
 });
 
@@ -430,3 +455,4 @@ router.post('/invites/:token/accept', authMiddleware, async (req, res) => {
 });
 
 module.exports = router;
+module.exports.getInviteHandler = getInviteHandler;

@@ -112,6 +112,9 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Ver convite pelo link é PÚBLICO (antes dos routers '/api' com auth global)
+app.get('/api/invites/:token', clubMembersRoutes.getInviteHandler);
+
 app.use('/api', injuriesRoutes);
 app.use('/api', announcementsRoutes);
 app.use('/api', homeRoutes);

@@ -3,11 +3,13 @@ import { useLocation } from 'react-router-dom';
 import { AppSidebar, AppTopBar, AppMobileBar } from './AppShell';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useClub } from '../../contexts/ClubContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { ClubOnboardingModal } from '../club/ClubOnboardingModal';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { SubscriptionBanner } from './SubscriptionBanner';
 import { StadiumBackground } from './StadiumBackground';
 import { WorkspaceSwapNotice } from '../workspace/WorkspaceSwapNotice';
+import { PendingInvitesModal, usePendingInvites } from '../workspace/PendingInvitesModal';
 
 // Rotas onde o conteúdo precisa caber na viewport (calendário, canvas tático).
 // Nelas o scroll é interno; nas demais, é o scroll natural da página.
@@ -64,9 +66,18 @@ export function Layout({ children }) {
     ...(fixedViewport ? { minHeight: 0, overflowY: 'auto' } : {}),
   };
 
+  // Convite pendente para o e-mail da pessoa: oferece aceitar ANTES do "crie seu clube"
+  // (o convidado não deve criar clube próprio — entra no de quem convidou).
+  const { isAuthenticated } = useAuth();
+  const pendingInvites = usePendingInvites(!!isAuthenticated);
+  const [convitesDispensados, setConvitesDispensados] = useState(false);
+  const showInvites = !convitesDispensados && Array.isArray(pendingInvites) && pendingInvites.length > 0;
+
   const showOnboarding = !loading
     && !loadError
     && clubs.length === 0
+    && pendingInvites !== null
+    && !showInvites
     && location.pathname !== '/billing';
 
   return (
@@ -84,6 +95,10 @@ export function Layout({ children }) {
           </main>
         </div>
       </div>
+
+      {showInvites && (
+        <PendingInvitesModal invites={pendingInvites} onDismiss={() => setConvitesDispensados(true)} />
+      )}
 
       {showOnboarding && (
         <ClubOnboardingModal onCreateClub={createClub} />

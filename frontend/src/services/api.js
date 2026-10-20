@@ -47,7 +47,10 @@ class ApiClient {
         const body = await response.json().catch(() => ({}));
         if (!isAuthEndpoint) {
           localStorage.removeItem('auth_token');
-          window.location.href = '/login';
+          // Volta para onde a pessoa estava depois do login (ex.: link de convite).
+          const atual = (window.location.hash || '').replace(/^#/, '');
+          const voltar = atual && !atual.startsWith('/login') && atual !== '/' ? `?redirect=${encodeURIComponent(atual)}` : '';
+          window.location.href = `/#/login${voltar}`;
           throw new Error(body.error || body.message || 'Sessão expirada');
         }
         const err = new Error(body.error || body.message || 'Falha na autenticação');
