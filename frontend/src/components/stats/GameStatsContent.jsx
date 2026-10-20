@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Card } from '../common/Card';
-import { Clock, X, Target, Trophy, Goal, Shield, AlertTriangle, TrendingUp, Square, ArrowLeftRight, Video, ListChecks, Award, Flame } from 'lucide-react';
+import { Clock, X, Target, Trophy, Goal, Shield, AlertTriangle, TrendingUp, Square, ArrowLeftRight, Video, ListChecks, Award, Flame, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 
 export function GameStatsContent({
   gameStats,
@@ -20,6 +21,7 @@ export function GameStatsContent({
   const [showScoredModal, setShowScoredModal] = useState(false);
   const [showConcededModal, setShowConcededModal] = useState(false);
   const [chartViewMode, setChartViewMode] = useState('type');
+  const [showAllMinutes, setShowAllMinutes] = useState(false);
 
   const displayStats = gameStats || {
     totalMatches: 0, totalGoalsScored: 0, totalGoalsConceded: 0,
@@ -125,6 +127,17 @@ export function GameStatsContent({
         </div>
 
         <NeutralAuxCard icon={<Shield size={16} strokeWidth={1.5} />} label="Jogos sem sofrer" value={displayStats.cleanSheets || 0} colors={colors} />
+        {displayStats.modality !== 'futsal' && (
+          <NeutralAuxCard
+            icon={<ArrowLeftRight size={16} strokeWidth={1.5} />}
+            label="Substituições"
+            value={displayStats.substitutionsTotal || 0}
+            sub={(displayStats.substitutionsTotal || 0) > 0
+              ? `${String(displayStats.avgSubstitutionsPerGame ?? 0).replace('.', ',')}/jogo${displayStats.avgSubstitutionMinute != null ? ` · média ${displayStats.avgSubstitutionMinute}'` : ''}`
+              : null}
+            colors={colors}
+          />
+        )}
         <NeutralAuxCard icon={<Clock size={16} strokeWidth={1.5} />} label="1º gol nosso (méd.)" value={displayStats.avgTimeFirstGoalFor != null ? `${displayStats.avgTimeFirstGoalFor}'` : '—'} colors={colors} />
         <NeutralAuxCard icon={<Clock size={16} strokeWidth={1.5} />} label="1º gol sofrido (méd.)" value={displayStats.avgTimeFirstGoalAgainst != null ? `${displayStats.avgTimeFirstGoalAgainst}'` : '—'} colors={colors} />
 
@@ -284,8 +297,17 @@ export function GameStatsContent({
           <PlayerRankList items={(displayStats.topAssisters || []).map(p => ({ ...p, value: p.assists, label: p.assists === 1 ? '1 assist.' : `${p.assists} assists.` }))} colors={colors} accent="#3b82f6" emptyMsg="Sem assistências no período" />
         </Card>
         <Card style={chartCardStyle}>
-          <div style={chartTitleStyle}>
+          <div style={{ ...chartTitleStyle, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}><Clock size={16} style={{ color: '#a855f7' }} /> Minutagem</span>
+            {(displayStats.playerStats || []).length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowAllMinutes(true)}
+                style={{ background: 'none', border: `1px solid ${colors.border}`, borderRadius: '0.35rem', color: colors.text, fontSize: '0.72rem', fontWeight: 600, padding: '0.25rem 0.55rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >
+                Ver todas
+              </button>
+            )}
           </div>
           <PlayerRankList
             items={(displayStats.topMinutes || []).map(p => ({ ...p, value: p.minutes, label: `${p.minutes} min${p.appearances ? ` · ${p.appearances} jogo${p.appearances !== 1 ? 's' : ''}` : ''}` }))}
@@ -293,7 +315,29 @@ export function GameStatsContent({
             emptyMsg="Registre escalações e substituições pra calcular minutagem"
           />
         </Card>
+        {(displayStats.topSubEntries || []).length > 0 && (
+          <Card style={chartCardStyle}>
+            <div style={chartTitleStyle}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}><ArrowLeftRight size={16} style={{ color: '#0ea5e9' }} /> Mais acionados do banco</span>
+            </div>
+            <PlayerRankList
+              items={(displayStats.topSubEntries || []).map(p => ({ ...p, value: p.sub_entries, label: `${p.sub_entries} entrada${p.sub_entries !== 1 ? 's' : ''} · ${p.minutes} min` }))}
+              colors={colors} accent="#0ea5e9"
+              emptyMsg="Nenhuma substituição no período"
+            />
+          </Card>
+        )}
       </div>
+
+      {showAllMinutes && (
+        <AllMinutesModal
+          players={displayStats.playerStats || []}
+          minutesPossible={displayStats.minutesPossible || 0}
+          totalMatches={displayStats.totalMatches || 0}
+          colors={colors}
+          onClose={() => setShowAllMinutes(false)}
+        />
+      )}
 
       {/* Histórico de jogos — tabela com rodada/local/placar/vídeos */}
       {(displayStats.matchesHistory || []).length > 0 && (
@@ -623,5 +667,101 @@ function PlayerRankList({ items = [], colors, accent, emptyMsg }) {
         );
       })}
     </div>
+  );
+}
+
+// Minutagem completa do período: todos os relacionados, ordenável.
+// % = minutos ÷ minutos possíveis do período (soma das durações dos jogos).
+const MINUTE_COLS = [
+  { key: 'name', label: 'Jogador', align: 'left' },
+  { key: 'minutes', label: 'Min', align: 'right' },
+  { key: 'appearances', label: 'Jogos', align: 'center' },
+  { key: 'pct', label: '% poss.', align: 'right' },
+  { key: 'starts', label: 'Tit.', align: 'center' },
+  { key: 'sub_entries', label: 'Entrou', align: 'center' },
+];
+
+function AllMinutesModal({ players, minutesPossible, totalMatches, colors, onClose }) {
+  const [sort, setSort] = useState({ key: 'minutes', dir: 'desc' });
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  const rows = useMemo(() => {
+    const list = (players || [])
+      .filter(p => (p.called_up || 0) > 0 || (p.minutes || 0) > 0)
+      .map(p => ({ ...p, pct: minutesPossible > 0 ? Math.round(((p.minutes || 0) / minutesPossible) * 100) : 0 }));
+    const { key, dir } = sort;
+    const mul = dir === 'asc' ? 1 : -1;
+    return list.sort((a, b) => {
+      if (key === 'name') return mul * String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR');
+      return mul * ((a[key] || 0) - (b[key] || 0)) || String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR');
+    });
+  }, [players, minutesPossible, sort]);
+  const toggle = (key) => setSort(s => s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'name' ? 'asc' : 'desc' });
+  const max = Math.max(1, ...rows.map(r => r.minutes || 0));
+  const th = (c) => {
+    const active = sort.key === c.key;
+    const Icon = active ? (sort.dir === 'asc' ? ChevronUp : ChevronDown) : ArrowUpDown;
+    return (
+      <th key={c.key} style={{ position: 'sticky', top: 0, background: colors.surface, padding: '0.45rem 0.4rem', textAlign: c.align, fontSize: '0.66rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: active ? colors.text : colors.textSecondary, borderBottom: `1px solid ${colors.border}`, whiteSpace: 'nowrap', zIndex: 1 }}>
+        <button type="button" onClick={() => toggle(c.key)} style={{ background: 'none', border: 'none', color: 'inherit', font: 'inherit', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 3, padding: 0, textTransform: 'inherit', letterSpacing: 'inherit' }}>
+          {c.label}<Icon size={11} style={{ opacity: active ? 1 : 0.45 }} />
+        </button>
+      </th>
+    );
+  };
+  return createPortal(
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: 'max(0.75rem, env(safe-area-inset-top)) 0.75rem' }}>
+      <div role="dialog" aria-modal="true" aria-label="Minutagem completa" onClick={(e) => e.stopPropagation()} style={{ backgroundColor: colors.surface, color: colors.text, borderRadius: '0.75rem', border: `1px solid ${colors.border}`, width: '100%', maxWidth: 720, maxHeight: '88vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1rem', borderBottom: `1px solid ${colors.border}` }}>
+          <Clock size={18} style={{ color: '#a855f7' }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Minutagem completa</div>
+            <div style={{ fontSize: '0.72rem', color: colors.textSecondary }}>
+              {rows.length} atleta{rows.length !== 1 ? 's' : ''} · {totalMatches} jogo{totalMatches !== 1 ? 's' : ''} · {minutesPossible} min possíveis
+            </div>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textSecondary, padding: '0.25rem', display: 'flex' }}><X size={20} /></button>
+        </div>
+        <div style={{ overflow: 'auto', flex: 1, minHeight: 0 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', minWidth: 460 }}>
+            <thead><tr>
+              <th style={{ position: 'sticky', top: 0, background: colors.surface, width: 28, borderBottom: `1px solid ${colors.border}`, zIndex: 1 }} />
+              {MINUTE_COLS.map(th)}
+            </tr></thead>
+            <tbody>
+              {rows.map((p, i) => (
+                <tr key={p.athlete_id || i} style={{ borderBottom: `1px solid ${colors.border}55` }}>
+                  <td style={{ padding: '0.4rem 0.3rem', color: colors.textSecondary, fontSize: '0.7rem', textAlign: 'right', fontWeight: 700 }}>{i + 1}</td>
+                  <td style={{ padding: '0.4rem', maxWidth: 220 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', minWidth: 0 }}>
+                      {p.jersey_number != null && <span style={{ fontSize: '0.68rem', fontWeight: 700, color: colors.textSecondary, minWidth: 18 }}>{p.jersey_number}</span>}
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>{p.name}</span>
+                    </div>
+                    <div style={{ height: 4, background: colors.border, borderRadius: 2, marginTop: 3, overflow: 'hidden' }}>
+                      <div style={{ width: `${((p.minutes || 0) / max) * 100}%`, height: '100%', background: '#a855f7' }} />
+                    </div>
+                  </td>
+                  <td style={{ padding: '0.4rem', textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{p.minutes || 0}'</td>
+                  <td style={{ padding: '0.4rem', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{p.appearances || 0}{p.called_up ? <span style={{ color: colors.textSecondary, fontSize: '0.68rem' }}>/{p.called_up}</span> : null}</td>
+                  <td style={{ padding: '0.4rem', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{p.pct}%</td>
+                  <td style={{ padding: '0.4rem', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{p.starts || 0}</td>
+                  <td style={{ padding: '0.4rem', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{p.sub_entries || 0}</td>
+                </tr>
+              ))}
+              {rows.length === 0 && (
+                <tr><td colSpan={7} style={{ padding: '1.5rem', textAlign: 'center', color: colors.textSecondary, fontStyle: 'italic' }}>Sem escalações registradas no período.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ padding: '0.55rem 1rem', borderTop: `1px solid ${colors.border}`, fontSize: '0.68rem', color: colors.textSecondary }}>
+          Jogos = jogou/relacionado. % = minutos ÷ minutos possíveis do período. Minutagem pelas substituições e expulsões (ou ajuste manual no jogo).
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }
