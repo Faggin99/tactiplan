@@ -45,9 +45,9 @@ test('setores: códigos do projeto (DD/DE = laterais → Defesa; ED/EE/PL/SA →
 
 test('setores: toda posição cadastrável no app (sportConfig.POSITIONS) tem setor', () => {
   const src = fs.readFileSync(path.join(FRONT, 'sportConfig.js'), 'utf8');
-  const block = src.slice(src.indexOf('export const POSITIONS'), src.indexOf('export const DEFAULT_MATCH_DURATION'));
+  const block = src.slice(src.indexOf('const FIELD_POSITIONS'), src.indexOf('export const DEFAULT_MATCH_DURATION'));
   const codes = [...block.matchAll(/code:\s*'([^']+)'/g)].map((m) => m[1]);
-  assert.ok(codes.length >= 20);
+  assert.ok(codes.length >= 14, 'Futebol 11/7 (9) + futsal (5)');
   for (const c of codes) assert.ok(positionSector(c), `sem setor: ${c}`);
 });
 
@@ -104,11 +104,11 @@ const P = (name, position, status, slot, jersey = null, athleteJersey = null) =>
   athlete_id: name, name, position, status, slot, jersey_number: jersey, athlete_jersey: athleteJersey,
 });
 const LAURO = [
-  P('Jeferson', 'GR', 'starter', 0), P('Luis Felipe', 'DE', 'starter', 1), P('Nathan', 'DE', 'starter', 2),
-  P('Marcelo', 'DD', 'starter', 3), P('Max', 'DC', 'starter', 4), P('Fumaça', 'MD', 'starter', 5),
-  P('Pablo Thomaz', 'SA', 'starter', 6), P('Calazans', 'ED', 'starter', 7), P('Da Silva', 'SA', 'starter', 8),
-  P('Léo reis', 'ED', 'starter', 9), P('Kaike', 'SA', 'starter', 10),
-  P('Thomas Bastos', 'MOF', 'substitute', null), P('Rafinha', 'MD', 'substitute', null), P('Samuel', 'DD', 'substitute', null),
+  P('Jeferson', 'GOL', 'starter', 0), P('Luis Felipe', 'LE', 'starter', 1), P('Nathan', 'LE', 'starter', 2),
+  P('Marcelo', 'LD', 'starter', 3), P('Max', 'ZAG', 'starter', 4), P('Fumaça', 'MEI', 'starter', 5),
+  P('Pablo Thomaz', 'CA', 'starter', 6), P('Calazans', 'ED', 'starter', 7), P('Da Silva', 'CA', 'starter', 8),
+  P('Léo reis', 'ED', 'starter', 9), P('Kaike', 'CA', 'starter', 10),
+  P('Thomas Bastos', 'MEI', 'substitute', null), P('Rafinha', 'MEI', 'substitute', null), P('Samuel', 'LD', 'substitute', null),
 ];
 const SESSION = { date: '2026-10-22', opponent_name: 'mmmm', match_round: '2', match_location: null };
 
@@ -119,11 +119,11 @@ test('builder: 4-4-2 do protótipo (11 titulares por setor da vaga, 3 reservas)'
   assert.deepStrictEqual(vm.meta, ['Mineiro', 'Rodada 2']);
   assert.deepStrictEqual(vm.info.map((i) => i.value), [null, null, null], 'horário/local/apresentação não existem no modelo');
   assert.deepStrictEqual(vm.groups.map((g) => [g.label, g.rows.length]), [['Goleiro', 1], ['Defesa', 4], ['Meio-campo', 4], ['Ataque', 2]]);
-  // Pablo Thomaz (SA, atacante) escalado no meio: grupo Meio-campo, etiqueta SA na cor do Ataque
+  // Pablo Thomaz (CA, atacante) escalado no meio: grupo Meio-campo, etiqueta CA na cor do Ataque
   const meio = vm.groups.find((g) => g.label === 'Meio-campo').rows;
   assert.deepStrictEqual(meio.map((r) => r.name), ['Fumaça', 'Pablo Thomaz', 'Calazans', 'Da Silva']);
-  assert.deepStrictEqual([meio[1].pos, meio[1].posColor], ['SA', 'var(--s-ata)']);
-  assert.deepStrictEqual(vm.bench.map((r) => [r.name, r.pos]), [['Thomas Bastos', 'MOF'], ['Rafinha', 'MD'], ['Samuel', 'DD']]);
+  assert.deepStrictEqual([meio[1].pos, meio[1].posColor], ['CA', 'var(--s-ata)']);
+  assert.deepStrictEqual(vm.bench.map((r) => [r.name, r.pos]), [['Thomas Bastos', 'MEI'], ['Rafinha', 'MEI'], ['Samuel', 'LD']]);
   assert.strictEqual(vm.field.length, 11);
   assert.ok(vm.field.every((f) => !f.hasShirt), 'sem camisa → iniciais');
   assert.deepStrictEqual(vm.field.slice(0, 2).map((f) => f.token), ['JE', 'LF']);
@@ -134,9 +134,9 @@ test('builder: 4-4-2 do protótipo (11 titulares por setor da vaga, 3 reservas)'
 
 test('builder: camisas, titular sem vaga, reservas compactas/2 colunas e sem escalação', () => {
   const players = [
-    P('Goleiro Um', 'GR', 'starter', 0, 1),
-    P('Zagueiro Dois', 'DC', 'starter', null, null, 4),
-    ...Array.from({ length: 8 }, (_, i) => P(`Reserva ${i + 1}`, i % 2 ? 'PL' : 'MC', 'substitute', null, null, 12 + i)),
+    P('Goleiro Um', 'GOL', 'starter', 0, 1),
+    P('Zagueiro Dois', 'ZAG', 'starter', null, null, 4),
+    ...Array.from({ length: 8 }, (_, i) => P(`Reserva ${i + 1}`, i % 2 ? 'CA' : 'VOL', 'substitute', null, null, 12 + i)),
   ];
   const vm = B.buildCallUp({ session: { ...SESSION, match_location: 'away' }, team, players, formation: '4-4-2' });
   assert.deepStrictEqual(vm.field.map((f) => [f.token, f.hasShirt]), [['1', true]]);
@@ -146,10 +146,10 @@ test('builder: camisas, titular sem vaga, reservas compactas/2 colunas e sem esc
   assert.strictEqual(vm.benchLayout, 'compact');
   assert.deepStrictEqual(vm.meta, ['Rodada 2', 'Fora']);
 
-  const many = Array.from({ length: 13 }, (_, i) => P(`R${i}`, 'MC', 'substitute', null));
+  const many = Array.from({ length: 13 }, (_, i) => P(`R${i}`, 'VOL', 'substitute', null));
   assert.strictEqual(B.buildCallUp({ session: SESSION, team, players: many, formation: '4-4-2' }).benchLayout, 'two');
 
-  const none = B.buildCallUp({ session: { ...SESSION, opponent_name: '' }, team, players: [P('A B', 'MC', 'starter', null)], formation: '4-4-2' });
+  const none = B.buildCallUp({ session: { ...SESSION, opponent_name: '' }, team, players: [P('A B', 'VOL', 'starter', null)], formation: '4-4-2' });
   assert.strictEqual(none.hasLineup, false);
   assert.strictEqual(none.opponent, 'Adversário');
 });
@@ -160,7 +160,7 @@ test('builder: futsal 4-0 (LIN) usa a posição cadastrada; fut7 sem tokens meno
   assert.deepStrictEqual(vm.groups.map((g) => [g.key, g.rows.map((r) => r.name).join()]), [['gol', 'G'], ['def', 'F'], ['mei', 'A,X'], ['ata', 'P']]);
   assert.strictEqual(vm.groups[2].rows[1].pos, 'LIN', 'sem posição cadastrada: etiqueta com o papel da vaga');
   assert.ok(vm.field.every((f) => !f.small));
-  const big = B.buildCallUp({ session: SESSION, team, players: [P('a', 'MC', 'starter', 1)], formation: '5-3-2' });
+  const big = B.buildCallUp({ session: SESSION, team, players: [P('a', 'VOL', 'starter', 1)], formation: '5-3-2' });
   assert.strictEqual(big.field[0].small, false, '5 numa linha ainda é 10mm; só acima de 5 diminui');
 });
 
