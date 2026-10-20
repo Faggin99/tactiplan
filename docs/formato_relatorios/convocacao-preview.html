@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Convocação TactiPlan</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --team:#1B8A3E; --team-ink:#14692F; --team-soft:#E8F3EC; --team-softer:#F4F9F6; --on-team:#FFFFFF;
+  --ink:#0F172A; --ink-2:#334155; --muted:#64748B; --faint:#94A3B8;
+  --line:#E2E8F0; --line-2:#F1F5F9; --surface:#F8FAFC;
+  --pitch:#16233A; --pitch-2:#1A2942; --pitch-line:rgba(255,255,255,.55);
+  --s-gol:#D97706; --s-def:#334155; --s-mei:var(--team-ink); --s-ata:#DC2626;
+}
+*{box-sizing:border-box}
+@page{size:A4 landscape;margin:0}
+html,body{margin:0}
+body{background:#D9DEE5;font-family:Inter,system-ui,sans-serif;color:var(--ink);font-size:8.5pt;line-height:1.4;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;font-variant-numeric:tabular-nums}
+.page{width:297mm;height:210mm;background:#fff;margin:8mm auto;box-shadow:0 6px 30px rgba(15,23,42,.18);
+  display:flex;flex-direction:column;overflow:hidden;position:relative}
+@media print{body{background:#fff}.page{margin:0;box-shadow:none;height:209.5mm}.toolbar{display:none!important}}
+
+/* header */
+.hdr{background:var(--team);color:var(--on-team);padding:7mm 12mm;display:flex;align-items:center;gap:5mm;position:relative;overflow:hidden}
+.hdr::after{content:"";position:absolute;right:30mm;top:-40mm;width:100mm;height:100mm;border-radius:50%;background:currentColor;opacity:.06}
+.crest{width:14mm;height:14mm;border-radius:50%;background:var(--on-team);color:var(--team);display:grid;place-items:center;font:800 10pt Poppins;flex:none}
+.eyebrow{font:600 7pt Inter;text-transform:uppercase;letter-spacing:.16em;opacity:.8}
+.hdr h1{font:700 20pt/1.05 Poppins;margin:1mm 0 0;letter-spacing:-.01em}
+.hdr h1 span{opacity:.65;font-weight:500;margin:0 2mm}
+.when{margin-left:auto;text-align:right;position:relative;z-index:1;display:flex;gap:6mm;align-items:center}
+.when .d{font:700 26pt/1 Poppins;letter-spacing:-.02em}
+.when .d small{display:block;font:600 7pt Inter;letter-spacing:.14em;text-transform:uppercase;opacity:.8;margin-bottom:1mm}
+.when .sep{width:1px;align-self:stretch;background:currentColor;opacity:.25}
+.when .x{text-align:left;font-size:8pt;line-height:1.6}
+.when .x b{font-weight:600}
+.when .x .nil{opacity:.55}
+
+/* body */
+.body{flex:1;display:grid;grid-template-columns:104mm 1fr;gap:9mm;padding:7mm 12mm 3mm;min-height:0}
+
+/* pitch */
+.pitchwrap{display:flex;flex-direction:column;gap:2mm;min-height:0}
+.pitch{position:relative;flex:1;border-radius:3mm;overflow:hidden;
+  background:repeating-linear-gradient(180deg,var(--pitch) 0 10%,var(--pitch-2) 10% 20%)}
+.pitch svg.lines{position:absolute;inset:0;width:100%;height:100%}
+.pl{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;width:24mm}
+.tok{width:10mm;height:10mm;border-radius:50%;background:var(--team);color:var(--on-team);border:.6mm solid #fff;
+  display:grid;place-items:center;font:700 9.5pt Poppins;box-shadow:0 .6mm 1.5mm rgba(0,0,0,.35)}
+.tok.gk{background:#F1F5F9;color:#0F172A;border-color:var(--team)}
+.pl .nm{margin-top:1mm;background:rgba(255,255,255,.95);color:var(--ink);font:600 7pt Inter;padding:.4mm 1.8mm;border-radius:1.2mm;white-space:nowrap;max-width:24mm;overflow:hidden;text-overflow:ellipsis}
+.fmt{position:absolute;left:3mm;top:3mm;color:#fff;font:700 9pt Poppins;letter-spacing:.02em;background:rgba(255,255,255,.12);padding:.8mm 2.4mm;border-radius:1.5mm}
+.fmt small{font:500 6.5pt Inter;opacity:.75;margin-left:1mm}
+.dir{position:absolute;right:3mm;top:3mm;color:rgba(255,255,255,.6);font:600 6pt Inter;text-transform:uppercase;letter-spacing:.12em}
+
+/* lists */
+.right{display:flex;flex-direction:column;gap:5mm;min-height:0}
+.sec{display:flex;align-items:center;gap:2mm;font:600 7.5pt Poppins;text-transform:uppercase;letter-spacing:.1em;color:var(--team-ink);margin:0 0 2mm}
+.sec::before{content:"";width:1.2mm;height:3.5mm;border-radius:1mm;background:var(--team)}
+.sec small{margin-left:auto;font:500 7pt Inter;letter-spacing:0;text-transform:none;color:var(--faint)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:7mm}
+.grp{margin-bottom:2.2mm}
+.grp h4{margin:0 0 .6mm;display:flex;align-items:center;gap:1.6mm;font:600 6.5pt Inter;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.grp h4 i{width:2mm;height:2mm;border-radius:50%;background:var(--c)}
+.row{display:grid;grid-template-columns:7mm 1fr auto;align-items:center;gap:2mm;padding:1.55mm 0;border-bottom:1px solid var(--line-2)}
+.row:last-child{border-bottom:0}
+.row .n{font:700 8.5pt Poppins;color:var(--ink);text-align:center}
+.row .n.nil{color:var(--faint);font-weight:500}
+.row .nm{font-weight:600;font-size:9pt}
+.pos{font:600 6.5pt Inter;letter-spacing:.06em;padding:.4mm 1.6mm;border-radius:1mm;color:#fff;background:var(--c);min-width:9mm;text-align:center}
+.bench .row .nm{font-weight:500}
+.card{border:1px solid var(--line);border-radius:3mm;padding:3.5mm 4mm}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:2.5mm}
+.st{background:var(--surface);border-radius:2mm;padding:2.2mm 3mm}
+.st .l{font:600 6pt Inter;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.st .v{font:700 12pt/1.2 Poppins}
+.st .v small{font:500 7pt Inter;color:var(--faint)}
+.note{margin-top:auto;font-size:6.5pt;color:var(--faint)}
+.ftr{margin:0 12mm;padding:2.5mm 0 5mm;border-top:1px solid var(--line);display:flex;justify-content:space-between;color:var(--faint);font-size:7pt}
+.ftr b{color:var(--muted);font-weight:600;letter-spacing:.08em}
+
+.toolbar{position:sticky;top:0;z-index:10;background:#0F172A;color:#E2E8F0;display:flex;gap:10px;align-items:center;padding:10px 16px;font:500 13px Inter;flex-wrap:wrap}
+.toolbar input[type=color]{width:34px;height:26px;border:0;background:none;padding:0;cursor:pointer}
+.toolbar button{width:22px;height:22px;border-radius:50%;border:2px solid #fff3;cursor:pointer}
+.toolbar label{display:flex;gap:6px;align-items:center;margin-left:12px}
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <span>Cor do time:</span>
+  <input type="color" id="tc" value="#1B8A3E">
+  <button style="background:#1B8A3E" data-c="#1B8A3E"></button>
+  <button style="background:#C8102E" data-c="#C8102E"></button>
+  <button style="background:#1D3C8F" data-c="#1D3C8F"></button>
+  <button style="background:#FFD200" data-c="#FFD200"></button>
+  <button style="background:#111111" data-c="#111111"></button>
+  <label><input type="checkbox" id="nums"> Simular camisas cadastradas</label>
+  <span style="opacity:.6;margin-left:auto">A4 paisagem · Ctrl+P para testar</span>
+</div>
+
+<section class="page">
+  <header class="hdr">
+    <div class="crest">UEC</div>
+    <div>
+      <div class="eyebrow">Convocação</div>
+      <h1>Uberlândia EC<span>vs</span>mmmm</h1>
+    </div>
+    <div class="when">
+      <div class="d"><small>Quinta-feira</small>22/10</div>
+      <div class="sep"></div>
+      <div class="x">
+        <div><b>Horário</b> <span class="nil">—</span></div>
+        <div><b>Local</b> <span class="nil">—</span></div>
+        <div><b>Apresentação</b> <span class="nil">—</span></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="body">
+    <div class="pitchwrap">
+      <div class="pitch" id="pitch">
+        <svg class="lines" viewBox="0 0 68 105" preserveAspectRatio="none" fill="none" stroke="rgba(255,255,255,.5)" stroke-width=".35">
+          <rect x="2" y="2" width="64" height="101"/>
+          <line x1="2" y1="52.5" x2="66" y2="52.5"/>
+          <rect x="15.85" y="2" width="36.3" height="16.5"/><rect x="24.85" y="2" width="18.3" height="5.5"/>
+          <rect x="15.85" y="86.5" width="36.3" height="16.5"/><rect x="24.85" y="97.5" width="18.3" height="5.5"/>
+        </svg>
+        <!-- círculos com aspect correto -->
+        <svg class="lines" viewBox="0 0 68 105" preserveAspectRatio="xMidYMid meet" fill="none" stroke="rgba(255,255,255,.5)" stroke-width=".35">
+          <circle cx="34" cy="52.5" r="9.15"/><circle cx="34" cy="52.5" r=".5" fill="rgba(255,255,255,.5)"/>
+          <path d="M26.7 18.5 A9.15 9.15 0 0 0 41.3 18.5"/><path d="M26.7 86.5 A9.15 9.15 0 0 1 41.3 86.5"/>
+        </svg>
+        <div class="fmt">4-4-2</div>
+        <div class="dir">Ataque ↑</div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="stats">
+        <div class="st"><div class="l">Convocados</div><div class="v">14</div></div>
+        <div class="st"><div class="l">Titulares</div><div class="v">11</div></div>
+        <div class="st"><div class="l">Reservas</div><div class="v">3</div></div>
+        <div class="st"><div class="l">Sistema</div><div class="v">4-4-2</div></div>
+      </div>
+      <div class="cols">
+        <div>
+          <div class="sec">Titulares <small>11</small></div>
+          <div id="starters"></div>
+        </div>
+        <div>
+          <div class="sec">Reservas <small>3</small></div>
+          <div class="bench" id="bench"></div>
+        </div>
+      </div>
+      <div class="note">Camisas exibidas são as deste jogo (fallback: nº permanente do plantel). “—” = sem número cadastrado.</div>
+    </div>
+  </main>
+  <footer class="ftr"><span><b>TACTIPLAN</b> · Gerado em 20/10/2026, 14:16</span><span>1 / 1</span></footer>
+</section>
+
+<script>
+/* ---- paleta (mesma do REDESIGN_RELATORIOS.md §2.3) ---- */
+function hexToRgb(h){h=h.replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');const n=parseInt(h,16);return[(n>>16)&255,(n>>8)&255,n&255]}
+function rgbToHex(r,g,b){return'#'+[r,g,b].map(v=>Math.round(Math.max(0,Math.min(255,v))).toString(16).padStart(2,'0')).join('')}
+function mix(a,b,t){const A=hexToRgb(a),B=hexToRgb(b);return rgbToHex(A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t,A[2]+(B[2]-A[2])*t)}
+function lum(h){return hexToRgb(h).map(v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)}).reduce((s,v,i)=>s+v*[.2126,.7152,.0722][i],0)}
+function contrast(a,b){const x=lum(a),y=lum(b);return(Math.max(x,y)+.05)/(Math.min(x,y)+.05)}
+function applyTeam(hex){
+  const onTeam=contrast(hex,'#FFFFFF')>=contrast(hex,'#0F172A')?'#FFFFFF':'#0F172A';
+  let ink=hex,i=0;while(contrast(ink,'#FFFFFF')<4.5&&i<20){ink=mix(ink,'#000000',.08);i++}
+  const s=document.documentElement.style;
+  s.setProperty('--team',hex);s.setProperty('--team-ink',ink);s.setProperty('--on-team',onTeam);
+  s.setProperty('--team-soft',mix(hex,'#FFFFFF',.86));s.setProperty('--team-softer',mix(hex,'#FFFFFF',.94));
+}
+document.getElementById('tc').oninput=e=>applyTeam(e.target.value);
+document.querySelectorAll('.toolbar button').forEach(b=>b.onclick=()=>{tc.value=b.dataset.c;applyTeam(b.dataset.c)});
+
+/* ---- dados do exemplo ---- */
+const SECT={GOL:['Goleiro','var(--s-gol)'],DEF:['Defesa','var(--s-def)'],MEI:['Meio-campo','var(--s-mei)'],ATA:['Ataque','var(--s-ata)']};
+const BENCHC={GOL:'var(--s-gol)',ZAG:'var(--s-def)',LD:'var(--s-def)',LE:'var(--s-def)',DEF:'var(--s-def)',VOL:'var(--s-mei)',MD:'var(--s-mei)',ME:'var(--s-mei)',MOF:'var(--s-mei)',MEI:'var(--s-mei)',DD:'var(--s-ata)',PD:'var(--s-ata)',PE:'var(--s-ata)',ATA:'var(--s-ata)'};
+const starters=[
+ {name:'Jeferson',pos:'GOL',n:1},
+ {name:'Luis Felipe',pos:'DEF',n:2},{name:'Nathan',pos:'DEF',n:3},{name:'Marcelo',pos:'DEF',n:4},{name:'Max',pos:'DEF',n:6},
+ {name:'Fumaça',pos:'MEI',n:8},{name:'Pablo Thomaz',pos:'MEI',n:5},{name:'Calazans',pos:'MEI',n:10},{name:'Da Silva',pos:'MEI',n:7},
+ {name:'Léo Reis',pos:'ATA',n:9},{name:'Kaike',pos:'ATA',n:11},
+];
+const bench=[{name:'Thomas Bastos',pos:'MOF',n:20},{name:'Rafinha',pos:'MD',n:17},{name:'Samuel',pos:'DD',n:19}];
+const lines=[[0],[1,2,3,4],[5,6,7,8],[9,10]]; // GOL→ATA
+const Y=[88,68,42,17]; // % de cima
+
+const initials=n=>{const p=n.split(' ').filter(Boolean);return(p.length>1?p[0][0]+p[p.length-1][0]:n.slice(0,2)).toUpperCase()};
+function render(withNums){
+  const shirt=p=>withNums?p.n:null;
+  // pitch
+  const pitch=document.getElementById('pitch');pitch.querySelectorAll('.pl').forEach(e=>e.remove());
+  lines.forEach((ln,li)=>ln.forEach((idx,k)=>{
+    const p=starters[idx],x=(k+1)/(ln.length+1)*100,el=document.createElement('div');
+    el.className='pl';el.style.left=x+'%';el.style.top=Y[li]+'%';
+    el.innerHTML=`<div class="tok ${p.pos==='GOL'?'gk':''}">${shirt(p)??initials(p.name)}</div><div class="nm">${p.name}</div>`;
+    pitch.appendChild(el);
+  }));
+  // lists
+  const rowH=(p,c)=>`<div class="row"><span class="n ${shirt(p)==null?'nil':''}">${shirt(p)??'—'}</span><span class="nm">${p.name}</span><span class="pos" style="--c:${c}">${p.pos}</span></div>`;
+  document.getElementById('starters').innerHTML=Object.keys(SECT).map(k=>{
+    const ps=starters.filter(p=>p.pos===k);if(!ps.length)return'';
+    return `<div class="grp" style="--c:${SECT[k][1]}"><h4><i></i>${SECT[k][0]}</h4>${ps.map(p=>rowH(p,SECT[k][1])).join('')}</div>`}).join('');
+  document.getElementById('bench').innerHTML=bench.map(p=>rowH(p,BENCHC[p.pos]||'var(--faint)')).join('');
+}
+document.getElementById('nums').onchange=e=>render(e.target.checked);
+applyTeam('#1B8A3E');render(false);
+</script>
+</body>
+</html>

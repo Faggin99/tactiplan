@@ -27,7 +27,7 @@ body{background:#D9DEE5;font-family:Inter,system-ui,sans-serif;color:var(--ink);
 .page{width:210mm;height:297mm;background:#fff;margin:8mm auto;box-shadow:0 6px 30px rgba(15,23,42,.18);
   display:flex;flex-direction:column;overflow:hidden;break-after:page;position:relative}
 .page:last-child{break-after:auto}
-@media print{body{background:#fff}.page{margin:0;box-shadow:none}.toolbar,.doc-label{display:none}}
+@media print{body{background:#fff}.page{margin:0;box-shadow:none}.toolbar,.doc-label{display:none!important}}
 
 /* header completo (pág. 1) */
 .hdr{background:var(--team);color:var(--on-team);padding:10mm 14mm 8mm;display:flex;align-items:center;gap:5mm;position:relative}

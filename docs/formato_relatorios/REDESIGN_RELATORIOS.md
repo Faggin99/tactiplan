@@ -1,6 +1,6 @@
 # Redesign dos relatórios PDF do TactiPlan
 
-> Documento de implementação para o Claude Code. Substitui os layouts atuais dos três relatórios exportados pela plataforma. A referência visual exata está em **`relatorios-preview.html`** (anexo, colocar em `docs/reports/`). Abra no navegador: a barra no topo troca a cor do time ao vivo e Ctrl+P gera o PDF A4.
+> Documento de implementação para o Claude Code. Substitui os layouts atuais dos **quatro** relatórios exportados pela plataforma (Desempenho em jogos, Estatísticas de treino, Ficha de sessão e Convocação). A referência visual exata está em **`relatorios-preview.html`** (relatórios 1–3) e **`convocacao-preview.html`** (relatório 4), anexos; colocar em `docs/reports/`. Abra no navegador: a barra no topo troca a cor do time ao vivo e Ctrl+P gera o PDF A4.
 
 ---
 
@@ -10,6 +10,7 @@
    - `DESEMPENHO EM JOGOS`, `GOLS PRÓ E CONTRA`, `DESTAQUES INDIVIDUAIS`
    - `ESTATÍSTICAS DE TREINO`, `DISTRIBUIÇÃO POR PILAR`, `TOP CONTEÚDOS POR PILAR`, `DISTÂNCIA IDEAL`
    - `Duração Total`, `Distância ideal`, `Treino -` (ficha diária)
+   - `CONVOCAÇÃO`, `TITULARES (`, `RESERVAS (`, `ESCALAÇÃO ·`, `Camisas exibidas são as deste jogo`
    - `TACTIPLAN pg`, `Gerado em`
    - Também o botão **Exportar** da tela Planejamento › Estatísticas e a exportação da tela Programação.
 2. **Identifique o pipeline de geração** (jsPDF desenhando à mão, `@react-pdf/renderer`, html2pdf/html2canvas, Puppeteer/Playwright no backend, `window.print()`…).
@@ -281,6 +282,72 @@ interface SessionSheet {
 
 ---
 
+## 5b. Relatório 4 — Convocação (1 página, A4 **paisagem**)
+
+Referência visual: **`convocacao-preview.html`** (colocar em `docs/reports/`). Substitui o PDF atual `Convocacao_<adversario>_<dd-mm-aaaa>.pdf` (hoje 3 págs: capa vazia, tabelas, campo). Na barra do topo do protótipo, o checkbox "Simular camisas cadastradas" mostra os dois estados: com e sem número de camisa.
+
+### O que muda
+| Atual | Novo |
+|---|---|
+| 3 páginas (capa só com título, lista, campo) | **1 página**: campo à esquerda e lista à direita, para mandar no WhatsApp ou fixar no vestiário |
+| Nomes truncados no campo ("reis", "Calaza.", "Felipe") | Nome de exibição completo, com reticências só acima de ~24mm |
+| Coluna "Cam." toda com "-" e "#" sendo só o índice | Coluna única com o nº da camisa; sem número, "—" na lista e iniciais no campo |
+| Campo verde fixo com linhas desalinhadas | Campo em azul-marinho neutro (`--pitch`), funciona com qualquer cor de time; jogadores na cor do time |
+| Titulares em lista corrida | Agrupados por setor (Goleiro, Defesa, Meio-campo, Ataque) com etiqueta de posição colorida |
+
+### Contrato de dados
+```ts
+interface CallUpSheet {
+  team: { name: string; shortName: string; color: string; logoUrl?: string };
+  opponent: string;
+  date: Date;
+  kickoff?: string;        // "15:00" (opcional)
+  venue?: string;          // local (opcional)
+  meetTime?: string;       // horário de apresentação (opcional)
+  competition?: string; round?: number; home?: boolean; // opcionais, se existirem no modelo do jogo
+  formation: string;       // "4-4-2"
+  starters: Array<{ name: string; pos: string; shirt?: number | null; slot: { x: number; y: number } }>;
+  bench: Array<{ name: string; pos: string; shirt?: number | null }>;
+  generatedAt: Date;
+}
+```
+- `shirt`: nº de camisa **deste jogo**; se não houver, usar o nº permanente do plantel; se também não houver, `null`.
+- `slot`: posição no campo em % (0–100, ataque para cima). **Usar as coordenadas que o editor de escalação já salva.** Se não houver, derivar da formação: linhas `GOL → DEF → MEI → ATA` com y = 88 / 68 / 42 / 17 % e x distribuído igualmente, `(i+1)/(n+1)`. Em formações com 4 linhas de linha (4-2-3-1, 4-1-2-1-2…), dividir o intervalo 17–68 % igualmente.
+
+### Layout (297×210 mm, margens laterais 12 mm)
+1. **Header** (faixa `--team`, ~28 mm): escudo · eyebrow "Convocação" · H1 "**Time** vs **Adversário**" (o "vs" em peso 500, opacidade .65). À direita: dia da semana em eyebrow + data `22/10` em Poppins 700 26pt · divisor vertical · bloco com Horário, Local e Apresentação. Campo vazio aparece como "—" com opacidade .55 (não esconder, para o técnico perceber que falta preencher).
+2. **Corpo (grid `104mm | 1fr`, gap 9 mm):**
+   - **Campo** (coluna esquerda, altura total): fundo com faixas horizontais alternadas `--pitch #16233A` / `--pitch-2 #1A2942` (10 % cada); linhas brancas 50 % em SVG `viewBox="0 0 68 105"` (medidas oficiais: áreas 40,3×16,5 e 18,3×5,5, círculo r 9,15, meias-luas). Retângulos com `preserveAspectRatio="none"`; círculos e arcos num segundo SVG com `xMidYMid meet`, para não ficarem ovais. Selo da formação no canto superior esquerdo, "Ataque ↑" no direito.
+   - **Jogador no campo:** círculo 10 mm `--team` com borda branca 0,6 mm e sombra leve, texto `--on-team` (nº da camisa ou iniciais); abaixo, etiqueta branca com o nome (Inter 600, 7pt). **Goleiro:** círculo `#F1F5F9` com texto `--ink` e borda `--team`, para se diferenciar em qualquer cor de time.
+   - **Coluna direita:** 4 mini-KPIs (Convocados, Titulares, Reservas, Sistema) → duas colunas: **Titulares** agrupados por setor (subtítulo com bolinha da cor do setor) e **Reservas** sem agrupamento. Linha: nº (Poppins 700, "—" em `--faint` se nulo) · nome (Inter 600, 9pt; reservas 500) · etiqueta de posição (fundo na cor do setor, texto branco).
+   - Nota de rodapé da coluna (6.5pt `--faint`): "Camisas exibidas são as deste jogo (fallback: nº permanente do plantel)."
+3. **Rodapé** padrão.
+
+### Cores por setor (fixas, exceto meio-campo)
+| Setor | Posições | Cor |
+|---|---|---|
+| Goleiro | GOL | `#D97706` |
+| Defesa | ZAG, LD, LE, DEF | `#334155` |
+| Meio-campo | VOL, MD, ME, MOF, MEI | `--team-ink` |
+| Ataque | PD, PE, DD, DE, ATA, CA | `#DC2626` |
+
+Mapear os códigos de posição reais do projeto para esses 4 setores, num único lugar (`positionSector.ts`). Código desconhecido usa `--faint`.
+
+### Casos de borda
+- **Mais de 7 reservas:** a coluna de reservas continua com as linhas mais compactas (padding 1 mm); acima de 12, quebrar em 2 subcolunas.
+- **Mais de 11 titulares** (futebol 7/society, usar a modalidade): o campo continua igual e os tokens diminuem para 9 mm se houver mais de 5 numa linha.
+- **Sem escalação no campo:** mostrar o campo vazio com `EmptyState` sobreposto ("Escalação não definida") e manter a lista.
+- **Nome do adversário longo:** H1 com `font-size: clamp` (mínimo 14pt) e reticências.
+- Arquivo: manter `Convocacao_<adversario>_<dd-mm-aaaa>.pdf`.
+
+### Aceite
+- [ ] 1 página, A4 paisagem, texto selecionável.
+- [ ] Com dados reais: 11 titulares 4-4-2 e 3 reservas idênticos ao protótipo.
+- [ ] Testar sem camisas (iniciais / "—") e com camisas.
+- [ ] Testar cores `#1B8A3E`, `#C8102E`, `#FFD200`, `#111111`: goleiro, tokens e header legíveis em todas.
+
+---
+
 ## 6. Regras de formatação e casos de borda
 
 - **Locale pt-BR:** decimal com vírgula (`5,0 km`), datas `dd/mm/aa` em tabela e `dd/mm` em destaques, hora `hh:mm`.
@@ -300,7 +367,7 @@ interface SessionSheet {
 ## 7. Critérios de aceite
 
 - [ ] Os três relatórios usam o novo layout e o botão Exportar / exportação da Programação gera os novos PDFs.
-- [ ] Número de páginas com os dados do exemplo: Jogos **2**, Treino **2**, Ficha **1**.
+- [ ] Número de páginas com os dados do exemplo: Jogos **2**, Treino **2**, Ficha **1**, Convocação **1** (paisagem).
 - [ ] Trocar a cor do time muda header, anel, barras, títulos de seção e dia de jogo; **amarelo `#FFD200` e preto `#111111`** continuam legíveis (texto do header escuro no amarelo; títulos com `--team-ink`).
 - [ ] V/E/D mantêm verde/âmbar/vermelho independentemente da cor do time.
 - [ ] Nenhum gráfico vazio é desenhado: sempre `EmptyState`.
