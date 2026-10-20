@@ -321,7 +321,7 @@ export function GameStatsContent({
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}><ArrowLeftRight size={16} style={{ color: '#0ea5e9' }} /> Mais acionados do banco</span>
             </div>
             <PlayerRankList
-              items={(displayStats.topSubEntries || []).map(p => ({ ...p, value: p.sub_entries, label: `${p.sub_entries} entrada${p.sub_entries !== 1 ? 's' : ''} · ${p.minutes} min` }))}
+              items={(displayStats.topSubEntries || []).map(p => ({ ...p, value: p.sub_entries, label: `${p.sub_entries} entrada${p.sub_entries !== 1 ? 's' : ''}` }))}
               colors={colors} accent="#0ea5e9"
               emptyMsg="Nenhuma substituição no período"
             />
