@@ -7,7 +7,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ClubOnboardingModal } from '../club/ClubOnboardingModal';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { SubscriptionBanner } from './SubscriptionBanner';
-import { StadiumBackground } from './StadiumBackground';
 import { WorkspaceSwapNotice } from '../workspace/WorkspaceSwapNotice';
 import { PendingInvitesModal, usePendingInvites } from '../workspace/PendingInvitesModal';
 
@@ -31,6 +30,7 @@ export function Layout({ children }) {
   const bgWrapperStyle = {
     position: 'fixed',
     inset: 0,
+    backgroundColor: colors.background,
     zIndex: 0,
     pointerEvents: 'none',
   };
@@ -83,7 +83,7 @@ export function Layout({ children }) {
   return (
     <>
       <div style={bgWrapperStyle}>
-        <StadiumBackground isDark={isDark} variant="soft" modality={selectedClub?.modality || 'football_11'} />
+        {/* sem imagem de fundo (o gramado ilustrado saiu a pedido do dono) */}
       </div>
       <div style={shellStyle}>
         <AppSidebar isMobile={isMobile} open={drawer} onClose={() => setDrawer(false)} collapsed={!isMobile && recolhida} />

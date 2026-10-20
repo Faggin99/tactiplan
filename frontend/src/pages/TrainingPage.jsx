@@ -318,6 +318,32 @@ export function TrainingPage() {
     return abbreviations[contentName] || contentName;
   }
 
+  // Pilar predominante do dia (1ª linha da Programação): soma os MINUTOS de cada
+  // pilar (mesma regra por tempo dos conteúdos); sem tempo preenchido, conta atividades.
+  // Empate mostra os dois.
+  const PILAR_LABEL = { tatico: 'Tático', fisico: 'Físico', tecnico: 'Técnico', mental: 'Mental' };
+  function getDayPillarSummary(session) {
+    if (!session?.blocks) return [];
+    const min = {};
+    const cnt = {};
+    session.blocks.forEach((block) => {
+      const a = block.activity;
+      if (!a?.contents?.length) return;
+      const dims = Array.from(new Set(a.contents.map((c) => c.dimension).filter(Boolean)));
+      const m = parseInt(a.duration_minutes) || 0;
+      dims.forEach((d) => {
+        min[d] = (min[d] || 0) + m;
+        cnt[d] = (cnt[d] || 0) + 1;
+      });
+    });
+    const dims = Object.keys(cnt);
+    if (!dims.length) return [];
+    const temTempo = dims.some((d) => min[d] > 0);
+    const peso = (d) => (temTempo ? min[d] : cnt[d]);
+    const max = Math.max(...dims.map(peso));
+    return dims.filter((d) => peso(d) === max).map((d) => PILAR_LABEL[d] || d);
+  }
+
   function getDayContentsSummary(session) {
     if (!session?.blocks) return [];
 
@@ -670,7 +696,7 @@ export function TrainingPage() {
                   </div>
                 </div>
 
-                {/* Contents Summary - Always visible for alignment */}
+                {/* Pilar predominante do dia (tooltip: conteúdos predominantes) */}
                 <Tooltip
                   content={
                     getDayContentsSummary(session).length > 0
@@ -684,7 +710,7 @@ export function TrainingPage() {
                   <div
                     style={contentsSummaryStyle}
                     onMouseEnter={(e) => {
-                      if (getDayContentsSummary(session).length > 0) {
+                      if (getDayPillarSummary(session).length > 0) {
                         e.currentTarget.style.backgroundColor = `${colors.primary}20`;
                         e.currentTarget.style.transform = 'scale(1.02)';
                         e.currentTarget.style.boxShadow = `0 2px 8px ${colors.primary}40`;
@@ -697,12 +723,8 @@ export function TrainingPage() {
                     }}
                   >
                     {(() => {
-                      const items = getDayContentsSummary(session);
-                      if (items.length === 0) return '\u00A0';
-                      // Limita a 3 vis\u00EDveis; em empates grandes mostra "+N"
-                      if (items.length <= 3) return items.map(c => c.abbreviated).join(' | ');
-                      const visible = items.slice(0, 2).map(c => c.abbreviated).join(' | ');
-                      return `${visible} +${items.length - 2}`;
+                      const pilares = getDayPillarSummary(session);
+                      return pilares.length ? pilares.join(' | ') : '\u00A0';
                     })()}
                   </div>
                 </Tooltip>
