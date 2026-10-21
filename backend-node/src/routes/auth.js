@@ -1,4 +1,5 @@
 const express = require('express');
+const { formatarNome } = require('../utils/formatarNome');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
@@ -42,7 +43,10 @@ router.post('/register', registerLimiter, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { email, password, name, phone } = req.body;
+    const { email, password, phone } = req.body;
+    const name = formatarNome(req.body.name);
+    // "Você é": clube/escolinha ou comissão técnica (só ajusta textos; preço é o mesmo).
+    const tipoConta = ['clube', 'comissao'].includes(req.body.tipo) ? req.body.tipo : null;
 
     const existing = await query('SELECT id FROM users WHERE email = $1', [email]);
     if (existing.rows.length > 0) {
@@ -80,8 +84,8 @@ router.post('/register', registerLimiter, [
     // Cria workspace inicial pro user (uma por user no cadastro)
     const wsName = (name && name.trim()) || (email.split('@')[0]) || 'Minha conta';
     const wsRes = await query(
-      `INSERT INTO workspaces (name, owner_id) VALUES ($1, $2) RETURNING id`,
-      [wsName, user.id]
+      `INSERT INTO workspaces (name, owner_id, tipo) VALUES ($1, $2, $3) RETURNING id`,
+      [wsName, user.id, tipoConta]
     );
     const workspaceId = wsRes.rows[0].id;
 
@@ -360,7 +364,7 @@ router.put('/profile', authMiddleware, async (req, res) => {
       `UPDATE users SET name = $1, phone = $2, bio = $3, updated_at = NOW()
        WHERE id = $4
        RETURNING id, email, name, phone, bio, profile_photo, role, id as tenant_id`,
-      [name, phone || null, bio || null, req.user.id]
+      [formatarNome(name), phone || null, bio || null, req.user.id]
     );
 
     if (result.rows.length === 0) {
@@ -466,7 +470,7 @@ router.post('/google', loginLimiter, async (req, res) => {
 
     const email = (payload.email || '').toLowerCase();
     const googleId = payload.sub;
-    const name = payload.name || payload.given_name || email.split('@')[0];
+    const name = formatarNome(payload.name || payload.given_name || email.split('@')[0]);
 
     // Procura por google_id ou email — ignora contas removidas (LGPD)
     let userRes = await query(
@@ -573,7 +577,7 @@ router.post('/apple', loginLimiter, async (req, res) => {
         // Sem email não dá pra criar conta (caso raro: usuário revogou o compartilhamento)
         return res.status(401).json({ error: 'A Apple não compartilhou seu email. Remova o app em Ajustes > Apple ID > Início de Sessão e Segurança e tente de novo.' });
       }
-      const name = (givenName || '').trim() || email.split('@')[0];
+      const name = formatarNome((givenName || '').trim() || email.split('@')[0]);
       const role = isAdmin(email) ? 'admin' : 'coach';
       const insertRes = await query(
         `INSERT INTO users (email, name, apple_id, auth_provider, role, terms_accepted_at, terms_version)

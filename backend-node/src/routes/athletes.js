@@ -1,4 +1,5 @@
 const express = require('express');
+const { formatarNome } = require('../utils/formatarNome');
 const { getPlanFeatures } = require('../utils/planFeatures');
 const fs = require('fs');
 const path = require('path');
@@ -152,7 +153,7 @@ router.post('/', async (req, res) => {
                              birthdate, height_cm, preferred_foot, previous_club)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
        RETURNING *`,
-      [name, position || null, jersey_number || null, status || 'active', observation || null,
+      [formatarNome(name), position || null, jersey_number || null, status || 'active', observation || null,
        group || null, photo_url || null, club_id, category_id || null, wsId,
        birthdate || null, Number.isFinite(+height_cm) && +height_cm > 0 ? +height_cm : null,
        normalizeFoot(preferred_foot), previous_club?.trim() || null]
@@ -187,7 +188,7 @@ router.put('/:id', async (req, res) => {
        updated_at = NOW()
        WHERE id = $14 AND workspace_id = ANY($15)
        RETURNING *`,
-      [name, position || null, jersey_number || null, status || 'active', observation || null,
+      [formatarNome(name), position || null, jersey_number || null, status || 'active', observation || null,
        group || null, photo_url || null, club_id, category_id || null,
        birthdate || null, Number.isFinite(+height_cm) && +height_cm > 0 ? +height_cm : null,
        normalizeFoot(preferred_foot), previous_club?.trim() || null,
