@@ -51,8 +51,10 @@ Resumo: /api/auth/*, /api/clubs/*, /api/athletes/*, /api/microcycles/*,
 - Add-on: `subscriptions.extra_club_slots` (INT) soma clubes ATIVOS extras (R$20/mês). Sem tela de compra:
   "fale com a gente" → `UPDATE subscriptions SET extra_club_slots = 1 WHERE id = ...`
 - `workspaces.tipo` ('clube' | 'comissao' | NULL): "Você é" do cadastro; só ajusta textos (`PUT /api/workspaces/:id/tipo`).
-- Biblioteca da CONTA (vale pra todos os clubes): conteúdos, submomentos (stages), títulos de atividade.
-  Jogadas do quadro (`tactical_plays`) ainda são POR CLUBE (lista filtra por club_id).
+- Biblioteca da CONTA (vale pra todos os clubes): conteúdos, submomentos (stages), títulos de atividade
+  e jogadas do quadro (`tactical_plays`, desde 21/10/2026). Em jogadas, `club_id` é só "criada em"
+  (gravado na criação, não filtra a lista, não muda ao editar; a lista mostra "criada em <clube>").
+  Clube arquivado não trava biblioteca nem jogadas (ISENTAS em `clubArquivado.js`).
 - Nomes de pessoas (users.name, athletes.name) passam por `formatarNome` ao salvar
   (`backend-node/src/utils/formatarNome.js` = `frontend/src/lib/formatarNome.js`, teste de paridade).
 

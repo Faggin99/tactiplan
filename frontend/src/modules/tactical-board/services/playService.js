@@ -1,9 +1,9 @@
 import { api } from '../../../services/api';
 
 export const playService = {
-  async getAll(clubId = null) {
-    const query = clubId ? `?club_id=${clubId}` : '';
-    return await api.get(`/plays${query}`);
+  // Jogadas são da conta (todos os clubes); club_id fica só como "criada em".
+  async getAll() {
+    return await api.get('/plays');
   },
 
   async getById(id) {

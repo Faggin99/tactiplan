@@ -6,11 +6,11 @@ export function usePlays() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchPlays = useCallback(async (clubId = null) => {
+  const fetchPlays = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await playService.getAll(clubId);
+      const data = await playService.getAll();
       setPlays(data);
     } catch (err) {
       setError(err.message);

@@ -784,7 +784,7 @@ export default function TacticalBoardPage() {
         plays={plays.plays}
         loading={plays.loading}
         error={plays.error}
-        onFetch={() => plays.fetchPlays(selectedClub?.id)}
+        onFetch={() => plays.fetchPlays()}
         isDirty={board.isDirty}
       />
 

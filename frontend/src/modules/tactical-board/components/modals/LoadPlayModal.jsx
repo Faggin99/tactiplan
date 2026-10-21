@@ -162,7 +162,7 @@ export default function LoadPlayModal({ isOpen, onClose, onLoad, onDelete, plays
                     {play.description}
                   </div>
                 )}
-                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.375rem', fontSize: '0.75rem', color: colors.textSecondary }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginTop: '0.375rem', fontSize: '0.75rem', color: colors.textSecondary }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <Layout size={12} />
                     {fieldTypeLabels[play.field_type] || play.field_type}
@@ -172,6 +172,11 @@ export default function LoadPlayModal({ isOpen, onClose, onLoad, onDelete, plays
                     <Calendar size={12} />
                     {formatDate(play.updated_at)}
                   </span>
+                  {play.club_name && (
+                    <span title="A jogada é da conta e vale para todos os clubes" style={{ opacity: 0.8 }}>
+                      criada em {play.club_name}
+                    </span>
+                  )}
                 </div>
               </div>
 
