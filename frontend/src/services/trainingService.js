@@ -211,16 +211,25 @@ export const trainingService = {
     return { count: data.count || 0 };
   },
 
-  // Session Files
-  async uploadSessionFile(sessionId, file, title) {
+  // Anexos — POR ATIVIDADE (bloco). A sessão é derivada da atividade no backend.
+  async uploadActivityFile(activityId, file, title, sessionId = null) {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('session_id', sessionId);
+    formData.append('activity_id', activityId);
+    // session_id é ignorado pelo backend atual (deriva da atividade); vai junto só
+    // pra compatibilidade durante a publicação.
+    if (sessionId) formData.append('session_id', sessionId);
     formData.append('title', title || '');
     const data = await api.upload('/files/upload', formData);
     return { data };
   },
 
+  async renameSessionFile(fileId, title) {
+    const data = await api.patch(`/files/${fileId}`, { title });
+    return { data };
+  },
+
+  // Lista os anexos do dia; cada um vem com activity_id + block_id (distribuir por aba).
   async getSessionFiles(sessionId) {
     const data = await api.get(`/files/session/${sessionId}`);
     return { data: data || [] };

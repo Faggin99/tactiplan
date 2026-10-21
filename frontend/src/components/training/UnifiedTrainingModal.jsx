@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Save, ChevronLeft, ChevronRight, Upload, FileText, Video, Image, FileIcon, X, Eye, ChevronDown, Paperclip } from 'lucide-react';
+import { Save, ChevronLeft, ChevronRight, Upload, FileText, Video, X, Eye, Paperclip } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { MultiSelect } from '../common/MultiSelect';
@@ -18,7 +18,6 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
   const { selectedClub } = useClub();
   const isMobile = useIsMobile();
   const modality = selectedClub?.modality || 'football_11';
-  const [attachmentsOpen, setAttachmentsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [contents, setContents] = useState([]);
@@ -35,28 +34,24 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
   const [distanceInput, setDistanceInput] = useState('');
   const showDistance = !isMatchDay;
 
-  // Tab navigation: Blocos de treino apenas (sem tab de Anexos)
+  // Abas = blocos. Anexos ficam DENTRO de cada bloco (por atividade), sem aba própria.
   const [activeTab, setActiveTab] = useState(0);
-  const [attachmentTitleInput, setAttachmentTitleInput] = useState('');
-  const [showTitlePrompt, setShowTitlePrompt] = useState(false);
-  const [pendingFile, setPendingFile] = useState(null);
+
+  // Chave do bloco no modal: id real, ou "order_N" pra bloco ainda não criado no banco
+  const blockKeyOf = (block) => block?.id || `order_${block?.order}`;
 
   // Para dias de jogo, mostrar apenas o primeiro bloco como "Não relacionados"
-  const ATTACHMENTS_TAB_ID = 'attachments';
-  const blockTabs = isMatchDay && session?.blocks?.length > 0
+  const tabs = isMatchDay && session?.blocks?.length > 0
     ? [{
         id: 0,
         label: 'Não relacionados',
-        blockId: session.blocks[0].id,
+        blockKey: blockKeyOf(session.blocks[0]),
       }]
     : (session?.blocks || []).map((block, index) => ({
         id: index,
         label: block.name,
-        blockId: block.id,
+        blockKey: blockKeyOf(block),
       }));
-  // Add attachments as last tab
-  const tabs = [...blockTabs, { id: ATTACHMENTS_TAB_ID, label: 'Anexos', blockId: null }];
-  const isAttachmentsTab = activeTab === ATTACHMENTS_TAB_ID;
 
   // Ref for tab scroll container
   const tabScrollRef = useRef(null);
@@ -93,9 +88,6 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
       setTitles([]);
       setActiveTab(0);
       setPreviewFile(null);
-      setAttachmentTitleInput('');
-      setShowTitlePrompt(false);
-      setPendingFile(null);
       setDistanceInput('');
     }
   }, [isOpen, initialTab, session]);
@@ -118,7 +110,12 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
       setContents(loadedContents);
       setStages(loadedStages);
       setTitles(loadedTitles);
-      setExistingFiles(loadedFiles);
+      // Distribui os anexos pelas abas: cada um pertence à atividade de um bloco
+      setExistingFiles(loadedFiles.map((f) => {
+        const block = (session?.blocks || []).find((b) =>
+          (f.activity_id && b.activity?.id === f.activity_id) || (f.block_id && b.id === f.block_id));
+        return { ...f, blockKey: block ? blockKeyOf(block) : null, savedTitle: f.title || '' };
+      }));
 
       // Initialize block data with existing activity data
       // Use block.id as key if available, otherwise use block.order as fallback key
@@ -234,55 +231,71 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
     }));
   };
 
-  const handleFileUpload = (e) => {
-    const files = Array.from(e.target.files);
+  // Limite: até 5 anexos POR ATIVIDADE (bloco). Antes eram 5 no dia inteiro.
+  const MAX_FILES_PER_ACTIVITY = 5;
 
-    // Process one file at a time, prompting for title
-    if (files.length > 0) {
-      const file = files[0];
-      setPendingFile(file);
-      setShowTitlePrompt(true);
-    }
+  const filesForBlock = (blockKey) => [
+    ...existingFiles.filter((f) => f.blockKey === blockKey),
+    ...uploadedFiles.filter((f) => f.blockKey === blockKey),
+  ];
+
+  // Mesmo critério do salvar (TrainingPage): bloco "vazio" não vira atividade.
+  const isBlockFilled = (blockKey) => {
+    const d = blockData[blockKey];
+    return !!(d && (d.titleId || d.description || d.selectedContents?.length || d.selectedStages?.length || d.durationMinutes));
   };
 
-  const confirmFileWithTitle = () => {
-    if (!attachmentTitleInput.trim()) {
-      notify.error('Por favor, insira um título para o anexo.');
+  const tituloDoArquivo = (name) => String(name || '').replace(/\.[a-z0-9]+$/i, '').slice(0, 120);
+
+  const handleFileUpload = (blockKey, e) => {
+    const picked = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (picked.length === 0) return;
+    if (!isBlockFilled(blockKey)) {
+      notify.error('Preencha a atividade deste bloco antes de anexar arquivos.');
       return;
     }
-
-    if (!pendingFile) return;
-
-    // Check if we already have 5 files
-    const totalFiles = existingFiles.length + uploadedFiles.length;
-    if (totalFiles >= 5) {
-      notify.error('Máximo de 5 anexos atingido.');
-      setShowTitlePrompt(false);
-      setPendingFile(null);
-      setAttachmentTitleInput('');
+    const restantes = MAX_FILES_PER_ACTIVITY - filesForBlock(blockKey).length;
+    if (restantes <= 0) {
+      notify.error(`Máximo de ${MAX_FILES_PER_ACTIVITY} anexos por atividade.`);
       return;
     }
-
-    const newFile = {
-      id: Math.random().toString(36).substr(2, 9),
-      file: pendingFile,
-      title: attachmentTitleInput.trim(),
-      name: pendingFile.name,
-      size: pendingFile.size,
-      type: pendingFile.type,
-      url: URL.createObjectURL(pendingFile),
-    };
-
-    setUploadedFiles([...uploadedFiles, newFile]);
-    setShowTitlePrompt(false);
-    setPendingFile(null);
-    setAttachmentTitleInput('');
+    if (picked.length > restantes) {
+      notify.error(`Só cabem mais ${restantes} anexo(s) nesta atividade — os demais foram ignorados.`);
+    }
+    const novos = picked.slice(0, restantes).map((file) => ({
+      id: Math.random().toString(36).slice(2, 11),
+      blockKey,
+      file,
+      title: tituloDoArquivo(file.name),
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      url: URL.createObjectURL(file),
+    }));
+    setUploadedFiles((prev) => [...prev, ...novos]);
   };
 
-  const cancelFileUpload = () => {
-    setShowTitlePrompt(false);
-    setPendingFile(null);
-    setAttachmentTitleInput('');
+  const handleTitleChange = (fileId, isExisting, value) => {
+    const setter = isExisting ? setExistingFiles : setUploadedFiles;
+    setter((prev) => prev.map((f) => (f.id === fileId ? { ...f, title: value } : f)));
+  };
+
+  // Anexo já salvo: renomeia ao sair do campo (anexo novo vai com o título no salvar)
+  const commitExistingTitle = async (file) => {
+    const title = String(file.title || '').trim();
+    if (!title) {
+      handleTitleChange(file.id, true, file.savedTitle);
+      return;
+    }
+    if (title === file.savedTitle) return;
+    try {
+      await trainingService.renameSessionFile(file.id, title);
+      setExistingFiles((prev) => prev.map((f) => (f.id === file.id ? { ...f, title, savedTitle: title } : f)));
+    } catch (error) {
+      handleTitleChange(file.id, true, file.savedTitle);
+      notify.error('Não foi possível renomear o anexo: ' + error.message);
+    }
   };
 
   const handleRemoveFile = async (fileId, isExisting = false) => {
@@ -295,7 +308,7 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
       if (ok) {
         try {
           await trainingService.deleteSessionFile(fileId);
-          setExistingFiles(existingFiles.filter((f) => f.id !== fileId));
+          setExistingFiles((prev) => prev.filter((f) => f.id !== fileId));
         } catch (error) {
           console.error('Error deleting file:', error);
           notify.error('Erro ao excluir arquivo: ' + error.message);
@@ -307,7 +320,7 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
       if (file?.url) {
         URL.revokeObjectURL(file.url);
       }
-      setUploadedFiles(uploadedFiles.filter((f) => f.id !== fileId));
+      setUploadedFiles((prev) => prev.filter((f) => f.id !== fileId));
     }
   };
 
@@ -324,6 +337,15 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
   };
 
   const handleSave = async () => {
+    // Todo anexo precisa de atividade: bloco esvaziado com anexo não salva
+    // (apagar a atividade levaria os anexos junto).
+    const orfao = tabs.find((t) => !isBlockFilled(t.blockKey) && filesForBlock(t.blockKey).length > 0);
+    if (orfao) {
+      setActiveTab(orfao.id);
+      notify.error(`"${orfao.label}" tem anexo(s) mas está sem atividade. Preencha a atividade ou remova os anexos.`);
+      return;
+    }
+
     // Distância do dia: valida antes de qualquer coisa (sem salvar meia alteração)
     let distance = { changed: false, value: null };
     if (showDistance) {
@@ -359,7 +381,10 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
 
     setLoading(true);
     try {
-      await onSave({ blockData, files: uploadedFiles, avgDistanceKm: distance.value, distanceChanged: distance.changed });
+      const files = uploadedFiles
+        .filter((f) => tabs.some((t) => t.blockKey === f.blockKey))
+        .map((f) => ({ ...f, title: String(f.title || '').trim() || tituloDoArquivo(f.name) }));
+      await onSave({ blockData, files, avgDistanceKm: distance.value, distanceChanged: distance.changed });
       onClose();
     } catch (error) {
       console.error('Error saving:', error);
@@ -391,13 +416,6 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
       setActiveTab(newTab);
       setTimeout(() => scrollTabIntoView(newTab), 50);
     }
-  };
-
-  const getFileIcon = (type) => {
-    if (type.startsWith('video/')) return Video;
-    if (type.startsWith('image/')) return Image;
-    if (type.includes('pdf')) return FileText;
-    return FileIcon;
   };
 
   // Filtrar temas baseado nos conteúdos selecionados
@@ -468,33 +486,6 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
     padding: '0.5rem',
   };
 
-  const uploadAreaStyle = {
-    border: `2px dashed ${colors.border}`,
-    borderRadius: '0.5rem',
-    padding: '1.5rem',
-    textAlign: 'center',
-    cursor: 'pointer',
-    backgroundColor: colors.background,
-    transition: 'all 0.2s',
-  };
-
-  const fileGridStyle = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-    gap: '1rem',
-    marginTop: '1.5rem',
-  };
-
-  const fileCardStyle = {
-    position: 'relative',
-    padding: '1rem',
-    backgroundColor: colors.background,
-    borderRadius: '0.5rem',
-    border: `1px solid ${colors.border}`,
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-  };
-
   const blockFormStyle = {
     display: 'flex',
     flexDirection: 'column',
@@ -548,8 +539,8 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
             Carregando dados...
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '0' : '1rem', height: '100%' }}>
-            {/* Main Content Area */}
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            {/* Conteúdo em largura total (sem painel lateral de anexos) */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
               {/* Info do dia — fixa acima das abas (vale pro dia todo, não pra um bloco) */}
               {showDistance && (
@@ -618,14 +609,17 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
                         setActiveTab(tab.id);
                         setTimeout(() => scrollTabIntoView(tab.id), 50);
                       }}
-                      style={{
-                        ...tabButtonStyle(activeTab === tab.id),
-                        ...(tab.id === ATTACHMENTS_TAB_ID ? { display: 'flex', alignItems: 'center', gap: '0.3rem' } : {}),
-                      }}
+                      style={{ ...tabButtonStyle(activeTab === tab.id), display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
                     >
-                      {tab.id === ATTACHMENTS_TAB_ID && <Paperclip size={14} />}
                       {tab.label}
-                      {tab.id === ATTACHMENTS_TAB_ID && ` (${existingFiles.length + uploadedFiles.length})`}
+                      {(() => {
+                        const n = filesForBlock(tab.blockKey).length;
+                        return n > 0 ? (
+                          <span aria-label={`${n} anexo(s)`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.1rem', fontSize: '0.75rem', fontWeight: 600 }}>
+                            · <Paperclip size={12} />{n}
+                          </span>
+                        ) : null;
+                      })()}
                     </button>
                   ))}
                 </div>
@@ -641,75 +635,12 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
 
               {/* Tab Content */}
               <div style={contentAreaStyle}>
-                {/* Attachments Tab */}
-                {isAttachmentsTab ? (
-                  <div style={{ padding: '0.5rem' }}>
-                    {(() => {
-                      const totalFiles = existingFiles.length + uploadedFiles.length;
-                      return (
-                        <>
-                          <div style={{ fontSize: '1rem', fontWeight: '600', color: colors.text, marginBottom: '1rem' }}>
-                            Anexos da Sessão ({totalFiles}/5)
-                          </div>
-
-                          {totalFiles < 5 && (
-                            <label style={{
-                              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                              padding: '1rem', backgroundColor: colors.primary, color: '#ffffff',
-                              borderRadius: '0.5rem', cursor: 'pointer', fontSize: '0.95rem', fontWeight: '500',
-                              marginBottom: '1rem',
-                            }}>
-                              <Upload size={20} />
-                              Adicionar Anexo
-                              <input type="file" onChange={handleFileUpload} style={{ display: 'none' }} accept="image/*,video/*,.pdf" />
-                            </label>
-                          )}
-
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            {[...existingFiles, ...uploadedFiles].map((file, i) => {
-                              const FileIconComp = getFileIcon(file.type || file.mime_type || '');
-                              return (
-                                <div key={file.id || i} style={{
-                                  display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem',
-                                  backgroundColor: colors.background, borderRadius: '0.5rem', border: `1px solid ${colors.border}`,
-                                }}>
-                                  <FileIconComp size={24} style={{ color: colors.primary, flexShrink: 0 }} />
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontWeight: '500', fontSize: '0.875rem', color: colors.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                      {file.title || file.name || file.file_name}
-                                    </div>
-                                    <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>
-                                      {((file.size || file.file_size || 0) / 1024 / 1024).toFixed(2)} MB
-                                    </div>
-                                  </div>
-                                  <button onClick={() => handlePreviewFile(file)} style={{ padding: '0.4rem', background: colors.primary, color: '#fff', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', display: 'flex' }}>
-                                    <Eye size={16} />
-                                  </button>
-                                  <button onClick={() => handleRemoveFile(file.id, !!file.file_path)} style={{ padding: '0.4rem', background: colors.danger || '#ef4444', color: '#fff', border: 'none', borderRadius: '0.25rem', cursor: 'pointer', display: 'flex' }}>
-                                    <X size={16} />
-                                  </button>
-                                </div>
-                              );
-                            })}
-                            {totalFiles === 0 && (
-                              <div style={{ textAlign: 'center', padding: '2rem', color: colors.textMuted, fontSize: '0.875rem' }}>
-                                Nenhum anexo adicionado
-                              </div>
-                            )}
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </div>
-                ) : (
-                <>
                 {/* Block Form - renderiza o bloco atual */}
                 {(() => {
                   const block = session?.blocks?.[activeTab];
                   if (!block) return null;
 
-                  // Use block.id if available, otherwise use order as key
-                  const blockKey = block.id || `order_${block.order}`;
+                  const blockKey = blockKeyOf(block);
 
                   const DIM_LIST = [
                     { key: 'tatico',  label: 'Tático',  color: '#3b82f6' },
@@ -730,7 +661,8 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
 
                   return (
                     <div style={blockFormStyle} data-tour="unified-modal-body">
-                      {/*Pilar (chips sempre visíveis) */}
+                      {/* Linha 1: Pilar (chips) + Tempo (compacto) */}
+                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 120px', gap: isMobile ? '0.75rem' : '1rem', alignItems: 'start' }}>
                       <div>
                         <label style={labelStyle}>
                          Pilar <span style={hintStyle}>obrigatório</span>
@@ -768,6 +700,27 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
                           })}
                         </div>
                       </div>
+                        <div>
+                          <label style={labelStyle}>Tempo (min)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={blockData[blockKey]?.durationMinutes || ''}
+                            onChange={(e) => handleFieldChange(blockKey, 'durationMinutes', e.target.value)}
+                            placeholder="30"
+                            style={{
+                              width: '100%',
+                              padding: '0.5rem 0.75rem',
+                              fontSize: '0.875rem',
+                              border: `1px solid ${colors.border}`,
+                              borderRadius: '0.375rem',
+                              backgroundColor: colors.background,
+                              color: colors.text,
+                            }}
+                          />
+                        </div>
+                      </div>
 
                       {/* Conteúdo (aparece quando pilar selecionada).
                           Pra tático: select de momento + submomentos lado a lado.
@@ -775,7 +728,7 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
                       {hasDimension && (
                         <div style={{
                           display: 'grid',
-                          gridTemplateColumns: isMobile ? '1fr' : (isTatic ? '1fr 1fr' : '1fr'),
+                          gridTemplateColumns: isMobile ? '1fr' : (isTatic ? '1fr 1fr 1.2fr' : '1fr 1.2fr'),
                           gap: isMobile ? '0.75rem' : '1rem',
                         }}>
                           <div>
@@ -804,11 +757,8 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
                               />
                             </div>
                           )}
-                        </div>
-                      )}
-
-                      {/* Atividade (aparece quando conteúdo selecionado) */}
-                      {hasContent && (
+                          {/* Atividade (na mesma linha do conteúdo no desktop) */}
+                          {hasContent && (
                         <div>
                           <label style={labelStyle}>
                             Atividade <span style={hintStyle}>obrigatório</span>
@@ -847,30 +797,12 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
                           </div>
                         </div>
                       )}
-
-                      {/* Linha 3: Tempo (compacto) + Grupos como chips */}
-                      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '140px 1fr', gap: isMobile ? '0.75rem' : '1rem', alignItems: 'start' }}>
-                        <div>
-                          <label style={labelStyle}>Tempo (min)</label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="1"
-                            value={blockData[blockKey]?.durationMinutes || ''}
-                            onChange={(e) => handleFieldChange(blockKey, 'durationMinutes', e.target.value)}
-                            placeholder="30"
-                            style={{
-                              width: '100%',
-                              padding: '0.5rem 0.75rem',
-                              fontSize: '0.875rem',
-                              border: `1px solid ${colors.border}`,
-                              borderRadius: '0.375rem',
-                              backgroundColor: colors.background,
-                              color: colors.text,
-                            }}
-                          />
                         </div>
+                      )}
 
+
+                      {/* Grupos como chips */}
+                      <div>
                         <div>
                           <label style={labelStyle}>Grupos</label>
                           <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -944,291 +876,135 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
                           placeholder="Detalhes sobre a atividade..."
                         />
                       </div>
+
+                      {/* Linha 5: Anexos DESTA atividade (vão pro relatório embaixo deste bloco) */}
+                      {(() => {
+                        const blockFiles = filesForBlock(blockKey);
+                        const filled = isBlockFilled(blockKey);
+                        const cheio = blockFiles.length >= MAX_FILES_PER_ACTIVITY;
+                        const podeAnexar = filled && !cheio;
+                        return (
+                          <div data-testid="anexos-atividade" style={{ borderTop: `1px solid ${colors.border}`, paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.6rem', flexWrap: 'wrap' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: 600, color: colors.text }}>
+                                <Paperclip size={15} />
+                                Anexos desta atividade
+                                <span style={{ fontSize: '0.75rem', fontWeight: 500, color: colors.textSecondary }}>
+                                  {blockFiles.length}/{MAX_FILES_PER_ACTIVITY}
+                                </span>
+                              </div>
+                              <label
+                                title={!filled ? 'Preencha a atividade deste bloco antes de anexar' : cheio ? `Máximo de ${MAX_FILES_PER_ACTIVITY} por atividade` : 'Foto, vídeo ou PDF'}
+                                onClick={(e) => {
+                                  if (!filled) { e.preventDefault(); notify.error('Preencha a atividade deste bloco antes de anexar arquivos.'); }
+                                  else if (cheio) { e.preventDefault(); notify.error(`Máximo de ${MAX_FILES_PER_ACTIVITY} anexos por atividade.`); }
+                                }}
+                                style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                                  padding: '0.45rem 0.85rem', borderRadius: '0.375rem',
+                                  backgroundColor: podeAnexar ? colors.primary : colors.surfaceHover,
+                                  color: podeAnexar ? '#fff' : colors.textMuted,
+                                  fontSize: '0.825rem', fontWeight: 600,
+                                  cursor: podeAnexar ? 'pointer' : 'not-allowed',
+                                }}
+                              >
+                                <Upload size={15} />
+                                Adicionar anexo
+                                <input
+                                  type="file"
+                                  multiple
+                                  disabled={!podeAnexar}
+                                  onChange={(e) => handleFileUpload(blockKey, e)}
+                                  style={{ display: 'none' }}
+                                  accept="image/*,video/*,.pdf"
+                                />
+                              </label>
+                            </div>
+
+                            {!filled && blockFiles.length === 0 && (
+                              <div style={{ fontSize: '0.75rem', color: colors.textSecondary, padding: '0.6rem 0.75rem', border: `1px dashed ${colors.border}`, borderRadius: '0.5rem' }}>
+                                Preencha a atividade deste bloco para poder anexar fotos, vídeos ou PDF.
+                              </div>
+                            )}
+                            {!filled && blockFiles.length > 0 && (
+                              <div style={{ fontSize: '0.75rem', color: '#b91c1c', marginBottom: '0.5rem' }}>
+                                Este bloco ficou sem atividade: preencha a atividade ou remova os anexos para salvar.
+                              </div>
+                            )}
+                            {filled && blockFiles.length === 0 && (
+                              <div style={{ fontSize: '0.75rem', color: colors.textSecondary, padding: '0.6rem 0.75rem', border: `1px dashed ${colors.border}`, borderRadius: '0.5rem' }}>
+                                Nenhum anexo. Fotos desta atividade podem sair no relatório logo abaixo do bloco.
+                              </div>
+                            )}
+
+                            {blockFiles.length > 0 && (
+                              <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${isMobile ? 140 : 160}px, 1fr))`, gap: '0.6rem' }}>
+                                {blockFiles.map((file) => {
+                                  const isExisting = !!file.file_path;
+                                  const mime = file.type || file.mime_type || '';
+                                  const sizeMb = ((file.size || file.file_size || 0) / 1024 / 1024).toFixed(1);
+                                  return (
+                                    <div key={file.id} data-testid="anexo-card" style={{ border: `1px solid ${colors.border}`, borderRadius: '0.5rem', overflow: 'hidden', backgroundColor: colors.background, display: 'flex', flexDirection: 'column' }}>
+                                      <button
+                                        type="button"
+                                        onClick={() => handlePreviewFile(file)}
+                                        title="Visualizar"
+                                        style={{ position: 'relative', aspectRatio: '16 / 10', width: '100%', border: 'none', padding: 0, cursor: 'pointer', backgroundColor: colors.surfaceHover, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
+                                      >
+                                        {mime.startsWith('image/') ? (
+                                          <img src={file.url} alt={file.title || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : mime.startsWith('video/') ? (
+                                          <Video size={28} color={colors.textMuted} />
+                                        ) : (
+                                          <FileText size={28} color={colors.textMuted} />
+                                        )}
+                                        {!isExisting && (
+                                          <span style={{ position: 'absolute', top: 6, left: 6, fontSize: '0.6rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: 999, backgroundColor: '#f59e0b', color: '#fff' }}>
+                                            ao salvar
+                                          </span>
+                                        )}
+                                      </button>
+                                      <div style={{ padding: '0.4rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                                        <input
+                                          type="text"
+                                          value={file.title || ''}
+                                          maxLength={120}
+                                          aria-label="Título do anexo"
+                                          placeholder="Título do anexo"
+                                          onChange={(e) => handleTitleChange(file.id, isExisting, e.target.value)}
+                                          onBlur={() => { if (isExisting) commitExistingTitle(file); }}
+                                          onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                                          style={{ width: '100%', padding: '0.3rem 0.45rem', fontSize: isMobile ? '16px' : '0.78rem', border: `1px solid ${colors.border}`, borderRadius: '0.3rem', backgroundColor: colors.surface, color: colors.text, minWidth: 0 }}
+                                        />
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                          <span style={{ flex: 1, fontSize: '0.65rem', color: colors.textSecondary }}>{sizeMb} MB</span>
+                                          <button type="button" onClick={() => handlePreviewFile(file)} title="Visualizar" aria-label="Visualizar"
+                                            style={{ padding: '0.3rem', background: 'transparent', color: colors.primary, border: `1px solid ${colors.border}`, borderRadius: '0.3rem', cursor: 'pointer', display: 'flex' }}>
+                                            <Eye size={14} />
+                                          </button>
+                                          <button type="button" onClick={() => handleRemoveFile(file.id, isExisting)} title="Remover" aria-label="Remover anexo"
+                                            style={{ padding: '0.3rem', background: 'transparent', color: colors.danger || '#ef4444', border: `1px solid ${colors.border}`, borderRadius: '0.3rem', cursor: 'pointer', display: 'flex' }}>
+                                            <X size={14} />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })()}
-                </>
-                )}
               </div>
             </div>
 
-            {/* Attachments - Sidebar on desktop only (on mobile it's a tab) */}
-            {isMobile ? null : (
-            <div style={{
-              width: isMobile ? '100%' : '250px',
-              borderLeft: isMobile ? 'none' : `1px solid ${colors.border}`,
-              borderTop: isMobile ? `1px solid ${colors.border}` : 'none',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: isMobile && !attachmentsOpen ? '0' : '0.75rem',
-              padding: isMobile ? '0' : '1rem',
-              backgroundColor: colors.surface,
-              flexShrink: 0,
-            }}>
-              {/* Mobile accordion toggle */}
-              {isMobile && (
-                <button
-                  onClick={() => setAttachmentsOpen(!attachmentsOpen)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    width: '100%',
-                    padding: '0.75rem 1rem',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: colors.text,
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                  }}
-                >
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Paperclip size={16} />
-                    Anexos ({existingFiles.length + uploadedFiles.length}/5)
-                  </span>
-                  <ChevronDown size={18} style={{ transform: attachmentsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-                </button>
-              )}
-            <div style={{
-              display: isMobile && !attachmentsOpen ? 'none' : 'flex',
-              flexDirection: 'column',
-              gap: '0.75rem',
-              padding: isMobile ? '0 1rem 1rem' : '0',
-            }}>
-              {(() => {
-                const totalFiles = existingFiles.length + uploadedFiles.length;
-
-                return (
-                  <>
-                    <div style={{
-                      fontSize: '0.875rem',
-                      fontWeight: '600',
-                      color: colors.text,
-                      marginBottom: '0.25rem',
-                    }}>
-                      Anexos da Sessão ({totalFiles}/5)
-                    </div>
-
-                    {/* File Upload Button */}
-                    <label style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem',
-                      padding: '0.75rem',
-                      backgroundColor: totalFiles < 5 ? colors.primary : colors.surfaceHover,
-                      color: totalFiles < 5 ? '#ffffff' : colors.textMuted,
-                      borderRadius: '0.375rem',
-                      cursor: totalFiles < 5 ? 'pointer' : 'not-allowed',
-                      fontSize: '0.875rem',
-                      fontWeight: '500',
-                      transition: 'all 0.2s',
-                      opacity: totalFiles < 5 ? 1 : 0.5,
-                    }}>
-                      <Upload size={18} />
-                      Adicionar Anexo
-                      <input
-                        type="file"
-                        onChange={handleFileUpload}
-                        disabled={totalFiles >= 5}
-                        style={{ display: 'none' }}
-                        accept="image/*,video/*,.pdf"
-                      />
-                    </label>
-                  </>
-                );
-              })()}
-
-              {/* File Slots */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', flex: 1, overflow: 'visible' }}>
-                {(() => {
-                  const allFiles = [...existingFiles, ...uploadedFiles];
-                  const totalFiles = allFiles.length;
-                  const slots = Array.from({ length: 5 }, (_, i) => {
-                    const file = allFiles[i];
-                    return { index: i, file };
-                  });
-
-                  return slots.map(({ index, file }) => (
-                    <div
-                      key={index}
-                      style={{
-                        border: `1px solid ${colors.border}`,
-                        borderRadius: '0.25rem',
-                        padding: '0.3rem',
-                        backgroundColor: file ? colors.background : colors.surfaceHover,
-                        minHeight: '52px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.15rem',
-                        position: 'relative',
-                      }}
-                    >
-                      {file ? (
-                        <>
-                          {/* File Title */}
-                          <div style={{
-                            fontSize: '0.65rem',
-                            fontWeight: '600',
-                            color: colors.text,
-                            marginBottom: '0.1rem',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}>
-                            {file.title}
-                          </div>
-
-                          {/* File Thumbnail/Icon */}
-                          <div style={{
-                            height: '28px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backgroundColor: colors.surface,
-                            borderRadius: '0.2rem',
-                            overflow: 'hidden',
-                          }}>
-                            {file.type?.startsWith('image/') || file.mime_type?.startsWith('image/') ? (
-                              <img
-                                src={file.url}
-                                alt={file.title}
-                                style={{
-                                  width: '100%',
-                                  height: '100%',
-                                  objectFit: 'cover',
-                                }}
-                              />
-                            ) : file.type?.startsWith('video/') || file.mime_type?.startsWith('video/') ? (
-                              <Video size={16} color={colors.textMuted} />
-                            ) : (
-                              <FileText size={16} color={colors.textMuted} />
-                            )}
-                          </div>
-
-                          {/* File Actions */}
-                          <div style={{ display: 'flex', gap: '0.2rem', marginTop: '0.1rem' }}>
-                            <button
-                              onClick={() => handlePreviewFile(file)}
-                              style={{
-                                flex: 1,
-                                padding: '0.15rem 0.25rem',
-                                backgroundColor: colors.primary,
-                                color: '#ffffff',
-                                border: 'none',
-                                borderRadius: '0.2rem',
-                                cursor: 'pointer',
-                                fontSize: '0.6rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '0.15rem',
-                              }}
-                            >
-                              <Eye size={10} />
-                              Ver
-                            </button>
-                            <button
-                              onClick={() => handleRemoveFile(file.id, !!file.file_path)}
-                              style={{
-                                flex: 1,
-                                padding: '0.15rem 0.25rem',
-                                backgroundColor: colors.danger || '#ef4444',
-                                color: '#ffffff',
-                                border: 'none',
-                                borderRadius: '0.2rem',
-                                cursor: 'pointer',
-                                fontSize: '0.6rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '0.15rem',
-                              }}
-                            >
-                              <X size={10} />
-                              Excluir
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        <div style={{
-                          flex: 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: colors.textMuted,
-                          fontSize: '0.65rem',
-                        }}>
-                          Slot {index + 1}
-                        </div>
-                      )}
-                    </div>
-                  ));
-                })()}
-              </div>
-            </div>
-            </div>
-            )}
           </div>
         )}
       </Modal>
-
-      {/* Title Prompt Modal */}
-      {showTitlePrompt && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-        }}>
-          <div style={{
-            backgroundColor: colors.background,
-            padding: '1.5rem',
-            borderRadius: '0.5rem',
-            width: '400px',
-            maxWidth: '90%',
-            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
-          }}>
-            <h3 style={{ margin: '0 0 1rem 0', color: colors.text, fontSize: '1.1rem' }}>
-              Título do Anexo
-            </h3>
-            <input
-              type="text"
-              value={attachmentTitleInput}
-              onChange={(e) => setAttachmentTitleInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && confirmFileWithTitle()}
-              placeholder="Digite o título do anexo..."
-              autoFocus
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                fontSize: '0.875rem',
-                border: `1px solid ${colors.border}`,
-                borderRadius: '0.375rem',
-                backgroundColor: colors.surface,
-                color: colors.text,
-                marginBottom: '1rem',
-              }}
-            />
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-              <Button variant="secondary" onClick={cancelFileUpload}>
-                Cancelar
-              </Button>
-              <Button onClick={confirmFileWithTitle}>
-                Confirmar
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
 
       {/* File Preview Modal */}
       {previewFile && (

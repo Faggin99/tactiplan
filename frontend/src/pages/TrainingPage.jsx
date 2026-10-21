@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Moon, Trophy } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Moon, Trophy, Paperclip } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useClub } from '../contexts/ClubContext';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -478,6 +478,13 @@ export function TrainingPage() {
     color: colors.textMuted,
   };
 
+  // 📎 discreto no nome do bloco quando a atividade tem anexos
+  const anexosBadge = (activity) => (activity?.files_count > 0 ? (
+    <span title={`${activity.files_count} anexo(s)`} style={{ display: 'inline-flex', alignItems: 'center', gap: '1px', marginLeft: '0.25rem', color: colors.primary, fontWeight: 600 }}>
+      <Paperclip size={9} />{activity.files_count}
+    </span>
+  ) : null);
+
   const mobileDaySelectorStyle = {
     display: 'flex',
     gap: '0.25rem',
@@ -832,7 +839,7 @@ export function TrainingPage() {
                             e.currentTarget.style.boxShadow = 'none';
                           }}
                         >
-                          <div style={blockNameStyle}>Não relacionados</div>
+                          <div style={blockNameStyle}>Não relacionados{anexosBadge(session.blocks[0]?.activity)}</div>
                           {session.blocks[0]?.activity ? (
                             <div style={{ fontSize: '0.7rem', color: colors.text, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                               {/* Conteúdo em destaque; a atividade é o último nível (mais discreta) */}
@@ -906,7 +913,7 @@ export function TrainingPage() {
                       e.currentTarget.style.boxShadow = 'none';
                     }}
                   >
-                    <div style={blockNameStyle}>{block.name}</div>
+                    <div style={blockNameStyle}>{block.name}{anexosBadge(block.activity)}</div>
                     {block.activity ? (
                       <div style={{ fontSize: '0.7rem', color: colors.text, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                         {/* Conteúdo em destaque; a atividade é o último nível (mais discreta) */}
@@ -1018,6 +1025,8 @@ export function TrainingPage() {
             console.log('Current session for saving:', currentSession?.id, 'blocks:', currentSession?.blocks?.length);
 
             // THEN: Save each block's activity
+            // Chave do bloco (no modal) → id REAL da atividade, pra subir os anexos depois.
+            const activityIdByKey = {};
             for (const [blockIdOrIndex, activityData] of Object.entries(data.blockData)) {
               // Check if ALL fields are empty
               const isEmpty = !activityData.titleId &&
@@ -1093,6 +1102,7 @@ export function TrainingPage() {
                 console.log('Updating activity:', realBlock.activity.id);
                 const result = await trainingService.updateActivity(realBlock.activity.id, backendData);
                 console.log('Update result:', result);
+                activityIdByKey[blockIdOrIndex] = realBlock.activity.id;
               } else {
                 // Create new activity
                 console.log('Creating new activity for block:', realBlockId);
@@ -1101,6 +1111,7 @@ export function TrainingPage() {
                   block_id: realBlockId,
                 });
                 console.log('Create result:', result);
+                activityIdByKey[blockIdOrIndex] = result?.data?.id;
               }
             }
 
@@ -1113,17 +1124,20 @@ export function TrainingPage() {
               await trainingService.updateSessionDistance(sessionId, data.avgDistanceKm);
             }
 
-            // Upload files to session
+            // Anexos novos: cada um vai pra ATIVIDADE do seu bloco (já com id real)
             if (data.files && data.files.length > 0) {
-              console.log('Uploading files:', data.files.length);
+              let falhas = 0;
               for (const fileData of data.files) {
+                const activityId = activityIdByKey[fileData.blockKey];
+                if (!activityId) { falhas++; continue; }
                 try {
-                  await trainingService.uploadSessionFile(selectedSession.id, fileData.file, fileData.title);
+                  await trainingService.uploadActivityFile(activityId, fileData.file, fileData.title, currentSession?.id || freshSession?.id);
                 } catch (error) {
                   console.error('Error uploading file:', fileData.name, error);
-                  // Continue with other files even if one fails
+                  falhas++;
                 }
               }
+              if (falhas > 0) notify.error(`${falhas} anexo(s) não foram enviados. Abra o treino e tente de novo.`);
             }
 
             // Invalidate cache for this week to force fresh data (include club in cache key)
