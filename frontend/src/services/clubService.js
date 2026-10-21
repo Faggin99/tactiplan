@@ -30,10 +30,20 @@ export const clubService = {
     });
   },
 
-  async uploadLogo(clubId, file) {
+  // variant 'dark' = logo do tema escuro (opcional); padrão = logo principal.
+  async uploadLogo(clubId, file, variant) {
     const formData = new FormData();
     formData.append('logo', file);
-    return await api.upload(`/clubs/${clubId}/logo`, formData);
+    return await api.upload(`/clubs/${clubId}/logo${variant === 'dark' ? '?variant=dark' : ''}`, formData);
+  },
+
+  async deleteLogo(clubId, variant) {
+    return await api.delete(`/clubs/${clubId}/logo${variant === 'dark' ? '?variant=dark' : ''}`);
+  },
+
+  // Personalização (cores do app por clube). branding = { light?: {6 cores}, dark?: {6 cores} }.
+  async saveBranding(clubId, branding) {
+    return await api.put(`/clubs/${clubId}/branding`, { branding });
   },
 
   async delete(clubId) {

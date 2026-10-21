@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { clubService } from '../services/clubService';
 import { api } from '../services/api';
 import { useAuth } from './AuthContext';
-import { useTheme } from './ThemeContext';
+import { useTheme, effectiveClubBranding } from './ThemeContext';
 
 const ClubContext = createContext();
 
@@ -12,12 +12,14 @@ export function ClubProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const { isAuthenticated } = useAuth();
-  const { setClubPrimary } = useTheme();
+  const { setClubBranding } = useTheme();
 
-  // Sempre que o clube ativo mudar (ou sua cor primária), injeta a cor no tema.
+  // Sempre que o clube ativo mudar (ou sua personalização), injeta as cores dele no tema.
+  // Sem branding salvo vale a primary_color legada (ver effectiveClubBranding).
+  const brandingKey = JSON.stringify([selectedClub?.id, selectedClub?.branding || null, selectedClub?.primary_color || null]);
   useEffect(() => {
-    setClubPrimary(selectedClub?.primary_color || null);
-  }, [selectedClub?.primary_color, setClubPrimary]);
+    setClubBranding(effectiveClubBranding(selectedClub));
+  }, [brandingKey, setClubBranding]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load clubs when auth state changes
   useEffect(() => {
@@ -167,7 +169,16 @@ export function ClubProvider({ children }) {
     }
   }
 
+  // Substitui um clube na lista (e no ativo) pela versão devolvida pelo servidor
+  // (Personalização: branding/logos salvos).
+  function replaceClub(updated) {
+    if (!updated?.id) return;
+    setClubs((prev) => prev.map((c) => (c.id === updated.id ? { ...c, ...updated } : c)));
+    setSelectedClub((prev) => (prev?.id === updated.id ? { ...prev, ...updated } : prev));
+  }
+
   const value = {
+    replaceClub,
     clubs,
     selectedClub,
     loading,

@@ -6,6 +6,7 @@ export const CADASTROS_TABS = [
   { to: '/settings/clubs', label: 'Clubes' },
   { to: '/settings/contents', label: 'Conteúdos', permission: 'library:edit' },
   { to: '/settings/activities', label: 'Atividades', permission: 'library:edit' },
+  { to: '/settings/personalizacao', label: 'Personalização', permission: 'club_settings:manage' },
 ];
 // Telas que pertencem a Cadastros sem ter aba própria (aba ativa = a indicada).
 export const CADASTROS_EXTRA = { '/settings/subconteudos': '/settings/contents' };

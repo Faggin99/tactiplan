@@ -3,6 +3,8 @@
 // recebe orientação pra abrir slot extra (extra_club_slots) via contato.
 
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import notify from '../lib/notify';
 import { Plus, Building2, Edit2, Trash2, Check, AlertCircle } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -54,7 +56,7 @@ export function ClubsConfigPage() {
       await deleteClub(confirmDelete.id);
       setConfirmDelete(null);
     } catch (err) {
-      alert('Erro ao remover clube: ' + (err?.message || ''));
+      notify.error('Erro ao remover clube: ' + (err?.message || ''));
     }
   }
 
@@ -285,7 +287,13 @@ function ClubFormModal({ isOpen, editing, onClose, onSave }) {
           fullWidth
         />
 
-        {/* Cores do clube (tema da UI + PDFs) */}
+        {/* Cores do clube (tema da UI + PDFs). Com Personalização salva, as cores ficam lá. */}
+        {editing?.branding && Object.keys(editing.branding).length > 0 ? (
+          <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textSecondary }}>
+            As cores deste clube são definidas em{' '}
+            <Link to="/settings/personalizacao" onClick={onClose} style={{ color: colors.primary, fontWeight: 600 }}>Personalização</Link>.
+          </p>
+        ) : (
         <div>
           <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: colors.text, marginBottom: '0.4rem' }}>
             Cor primária
@@ -338,6 +346,7 @@ function ClubFormModal({ isOpen, editing, onClose, onSave }) {
             />
           </div>
         </div>
+        )}
 
         {error && (
           <div style={{ color: '#ef4444', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>

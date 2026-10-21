@@ -21,6 +21,7 @@ import { ContentsConfigPage } from './pages/ContentsConfigPage';
 import { CategoriesConfigPage } from './pages/CategoriesConfigPage';
 import { CompetitionsConfigPage } from './pages/CompetitionsConfigPage';
 import { ClubsConfigPage } from './pages/ClubsConfigPage';
+import { PersonalizacaoPage } from './pages/PersonalizacaoPage';
 import { TeamConfigPage } from './pages/TeamConfigPage';
 import { AcceptInvitePage } from './pages/AcceptInvitePage';
 import { SelectWorkspacePage } from './pages/SelectWorkspacePage';
@@ -203,6 +204,16 @@ function AppRoutes() {
           <ProtectedRoute>
             <Layout>
               <ClubsConfigPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings/personalizacao"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <PersonalizacaoPage />
             </Layout>
           </ProtectedRoute>
         }

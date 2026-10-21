@@ -4,7 +4,7 @@ import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home, Calendar, BarChart3, Waypoints, Building2, LayoutGrid, Users, User, Trophy, BookOpen, Target,
   ChevronDown, ChevronRight, LogOut, CreditCard, Settings, Lock, X, PanelLeft, HelpCircle, Moon, Sun, Menu,
-  Check, Loader2, FolderCog,
+  Check, Loader2, FolderCog, Paintbrush,
 } from 'lucide-react';
 import { CADASTROS_TABS, isCadastrosPath, CADASTROS_EXTRA } from '../../lib/cadastros';
 import { usePlanFeatures } from '../../hooks/usePlanFeatures';
@@ -54,6 +54,7 @@ const OUTRAS_PAGINAS = [
   { to: '/billing', label: 'Assinatura' },
   { to: '/settings/subconteudos', label: 'Submomentos', secao: 'Cadastros' },
 ];
+
 
 export const SIDEBAR_W = 248;
 export const SIDEBAR_RAIL_W = 76;
@@ -165,7 +166,7 @@ function IconeProduto({ p, size = 28 }) {
   const box = { width: size, height: size, borderRadius: 8, flexShrink: 0 };
   if (falhou) {
     return (
-      <span aria-hidden="true" style={{ ...box, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary, color: '#fff', fontSize: '0.8rem', fontWeight: 700 }}>
+      <span aria-hidden="true" style={{ ...box, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary, color: colors.primaryText, fontSize: '0.8rem', fontWeight: 700 }}>
         {(p.nome || p.produto || '?').trim().charAt(0).toUpperCase()}
       </span>
     );
@@ -299,15 +300,42 @@ function SeletorProduto({ produtos, botaoRef, onFechar }) {
   );
 }
 
+// Logo do clube ativo (Personalização): substitui o tile TactiPlan no topo. No tema escuro usa
+// a logo escura quando o clube tem uma. Imagem quebrada → volta ao tile TactiPlan.
+export function useMarcaClube() {
+  const { selectedClub, getLogoUrl } = useClub();
+  const { isDark } = useTheme();
+  const path = (isDark && selectedClub?.logo_dark_path) || selectedClub?.logo_path || null;
+  const url = path ? getLogoUrl(path) : null;
+  const [falhou, setFalhou] = useState(null);
+  const ok = url && falhou !== url;
+  return {
+    url: ok ? url : null,
+    nome: ok ? (selectedClub?.name || 'TactiPlan') : 'TactiPlan',
+    onError: () => setFalhou(url),
+  };
+}
+
+// Marca do topo: logo do clube (altura fixa, largura até o limite, sem distorcer) ou o tile TactiPlan.
+function MarcaImg({ marca, collapsed, mobile = false }) {
+  if (marca.url) {
+    const h = mobile ? '1.9rem' : collapsed ? '2.1rem' : '2rem';
+    return <img src={marca.url} alt={marca.nome} onError={marca.onError} style={{ height: h, width: 'auto', maxWidth: mobile ? '7rem' : collapsed ? '2.6rem' : '9rem', objectFit: 'contain', flexShrink: 0, display: 'block' }} />;
+  }
+  const tam = mobile ? '1.9rem' : collapsed ? '2.1rem' : '2.2rem';
+  return <img src="/pwa-192.svg" alt="TactiPlan" style={{ width: tam, height: tam, borderRadius: '0.55rem', flexShrink: 0, display: 'block' }} />;
+}
+
 // Tile do logo: botão que abre o seletor quando há 2+ produtos; senão, a imagem de sempre.
-function LogoProduto({ produtos, collapsed }) {
+// Com logo do clube, a própria logo vira o botão do seletor (mesmo padrão do Gestsport): o
+// selo de seta continua indicando que ali se troca de produto, e funciona com o menu recolhido.
+function LogoProduto({ produtos, collapsed, marca }) {
   const { colors } = useTheme();
   const [open, setOpen] = useState(false);
   const [hov, setHov] = useState(false);
   const [foco, setFoco] = useState(false);
   const botaoRef = useRef(null);
-  const tam = collapsed ? '2.1rem' : '2.2rem';
-  const img = <img src="/pwa-192.svg" alt="TactiPlan" style={{ width: tam, height: tam, borderRadius: '0.55rem', flexShrink: 0, display: 'block' }} />;
+  const img = <MarcaImg marca={marca} collapsed={collapsed} />;
   const fechar = useCallback((devolverFoco) => {
     setOpen(false);
     if (devolverFoco) botaoRef.current?.focus();
@@ -339,6 +367,7 @@ function LogoProduto({ produtos, collapsed }) {
 function UserFooter({ collapsed, onOpenSettings }) {
   const { colors, isDark } = useTheme();
   const { user, logout } = useAuth();
+  const { can } = useCan();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -368,6 +397,7 @@ function UserFooter({ collapsed, onOpenSettings }) {
         <div style={{ position: 'absolute', ...(collapsed ? { bottom: 0, left: 'calc(100% + 12px)', width: 250 } : { bottom: 'calc(100% + 8px)', left: 0, right: 0 }), backgroundColor: colors.background, border: `1px solid ${colors.border}`, borderRadius: '0.6rem', boxShadow: '0 -8px 30px rgba(0,0,0,0.22)', overflow: 'hidden', zIndex: 999 }}>
           <MenuRow icon={User} label="Meu perfil" onClick={() => { setOpen(false); onOpenSettings('perfil'); }} />
           <MenuRow icon={Settings} label="Configurações" onClick={() => { setOpen(false); onOpenSettings('perfil'); }} />
+          {can('club_settings:manage') && <MenuRow icon={Paintbrush} label="Personalização" onClick={() => { setOpen(false); navigate('/settings/personalizacao'); }} />}
           <MenuRow icon={CreditCard} label="Assinatura" onClick={() => { setOpen(false); navigate('/billing'); }} />
           <div style={{ borderTop: `1px solid ${colors.border}` }}>
             <MenuRow icon={LogOut} label="Sair" danger onClick={() => { setOpen(false); logout(); }} />
@@ -386,6 +416,8 @@ function SidebarContent({ onNavigate, collapsed = false, onOpenSettings }) {
   const showClubSelector = (clubs?.length || 0) > 1;
   const { user } = useAuth();
   const produtos = useProdutosFaggin(user?.id);
+  const marca = useMarcaClube();
+  const nomeMarca = { fontSize: marca.url ? '1rem' : '1.1rem', fontWeight: 700, color: colors.text, letterSpacing: marca.url ? '-0.01em' : '-0.02em', textDecoration: 'none', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
   const sections = SECTIONS
     .map((s) => ({ ...s, items: s.items.filter((it) => !it.permission || can(it.permission)) }))
     .filter((s) => s.items.length > 0);
@@ -395,16 +427,16 @@ function SidebarContent({ onNavigate, collapsed = false, onOpenSettings }) {
       {produtos.length ? (
         // Com seletor: o tile é botão (abre "Trocar de produto") e o nome continua levando ao Início.
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: '0.6rem', padding: '0 0.15rem', minHeight: 36 }}>
-          <LogoProduto produtos={produtos} collapsed={collapsed} />
+          <LogoProduto produtos={produtos} collapsed={collapsed} marca={marca} />
           {!collapsed && (
-            <Link to="/home" onClick={onNavigate} style={{ fontSize: '1.1rem', fontWeight: 700, color: colors.text, letterSpacing: '-0.02em', textDecoration: 'none' }}>TactiPlan</Link>
+            <Link to="/home" onClick={onNavigate} title={marca.nome} style={nomeMarca}>{marca.nome}</Link>
           )}
         </div>
       ) : (
-        <Link to="/home" onClick={onNavigate} title={collapsed ? 'TactiPlan' : undefined}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: '0.6rem', textDecoration: 'none', padding: '0 0.15rem', minHeight: 36 }}>
-          <img src="/pwa-192.svg" alt="TactiPlan" style={{ width: collapsed ? '2.1rem' : '2.2rem', height: collapsed ? '2.1rem' : '2.2rem', borderRadius: '0.55rem', flexShrink: 0 }} />
-          {!collapsed && <span style={{ fontSize: '1.1rem', fontWeight: 700, color: colors.text, letterSpacing: '-0.02em' }}>TactiPlan</span>}
+        <Link to="/home" onClick={onNavigate} title={collapsed ? marca.nome : undefined}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: '0.6rem', textDecoration: 'none', padding: '0 0.15rem', minHeight: 36, minWidth: 0 }}>
+          <MarcaImg marca={marca} collapsed={collapsed} />
+          {!collapsed && <span style={nomeMarca}>{marca.nome}</span>}
         </Link>
       )}
 
@@ -550,15 +582,16 @@ export function AppTopBar({ collapsed, onToggle }) {
 // Barra superior do celular: abre a gaveta, marca e atalhos.
 export function AppMobileBar({ onOpenMenu }) {
   const { colors, isDark, toggleTheme } = useTheme();
+  const marca = useMarcaClube();
   return (
     <header style={{ position: 'sticky', top: 0, zIndex: 200, height: '3.5rem', display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0 0.75rem', paddingTop: 'env(safe-area-inset-top)', boxSizing: 'content-box', backgroundColor: colors.surface, borderBottom: `1px solid ${colors.border}` }}>
       <button type="button" onClick={onOpenMenu} aria-label="Abrir menu"
         style={{ width: 38, height: 38, borderRadius: '0.5rem', border: 'none', background: 'transparent', color: colors.text, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
         <Menu size={22} />
       </button>
-      <Link to="/home" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
-        <img src="/pwa-192.svg" alt="" style={{ width: '1.9rem', height: '1.9rem', borderRadius: '0.5rem' }} />
-        <span style={{ fontSize: '1rem', fontWeight: 700, color: colors.text, letterSpacing: '-0.01em' }}>TactiPlan</span>
+      <Link to="/home" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none', minWidth: 0 }}>
+        <MarcaImg marca={marca} mobile />
+        <span style={{ fontSize: '1rem', fontWeight: 700, color: colors.text, letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{marca.nome}</span>
       </Link>
       <div style={{ flex: 1 }} />
       <MenuTutorial compacto />
