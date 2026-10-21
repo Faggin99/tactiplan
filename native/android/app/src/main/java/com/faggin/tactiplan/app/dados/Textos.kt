@@ -12,6 +12,10 @@ const val TEXTO_SO_LEITURA = "Somente leitura. Fale com o responsável pela equi
 /** Quando uma escrita escapa e o servidor responde 402 READ_ONLY. */
 const val TEXTO_NAO_EDITA = "Não é possível editar agora. Fale com o responsável pela equipe."
 const val ROTULO_SO_LEITURA = "só leitura"
+/** Escrita em clube arquivado (409 CLUB_ARCHIVED). */
+const val TEXTO_CLUBE_ARQUIVADO = "Este clube está arquivado: dá para consultar tudo, mas não para mudar."
+/** Seção do "Onde entrar" com os clubes arquivados (consulta, só leitura). */
+const val TITULO_ARQUIVADOS = "Arquivados"
 
 const val DICA_CONVITE_ENTRAR = "Recebeu um convite da comissão? Abra o link do e-mail neste celular."
 const val ROTULO_ESQUECI_SENHA = "Esqueci a senha"

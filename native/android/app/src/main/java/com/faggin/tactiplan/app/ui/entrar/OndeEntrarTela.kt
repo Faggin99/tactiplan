@@ -30,7 +30,8 @@ import com.faggin.tactiplan.app.dados.TITULO_SEM_EQUIPE
 import com.faggin.tactiplan.app.dados.coresDoClube
 import com.faggin.tactiplan.app.dados.logoDoClube
 import com.faggin.tactiplan.app.dados.mensagemDeErro
-import com.faggin.tactiplan.app.dados.opcoesDeEntrada
+import com.faggin.tactiplan.app.dados.secoesDeEntrada
+import com.faggin.tactiplan.app.dados.TITULO_ARQUIVADOS
 import com.faggin.tactiplan.app.dados.primeiroNome
 import com.faggin.tactiplan.app.design.TactiPlan
 import com.faggin.tactiplan.app.design.cor
@@ -65,7 +66,7 @@ fun OndeEntrarTela(
     sair: () -> Unit,
 ) {
     val me = estado.sessao.me
-    val opcoes = remember(me) { opcoesDeEntrada(me) }
+    val (ativas, arquivadas) = remember(me) { secoesDeEntrada(me) }
     val troca = estado.atual != null
     val escopo = rememberCoroutineScope()
     var aceitando by remember { mutableStateOf<String?>(null) }
@@ -120,25 +121,33 @@ fun OndeEntrarTela(
             }
         }
 
-        if (opcoes.isEmpty()) {
+        if (ativas.isEmpty() && arquivadas.isEmpty()) {
             if (me.convites.isEmpty()) EstadoVazio(Icones.grupo, TITULO_SEM_EQUIPE, TEXTO_SEM_EQUIPE)
         } else {
-            ListaAgrupada("Seus clubes") {
-                opcoes.forEachIndexed { i, o ->
-                    if (i > 0) Divisoria()
-                    val cores = coresDoClube(o.personalizacao, c.escuro)
-                    LinhaAgrupada(
-                        Icones.escudo, o.titulo, o.subtitulo,
-                        aoTocar = { escolher(o) },
-                        final = {
-                            LogoClube(logoDoClube(o.personalizacao, c.escuro), o.titulo, cores.acao.cor, cores.sobreAcao.cor)
-                        },
-                        selo = o.papelRotulo,
-                    )
-                }
-            }
+            if (ativas.isNotEmpty()) ListaDeClubes("Seus clubes", ativas, escolher)
+            // Arquivados: histórico e relatórios, só consulta — à parte, depois dos ativos.
+            if (arquivadas.isNotEmpty()) ListaDeClubes(TITULO_ARQUIVADOS, arquivadas, escolher)
             Text(TEXTO_TROCAR_DEPOIS, style = TactiPlan.tipos.corpo13, color = c.tinta2)
         }
         if (troca) Botao("Voltar ao clube atual", voltar, variante = VarianteBotao.NEUTRO)
+    }
+}
+
+@Composable
+private fun ListaDeClubes(titulo: String, opcoes: List<OpcaoEntrada>, escolher: (OpcaoEntrada) -> Unit) {
+    val c = TactiPlan.cores
+    ListaAgrupada(titulo) {
+        opcoes.forEachIndexed { i, o ->
+            if (i > 0) Divisoria()
+            val cores = coresDoClube(o.personalizacao, c.escuro)
+            LinhaAgrupada(
+                Icones.escudo, o.titulo, o.subtitulo,
+                aoTocar = { escolher(o) },
+                final = {
+                    LogoClube(logoDoClube(o.personalizacao, c.escuro), o.titulo, cores.acao.cor, cores.sobreAcao.cor)
+                },
+                selo = o.papelRotulo,
+            )
+        }
     }
 }

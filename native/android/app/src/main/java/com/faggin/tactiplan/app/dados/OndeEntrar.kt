@@ -44,7 +44,6 @@ fun opcoesDeEntrada(me: Me): List<OpcaoEntrada> {
             val partes = mutableListOf(rotuloModalidade(c.modalidade))
             val cats = c.categorias.orEmpty().map { it.nome }
             if (cats.isNotEmpty()) partes += listaCurta(cats, 3)
-            if (arquivado) partes += "arquivado"
             if (leitura || arquivado) partes += ROTULO_SO_LEITURA
             // Quem participa de MAIS de uma conta precisa saber de qual conta é o clube.
             if (me.workspaces.size > 1 && conta.nome != c.nome) partes += conta.nome
@@ -55,6 +54,15 @@ fun opcoesDeEntrada(me: Me): List<OpcaoEntrada> {
         }
     }
     return saida
+}
+
+/**
+ * As duas seções do "Onde entrar": clubes ativos (e contas sem clube) e, à parte, os ARQUIVADOS
+ * (consulta, só leitura). Mesma ordem de [opcoesDeEntrada].
+ */
+fun secoesDeEntrada(me: Me): Pair<List<OpcaoEntrada>, List<OpcaoEntrada>> {
+    val todas = opcoesDeEntrada(me)
+    return todas.filter { !it.arquivado } to todas.filter { it.arquivado }
 }
 
 /** A escolha ainda existe neste `me`? */

@@ -39,12 +39,16 @@ fun ehSomenteLeitura(e: Throwable?): Boolean {
     return erro.codigo == "READ_ONLY" || (erro.status == 402 && erro.extras["read_only"] == "true")
 }
 
+/** Escrita em clube ARQUIVADO (409 CLUB_ARCHIVED, migration 055): o clube é só consulta. */
+fun ehClubeArquivado(e: Throwable?): Boolean = (e as? ErroApi)?.codigo == "CLUB_ARCHIVED"
+
 /**
  * Texto para a tela. Só leitura → SEMPRE a frase neutra (Apple 3.1.3), mesmo que o servidor
  * mande outra. O resto: a mensagem do servidor.
  */
 fun mensagemDeErro(e: Throwable, padrao: String = ErroApi.MSG_FALHA): String {
     if (ehSomenteLeitura(e)) return TEXTO_NAO_EDITA
+    if (ehClubeArquivado(e)) return TEXTO_CLUBE_ARQUIVADO
     val m = (e as? ErroApi)?.mensagem
     return if (!m.isNullOrEmpty()) m else padrao
 }

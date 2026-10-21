@@ -19,8 +19,21 @@ class OndeEntrarTest {
         assertFalse(o[0].somenteLeitura)
         assertTrue(o[1].arquivado)
         assertTrue(o[1].somenteLeitura)
-        assertEquals("Futebol 11 · arquivado · só leitura", o[1].subtitulo)
+        assertEquals("Futebol 11 · só leitura", o[1].subtitulo)
         assertEquals("Dono", o[0].papelRotulo)
+    }
+
+    @Test fun `secoes - ativos e contas sem clube numa, arquivados na outra, na mesma ordem`() {
+        val m = me(
+            conta("w1", "Demo FC", listOf(clube("c2", "Antigo", arquivado = true), clube("c1", "Demo FC"))),
+            conta("w2", "Sem clube"),
+            conta("w3", "Outra", listOf(clube("c9", "Velho", arquivado = true), clube("c8", "Novo"))),
+        )
+        val (ativas, arquivadas) = secoesDeEntrada(m)
+        assertEquals(listOf("Demo FC", "Sem clube", "Novo"), ativas.map { it.titulo })
+        assertEquals(listOf("Antigo", "Velho"), arquivadas.map { it.titulo })
+        assertTrue(arquivadas.all { it.somenteLeitura && !it.subtitulo.contains("arquivado") })
+        assertEquals(opcoesDeEntrada(m).filter { it.arquivado }, arquivadas)
     }
 
     @Test fun `conta sem clube vira uma linha e mais de uma conta mostra o nome da conta`() {

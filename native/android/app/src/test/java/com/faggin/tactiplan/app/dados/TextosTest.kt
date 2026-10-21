@@ -15,6 +15,14 @@ class TextosTest {
         for (t in textos) assertTrue(t, textoNeutro(t))
     }
 
+    @Test fun `escrita em clube arquivado - 409 vira a frase do arquivado`() {
+        val e = ErroApi(409, "CLUB_ARCHIVED", "Clube arquivado (somente leitura).")
+        assertTrue(ehClubeArquivado(e))
+        assertTrue(mensagemDeErro(e) == TEXTO_CLUBE_ARQUIVADO)
+        assertTrue(!ehClubeArquivado(ErroApi(409, "OUTRO", "x")))
+        assertTrue(textoNeutro(TEXTO_CLUBE_ARQUIVADO))
+    }
+
     @Test fun `mensagem de erro de so leitura e sempre a neutra`() {
         val e = ErroApi(402, "READ_ONLY", "Esta conta está sem assinatura ativa. Assine em https://...")
         assertTrue(mensagemDeErro(e) == TEXTO_NAO_EDITA)
