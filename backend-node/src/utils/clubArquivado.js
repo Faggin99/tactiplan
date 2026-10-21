@@ -4,7 +4,7 @@
 //
 // A trava roda no authMiddleware (depois do express.json, então req.body já
 // existe). Ela descobre QUAIS clubes a escrita toca:
-//   1) club_id no corpo ou na query (criação de atleta, categoria, jogada...);
+//   1) club_id no corpo ou na query (criação de atleta, categoria...);
 //   2) o recurso apontado pela URL (atleta, sessão, atividade, anexo...).
 // Upload multipart de anexo (POST /api/files/upload) é checado na própria rota,
 // porque o corpo só existe depois do multer.
@@ -52,7 +52,6 @@ const RECURSOS = [
   [['DELETE'], /^\/api\/themes\/([0-9a-f-]{36})\/?$/i, 'SELECT club_id FROM monthly_themes WHERE id = $1'],
   [['PUT', 'DELETE'], /^\/api\/competitions\/([0-9a-f-]{36})\/?$/i, 'SELECT club_id FROM competitions WHERE id = $1'],
   [['PUT', 'DELETE'], /^\/api\/categories\/([0-9a-f-]{36})\/?$/i, 'SELECT club_id FROM categories WHERE id = $1'],
-  [['PUT', 'DELETE'], /^\/api\/plays\/([0-9a-f-]{36})\/?$/i, 'SELECT club_id FROM tactical_plays WHERE id = $1'],
   // O próprio clube: editar, personalizar, logo, migrar dados. (Arquivar/desarquivar
   // e excluir o clube ficam liberados: são a gestão do arquivo.)
   [['PUT', 'POST', 'DELETE'], /^\/api\/clubs\/([0-9a-f-]{36})\/(?:branding|logo|migrate-data)\/?$/i, 'SELECT id AS club_id FROM clubs WHERE id = $1'],
@@ -66,8 +65,8 @@ const ISENTAS = [
   /^\/api\/clubs\/[0-9a-f-]{36}\/(?:archive|unarchive)\/?$/i,
   /^\/api\/auth\//, /^\/api\/billing\//, /^\/api\/admin\//, /^\/api\/conta\//,
   /^\/api\/workspaces/, /^\/api\/invites\//, /^\/api\/announcements\//,
-  // Biblioteca (conteúdos, submomentos, títulos) é da CONTA, não do clube.
-  /^\/api\/(?:contents|stages|titles)(?:\/|$)/,
+  // Biblioteca (conteúdos, submomentos, títulos) e jogadas do quadro são da CONTA, não do clube.
+  /^\/api\/(?:contents|stages|titles|plays)(?:\/|$)/,
 ];
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
