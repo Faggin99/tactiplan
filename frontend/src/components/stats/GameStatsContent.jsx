@@ -60,143 +60,14 @@ export function GameStatsContent({
   const totalGoals = displayStats.goalsScoredByType.reduce((sum, g) => sum + g.value, 0);
   const totalConceded = displayStats.goalsConcededByType.reduce((sum, g) => sum + g.value, 0);
 
-  const compactStatCardStyle = { padding: '0.5rem 0.75rem', backgroundColor: colors.surface, borderRadius: '0.375rem', border: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 };
-  const compactStatIconStyle = { width: '28px', height: '28px', borderRadius: '0.375rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 };
-  const compactStatValueStyle = { fontSize: '1rem', fontWeight: '700', color: colors.text, lineHeight: 1 };
-  const compactStatLabelStyle = { fontSize: '0.65rem', color: colors.textSecondary, whiteSpace: 'nowrap' };
   const modalOverlayStyle = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '2rem' };
   const modalContentStyle = { backgroundColor: colors.surface, borderRadius: '0.75rem', padding: '1.5rem', maxWidth: '500px', width: '100%', maxHeight: '80vh', overflowY: 'auto', position: 'relative' };
 
   return (
     <>
-      {/* Cards numéricos top: paleta neutra. Cor é reservada pra sinalizar
-          resultado (V/E/D) — não pra contar coisas. */}
-      <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, alignItems: 'stretch', width: '100%' }}>
-        <NeutralStatCard icon={<Trophy size={16} strokeWidth={1.5} />} label="Jogos" value={displayStats.totalMatches} colors={colors} />
-        <NeutralStatCard icon={<Goal size={16} strokeWidth={1.5} />} label="Gols Feitos" value={displayStats.totalGoalsScored} colors={colors} />
-        <NeutralStatCard icon={<Shield size={16} strokeWidth={1.5} />} label="Gols Tomados" value={displayStats.totalGoalsConceded} colors={colors} />
-        <NeutralStatCard icon={<Square size={14} strokeWidth={1.5} fill="currentColor" />} label="Amarelos" value={displayStats.yellowCards || 0} colors={colors} />
-        <NeutralStatCard icon={<Square size={14} strokeWidth={1.5} fill="currentColor" />} label="Vermelhos" value={displayStats.redCards} colors={colors} />
-        <NeutralStatCard icon={<TrendingUp size={16} strokeWidth={1.5} />} label="Gols/Jogo" value={displayStats.avgGoalsScored} colors={colors} />
-        {displayStats.modality === 'futsal' && (
-          <>
-            <NeutralStatCard icon={<Square size={14} strokeWidth={1.5} fill="currentColor" />} label="Faltas Acum." value={displayStats.accumulatedFouls || 0} colors={colors} />
-            <NeutralStatCard icon={<Square size={14} strokeWidth={1.5} fill="currentColor" />} label="6ª Falta" value={displayStats.sixthFouls || 0} colors={colors} />
-          </>
-        )}
-      </div>
-
-      {/* Linha de métricas auxiliares: Forma + Saldo + Cleansheets + Goleadas + 1º gol */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.5rem' }}>
-        {/* Forma */}
-        <div style={{ ...compactStatCardStyle, alignItems: 'center' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={compactStatLabelStyle}>Últimos jogos</div>
-            <div style={{ display: 'flex', gap: '0.25rem', marginTop: '0.3rem' }}>
-              {(displayStats.form || []).length === 0
-                ? <span style={{ fontSize: '0.78rem', color: colors.textSecondary, fontStyle: 'italic' }}>—</span>
-                : (displayStats.form || []).map((m, i) => {
-                    const c = m.result === 'win' ? '#22c55e' : m.result === 'loss' ? '#ef4444' : '#f59e0b';
-                    const letter = m.result === 'win' ? 'V' : m.result === 'loss' ? 'D' : 'E';
-                    const title = `${m.date}${m.opponent ? ' · ' + m.opponent : ''} · ${m.goals_scored}×${m.goals_conceded}`;
-                    return (
-                      <span key={i} title={title} style={{
-                        width: 22, height: 22, borderRadius: '50%', backgroundColor: c,
-                        color: '#fff', fontWeight: 700, fontSize: '0.72rem',
-                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                      }}>{letter}</span>
-                    );
-                  })
-              }
-            </div>
-          </div>
-        </div>
-
-        {/* Saldo — único ponto onde o sinal positivo/negativo é informação,
-            então mantém cor sutil ali (verde/vermelho). */}
-        <div style={compactStatCardStyle}>
-          <div style={{ ...compactStatIconStyle, backgroundColor: `${colors.textSecondary}15` }}>
-            <TrendingUp size={16} strokeWidth={1.5} style={{ color: colors.textSecondary }} />
-          </div>
-          <div>
-            <div style={compactStatLabelStyle}>Saldo de gols</div>
-            <div style={{ ...compactStatValueStyle, color: (displayStats.goalDifference || 0) > 0 ? '#22c55e' : (displayStats.goalDifference || 0) < 0 ? '#ef4444' : colors.text }}>
-              {(displayStats.goalDifference || 0) > 0 ? '+' : ''}{displayStats.goalDifference || 0}
-            </div>
-          </div>
-        </div>
-
-        <NeutralAuxCard icon={<Shield size={16} strokeWidth={1.5} />} label="Jogos sem sofrer" value={displayStats.cleanSheets || 0} colors={colors} />
-        {displayStats.modality !== 'futsal' && (
-          <NeutralAuxCard
-            icon={<ArrowLeftRight size={16} strokeWidth={1.5} />}
-            label="Substituições"
-            value={displayStats.substitutionsTotal || 0}
-            sub={(displayStats.substitutionsTotal || 0) > 0
-              ? `${String(displayStats.avgSubstitutionsPerGame ?? 0).replace('.', ',')}/jogo${displayStats.avgSubstitutionMinute != null ? ` · média ${displayStats.avgSubstitutionMinute}'` : ''}`
-              : null}
-            colors={colors}
-          />
-        )}
-        <NeutralAuxCard icon={<Clock size={16} strokeWidth={1.5} />} label="1º gol nosso (méd.)" value={displayStats.avgTimeFirstGoalFor != null ? `${displayStats.avgTimeFirstGoalFor}'` : '—'} colors={colors} />
-        <NeutralAuxCard icon={<Clock size={16} strokeWidth={1.5} />} label="1º gol sofrido (méd.)" value={displayStats.avgTimeFirstGoalAgainst != null ? `${displayStats.avgTimeFirstGoalAgainst}'` : '—'} colors={colors} />
-
-        {/* Maior vitória / Maior derrota: ÚNICOS com tonalidade V/D (consistente com badges). */}
-        <NeutralAuxCard
-          icon={<Trophy size={16} strokeWidth={1.5} />}
-          label="Maior vitória"
-          value={displayStats.biggestWin ? `${displayStats.biggestWin.goals_scored}×${displayStats.biggestWin.goals_conceded}` : '—'}
-          sub={displayStats.biggestWin?.opponent ? `vs ${displayStats.biggestWin.opponent}` : null}
-          colors={colors}
-          tint="#22c55e"
-        />
-        <NeutralAuxCard
-          icon={<AlertTriangle size={16} strokeWidth={1.5} />}
-          label="Maior derrota"
-          value={displayStats.biggestLoss ? `${displayStats.biggestLoss.goals_scored}×${displayStats.biggestLoss.goals_conceded}` : '—'}
-          sub={displayStats.biggestLoss?.opponent ? `vs ${displayStats.biggestLoss.opponent}` : null}
-          colors={colors}
-          tint="#ef4444"
-        />
-      </div>
-
-      {/* Aproveitamento + sequências — KPIs grandes ao estilo do PDF do U.E.C. */}
-      {(displayStats.pointsPlayed || 0) > 0 && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-          gap: '0.5rem',
-        }}>
-          <BigKpiCard
-            icon={<Award size={18} strokeWidth={1.6} />}
-            label="Pontos ganhos"
-            value={`${displayStats.pointsWon || 0}/${displayStats.pointsPlayed || 0}`}
-            sub={`${(((displayStats.pointsWon || 0) / Math.max(1, displayStats.pointsPlayed || 0)) * 100).toFixed(1)}% aproveitamento`}
-            colors={colors}
-          />
-          <BigKpiCard
-            icon={<Flame size={18} strokeWidth={1.6} />}
-            label="Sequência V"
-            value={displayStats.winStreak || 0}
-            sub={(displayStats.winStreak || 0) === 1 ? 'jogo' : 'jogos'}
-            colors={colors}
-          />
-          <BigKpiCard
-            icon={<TrendingUp size={18} strokeWidth={1.6} />}
-            label="Sequência invicta"
-            value={displayStats.unbeatenStreak || 0}
-            sub={(displayStats.unbeatenStreak || 0) === 1 ? 'jogo' : 'jogos'}
-            colors={colors}
-          />
-          <BigKpiCard
-            icon={<ListChecks size={18} strokeWidth={1.6} />}
-            label="Sequência E"
-            value={displayStats.drawStreak || 0}
-            sub={(displayStats.drawStreak || 0) === 1 ? 'jogo' : 'jogos'}
-            colors={colors}
-          />
-        </div>
-      )}
+      {/* Resumo em 4 cards por assunto (mesma lógica do PDF de jogos):
+          Pontuação · Momento · Gols · Jogo a jogo */}
+      <GameSummaryCards stats={displayStats} colors={colors} />
 
       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
         <div style={{ display: 'flex', gap: '0.25rem', padding: '0.25rem', backgroundColor: colors.surface, borderRadius: '0.5rem', border: `1px solid ${colors.border}` }}>
@@ -206,13 +77,6 @@ export function GameStatsContent({
           <button onClick={() => setChartViewMode('minute')} style={{ padding: '0.4rem 0.75rem', borderRadius: '0.375rem', border: 'none', backgroundColor: chartViewMode === 'minute' ? colors.primary : 'transparent', color: chartViewMode === 'minute' ? '#fff' : colors.textSecondary, fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             <Clock size={14} /> Minuto do Gol
           </button>
-        </div>
-        <div style={{ display: 'flex', gap: '0.75rem', padding: '0.35rem 0.75rem', backgroundColor: colors.surface, borderRadius: '0.375rem', border: `1px solid ${colors.border}`, alignItems: 'center' }}>
-          <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#22c55e' }}>{displayStats.wins}</div><div style={{ fontSize: '0.55rem', color: colors.textSecondary }}>Vitórias</div></div>
-          <div style={{ width: '1px', height: '20px', backgroundColor: colors.border }} />
-          <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#f59e0b' }}>{displayStats.draws}</div><div style={{ fontSize: '0.55rem', color: colors.textSecondary }}>Empates</div></div>
-          <div style={{ width: '1px', height: '20px', backgroundColor: colors.border }} />
-          <div style={{ textAlign: 'center' }}><div style={{ fontSize: '0.9rem', fontWeight: '700', color: '#ef4444' }}>{displayStats.losses}</div><div style={{ fontSize: '0.55rem', color: colors.textSecondary }}>Derrotas</div></div>
         </div>
       </div>
 
@@ -351,86 +215,6 @@ export function GameStatsContent({
         </Card>
       )}
     </>
-  );
-}
-
-function BigKpiCard({ icon, label, value, sub, colors }) {
-  // KPIs grandes — neutros. Sem borda colorida, sem ícone colorido.
-  // Cor fica reservada pra sinalização V/E/D (badges, bolinhas da forma).
-  return (
-    <div style={{
-      padding: '0.9rem 1rem',
-      backgroundColor: colors.surface,
-      borderRadius: '0.6rem',
-      border: `1px solid ${colors.border}`,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '0.25rem',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: colors.textSecondary, fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.02em' }}>
-        <span style={{ color: colors.textSecondary }}>{icon}</span>
-        <span>{label}</span>
-      </div>
-      <div style={{ fontSize: '1.6rem', fontWeight: 800, color: colors.text, lineHeight: 1.05 }}>{value}</div>
-      <div style={{ fontSize: '0.7rem', color: colors.textSecondary }}>{sub}</div>
-    </div>
-  );
-}
-
-// Card numérico padrão na linha do topo (Jogos, Gols Feitos, etc).
-// Neutro — só usa cor do tema, sem tonalidade por tipo de stat.
-function NeutralStatCard({ icon, label, value, colors }) {
-  return (
-    <div style={{
-      padding: '0.5rem 0.75rem',
-      backgroundColor: colors.surface,
-      borderRadius: '0.375rem',
-      border: `1px solid ${colors.border}`,
-      display: 'flex', alignItems: 'center', gap: '0.5rem',
-      minWidth: 0, flex: 1,
-    }}>
-      <div style={{
-        width: 28, height: 28, borderRadius: '0.375rem',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        backgroundColor: colors.background,
-        color: colors.textSecondary, flexShrink: 0,
-      }}>{icon}</div>
-      <div>
-        <div style={{ fontSize: '0.65rem', color: colors.textSecondary, whiteSpace: 'nowrap' }}>{label}</div>
-        <div style={{ fontSize: '1rem', fontWeight: 700, color: colors.text, lineHeight: 1 }}>{value}</div>
-      </div>
-    </div>
-  );
-}
-
-// Card auxiliar (linha do meio): Cleansheets, 1º gol, Maior vitória/derrota.
-// "tint" só pra Maior vitória (verde sutil) e Maior derrota (vermelho sutil) —
-// nos outros vem undefined e fica totalmente neutro.
-function NeutralAuxCard({ icon, label, value, sub, colors, tint }) {
-  const iconColor = tint || colors.textSecondary;
-  return (
-    <div style={{
-      padding: '0.5rem 0.75rem',
-      backgroundColor: colors.surface,
-      borderRadius: '0.375rem',
-      border: `1px solid ${colors.border}`,
-      display: 'flex', alignItems: 'center', gap: '0.5rem',
-      minWidth: 0,
-    }}>
-      <div style={{
-        width: 28, height: 28, borderRadius: '0.375rem',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        backgroundColor: tint ? `${tint}15` : colors.background,
-        color: iconColor, flexShrink: 0,
-      }}>{icon}</div>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: '0.65rem', color: colors.textSecondary, whiteSpace: 'nowrap' }}>{label}</div>
-        <div style={{ fontSize: '1rem', fontWeight: 700, color: colors.text, lineHeight: 1 }}>{value}</div>
-        {sub && (
-          <div style={{ fontSize: '0.6rem', color: colors.textSecondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sub}</div>
-        )}
-      </div>
-    </div>
   );
 }
 
@@ -763,5 +547,156 @@ function AllMinutesModal({ players, minutesPossible, totalMatches, colors, onClo
       </div>
     </div>,
     document.body,
+  );
+}
+
+// ------------------------------------------------------------------ resumo (4 cards)
+const RES_COLOR = { win: '#22c55e', draw: '#f59e0b', loss: '#ef4444' };
+const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+const dec = (v) => String(v ?? 0).replace('.', ',');
+
+function SummaryCard({ title, children, colors }) {
+  return (
+    <div style={{
+      backgroundColor: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '0.6rem',
+      padding: '0.85rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem', minWidth: 0,
+    }}>
+      <div style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: colors.textSecondary }}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
+function SummaryLine({ label, value, sub, colors, muted = false }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '0.75rem', fontSize: '0.82rem' }}>
+      <span style={{ color: colors.textSecondary, whiteSpace: 'nowrap' }}>{label}</span>
+      <span style={{ textAlign: 'right', color: muted ? colors.textSecondary : colors.text, fontWeight: muted ? 500 : 650, minWidth: 0 }}>
+        {value}{sub ? <span style={{ color: colors.textSecondary, fontWeight: 500 }}> {sub}</span> : null}
+      </span>
+    </div>
+  );
+}
+
+function ResultChip({ m }) {
+  const letter = m.result === 'win' ? 'V' : m.result === 'loss' ? 'D' : 'E';
+  const title = `${m.date || ''}${m.opponent ? ' · ' + m.opponent : ''} · ${m.goals_scored}×${m.goals_conceded}`;
+  return (
+    <span title={title} style={{
+      width: 22, height: 22, borderRadius: '50%', backgroundColor: RES_COLOR[m.result] || '#94a3b8',
+      color: '#fff', fontWeight: 700, fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    }}>{letter}</span>
+  );
+}
+
+function GameSummaryCards({ stats, colors }) {
+  const jogos = stats.totalMatches || 0;
+  const v = stats.wins || 0; const e = stats.draws || 0; const d = stats.losses || 0;
+  const pts = stats.pointsWon || 0;
+  const ptsMax = stats.pointsPlayed || jogos * 3;
+  const pct = ptsMax ? Math.round((pts / ptsMax) * 100) : 0;
+  const saldo = stats.goalDifference || 0;
+  const form = (stats.form || []).slice(-5);
+  const fmtJogo = (g) => (g ? `${g.goals_scored}×${g.goals_conceded}` : null);
+  const futsal = stats.modality === 'futsal';
+  const R = 15.9;
+
+  // sequência atual: vitórias / invicto / sem vencer
+  const momento = (stats.winStreak || 0) > 1
+    ? { label: 'Sequência', value: `${stats.winStreak} vitórias seguidas` }
+    : (stats.unbeatenStreak || 0) > 0
+      ? { label: 'Sequência', value: `Invicto há ${plural(stats.unbeatenStreak, 'jogo', 'jogos')}` }
+      : { label: 'Sequência', value: 'Sem vencer no último jogo' };
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '0.6rem' }}>
+      {/* Pontuação */}
+      <SummaryCard title="Pontuação" colors={colors}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <svg width="74" height="74" viewBox="0 0 36 36" style={{ flexShrink: 0 }}>
+            <circle cx="18" cy="18" r={R} fill="none" stroke={`${colors.primary}26`} strokeWidth="3.2" />
+            <circle cx="18" cy="18" r={R} fill="none" stroke={colors.primary} strokeWidth="3.2" pathLength="100"
+              strokeDasharray={`${pct} 100`} strokeLinecap="round" transform="rotate(-90 18 18)" />
+            <text x="18" y="19.2" textAnchor="middle" fontSize="8" fontWeight="700" fill={colors.text}>{pct}%</text>
+            <text x="18" y="24.5" textAnchor="middle" fontSize="3.2" fill={colors.textSecondary}>APROV.</text>
+          </svg>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: colors.text, lineHeight: 1 }}>
+              {pts}<span style={{ color: colors.textSecondary, fontWeight: 600 }}>/{ptsMax}</span>
+            </div>
+            <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.25rem' }}>pontos · {plural(jogos, 'jogo', 'jogos')}</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', backgroundColor: `${colors.textSecondary}22` }}>
+          {[['win', v], ['draw', e], ['loss', d]].map(([k, n]) => n > 0 && (
+            <div key={k} style={{ flex: n, backgroundColor: RES_COLOR[k] }} />
+          ))}
+        </div>
+        <div style={{ fontSize: '0.78rem', color: colors.textSecondary }}>
+          <b style={{ color: colors.text }}>{v}</b> {v === 1 ? 'vitória' : 'vitórias'} · <b style={{ color: colors.text }}>{e}</b> {e === 1 ? 'empate' : 'empates'} · <b style={{ color: colors.text }}>{d}</b> {d === 1 ? 'derrota' : 'derrotas'}
+        </div>
+      </SummaryCard>
+
+      {/* Momento */}
+      <SummaryCard title="Momento" colors={colors}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+          <span style={{ fontSize: '0.82rem', color: colors.textSecondary }}>Últimos jogos</span>
+          <div style={{ display: 'flex', gap: '0.25rem' }}>
+            {form.length ? form.map((m, i) => <ResultChip key={i} m={m} />) : <span style={{ color: colors.textSecondary }}>—</span>}
+          </div>
+        </div>
+        <SummaryLine label={momento.label} value={momento.value} colors={colors} />
+        <SummaryLine label="Maior vitória" value={fmtJogo(stats.biggestWin) || 'Sem vitórias'} muted={!stats.biggestWin}
+          sub={stats.biggestWin?.opponent ? `vs ${stats.biggestWin.opponent}` : null} colors={colors} />
+        <SummaryLine label="Maior derrota" value={fmtJogo(stats.biggestLoss) || 'Sem derrotas'} muted={!stats.biggestLoss}
+          sub={stats.biggestLoss?.opponent ? `vs ${stats.biggestLoss.opponent}` : null} colors={colors} />
+      </SummaryCard>
+
+      {/* Gols */}
+      <SummaryCard title="Gols" colors={colors}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1.25rem' }}>
+          <div>
+            <div style={{ fontSize: '1.6rem', fontWeight: 800, color: colors.text, lineHeight: 1 }}>
+              {stats.totalGoalsScored || 0}<span style={{ color: colors.textSecondary, fontWeight: 500, fontSize: '1rem' }}> × </span>{stats.totalGoalsConceded || 0}
+            </div>
+            <div style={{ fontSize: '0.72rem', color: colors.textSecondary, marginTop: '0.25rem' }}>feitos × sofridos</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, lineHeight: 1, color: saldo > 0 ? '#22c55e' : saldo < 0 ? '#ef4444' : colors.text }}>
+              {saldo > 0 ? '+' : ''}{saldo}
+            </div>
+            <div style={{ fontSize: '0.72rem', color: colors.textSecondary, marginTop: '0.25rem' }}>saldo</div>
+          </div>
+        </div>
+        <SummaryLine label="Média por jogo" value={`${dec(stats.avgGoalsScored)} × ${dec(stats.avgGoalsConceded)}`} colors={colors} />
+        <SummaryLine label="Jogos sem sofrer" value={stats.cleanSheets || 0} colors={colors} />
+        <SummaryLine label="1º gol nosso (méd.)" value={stats.avgTimeFirstGoalFor != null ? `${stats.avgTimeFirstGoalFor}'` : '—'} muted={stats.avgTimeFirstGoalFor == null} colors={colors} />
+        <SummaryLine label="1º gol sofrido (méd.)" value={stats.avgTimeFirstGoalAgainst != null ? `${stats.avgTimeFirstGoalAgainst}'` : '—'} muted={stats.avgTimeFirstGoalAgainst == null} colors={colors} />
+      </SummaryCard>
+
+      {/* Jogo a jogo */}
+      <SummaryCard title="Jogo a jogo" colors={colors}>
+        {!futsal && (
+          <>
+            <SummaryLine label="Substituições" colors={colors}
+              value={stats.substitutionsTotal || 0}
+              sub={(stats.substitutionsTotal || 0) > 0 ? `· ${dec(stats.avgSubstitutionsPerGame)}/jogo` : null} />
+            {stats.avgSubstitutionMinute != null && (
+              <SummaryLine label="Minuto médio da troca" value={`${stats.avgSubstitutionMinute}'`} colors={colors} />
+            )}
+          </>
+        )}
+        <SummaryLine label="Cartões" colors={colors}
+          value={<span><span style={{ display: 'inline-block', width: 9, height: 12, background: '#facc15', borderRadius: 2, marginRight: 4, verticalAlign: '-1px' }} />{stats.yellowCards || 0}
+            <span style={{ display: 'inline-block', width: 9, height: 12, background: '#ef4444', borderRadius: 2, margin: '0 4px 0 10px', verticalAlign: '-1px' }} />{stats.redCards || 0}</span>} />
+        {futsal && (
+          <>
+            <SummaryLine label="Faltas acumuladas" value={stats.accumulatedFouls || 0} colors={colors} />
+            <SummaryLine label="6ª falta" value={stats.sixthFouls || 0} colors={colors} />
+          </>
+        )}
+        {(stats.assists || 0) > 0 && <SummaryLine label="Assistências" value={stats.assists} colors={colors} />}
+      </SummaryCard>
+    </div>
   );
 }

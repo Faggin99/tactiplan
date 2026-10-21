@@ -4,6 +4,19 @@
 const { query } = require('../config/database');
 const { computeMinutagem } = require('../utils/minutagem');
 
+// Tipos de gol com detalhe novo (ex.: bp_def_falta_lateral) que não estão no mapa:
+// monta "BP Def. — Falta lateral" em vez de mostrar o código cru.
+const GOAL_SUB_LABEL = {
+  falta: 'Falta', falta_frontal: 'Falta frontal', falta_lateral: 'Falta lateral',
+  corner: 'Escanteio', lateral: 'Lateral', penalty: 'Pênalti',
+};
+function goalTypeFallbackLabel(type) {
+  const m = /^bp_(off|def)_(.+)$/.exec(String(type || ''));
+  if (m) return `BP ${m[1] === 'off' ? 'Of.' : 'Def.'} — ${GOAL_SUB_LABEL[m[2]] || m[2].replace(/_/g, ' ')}`;
+  return String(type || 'Não definido').replace(/_/g, ' ');
+}
+
+
 // Restringe por categoria quando o membro só enxerga algumas (mesma regra da
 // listagem de microciclos: microciclo sem categoria é visível a todos).
 // allowedCategoryIds: null = sem filtro; [] = nenhuma; [a,b] = só essas.
@@ -684,9 +697,9 @@ async function getGameStats({ workspaceIds, start, end, clubId = null, allowedCa
     return Object.entries(byType)
       .map(([type, count]) => ({
         type,
-        name: goalTypeLabels[type] || type,
+        name: goalTypeLabels[type] || goalTypeFallbackLabel(type),
         value: count,
-        color: goalTypeColors[type] || '#6b7280',
+        color: goalTypeColors[type] || goalTypeColors[String(type).replace(/^(bp_(?:off|def)_falta)_.+$/, '$1')] || '#6b7280',
       }))
       .sort((a, b) => b.value - a.value);
   }
