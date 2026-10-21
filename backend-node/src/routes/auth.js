@@ -268,7 +268,7 @@ router.delete('/me', authMiddleware, async (req, res) => {
           [ownedIds]
         );
         const f2 = await query(
-          `SELECT logo_path FROM clubs WHERE workspace_id = ANY($1) AND logo_path IS NOT NULL`,
+          `SELECT logo_path, logo_dark_path FROM clubs WHERE workspace_id = ANY($1) AND (logo_path IS NOT NULL OR logo_dark_path IS NOT NULL)`,
           [ownedIds]
         );
         const f3 = await query(
@@ -276,7 +276,10 @@ router.delete('/me', authMiddleware, async (req, res) => {
           [ownedIds]
         );
         for (const row of f1.rows) filePaths.push(row.file_path);
-        for (const row of f2.rows) filePaths.push(row.logo_path);
+        for (const row of f2.rows) {
+          if (row.logo_path) filePaths.push(row.logo_path);
+          if (row.logo_dark_path) filePaths.push(row.logo_dark_path);
+        }
         for (const row of f3.rows) filePaths.push(row.photo_url);
       }
       // Foto de perfil do próprio usuário (capturada antes da anonimização acima —

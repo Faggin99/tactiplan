@@ -1,9 +1,26 @@
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
 const { query } = require('../config/database');
 const authMiddleware = require('../middleware/auth');
 const { uploadClubLogo } = require('../middleware/upload');
 const billing = require('../services/billing');
 const { isAdmin, isLifetime } = require('../config/specialUsers');
+const { validateBranding, primaryMirror } = require('../utils/branding');
+
+const uploadDir = path.resolve(process.env.UPLOAD_DIR || '../uploads');
+const LOGO_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+// Apaga um arquivo de logo antigo (só dentro de /uploads/club-logos/, sem "..").
+function removerLogo(logoPath) {
+  if (!logoPath || typeof logoPath !== 'string' || !logoPath.startsWith('/uploads/club-logos/')) return;
+  const nome = logoPath.slice('/uploads/club-logos/'.length);
+  if (!nome || nome.includes('/') || nome.includes('..')) return;
+  try { fs.unlinkSync(path.join(uploadDir, 'club-logos', nome)); } catch { /* já não existe */ }
+}
+
+// ?variant=dark → logo do tema escuro (clubs.logo_dark_path); qualquer outro → logo principal.
+const colunaLogo = (req) => (req.query.variant === 'dark' ? 'logo_dark_path' : 'logo_path');
 
 // Quantos clubes a workspace ativa ainda pode criar? Retorna { allowed, limit, current }.
 async function canCreateClub(user) {
@@ -195,7 +212,10 @@ router.put('/:id', async (req, res) => {
           SET name = $1,
               description = $2,
               modality = COALESCE($3, modality),
-              primary_color = CASE WHEN $4::text = 'KEEP' THEN primary_color ELSE NULLIF($4, '') END,
+              -- Com Personalização salva, a primária é espelho de branding.light.primary
+              -- (PUT /:id/branding) — o formulário do clube não sobrescreve.
+              primary_color = CASE WHEN $4::text = 'KEEP' OR (branding IS NOT NULL AND branding <> '{}'::jsonb)
+                                   THEN primary_color ELSE NULLIF($4, '') END,
               secondary_color = CASE WHEN $5::text = 'KEEP' THEN secondary_color ELSE NULLIF($5, '') END,
               updated_at = NOW()
         WHERE id = $6 AND workspace_id = ANY($7)
@@ -243,7 +263,33 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// POST /api/clubs/:id/logo
+// PUT /api/clubs/:id/branding — cores do app por clube (Personalização).
+// body { branding: { light?: {6 cores}, dark?: {6 cores} } }; tema omitido = padrão.
+// Espelha light.primary em primary_color (PDFs). Sem trava de plano: conta só leitura
+// já é barrada antes (402 READ_ONLY no requireActiveSubscription).
+router.put('/:id/branding', async (req, res) => {
+  try {
+    if (!req.user.can('club_settings:manage')) return res.status(403).json({ error: 'Sem permissão' });
+    const { branding, error } = validateBranding(req.body ? req.body.branding : undefined);
+    if (error) return res.status(400).json({ error });
+    const result = await query(
+      `UPDATE clubs
+          SET branding = $1::jsonb,
+              primary_color = $2,
+              updated_at = NOW()
+        WHERE id = $3 AND workspace_id = ANY($4)
+        RETURNING *`,
+      [JSON.stringify(branding), primaryMirror(branding), req.params.id, req.user.workspaceIds || []]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Club not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Update club branding error:', err);
+    res.status(500).json({ error: 'Falha ao salvar a personalização' });
+  }
+});
+
+// POST /api/clubs/:id/logo[?variant=dark] — logo principal ou a do tema escuro.
 router.post('/:id/logo', (req, res) => {
   if (!req.user.can('club_settings:manage')) return res.status(403).json({ error: 'Sem permissão' });
   uploadClubLogo(req, res, async (err) => {
@@ -253,26 +299,64 @@ router.post('/:id/logo', (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
+    const logoPath = `/uploads/club-logos/${req.file.filename}`;
+    if (!LOGO_MIMES.includes(req.file.mimetype)) {
+      removerLogo(logoPath);
+      return res.status(400).json({ error: 'A logo precisa ser uma imagem (JPG, PNG, GIF ou WebP).' });
+    }
+    const coluna = colunaLogo(req);
 
     try {
-      const logoPath = `/uploads/club-logos/${req.file.filename}`;
+      const atual = await query(
+        `SELECT ${coluna} AS antigo FROM clubs WHERE id = $1 AND workspace_id = ANY($2)`,
+        [req.params.id, req.user.workspaceIds || []]
+      );
+      if (atual.rows.length === 0) {
+        removerLogo(logoPath);
+        return res.status(404).json({ error: 'Club not found' });
+      }
       const result = await query(
-        `UPDATE clubs SET logo_path = $1, updated_at = NOW()
+        `UPDATE clubs SET ${coluna} = $1, updated_at = NOW()
          WHERE id = $2 AND workspace_id = ANY($3)
          RETURNING *`,
         [logoPath, req.params.id, req.user.workspaceIds || []]
       );
 
       if (result.rows.length === 0) {
+        removerLogo(logoPath);
         return res.status(404).json({ error: 'Club not found' });
       }
-
+      if (atual.rows[0].antigo !== logoPath) removerLogo(atual.rows[0].antigo);
       res.json(result.rows[0]);
     } catch (dbErr) {
       console.error('Upload logo DB error:', dbErr);
       res.status(500).json({ error: 'Failed to save logo' });
     }
   });
+});
+
+// DELETE /api/clubs/:id/logo[?variant=dark] — remove a logo (volta a marca TactiPlan no topo).
+router.delete('/:id/logo', async (req, res) => {
+  try {
+    if (!req.user.can('club_settings:manage')) return res.status(403).json({ error: 'Sem permissão' });
+    const coluna = colunaLogo(req);
+    const atual = await query(
+      `SELECT ${coluna} AS antigo FROM clubs WHERE id = $1 AND workspace_id = ANY($2)`,
+      [req.params.id, req.user.workspaceIds || []]
+    );
+    if (atual.rows.length === 0) return res.status(404).json({ error: 'Club not found' });
+    const result = await query(
+      `UPDATE clubs SET ${coluna} = NULL, updated_at = NOW()
+        WHERE id = $1 AND workspace_id = ANY($2)
+        RETURNING *`,
+      [req.params.id, req.user.workspaceIds || []]
+    );
+    removerLogo(atual.rows[0].antigo);
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Delete logo error:', err);
+    res.status(500).json({ error: 'Falha ao remover a logo' });
+  }
 });
 
 // POST /api/clubs/:id/migrate-data — orphans → este clube (na mesma workspace)
