@@ -210,7 +210,7 @@ async function getSubscriptionForWorkspace(workspaceId) {
 // Ciclo de vida
 // -----------------------------------------------------------------------------
 
-async function startTrial(userId, planId = 'pro', days = 30) {
+async function startTrial(userId, planId = 'clube', days = 30) {
   const plan = await getPlan(planId);
   if (!plan) throw new Error('Plan not found');
   // Guarda contra re-trial: um usuário só pode ter UM trial na vida. Sem isso,
@@ -254,8 +254,13 @@ async function createCheckout({ userId, planId, payerEmail, workspaceId = null, 
     err.statusCode = 501;
     throw err;
   }
+  // getPlan só devolve plano ATIVO: pro/pro_annual (Essencial) saíram da venda em 21/10/2026.
   const plan = await getPlan(planId);
-  if (!plan) throw new Error('Plan not found');
+  if (!plan) {
+    const err = new Error('Plano indisponível. Escolha o plano Clube (mensal ou anual).');
+    err.statusCode = 400;
+    throw err;
+  }
 
   // IMPORTANTE: NÃO cancelamos a assinatura anterior aqui. O checkout pode ser
   // abandonado; cancelar antes de confirmar o pagamento deixaria o usuário sem
@@ -856,7 +861,7 @@ function limiteConvidados(sub) {
 
 // Assinatura inicial no cadastro (email/Google/Apple). Sem plano grátis:
 //   admin → nada; LIFETIME_EMAILS → vitalícia; SIGNUP_TRIAL_DAYS>0 → avaliação
-//   do plano de entrada; padrão → NADA (conta fica em só leitura até assinar).
+//   do plano Clube (único vendido); padrão → NADA (conta fica em só leitura até assinar).
 async function createInitialSubscription({ userId, workspaceId, email, role }) {
   if (role === 'admin') return { kind: 'admin', trialDays: 0 };
   if (isLifetime?.(email)) {
@@ -872,7 +877,7 @@ async function createInitialSubscription({ userId, workspaceId, email, role }) {
     const trialEnd = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
     await query(
       `INSERT INTO subscriptions (user_id, workspace_id, plan_id, status, trial_ends_at, current_period_start, current_period_end)
-       VALUES ($1, $2, 'pro', 'trialing', $3, now(), $3)`,
+       VALUES ($1, $2, 'clube', 'trialing', $3, now(), $3)`,
       [userId, workspaceId, trialEnd]
     );
     return { kind: 'trial', trialDays };

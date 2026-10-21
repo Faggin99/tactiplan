@@ -242,11 +242,10 @@ router.post('/users/:id/extend-trial', async (req, res) => {
       return res.json({ ok: true, action: 'extended', subscription: r.rows[0] });
     }
 
-    // Sem trial ativo — cria novo no plano Pro (default do trial). Se quiser
-    // conceder Clube, use "Trocar plano" (change-plan) depois.
+    // Sem trial ativo — cria novo no plano Clube (único plano vendido desde 21/10/2026).
     const r = await query(`
       INSERT INTO subscriptions (user_id, plan_id, status, trial_ends_at, current_period_start, current_period_end, metadata)
-      VALUES ($1, 'pro', 'trialing', NOW() + ($2 || ' days')::interval, NOW(), NOW() + ($2 || ' days')::interval, '{"grantedBy":"admin"}'::jsonb)
+      VALUES ($1, 'clube', 'trialing', NOW() + ($2 || ' days')::interval, NOW(), NOW() + ($2 || ' days')::interval, '{"grantedBy":"admin"}'::jsonb)
       RETURNING *
     `, [id, days]);
     res.json({ ok: true, action: 'created', subscription: r.rows[0] });
@@ -258,7 +257,7 @@ router.post('/users/:id/extend-trial', async (req, res) => {
 
 /**
  * POST /api/admin/users/:id/change-plan
- * Body: { plan_id: 'pro' | 'clube' | 'pro_annual' | 'clube_annual' }
+ * Body: { plan_id: 'clube' | 'clube_annual' } (pro/pro_annual saíram da venda: is_active=false)
  * Troca o plan_id da subscription ATUAL (trialing/active/past_due/paused) mantendo datas e status.
  * Útil pra migrar usuários antigos do trial Pro pro trial Clube sem resetar dias restantes.
  * Não mexe em MP — se a sub tem mp_preapproval_id, o valor cobrado no MP NÃO muda (admin precisa

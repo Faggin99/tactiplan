@@ -1,16 +1,24 @@
 {
-  "_leia": "Fonte ÚNICA dos nomes de exibição dos planos (backend + web). Trocar o nome aqui, rodar o build do front e reiniciar o sports-api. A landing (/var/www/sites/tactiplan-lp-nova) é estática: trocar lá também (grep 'Essencial'). Os ids internos (pro/pro_annual/clube/clube_annual) NÃO mudam: MP, RevenueCat e webhooks dependem deles.",
+  "_leia": "Fonte ÚNICA dos nomes de exibição dos planos (backend + web). Trocar o nome aqui, rodar o build do front e reiniciar o sports-api. A landing (/var/www/sites/tactiplan-lp) é estática: trocar lá também. Os ids internos (pro/pro_annual/clube/clube_annual) NÃO mudam: MP, RevenueCat e webhooks dependem deles. Desde 21/10/2026 SÓ o Clube é vendido (preço na tabela plans); 'entrada' (Essencial) fica aqui só para exibir o nome de assinaturas antigas.",
   "entrada": {
-    "ids": ["pro", "pro_annual"],
+    "ids": [
+      "pro",
+      "pro_annual"
+    ],
     "nome": "Essencial",
     "resumo": "Para um time: 1 clube, 1 categoria e 1 convite de acesso",
-    "max_convidados": 1
+    "max_convidados": 1,
+    "vendido": false
   },
   "clube": {
-    "ids": ["clube", "clube_annual"],
+    "ids": [
+      "clube",
+      "clube_annual"
+    ],
     "nome": "Clube",
     "resumo": "Para clubes e escolinhas: comissão técnica completa e até 5 categorias",
-    "max_convidados": 5
+    "max_convidados": 5,
+    "vendido": true
   },
   "site_planos_url": "https://tactiplan.faggin.com.br/#planos",
   "publico": "comissões técnicas, clubes e escolinhas"
