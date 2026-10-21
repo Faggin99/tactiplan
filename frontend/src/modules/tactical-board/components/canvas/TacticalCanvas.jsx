@@ -1,12 +1,12 @@
 import { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
-import { Stage, Layer } from 'react-konva';
+import { Stage, Layer, Group } from 'react-konva';
 import FieldBackground from './FieldBackground';
 import PlayerToken from './PlayerToken';
 import BallToken from './BallToken';
 import MarkerToken from './MarkerToken';
 import TrajectoryLayer from './TrajectoryLayer';
 import DrawingLayer, { DrawnElement } from './DrawingLayer';
-import { FIELD_TYPES, FIELD_VIEWS, calculateCanvasDimensions, toPercent, toPixel } from '../../utils/fieldDimensions';
+import { FIELD_TYPES, FIELD_VIEWS, calculateCanvasDimensions, getDragBounds, clampToBounds, toPercent, toPixel } from '../../utils/fieldDimensions';
 
 const TacticalCanvas = forwardRef(function TacticalCanvas({
   fieldType = FIELD_TYPES.FOOTBALL_11,
@@ -33,7 +33,10 @@ const TacticalCanvas = forwardRef(function TacticalCanvas({
 }, ref) {
   const containerRef = useRef(null);
   const stageRef = useRef(null);
-  const [dimensions, setDimensions] = useState({ width: 800, height: 500, offsetX: 0, offsetY: 0 });
+  // width/height = retângulo de LINHAS (px); stageWidth/Height = canvas inteiro;
+  // fieldX/fieldY = onde o retângulo começa dentro do canvas. Coordenadas
+  // das peças continuam em % do retângulo de linhas (ver fieldDimensions.js).
+  const [dimensions, setDimensions] = useState(() => calculateCanvasDimensions(800, 500, fieldType, fieldView));
   const [isDrawing, setIsDrawing] = useState(false);
   // Draft do desenho em andamento — renderizado ao vivo com opacity reduzida
   const [previewDrawing, setPreviewDrawing] = useState(null);
@@ -90,8 +93,8 @@ const TacticalCanvas = forwardRef(function TacticalCanvas({
     const node = e.target;
     const x = toPercent(node.x(), dimensions.width);
     const y = toPercent(node.y(), dimensions.height);
-    const clampedX = Math.max(0, Math.min(100, x));
-    const clampedY = Math.max(0, Math.min(100, y));
+    // Pode sair da linha (margem em volta do campo), mas não sumir da tela
+    const { x: clampedX, y: clampedY } = clampToBounds(x, y, getDragBounds(dimensions));
     node.x(toPixel(clampedX, dimensions.width));
     node.y(toPixel(clampedY, dimensions.height));
     onElementMove(elementId, clampedX, clampedY);
@@ -217,8 +220,8 @@ const TacticalCanvas = forwardRef(function TacticalCanvas({
     const pointer = stage.getPointerPosition();
     if (!pointer) return;
 
-    const x = toPercent(pointer.x, dimensions.width);
-    const y = toPercent(pointer.y, dimensions.height);
+    const x = toPercent(pointer.x - dimensions.fieldX, dimensions.width);
+    const y = toPercent(pointer.y - dimensions.fieldY, dimensions.height);
 
     if (drawingMode === 'text') {
       // Se já há um editor aberto com texto digitado, commita ele primeiro
@@ -246,8 +249,8 @@ const TacticalCanvas = forwardRef(function TacticalCanvas({
     const pointer = stage.getPointerPosition();
     if (!pointer) return;
 
-    const x = toPercent(pointer.x, dimensions.width);
-    const y = toPercent(pointer.y, dimensions.height);
+    const x = toPercent(pointer.x - dimensions.fieldX, dimensions.width);
+    const y = toPercent(pointer.y - dimensions.fieldY, dimensions.height);
 
     if (drawingMode === 'free_draw') {
       freeDrawPointsRef.current.push(x, y);
@@ -274,8 +277,11 @@ const TacticalCanvas = forwardRef(function TacticalCanvas({
     const pointer = clientPointer || stage?.getPointerPosition();
     if (!pointer) return;
 
-    const x2 = Math.max(0, Math.min(100, toPercent(pointer.x, dimensions.width)));
-    const y2 = Math.max(0, Math.min(100, toPercent(pointer.y, dimensions.height)));
+    const { x: x2, y: y2 } = clampToBounds(
+      toPercent(pointer.x - dimensions.fieldX, dimensions.width),
+      toPercent(pointer.y - dimensions.fieldY, dimensions.height),
+      getDragBounds(dimensions, 4),
+    );
     const { x: x1, y: y1 } = start;
 
     // Distância mínima em pixels (não em % anisotrópico)
@@ -432,8 +438,8 @@ const TacticalCanvas = forwardRef(function TacticalCanvas({
     >
       <Stage
         ref={stageRef}
-        width={dimensions.width}
-        height={dimensions.height}
+        width={dimensions.stageWidth}
+        height={dimensions.stageHeight}
         onClick={handleStageClick}
         onTap={handleStageClick}
         onMouseDown={handleMouseDown}
@@ -448,14 +454,14 @@ const TacticalCanvas = forwardRef(function TacticalCanvas({
         <Layer name="field-background" listening={false}>
           <FieldBackground
             fieldType={fieldType}
-            width={dimensions.width}
-            height={dimensions.height}
             fieldView={fieldView}
+            dims={dimensions}
           />
         </Layer>
 
         {/* Layer 2: Drawings (zones, arrows, free draw, text) */}
         <Layer>
+          <Group x={dimensions.fieldX} y={dimensions.fieldY}>
           <DrawingLayer
             drawings={drawings}
             fieldWidth={dimensions.width}
@@ -476,10 +482,12 @@ const TacticalCanvas = forwardRef(function TacticalCanvas({
               opacity={0.6}
             />
           )}
+          </Group>
         </Layer>
 
         {/* Layer 3: Movement arrows */}
         <Layer listening={false}>
+          <Group x={dimensions.fieldX} y={dimensions.fieldY}>
           <TrajectoryLayer
             currentElements={elements}
             nextElements={nextFrameElements}
@@ -489,11 +497,14 @@ const TacticalCanvas = forwardRef(function TacticalCanvas({
             teamBColor={teamBColor}
             visible={!isPlaying}
           />
+          </Group>
         </Layer>
 
         {/* Layer 4: Interactive elements (players, ball, markers) */}
         <Layer>
-          {elements.map(renderElement)}
+          <Group x={dimensions.fieldX} y={dimensions.fieldY}>
+            {elements.map(renderElement)}
+          </Group>
         </Layer>
       </Stage>
 
@@ -501,8 +512,8 @@ const TacticalCanvas = forwardRef(function TacticalCanvas({
       {textEditor && (
         <div style={{
           position: 'absolute',
-          left: dimensions.offsetX + toPixel(textEditor.xPct, dimensions.width),
-          top: dimensions.offsetY + toPixel(textEditor.yPct, dimensions.height),
+          left: dimensions.fieldX + toPixel(textEditor.xPct, dimensions.width),
+          top: dimensions.fieldY + toPixel(textEditor.yPct, dimensions.height),
           transform: 'translateY(-50%)',
           zIndex: 30,
         }}>

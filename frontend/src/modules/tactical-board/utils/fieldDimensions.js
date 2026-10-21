@@ -15,79 +15,128 @@ export const FIELD_VIEWS = {
   THIRD_RIGHT: 'third_right',
 };
 
-// Aspect ratios (width:height)
-// Futebol 7 oficial CBF: 55x35m (~1.571)
-export const FIELD_ASPECT_RATIOS = {
-  [FIELD_TYPES.FOOTBALL_11]: 105 / 68, // ~1.544
-  [FIELD_TYPES.FOOTBALL_7]:  55 / 35,  // ~1.571
-  [FIELD_TYPES.FUTSAL]:      40 / 20,  // 2.0
+// ─── Medidas reais (metros) ───────────────────────────────────────────────
+// O retângulo de LINHAS é desenhado em escala uniforme (px/m) com a proporção
+// real da modalidade; o gramado continua cobrindo o canvas inteiro.
+//
+// SISTEMA DE COORDENADAS DAS PEÇAS/DESENHOS (inalterado desde a v1):
+//   x, y em % (0–100) do RETÂNGULO DE LINHAS visível (fieldView) —
+//   x = 0 linha de fundo esquerda, 100 a direita; y = 0 lateral de cima,
+//   100 a de baixo. Raio de zona circular = % da ALTURA desse retângulo.
+// Antes da 2026-10 o retângulo de linhas ERA o canvas inteiro (2:1), então
+// "% do canvas" == "% do campo" e as jogadas salvas valem sem conversão.
+// Agora o campo fica centralizado com margem; valores < 0 ou > 100 são
+// peças fora das linhas (permitido, dentro da margem).
+export const PITCH_SPECS = {
+  [FIELD_TYPES.FOOTBALL_11]: {
+    length: 105, width: 68,
+    penaltyArea: { depth: 16.5, width: 40.32 },
+    goalArea: { depth: 5.5, width: 18.32 },
+    penaltySpot: 11,
+    penaltyArcRadius: 9.15,
+    centerCircle: 9.15,
+    cornerRadius: 1,
+    goal: { width: 7.32, depth: 2 },
+  },
+  // Futebol 7 — mesmas medidas que o código já usava (55 × 35 m; área
+  // retangular, sem meia-lua)
+  [FIELD_TYPES.FOOTBALL_7]: {
+    length: 55, width: 35,
+    penaltyArea: { depth: 9.35, width: 19.6 },
+    goalArea: { depth: 3.3, width: 8.4 },
+    penaltySpot: 6.6,
+    penaltyArcRadius: null,
+    centerCircle: 4.2,
+    cornerRadius: 0.5,
+    goal: { width: 5, depth: 1.4 },
+  },
+  // Futsal 40 × 20 — área de 6 m em arco (semicírculo a partir do centro do
+  // gol, como já era), pênalti a 6 m, 2º pênalti a 10 m, círculo r 3
+  [FIELD_TYPES.FUTSAL]: {
+    length: 40, width: 20,
+    futsalAreaRadius: 6,
+    penaltySpot: 6,
+    secondPenaltySpot: 10,
+    centerCircle: 3,
+    cornerRadius: 0.25,
+    goal: { width: 3, depth: 1 },
+  },
 };
 
-export const HALF_FIELD_ASPECT_RATIOS = {
-  [FIELD_TYPES.FOOTBALL_11]: (105 / 2) / 68,
-  [FIELD_TYPES.FOOTBALL_7]:  (55 / 2) / 35,
-  [FIELD_TYPES.FUTSAL]:      (40 / 2) / 20,
-};
+export function getPitchSpec(fieldType) {
+  return PITCH_SPECS[fieldType] || PITCH_SPECS[FIELD_TYPES.FOOTBALL_11];
+}
 
-export const THIRD_FIELD_ASPECT_RATIOS = {
-  [FIELD_TYPES.FOOTBALL_11]: (105 / 3) / 68,
-  [FIELD_TYPES.FOOTBALL_7]:  (55 / 3) / 35,
-  [FIELD_TYPES.FUTSAL]:      (40 / 3) / 20,
-};
+// Janela visível do campo ao longo do comprimento, em metros [x0, x1]
+export function getViewWindow(fieldType, fieldView = FIELD_VIEWS.FULL) {
+  const L = getPitchSpec(fieldType).length;
+  switch (fieldView) {
+    case FIELD_VIEWS.LEFT_HALF:   return { x0: 0, x1: L / 2, cutLeft: false, cutRight: true };
+    case FIELD_VIEWS.RIGHT_HALF:  return { x0: L / 2, x1: L, cutLeft: true, cutRight: false };
+    case FIELD_VIEWS.THIRD_LEFT:  return { x0: 0, x1: L / 3, cutLeft: false, cutRight: true };
+    case FIELD_VIEWS.THIRD_RIGHT: return { x0: (2 * L) / 3, x1: L, cutLeft: true, cutRight: false };
+    default:                      return { x0: 0, x1: L, cutLeft: false, cutRight: false };
+  }
+}
 
-// Football 11 field markings (all in percentage 0-100)
-export const FOOTBALL_11_FIELD = {
-  boundary: { x: 0, y: 0, width: 100, height: 100 },
-  centerCircle: { cx: 50, cy: 50, radius: 14.3 },
-  centerLine: { x1: 50, y1: 0, x2: 50, y2: 100 },
-  centerSpot: { cx: 50, cy: 50 },
-  leftPenaltyArea: { x: 0, y: 20.6, width: 15.7, height: 58.8 },
-  rightPenaltyArea: { x: 84.3, y: 20.6, width: 15.7, height: 58.8 },
-  leftGoalArea: { x: 0, y: 36.5, width: 5.2, height: 27 },
-  rightGoalArea: { x: 94.8, y: 36.5, width: 5.2, height: 27 },
-  leftPenaltySpot: { cx: 10.5, cy: 50 },
-  rightPenaltySpot: { cx: 89.5, cy: 50 },
-  leftPenaltyArc: { cx: 10.5, cy: 50, radius: 14.3, startAngle: -53, endAngle: 53 },
-  rightPenaltyArc: { cx: 89.5, cy: 50, radius: 14.3, startAngle: 127, endAngle: 233 },
-  cornerRadius: 1.5,
-  leftGoal: { x: 0, y: 44.6, width: 2.2, height: 10.8 },
-  rightGoal: { x: 97.8, y: 44.6, width: 2.2, height: 10.8 },
-};
+// Proporção (largura:altura) do retângulo de linhas visível
+export function getAspectRatio(fieldType, fieldView = FIELD_VIEWS.FULL) {
+  const { x0, x1 } = getViewWindow(fieldType, fieldView);
+  return (x1 - x0) / getPitchSpec(fieldType).width;
+}
 
-// Football 7 field markings (versão reduzida do F11; mantém área retangular)
-export const FOOTBALL_7_FIELD = {
-  boundary: { x: 0, y: 0, width: 100, height: 100 },
-  centerCircle: { cx: 50, cy: 50, radius: 12 },
-  centerLine: { x1: 50, y1: 0, x2: 50, y2: 100 },
-  centerSpot: { cx: 50, cy: 50 },
-  leftPenaltyArea:  { x: 0,  y: 22, width: 17, height: 56 },
-  rightPenaltyArea: { x: 83, y: 22, width: 17, height: 56 },
-  leftGoalArea:  { x: 0,  y: 38, width: 6, height: 24 },
-  rightGoalArea: { x: 94, y: 38, width: 6, height: 24 },
-  leftPenaltySpot:  { cx: 12, cy: 50 },
-  rightPenaltySpot: { cx: 88, cy: 50 },
-  cornerRadius: 1.5,
-  leftGoal:  { x: 0,    y: 43.5, width: 2.5, height: 13 },
-  rightGoal: { x: 97.5, y: 43.5, width: 2.5, height: 13 },
-};
+// Layout: o Stage ocupa o container inteiro (gramado em tudo) e o retângulo
+// de linhas cabe ("contain") centralizado com respiro em volta, pra peças
+// poderem ficar fora das linhas e os gols aparecerem.
+export function calculateCanvasDimensions(containerWidth, containerHeight, fieldType, fieldView = FIELD_VIEWS.FULL) {
+  const stageW = Math.max(1, Math.round(containerWidth));
+  const stageH = Math.max(1, Math.round(containerHeight));
+  const aspectRatio = getAspectRatio(fieldType, fieldView);
 
-// Futsal court markings (all in percentage 0-100)
-export const FUTSAL_FIELD = {
-  boundary: { x: 0, y: 0, width: 100, height: 100 },
-  centerCircle: { cx: 50, cy: 50, radius: 15 },
-  centerLine: { x1: 50, y1: 0, x2: 50, y2: 100 },
-  centerSpot: { cx: 50, cy: 50 },
-  leftPenaltyArea: { cx: 0, cy: 50, radius: 30 },
-  rightPenaltyArea: { cx: 100, cy: 50, radius: 30 },
-  leftPenaltySpot: { cx: 15, cy: 50 },
-  rightPenaltySpot: { cx: 85, cy: 50 },
-  leftSecondPenaltySpot: { cx: 25, cy: 50 },
-  rightSecondPenaltySpot: { cx: 75, cy: 50 },
-  cornerRadius: 1.25,
-  leftSubZone: { y1: -2, y2: -2, x: 50 },
-  leftGoal: { x: 0, y: 42.5, width: 2.6, height: 15 },
-  rightGoal: { x: 97.4, y: 42.5, width: 2.6, height: 15 },
-};
+  // ≥ 5% de cada lado (mín. 24 px), um pouco mais na horizontal pros gols
+  const padX = Math.max(stageW * 0.06, 28);
+  const padY = Math.max(stageH * 0.06, 24);
+  const availW = Math.max(40, stageW - padX * 2);
+  const availH = Math.max(40, stageH - padY * 2);
+
+  let fieldW, fieldH;
+  if (availW / availH > aspectRatio) {
+    fieldH = availH;
+    fieldW = fieldH * aspectRatio;
+  } else {
+    fieldW = availW;
+    fieldH = fieldW / aspectRatio;
+  }
+
+  const fieldX = (stageW - fieldW) / 2;
+  const fieldY = (stageH - fieldH) / 2;
+  return {
+    stageWidth: stageW,
+    stageHeight: stageH,
+    fieldX: Math.round(fieldX),
+    fieldY: Math.round(fieldY),
+    width: Math.round(fieldW),   // largura do retângulo de linhas (px)
+    height: Math.round(fieldH),  // altura do retângulo de linhas (px)
+    offsetX: 0,
+    offsetY: 0,
+  };
+}
+
+// Limites de arrasto em % do campo: a peça pode sair da linha, mas não da tela
+export function getDragBounds(dims, insetPx = 20) {
+  const minX = toPercent(-dims.fieldX + insetPx, dims.width);
+  const maxX = toPercent(dims.stageWidth - dims.fieldX - insetPx, dims.width);
+  const minY = toPercent(-dims.fieldY + insetPx, dims.height);
+  const maxY = toPercent(dims.stageHeight - dims.fieldY - insetPx, dims.height);
+  return { minX, maxX, minY, maxY };
+}
+
+export function clampToBounds(x, y, b) {
+  return {
+    x: Math.max(b.minX, Math.min(b.maxX, x)),
+    y: Math.max(b.minY, Math.min(b.maxY, y)),
+  };
+}
 
 // Convert percentage position to pixel position
 export function toPixel(percent, totalPixels) {
@@ -97,49 +146,4 @@ export function toPixel(percent, totalPixels) {
 // Convert pixel position to percentage
 export function toPercent(pixel, totalPixels) {
   return (pixel / totalPixels) * 100;
-}
-
-// Get aspect ratio for a given field type and view.
-// TODOS os campos usam a proporção do FUTSAL (2:1) — assim qualquer modalidade
-// preenche a tela inteira no modo imersivo (sem barras pretas nas laterais),
-// como o futsal já fazia. As marcações (desenhadas em % 0-100) se ajustam à
-// largura maior; o círculo central usa raio pela ALTURA, então continua redondo.
-// (decisão do dono, 2026-08)
-export function getAspectRatio(fieldType, fieldView = FIELD_VIEWS.FULL) {
-  const ft = FIELD_TYPES.FUTSAL;
-  if (fieldView === FIELD_VIEWS.LEFT_HALF || fieldView === FIELD_VIEWS.RIGHT_HALF) {
-    return HALF_FIELD_ASPECT_RATIOS[ft];
-  }
-  if (fieldView === FIELD_VIEWS.THIRD_LEFT || fieldView === FIELD_VIEWS.THIRD_RIGHT) {
-    return THIRD_FIELD_ASPECT_RATIOS[ft];
-  }
-  return FIELD_ASPECT_RATIOS[ft];
-}
-
-// Calculate canvas dimensions that fit a container while maintaining aspect ratio
-export function calculateCanvasDimensions(containerWidth, containerHeight, fieldType, fieldView = FIELD_VIEWS.FULL) {
-  const aspectRatio = getAspectRatio(fieldType, fieldView);
-  const padding = 0;
-
-  const availableWidth = containerWidth - padding * 2;
-  const availableHeight = containerHeight - padding * 2;
-
-  let width, height;
-
-  if (availableWidth / availableHeight > aspectRatio) {
-    // Container wider than field - fit to height (common for F11)
-    height = availableHeight;
-    width = height * aspectRatio;
-  } else {
-    // Container taller than field - fit to width (common for futsal)
-    width = availableWidth;
-    height = width / aspectRatio;
-  }
-
-  return {
-    width: Math.round(width),
-    height: Math.round(height),
-    offsetX: Math.round((containerWidth - width) / 2),
-    offsetY: Math.round((containerHeight - height) / 2),
-  };
 }
