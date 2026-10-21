@@ -27,7 +27,7 @@ export function SubscriptionBanner() {
     if (!dono) msg = 'A conta desta equipe está sem assinatura ativa: modo só leitura. Fale com o responsável pela equipe.';
     else if (native) msg = 'Sua conta está em modo só leitura (sem assinatura ativa). Fale com o responsável pela equipe.';
     else if (renovar) msg = 'Sua assinatura terminou. A conta está em modo só leitura: seus dados estão salvos, mas criar e editar volta ao renovar.';
-    else msg = 'Conta em modo só leitura. Assine um plano para criar e editar treinos, plantel, jogos e jogadas.';
+    else msg = 'Conta em modo só leitura. Assine o plano Clube para criar e editar treinos, plantel, jogos e jogadas.';
     return (
       <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0.625rem 1.25rem', backgroundColor: '#f59e0b15', borderBottom: '1px solid #f59e0b40', color: colors.text, fontSize: '0.875rem' }}>
         <AlertTriangle size={16} color="#f59e0b" style={{ flexShrink: 0 }} />
@@ -47,7 +47,7 @@ export function SubscriptionBanner() {
 
   let message = null;
   let level = 'info';
-  let cta = 'Ver planos';
+  let cta = 'Ver assinatura';
   let icon = Clock;
 
   if (isPastDue) {

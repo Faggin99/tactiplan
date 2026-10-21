@@ -111,7 +111,7 @@ function NavItem({ to, icon: Icon, label, locked, onNavigate, collapsed, isActiv
   const active = isActive ? isActive(location.pathname) : isNavActive(to, location.pathname);
   return (
     <NavLink to={to} onClick={onNavigate} aria-label={collapsed ? label : undefined}
-      title={locked ? 'Disponível em um plano pago' : undefined}
+      title={locked ? 'Disponível no plano Clube' : undefined}
       style={{
         display: 'flex', alignItems: 'center', gap: '0.7rem',
         padding: collapsed ? 0 : '0.5rem 0.75rem', height: collapsed ? 42 : undefined,

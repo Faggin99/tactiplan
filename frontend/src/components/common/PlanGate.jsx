@@ -5,7 +5,7 @@ import { usePlanFeatures } from '../../hooks/usePlanFeatures';
 import { isNative } from '../../lib/platform';
 import { notify } from '../../lib/notify';
 import { Button } from './Button';
-import { NOME_ENTRADA, NOME_CLUBE } from '../../config/planos';
+import { NOME_CLUBE } from '../../config/planos';
 
 // Recursos dos planos pagos. No app NATIVO o texto é 100% neutro (sem chamada
 // pra compra). Na web a gente pode apontar pros planos.
@@ -21,7 +21,7 @@ export function featureLockedMessage(feature) {
   const title = FEATURE_META[feature]?.title || 'Este recurso';
   return isNative()
     ? `${title} não está incluído no seu plano atual.`
-    : `${title} está disponível nos planos ${NOME_ENTRADA} e ${NOME_CLUBE}.`;
+    : `${title} está disponível no plano ${NOME_CLUBE}.`;
 }
 
 // Hook pra gatear ações pontuais (botões de exportar etc.): retorna uma função
@@ -63,11 +63,11 @@ export function PlanGate({ feature, children }) {
         <p style={{ color: colors.textSecondary, margin: '0 0 20px', lineHeight: 1.55, fontSize: '0.95rem' }}>
           {native
             ? `${meta.title || 'Este recurso'} não está incluído no seu plano atual.`
-            : `${meta.desc ? meta.desc + ' ' : ''}Disponível com uma assinatura ativa.`}
+            : `${meta.desc ? meta.desc + ' ' : ''}Disponível no plano ${NOME_CLUBE}.`}
         </p>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
           <Button variant="secondary" onClick={() => navigate('/home')}>Voltar ao início</Button>
-          {!native && <Button onClick={() => navigate('/billing')}>Ver planos</Button>}
+          {!native && <Button onClick={() => navigate('/billing')}>Ver o plano {NOME_CLUBE}</Button>}
         </div>
       </div>
     </div>

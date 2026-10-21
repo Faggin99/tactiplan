@@ -10,7 +10,7 @@ import { Modal } from '../components/common/Modal';
 import { Input } from '../components/common/Input';
 import { Textarea } from '../components/common/Textarea';
 import { Button } from '../components/common/Button';
-import { NOME_ENTRADA, NOME_CLUBE } from '../config/planos';
+import { NOME_CLUBE } from '../config/planos';
 
 const SUGGESTED_AGE_GROUPS = ['Sub-6','Sub-7','Sub-8','Sub-9','Sub-10','Sub-11','Sub-12','Sub-13','Sub-14','Sub-15','Sub-17','Sub-20','Profissional','Master'];
 
@@ -27,7 +27,7 @@ export function CategoriesConfigPage() {
   const [showForm, setShowForm] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
 
-  // Plano de entrada: pode editar a categoria existente, mas não criar nova além da default.
+  // Sem multi_user (assinatura antiga do Essencial): edita a categoria existente, mas não cria outra.
   const canCreateMore = plan.multi_user || categories.length === 0;
   const showPaywall = !plan.multi_user && categories.length >= 1;
 
@@ -110,7 +110,7 @@ export function CategoriesConfigPage() {
             setShowForm(true);
           }}
           disabled={!selectedClub?.id}
-          title={!canCreateMore ? 'Disponível no plano Clube' : undefined}
+          title={!canCreateMore ? `Disponível no plano ${NOME_CLUBE}` : undefined}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
             padding: '0.5rem 1rem',
@@ -122,7 +122,7 @@ export function CategoriesConfigPage() {
           }}
         >
           {canCreateMore ? <Plus size={18} /> : <Lock size={16} />}
-          {canCreateMore ? 'Nova Categoria' : 'Adicionar (plano Clube)'}
+          {canCreateMore ? 'Nova Categoria' : `Adicionar (plano ${NOME_CLUBE})`}
         </button>
       </div>
 
@@ -138,7 +138,7 @@ export function CategoriesConfigPage() {
           <Crown size={18} color="#f59e0b" style={{ flexShrink: 0, marginTop: 2 }} />
           <div style={{ flex: 1, fontSize: '0.85rem', color: colors.text }}>
             <strong>Várias categorias por clube</strong> são do plano <strong>{NOME_CLUBE}</strong>.
-            No plano {NOME_ENTRADA} a comissão trabalha com uma categoria por clube.
+            A assinatura atual desta conta permite uma categoria por clube.
             <div style={{ marginTop: '0.5rem' }}>
               <button
                 onClick={() => navigate('/billing')}
@@ -148,7 +148,7 @@ export function CategoriesConfigPage() {
                   fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
                 }}
               >
-                Fazer upgrade pro Clube
+                Assinar o plano {NOME_CLUBE}
               </button>
             </div>
           </div>

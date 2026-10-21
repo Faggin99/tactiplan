@@ -228,7 +228,7 @@ export function PersonalizacaoPage() {
       notify.success(msg);
       return true;
     } catch (e) {
-      notify.error(e?.code === 'READ_ONLY' ? 'Sua conta está em modo só leitura — assine um plano para salvar.' : (e?.message || 'Não foi possível salvar a personalização.'));
+      notify.error(e?.code === 'READ_ONLY' ? 'Sua conta está em modo só leitura — assine o plano Clube para salvar.' : (e?.message || 'Não foi possível salvar a personalização.'));
       return false;
     } finally {
       setBusy(false);
@@ -260,7 +260,7 @@ export function PersonalizacaoPage() {
       replaceClub(await clubService.uploadLogo(club.id, f, variant));
       notify.success(variant === 'dark' ? 'Logo do tema escuro atualizada.' : 'Logo atualizada.');
     } catch (err) {
-      notify.error(err?.code === 'READ_ONLY' ? 'Sua conta está em modo só leitura — assine um plano para alterar a logo.' : (err?.message || 'Não foi possível enviar a imagem.'));
+      notify.error(err?.code === 'READ_ONLY' ? 'Sua conta está em modo só leitura — assine o plano Clube para alterar a logo.' : (err?.message || 'Não foi possível enviar a imagem.'));
     } finally { setLogoBusy(null); }
   }
   async function removerLogo(variant) {
@@ -320,7 +320,7 @@ export function PersonalizacaoPage() {
       {readOnly && (
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '1rem', padding: '0.7rem 0.85rem', borderRadius: '0.5rem', border: `1px solid ${colors.warning}`, backgroundColor: `${colors.warning}14` }}>
           <Lock size={16} color={colors.warning} style={{ marginTop: 2, flexShrink: 0 }} />
-          <span style={{ fontSize: '0.85rem', color: colors.text }}>Sua conta está em modo só leitura. Assine um plano para alterar as cores e a logo.</span>
+          <span style={{ fontSize: '0.85rem', color: colors.text }}>Sua conta está em modo só leitura. Assine o plano Clube para alterar as cores e a logo.</span>
         </div>
       )}
 

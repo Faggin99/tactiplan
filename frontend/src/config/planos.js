@@ -12,6 +12,14 @@ export const PUBLICO = planos.publico;
 const ENTRADA_IDS = planos.entrada.ids;
 const CLUBE_IDS = planos.clube.ids;
 
+// Plano à venda hoje? (desde 21/10/2026 só o Clube; o Essencial fica só para exibir
+// o nome de assinaturas antigas).
+export function isPlanoVendido(planId) {
+  const id = String(planId || '');
+  return (planos.entrada.vendido !== false && ENTRADA_IDS.includes(id))
+    || (planos.clube.vendido !== false && CLUBE_IDS.includes(id));
+}
+
 export function isPlanoEntrada(planId) {
   return ENTRADA_IDS.includes(String(planId || ''));
 }

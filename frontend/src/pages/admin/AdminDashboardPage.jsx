@@ -470,37 +470,21 @@ function UserDetailSheet({ userId, onClose, onAction }) {
                     Trocar plano da assinatura atual
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                    <button onClick={() => changePlan('pro', nomePlano('pro'))} disabled={actionLoading} style={{
-                      padding: '0.55rem 0.5rem', backgroundColor: '#3b82f6',
-                      color: '#fff', border: 'none', borderRadius: '0.375rem',
-                      fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
-                      opacity: actionLoading ? 0.5 : 1,
-                    }}>
-                      → {nomePlano('pro')}
-                    </button>
-                    <button onClick={() => changePlan('pro_annual', nomePlano('pro_annual'))} disabled={actionLoading} style={{
-                      padding: '0.55rem 0.5rem', backgroundColor: '#3b82f6',
-                      color: '#fff', border: 'none', borderRadius: '0.375rem',
-                      fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
-                      opacity: actionLoading ? 0.5 : 1,
-                    }}>
-                      → {nomePlano('pro_annual')}
-                    </button>
-                    <button onClick={() => changePlan('clube', 'Clube Mensal')} disabled={actionLoading} style={{
+                    <button onClick={() => changePlan('clube', nomePlano('clube'))} disabled={actionLoading} style={{
                       padding: '0.55rem 0.5rem', backgroundColor: '#22c55e',
                       color: '#fff', border: 'none', borderRadius: '0.375rem',
                       fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
                       opacity: actionLoading ? 0.5 : 1,
                     }}>
-                      → Clube Mensal
+                      → {nomePlano('clube')}
                     </button>
-                    <button onClick={() => changePlan('clube_annual', 'Clube Anual')} disabled={actionLoading} style={{
+                    <button onClick={() => changePlan('clube_annual', nomePlano('clube_annual'))} disabled={actionLoading} style={{
                       padding: '0.55rem 0.5rem', backgroundColor: '#22c55e',
                       color: '#fff', border: 'none', borderRadius: '0.375rem',
                       fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
                       opacity: actionLoading ? 0.5 : 1,
                     }}>
-                      → Clube Anual
+                      → {nomePlano('clube_annual')}
                     </button>
                   </div>
                 </div>
@@ -530,7 +514,7 @@ function UserDetailSheet({ userId, onClose, onAction }) {
                   </button>
                 </div>
                 <div style={{ fontSize: '0.7rem', color: DARK.textMuted, marginTop: '0.2rem' }}>
-                  <strong>Trocar plano</strong> só muda o plan_id da sub atual (mantém status, datas e dias de trial). Útil pra migrar trial Pro → Clube. Se a sub tiver preapproval MP ativo, o valor cobrado NÃO muda automaticamente — só faça em trial ou após cancelar a cobrança.
+                  <strong>Trocar plano</strong> só muda o plan_id da sub atual (mantém status, datas e dias de trial). Útil pra migrar assinatura antiga do Essencial → Clube (único plano vendido). Se a sub tiver preapproval MP ativo, o valor cobrado NÃO muda automaticamente — só faça em trial ou após cancelar a cobrança.
                 </div>
               </div>
             </div>

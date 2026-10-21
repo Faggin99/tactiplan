@@ -407,8 +407,8 @@ function PreferenciasTab() {
   async function handleToggle(v) {
     if (v && !canUseTheme) {
       // Tenta ativar sem plano → leva pro upgrade
-      const ok = await notify.confirm('Tema do Mês está disponível apenas no plano Clube. Ver planos?', {
-        confirmText: 'Ver planos',
+      const ok = await notify.confirm('Tema do Mês está disponível no plano Clube. Ver a assinatura?', {
+        confirmText: 'Ver assinatura',
         cancelText: 'Agora não',
       });
       if (ok) navigate('/billing');

@@ -6,7 +6,9 @@ import { useClub } from '../contexts/ClubContext';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { usePlanFeatures } from '../hooks/usePlanFeatures';
 import { PhotoCropModal } from '../components/settings/PhotoCropModal';
-import { NOME_ENTRADA, NOME_CLUBE } from '../config/planos';
+import { NOME_CLUBE } from '../config/planos';
+
+// ATENÇÃO: tela antiga, NÃO está nas rotas (a tela de clubes é ClubsConfigPage, em Cadastros › Clubes).
 
 export function ClubConfigPage() {
   const { colors } = useTheme();
@@ -15,8 +17,8 @@ export function ClubConfigPage() {
   const plan = usePlanFeatures();
   const { clubs, createClub, updateClub, deleteClub, uploadLogo, getLogoUrl } = useClub();
 
-  // Limite de clubes do plano (admin/lifetime/clube = sem limite).
-  const clubLimit = (plan.isAdmin || plan.isLifetime || plan.multi_user) ? null : 1;
+  // Plano Clube = 1 clube ATIVO (arquivados não contam); admin/vitalício = sem limite.
+  const clubLimit = (plan.isAdmin || plan.isLifetime) ? null : 1;
   const canCreateClub = clubLimit === null || clubs.length < clubLimit;
   const [showModal, setShowModal] = useState(false);
   const [editingClub, setEditingClub] = useState(null);
@@ -377,12 +379,12 @@ export function ClubConfigPage() {
             }
             handleOpenModal();
           }}
-          title={!canCreateClub ? 'Disponível no plano Clube' : undefined}
+          title={!canCreateClub ? 'Limite de clubes ativos atingido' : undefined}
           onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
           onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
         >
           {canCreateClub ? <Plus size={18} /> : <Lock size={16} />}
-          {canCreateClub ? 'Novo Clube' : 'Adicionar clube (plano Clube)'}
+          {canCreateClub ? 'Novo Clube' : 'Adicionar clube (limite)'}
         </button>
       </div>
 
@@ -397,7 +399,7 @@ export function ClubConfigPage() {
         }}>
           <Crown size={18} color="#f59e0b" style={{ flexShrink: 0, marginTop: 2 }} />
           <div style={{ flex: 1, fontSize: '0.85rem', color: colors.text }}>
-            <strong>O plano {NOME_ENTRADA} inclui 1 clube.</strong> Para gerenciar mais de um clube (escolinha, projeto social, segundo time), assine o plano {NOME_CLUBE} — várias categorias por clube, comissão técnica completa e clubes extras como adicional.
+            <strong>O plano {NOME_CLUBE} inclui 1 clube ativo.</strong> Arquive um clube para ativar outro, ou fale com a gente para liberar um clube extra (R$20/mês por clube).
             <div style={{ marginTop: '0.5rem' }}>
               <button
                 onClick={() => navigate('/billing')}
@@ -407,7 +409,7 @@ export function ClubConfigPage() {
                   fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer',
                 }}
               >
-                Fazer upgrade pro Clube
+                Ver assinatura
               </button>
             </div>
           </div>

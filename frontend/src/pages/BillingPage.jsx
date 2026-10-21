@@ -8,7 +8,7 @@ import { notify } from '../lib/notify';
 import { openExternalUrl, isNative, getPlatform } from '../lib/platform';
 import { useAuth } from '../contexts/AuthContext';
 import { iapAvailable, getPurchases, configurePurchases } from '../lib/purchases';
-import { NOME_ENTRADA, NOME_CLUBE, MAX_CONVIDADOS_ENTRADA, MAX_CONVIDADOS_CLUBE, PUBLICO, isPlanoEntrada, nomePlano } from '../config/planos';
+import { NOME_CLUBE, MAX_CONVIDADOS_CLUBE, PUBLICO, isPlanoVendido, nomePlano } from '../config/planos';
 import { validarDocumento, mascararDocumento } from '../lib/documento';
 import { refreshSubscription } from '../hooks/useSubscription';
 
@@ -50,12 +50,21 @@ export function BillingPage() {
       api.get('/billing/plans').catch(() => []),
     ]).then(([s, p]) => {
       setSub(s); setPlans(p || []); setLoading(false);
-      // Vindo do site/cadastro com ?plano=pro|clube&ciclo=mensal|anual → já abre o formulário.
+      // Vindo do site/cadastro com ?plano=…&ciclo=mensal|anual → já abre o formulário.
+      // Desde 21/10/2026 só o Clube é vendido: qualquer ?plano= (inclusive o antigo "pro") abre o Clube.
       const plano = params.get('plano');
       if (plano && !isNative()) {
-        const anual = params.get('ciclo') === 'anual';
-        const id = `${plano === 'clube' ? 'clube' : 'pro'}${anual ? '_annual' : ''}`;
+        const id = params.get('ciclo') === 'anual' ? 'clube_annual' : 'clube';
         if ((p || []).some((x) => x.id === id)) setPlanoEscolhido(id);
+      }
+      // "Você é" do cadastro (Google/Apple chegam aqui sem passar pelo formulário).
+      const tipo = params.get('tipo');
+      if (novo && (tipo === 'clube' || tipo === 'comissao')) {
+        api.get('/workspaces').then((r) => {
+          const propria = (r?.data || []).find((w) => w.is_owner && !w.tipo);
+          if (propria) return api.put(`/workspaces/${propria.id}/tipo`, { tipo });
+          return null;
+        }).catch(() => {});
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -71,20 +80,6 @@ export function BillingPage() {
     // DENTRO do app. As CTAs de compra ficam escondidas no nativo; este guard
     // é só cinto de segurança caso algo chame o checkout.
     if (isNative()) return;
-    // Quem está no Clube e escolhe o plano de entrada: avisa o que perde.
-    const noClube = !sub?.read_only && (sub?.plan_id === 'clube' || sub?.plan_id === 'clube_annual');
-    if (noClube && isPlanoEntrada(planId)) {
-      const ok = await notify.confirm(
-        `Atenção: sua conta está no plano ${NOME_CLUBE}.\n\n` +
-        `No plano ${NOME_ENTRADA} você fica com:\n` +
-        `• o responsável + ${MAX_CONVIDADOS_ENTRADA} convidado (hoje até ${MAX_CONVIDADOS_CLUBE})\n` +
-        '• 1 categoria por clube\n\n' +
-        'Membros já aceitos continuam, mas novos convites respeitam o limite.\n\n' +
-        `Assinar o ${NOME_ENTRADA} mesmo assim?`,
-        { confirmText: `Assinar ${NOME_ENTRADA}`, cancelText: 'Voltar' }
-      );
-      if (!ok) return;
-    }
     setCheckoutLoading(planId);
     try {
       const data = await api.post('/billing/checkout', { plan_id: planId, ...dados });
@@ -124,11 +119,11 @@ export function BillingPage() {
   return (
     <div style={{ padding: '1.5rem 2rem', maxWidth: 960, margin: '0 auto', width: '100%' }}>
       <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: colors.text, margin: 0 }}>
-        {novo ? 'Escolha o plano da sua equipe' : 'Assinatura'}
+        {novo ? 'Assine o plano da sua equipe' : 'Assinatura'}
       </h1>
       <p style={{ fontSize: '0.875rem', color: colors.textSecondary, marginTop: 4, marginBottom: 24 }}>
         {novo
-          ? `Conta criada. O TactiPlan é feito para ${PUBLICO}: escolha o plano e conclua o pagamento para começar.`
+          ? `Conta criada. O TactiPlan é feito para ${PUBLICO}: assine o plano ${NOME_CLUBE} e conclua o pagamento para começar.`
           : 'Gerencie o plano e os pagamentos da conta.'}
       </p>
 
@@ -148,21 +143,22 @@ export function BillingPage() {
       {native && <NativeBillingSection sub={sub} colors={colors} onSub={setSub} />}
 
       {!native && (() => {
-        const paidPlans = plans.filter(p =>
-          p.id !== 'lifetime'
-          && p.id !== 'free'
-          && p.price_cents > 0
-        );
+        // Só o plano Clube é vendido (mensal e anual). O servidor já não lista o Essencial
+        // (is_active=false); o filtro aqui é cinto de segurança.
+        const paidPlans = plans.filter(p => isPlanoVendido(p.id) && p.price_cents > 0);
         if (paidPlans.length === 0) return null;
         const isTrialExpiringOrExpired = sub?.status === 'trialing' || !!sub?.read_only;
-        // Ordena: Pro mensal, Clube mensal, Pro anual, Clube anual
-        const order = ['pro', 'clube', 'pro_annual', 'clube_annual'];
+        const order = ['clube', 'clube_annual'];
         const sorted = [...paidPlans].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+        const mensal = paidPlans.find((p) => p.id === 'clube');
         return (
           <div style={{ marginTop: 32 }}>
-            <h2 style={{ fontSize: '1.125rem', fontWeight: 600, color: colors.text, margin: '0 0 12px' }}>
-              {isTrialExpiringOrExpired ? 'Escolha como continuar' : 'Planos disponíveis'}
+            <h2 style={{ fontSize: '1.125rem', fontWeight: 600, color: colors.text, margin: '0 0 4px' }}>
+              {isTrialExpiringOrExpired ? 'Escolha como continuar' : `Plano ${NOME_CLUBE}`}
             </h2>
+            <p style={{ fontSize: '0.82rem', color: colors.textSecondary, margin: '0 0 14px' }}>
+              Um plano só, com tudo incluído. Escolha pagar por mês ou por ano.
+            </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
               {sorted.map((p) => (
                 <PlanItem
@@ -173,6 +169,7 @@ export function BillingPage() {
                   loading={checkoutLoading === p.id}
                   highlight={p.id === 'clube_annual'}
                   isCurrent={p.id === sub?.plan_id && sub?.status === 'active' && !sub?.read_only}
+                  monthlyRefCents={mensal?.price_cents}
                 />
               ))}
             </div>
@@ -198,10 +195,11 @@ function NativeBillingSection({ sub, colors, onSub }) {
 }
 
 // Ordem e rótulos dos produtos da loja (mesmo mapa do backend).
+// Desde 21/10/2026 só o Clube é vendido: os produtos do Essencial (com.faggin.tactiplan.pro.*)
+// saíram desta lista, então não aparecem para compra. O backend (RevenueCat) continua
+// reconhecendo os ids antigos para quem já assinou.
 const IAP_PRODUCTS = [
-  { id: 'com.faggin.tactiplan.pro.monthly',   name: nomePlano('pro'),          per: '/mês', desc: `Responsável + ${MAX_CONVIDADOS_ENTRADA} convidado` },
   { id: 'com.faggin.tactiplan.clube.monthly', name: nomePlano('clube'),        per: '/mês', desc: 'Comissão completa e categorias' },
-  { id: 'com.faggin.tactiplan.pro.yearly',    name: nomePlano('pro_annual'),   per: '/ano', desc: '2 meses grátis vs. mensal' },
   { id: 'com.faggin.tactiplan.clube.yearly',  name: nomePlano('clube_annual'), per: '/ano', desc: '2 meses grátis vs. mensal' },
 ];
 
@@ -292,6 +290,7 @@ function IapPlansSection({ colors, onSub }) {
 
   const ordered = (pkgs || [])
     .map((pkg) => ({ pkg, meta: IAP_PRODUCTS.find((m) => m.id === (pkg.product?.identifier || '')) }))
+    .filter(({ meta }) => !!meta) // só produtos vendidos (Clube)
     .sort((a, b) => (a.meta ? IAP_PRODUCTS.indexOf(a.meta) : 99) - (b.meta ? IAP_PRODUCTS.indexOf(b.meta) : 99));
 
   return (
@@ -406,7 +405,7 @@ function CurrentSubscription({ sub, colors, onCancel, native }) {
         <p style={{ fontSize: '0.875rem', color: colors.textSecondary, margin: 0 }}>
           {native
             ? 'Sua assinatura é gerenciada no site — veja como continuar logo abaixo.'
-            : 'Escolha um plano abaixo para começar a usar todos os recursos.'}
+            : `Assine o plano ${NOME_CLUBE} abaixo para começar a usar todos os recursos.`}
         </p>
       </div>
     );
@@ -439,7 +438,7 @@ function CurrentSubscription({ sub, colors, onCancel, native }) {
           {lapsed
             ? `A assinatura ${lapsed.plan_name || ''} terminou. Seus dados estão salvos e podem ser consultados; criar e editar volta ao renovar.`
             : 'Seus dados podem ser consultados, mas criar e editar depende de uma assinatura ativa.'}
-          {native ? ' Fale com o responsável pela equipe.' : ' Escolha um plano abaixo.'}
+          {native ? ' Fale com o responsável pela equipe.' : ` Assine o plano ${NOME_CLUBE} abaixo.`}
         </p>
       </div>
     );
@@ -485,7 +484,7 @@ function CurrentSubscription({ sub, colors, onCancel, native }) {
           <strong style={{ color: '#ef4444' }}>Seu período de avaliação terminou.</strong>{' '}
           {native
             ? 'Assim que sua assinatura estiver ativa, o acesso é liberado automaticamente aqui no app.'
-            : 'Escolha um dos planos abaixo para continuar usando o TactiPlan com todos os recursos.'}
+            : `Assine o plano ${NOME_CLUBE} abaixo para continuar usando o TactiPlan com todos os recursos.`}
         </div>
       )}
 
@@ -493,7 +492,7 @@ function CurrentSubscription({ sub, colors, onCancel, native }) {
         <div style={{ marginTop: 16, padding: 12, backgroundColor: '#f59e0b15', borderRadius: 8, border: '1px solid #f59e0b40', fontSize: '0.8125rem', color: colors.text }}>
           <strong>Você está no período de avaliação</strong> — {native
             ? `restam ${trialDays} dia${trialDays === 1 ? '' : 's'} de acesso completo.`
-            : `após ${trialDays} dia${trialDays === 1 ? '' : 's'} é necessário escolher um plano (${NOME_ENTRADA} ou ${NOME_CLUBE}) pra continuar editando.`}
+            : `após ${trialDays} dia${trialDays === 1 ? '' : 's'} é necessário assinar o plano ${NOME_CLUBE} (mensal ou anual) pra continuar editando.`}
         </div>
       )}
 
@@ -532,7 +531,10 @@ function CurrentSubscription({ sub, colors, onCancel, native }) {
   );
 }
 
-// Gerenciamento de add-ons (clubes/categorias extras) da assinatura ativa.
+const CONTATO_CLUBE_EXTRA = 'https://wa.me/5562996359774?text=' + encodeURIComponent('Olá! Quero liberar um clube ativo extra no TactiPlan (R$20/mês).');
+
+// Gerenciamento de add-ons da assinatura ativa: categorias extras (compra aqui) e
+// clubes ativos extras (só "fale com a gente" por enquanto).
 function AddonsSection({ colors }) {
   const [data, setData] = useState(null);
   const [clubs, setClubs] = useState(0);
@@ -598,12 +600,18 @@ function AddonsSection({ colors }) {
         </div>
       )}
 
-      <Stepper
-        label="Clubes extras"
-        sub={`+ ${brl(clubPrice)}/mês por clube`}
-        value={clubs} setValue={setClubs}
-        disabled={isAnnual}
-      />
+      {/* Clube ativo extra (extra_club_slots): sem compra pela tela por enquanto — liberado pela equipe. */}
+      <div style={{ padding: '0.6rem 0' }}>
+        <div style={{ fontSize: '0.875rem', fontWeight: 600, color: colors.text }}>
+          Clubes ativos extras{clubs > 0 ? `: ${clubs}` : ''}
+        </div>
+        <div style={{ fontSize: '0.75rem', color: colors.textSecondary }}>
+          + {brl(clubPrice)}/mês por clube ativo a mais (clubes arquivados não contam).{' '}
+          <button type="button" onClick={() => openExternalUrl(CONTATO_CLUBE_EXTRA)} style={{ background: 'transparent', border: 'none', padding: 0, color: colors.primary, fontWeight: 600, cursor: 'pointer', fontSize: 'inherit' }}>
+            Fale com a gente
+          </button>
+        </div>
+      </div>
       {isClube && (
         <Stepper
           label="Categorias extras"
@@ -667,19 +675,14 @@ function InfoItem({ label, value, colors, highlight }) {
   );
 }
 
-// Preço mensal "de referência" pra calcular economia do anual vs 12x mensal.
-// Mantido inline pra não ter que carregar toda a lista de plans no PlanItem.
-const MONTHLY_REF = { pro: 3990, clube: 8900 };
+const brl = (cents) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: cents % 100 ? 2 : 0 }).format(cents / 100);
 
-function PlanItem({ plan, colors, onSelect, loading, highlight, isCurrent }) {
+// Cartão de um ciclo do plano Clube. A economia do anual é calculada pelo preço REAL do
+// mensal (vem da tabela plans): 12 × R$120 − R$1.200 = R$240.
+function PlanItem({ plan, colors, onSelect, loading, highlight, isCurrent, monthlyRefCents }) {
   const isYearly = plan.interval === 'yearly';
-  const monthlyEquiv = isYearly ? plan.price_cents / 12 : plan.price_cents;
-  // Economia real: (12 × mensal - anual) / (12 × mensal)
-  const baseId = String(plan.id).replace('_annual', '');
-  const monthlyRef = MONTHLY_REF[baseId];
-  const savingsPct = (isYearly && monthlyRef)
-    ? Math.round(((monthlyRef * 12 - plan.price_cents) / (monthlyRef * 12)) * 100)
-    : 0;
+  const monthlyEquiv = isYearly ? Math.round(plan.price_cents / 12) : plan.price_cents;
+  const economia = (isYearly && monthlyRefCents) ? (monthlyRefCents * 12 - plan.price_cents) : 0;
   return (
     <div style={{
       padding: 16,
@@ -695,7 +698,7 @@ function PlanItem({ plan, colors, onSelect, loading, highlight, isCurrent }) {
           background: colors.primary, color: colors.primaryText,
           fontSize: '0.65rem', fontWeight: 700, padding: '3px 8px', borderRadius: 999,
           letterSpacing: '0.04em',
-        }}>RECOMENDADO</span>
+        }}>MELHOR PREÇO</span>
       )}
       {isCurrent && (
         <span style={{
@@ -705,30 +708,28 @@ function PlanItem({ plan, colors, onSelect, loading, highlight, isCurrent }) {
           letterSpacing: '0.04em',
         }}>PLANO ATUAL</span>
       )}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <strong style={{ color: colors.text, fontSize: '1rem' }}>{plan.name}</strong>
-        <span style={{ color: colors.text, fontWeight: 700 }}>
-          {formatPrice(monthlyEquiv)}
-          <span style={{ fontWeight: 400, color: colors.textSecondary, fontSize: 13 }}>/mês</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+        <strong style={{ color: colors.text, fontSize: '1rem' }}>{isYearly ? 'Anual' : 'Mensal'}</strong>
+        <span style={{ color: colors.text, fontWeight: 700, whiteSpace: 'nowrap' }}>
+          {brl(plan.price_cents)}
+          <span style={{ fontWeight: 400, color: colors.textSecondary, fontSize: 13 }}>{isYearly ? '/ano' : '/mês'}</span>
         </span>
       </div>
       {isYearly ? (
-        <div style={{ fontSize: '0.75rem', color: '#22c55e', marginTop: 2 }}>
-          Cobrado anualmente: {formatPrice(plan.price_cents)}{savingsPct > 0 ? ` · economize ${savingsPct}%` : ''}
+        <div style={{ fontSize: '0.8rem', color: '#16a34a', marginTop: 4, fontWeight: 600 }}>
+          equivale a {brl(monthlyEquiv)}/mês{economia > 0 ? ` · economize ${brl(economia)}` : ''}
         </div>
       ) : (
-        <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: 2 }}>
+        <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: 4 }}>
           Sem fidelidade · cancele quando quiser
         </div>
       )}
       <div style={{ fontSize: '0.78rem', color: colors.textSecondary, marginTop: 8, lineHeight: 1.45 }}>
-        {isPlanoEntrada(plan.id)
-          ? `Responsável + ${MAX_CONVIDADOS_ENTRADA} convidado · 1 clube · 1 categoria · quadro tático e exportações`
-          : `Responsável + ${MAX_CONVIDADOS_CLUBE} convidados · até 5 categorias · comissão técnica completa`}
+        {`${plan.name || nomePlano(plan.id)} · responsável + ${MAX_CONVIDADOS_CLUBE} convidados · até 5 categorias · 1 clube ativo · quadro tático e exportações`}
       </div>
       <div style={{ height: 12 }} />
       <Button size="sm" fullWidth onClick={onSelect} disabled={loading || isCurrent} icon={<CreditCard size={14} />}>
-        {isCurrent ? 'Você está aqui' : (loading ? 'Abrindo…' : 'Assinar')}
+        {isCurrent ? 'Você está aqui' : (loading ? 'Abrindo…' : `Assinar ${isYearly ? 'anual' : 'mensal'}`)}
       </Button>
     </div>
   );
