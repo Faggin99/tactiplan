@@ -435,18 +435,23 @@ function PlayerRankList({ items = [], colors, accent, emptyMsg }) {
       {items.slice(0, 8).map((p, i) => {
         const pct = max > 0 ? (p.value / max) * 100 : 0;
         return (
-          <div key={p.athlete_id || `p-${i}`} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.45rem', borderRadius: '0.35rem', fontSize: '0.82rem', backgroundColor: i === 0 ? `${accent}10` : 'transparent', border: `1px solid ${i === 0 ? `${accent}30` : 'transparent'}` }}>
-            <span style={{ width: 16, color: colors.textSecondary, fontWeight: 700, textAlign: 'right', fontSize: '0.7rem' }}>{i + 1}.</span>
+          <div key={p.athlete_id || `p-${i}`} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.45rem', padding: '0.4rem 0.5rem', borderRadius: '0.35rem', fontSize: '0.82rem', backgroundColor: i === 0 ? `${accent}10` : 'transparent', border: `1px solid ${i === 0 ? `${accent}30` : 'transparent'}` }}>
+            <span style={{ width: 16, color: colors.textSecondary, fontWeight: 700, textAlign: 'right', fontSize: '0.7rem', lineHeight: '1.25rem', flexShrink: 0 }}>{i + 1}.</span>
             {p.jersey_number != null && (
-              <span style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: `${accent}25`, color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, flexShrink: 0 }}>
+              <span style={{ width: 20, height: 20, borderRadius: '50%', backgroundColor: `${accent}25`, color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.66rem', fontWeight: 700, flexShrink: 0 }}>
                 {p.jersey_number}
               </span>
             )}
-            <span style={{ flex: 1, minWidth: 0, color: colors.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-            <div style={{ flex: '0 0 70px', height: 6, backgroundColor: colors.border, borderRadius: 3, overflow: 'hidden' }}>
-              <div style={{ width: `${pct}%`, height: '100%', backgroundColor: accent, borderRadius: 3 }} />
+            {/* nome + valor na 1ª linha; barra fina embaixo (cabe em coluna estreita) */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+                <span title={p.name} style={{ flex: 1, minWidth: 0, color: colors.text, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                <span style={{ flexShrink: 0, fontSize: '0.74rem', fontWeight: 600, color: colors.textSecondary, whiteSpace: 'nowrap' }}>{p.label}</span>
+              </div>
+              <div style={{ height: 4, marginTop: '0.3rem', backgroundColor: colors.border, borderRadius: 2, overflow: 'hidden' }}>
+                <div style={{ width: `${pct}%`, height: '100%', backgroundColor: accent, borderRadius: 2 }} />
+              </div>
             </div>
-            <span style={{ width: 95, textAlign: 'right', fontSize: '0.78rem', fontWeight: 600, color: colors.text }}>{p.label}</span>
           </div>
         );
       })}
