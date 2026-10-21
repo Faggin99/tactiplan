@@ -2,7 +2,8 @@
 // guardado no banco só como SHA-256: quem lê o banco não consegue se passar pelo aparelho.
 // - Expiração longa e DESLIZANTE: APP_SESSAO_DIAS (padrão 180) a partir do último uso.
 // - Revogável: sair (POST /api/app/auth/sair) grava revoked_at; conta removida (LGPD) derruba.
-// O JWT do web não muda nem é aceito aqui; o token do app não é aceito nas rotas do web (T0).
+// O JWT do web não é aceito no BFF; desde a T1 o token do app também abre as rotas do web
+// (authMiddleware), com as mesmas regras. Trocar a senha no web derruba as sessões do app.
 const crypto = require('crypto');
 const { query } = require('../config/database');
 
@@ -95,6 +96,17 @@ async function revogar(sessionId) {
   await query('UPDATE app_sessions SET revoked_at = now() WHERE id = $1 AND revoked_at IS NULL', [sessionId]);
 }
 
+// Senha trocada/redefinida no web: TODA sessão do app desta pessoa cai (o aparelho perdido ou
+// de outra pessoa deixa de entrar). Os aparelhos de push saem junto. Devolve quantas caíram.
+async function revogarTodasDoUsuario(userId) {
+  const r = await query(
+    'UPDATE app_sessions SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL RETURNING id',
+    [userId]
+  );
+  await query('DELETE FROM app_push_devices WHERE user_id = $1', [userId]);
+  return r.rows.length;
+}
+
 // Aparelho para push: um token pertence a UMA pessoa (troca de conta no mesmo aparelho move o token).
 async function registrarPush({ userId, sessionId, plataforma, token }) {
   const p = plataformaValida(plataforma);
@@ -119,5 +131,5 @@ async function apagarPushDaSessao(sessionId) {
 
 module.exports = {
   PREFIXO, gerarToken, hashToken, pareceToken, diasDeValidade, plataformaValida,
-  criar, validar, revogar, registrarPush, apagarPushDaSessao,
+  criar, validar, revogar, revogarTodasDoUsuario, registrarPush, apagarPushDaSessao,
 };

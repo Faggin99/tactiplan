@@ -14,6 +14,7 @@ const billing = require('../services/billing');
 const { isAdmin, isLifetime } = require('../config/specialUsers');
 const { OAuth2Client } = require('google-auth-library');
 const conta = require('../services/conta'); // login único (Conta Faggin)
+const appSessoes = require('../services/appSessoes'); // sessões do app nativo (T1)
 
 const googleClient = process.env.GOOGLE_CLIENT_ID ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID) : null;
 
@@ -25,6 +26,16 @@ const APPLE_JWKS = createRemoteJWKSet(new URL('https://appleid.apple.com/auth/ke
 const APPLE_AUDIENCES = ['com.faggin.tactiplan', process.env.APPLE_SERVICES_ID].filter(Boolean);
 
 const router = express.Router();
+
+// Troca/redefinição de senha derruba as sessões do APP (tokens tpa_). Falha aqui não desfaz a
+// troca da senha (já gravada), só fica no log.
+async function revogarSessoesDoApp(userId) {
+  try {
+    await appSessoes.revogarTodasDoUsuario(userId);
+  } catch (err) {
+    console.error('revogar sessões do app:', err.message);
+  }
+}
 
 function generateToken(user) {
   return jwt.sign({ id: user.id, email: user.email }, jwtSecret, { expiresIn: jwtExpiresIn });
@@ -412,6 +423,8 @@ router.put('/password', authMiddleware, [
       [hashedPassword, req.user.id]
     );
     await conta.definirSenha(req.user.email, newPassword);
+    // Senha nova = o app precisa entrar de novo em todo aparelho.
+    await revogarSessoesDoApp(req.user.id);
 
     res.json({ message: 'Password updated successfully' });
   } catch (err) {
@@ -694,6 +707,7 @@ router.post('/reset', recoveryLimiter, [
     await query('UPDATE users SET encrypted_password = $1, updated_at = now() WHERE id = $2', [hashed, row.user_id]);
     await query('UPDATE password_resets SET used_at = now() WHERE id = $1', [row.id]);
     await conta.definirSenha(row.email, password);
+    await revogarSessoesDoApp(row.user_id);
 
     res.json({ ok: true });
   } catch (err) {

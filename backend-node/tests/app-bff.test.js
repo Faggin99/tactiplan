@@ -116,6 +116,11 @@ async function query(sql, params = []) {
     Object.assign(m, { user_id: params[0], accepted_at: agora(), invite_token: null });
     return rows([{ id: m.id }]);
   }
+  if (/DELETE FROM workspace_members WHERE id = \$1 AND accepted_at IS NULL AND invite_token = \$2/.test(s)) {
+    const antes = db.members.length;
+    db.members = db.members.filter((m) => !(m.id === params[0] && !m.accepted_at && m.invite_token === params[1]));
+    return rows(antes === db.members.length ? [] : [{ id: params[0] }]);
+  }
   throw new Error('consulta não simulada: ' + s.slice(0, 120));
 }
 
@@ -481,6 +486,33 @@ test('convite de outro e-mail: 403; equipe cheia ou em só leitura: 402 com fras
   db.members.push({ id: 'm9', workspace_id: WS_OUTRA, user_id: 'x', accepted_at: 1 });
   assert.strictEqual((await request(app).post(`/api/app/convites/${t}/aceitar`).set(auth)).status, 402);
   assert.strictEqual((await request(app).post('/api/app/convites/nao-hex/aceitar').set(auth)).status, 404);
+});
+
+test('recusar convite: só o dono do e-mail, só pendente; some do /me e da equipe', async () => {
+  cenario();
+  const token = convidar();
+  const { body } = await entrar();
+  const auth = { Authorization: 'Bearer ' + body.token };
+  assert.strictEqual(body.me.convites.length, 1);
+  const r = await request(app).post(`/api/app/convites/${token}/recusar`).set(auth);
+  assert.strictEqual(r.status, 200);
+  assert.strictEqual(r.body.ok, true);
+  assert.strictEqual(r.body.me.convites.length, 0);
+  assert.strictEqual(r.body.me.workspaces.length, 1); // não entrou na equipe
+  assert.strictEqual(db.members.length, 0);
+  assert.strictEqual((await request(app).post(`/api/app/convites/${token}/recusar`).set(auth)).status, 404);
+  // de outro e-mail: 403 e o convite fica
+  const outro = convidar({ email: 'ana@exemplo.com', token: 'ef'.repeat(24) });
+  const o = await request(app).post(`/api/app/convites/${outro}/recusar`).set(auth);
+  assert.strictEqual(o.status, 403);
+  assert.strictEqual(db.members.length, 1);
+  // já aceito: 410
+  db.members = [{ id: 'conv-2', workspace_id: WS_OUTRA, user_id: DONO, invited_email: 'dono@exemplo.com', invite_token: '12'.repeat(24), accepted_at: 1 }];
+  assert.strictEqual((await request(app).post(`/api/app/convites/${'12'.repeat(24)}/recusar`).set(auth)).status, 410);
+  assert.strictEqual(db.members.length, 1);
+  // sem token do app: 401; token malformado: 404
+  assert.strictEqual((await request(app).post(`/api/app/convites/${token}/recusar`)).status, 401);
+  assert.strictEqual((await request(app).post('/api/app/convites/zz/recusar').set(auth)).status, 404);
 });
 
 // ---------- push ----------

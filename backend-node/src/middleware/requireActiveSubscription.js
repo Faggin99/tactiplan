@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const { query } = require('../config/database');
 const { jwtSecret } = require('../config/auth');
 const billing = require('../services/billing');
+const appSessoes = require('../services/appSessoes');
 
 // F1 (15/10/2026): não existe mais plano Free. Este middleware global:
 //   (1) valida o acesso à workspace pedida (X-Workspace-Id);
@@ -18,6 +19,7 @@ const ALWAYS_ALLOWED_PREFIXES = [
   '/api/workspaces',
   '/api/health',
   '/api/invites/',      // aceitar convite para uma equipe que paga
+  '/api/app/',          // BFF do app nativo: regras próprias (entrar, sair, convites, push)
   '/uploads/',
 ];
 
@@ -56,11 +58,21 @@ function matchPremium(path) {
   return PREMIUM_ROUTES.find((r) => path === r.prefix || path.startsWith(r.prefix + '/'));
 }
 
-function extractUserId(req) {
+// Dono do token: JWT do web OU token do app nativo ("tpa_…", T1). O do app é validado UMA vez
+// por requisição (o authMiddleware reaproveita o resultado). Token inválido → null (a rota
+// responde 401). Banco fora → lança (cai no fail-open do middleware, e a rota decide).
+async function extractUserId(req) {
   const authHeader = req.headers.authorization || '';
   if (!authHeader.startsWith('Bearer ')) return null;
+  const token = authHeader.slice(7).trim();
+  if (token.startsWith(appSessoes.PREFIXO)) {
+    // require tardio: o auth.js também carrega este módulo indiretamente via rotas.
+    const auth = require('./auth');
+    const r = await auth.validarTokenApp(req, token);
+    return r?.usuario?.id || null;
+  }
   try {
-    return jwt.verify(authHeader.slice(7), jwtSecret)?.id || null;
+    return jwt.verify(token, jwtSecret)?.id || null;
   } catch (_) {
     return null;
   }
@@ -86,7 +98,7 @@ async function requireActiveSubscription(req, res, next) {
     if (!req.path.startsWith('/api')) return next();
     if (isAlwaysAllowed(req.path)) return next();
 
-    const userId = extractUserId(req);
+    const userId = await extractUserId(req);
     if (!userId) return next(); // sem token: a rota responde 401
 
     const userRes = await query('SELECT role FROM users WHERE id = $1', [userId]);

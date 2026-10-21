@@ -3,6 +3,28 @@ const { jwtSecret } = require('../config/auth');
 const { query } = require('../config/database');
 const { effectivePermissionsForMember, PERMISSIONS } = require('../utils/permissions');
 const { travaClubeArquivado } = require('../utils/clubArquivado');
+const appSessoes = require('../services/appSessoes');
+
+// Token do APP NATIVO ("tpa_…", app_sessions, migration 056) também abre as rotas do web (T1):
+// o app reaproveita /api/microcycles, /api/sessions, /api/activities, /api/files, /api/reports…
+// com as MESMAS regras. Validação pelo hash: não revogado, não vencido, conta não removida;
+// renova a validade com o uso. O `req.user` montado é o mesmo do JWT.
+// Rotas que o token do app NÃO abre: área admin e cobrança (o app não vende nada).
+const ROTAS_FECHADAS_AO_APP = [/^\/api\/admin(?:\/|$)/, /^\/api\/billing(?:\/|$)/];
+const MSG_SESSAO_APP = 'Sua sessão terminou. Entre de novo.';
+
+function caminhoDe(req) {
+  return String(req.originalUrl || req.url || '').split('?')[0];
+}
+
+// Validação do token do app UMA vez por requisição (o requireActiveSubscription roda antes e
+// reaproveita o mesmo resultado). Resolve { sessao, usuario } ou null.
+function validarTokenApp(req, token) {
+  if (!req._validacaoApp || req._validacaoApp.token !== token) {
+    req._validacaoApp = { token, promessa: appSessoes.validar(token) };
+  }
+  return req._validacaoApp.promessa;
+}
 
 // Cache pequeno por user_id pra reduzir queries por request — invalida em 30s
 const accessibleCache = new Map();
@@ -68,24 +90,52 @@ const authMiddleware = async (req, res, next) => {
 
   const token = parts[1];
 
-  try {
-    const decoded = jwt.verify(token, jwtSecret);
-
-    // LGPD: rejeita JWT de conta removida (soft-deleted). Também cobre user apagado
-    // manualmente do banco (userCheck vem vazio).
-    const userCheck = await query(
-      'SELECT deleted_at, role FROM users WHERE id = $1',
-      [decoded.id]
-    );
-    if (userCheck.rows.length === 0 || userCheck.rows[0].deleted_at) {
-      return res.status(401).json({ error: 'Conta removida' });
+  // ---- token do app nativo ----
+  let doApp = null;
+  if (token.startsWith(appSessoes.PREFIXO)) {
+    let r;
+    try {
+      r = await validarTokenApp(req, token);
+    } catch (err) {
+      // Banco fora: NÃO é "sessão acabou" (o app sai da conta em qualquer 401).
+      console.error('authMiddleware app:', err.message);
+      return res.status(503).json({ error: 'Não foi possível conferir a sessão agora. Tente de novo.' });
     }
+    if (!r) return res.status(401).json({ error: MSG_SESSAO_APP, code: 'SESSAO_INVALIDA' });
+    const caminho = caminhoDe(req);
+    if (ROTAS_FECHADAS_AO_APP.some((re) => re.test(caminho))) {
+      return res.status(403).json({ error: 'Esta área não está disponível no app.', code: 'ROTA_FORA_DO_APP' });
+    }
+    doApp = r;
+  }
 
-    // role vem do BANCO (fonte da verdade), não do token: o JWT antigo não
-    // carregava role, então `decoded.role` era sempre undefined e o bypass
-    // de admin abaixo nunca disparava. Ler do banco também evita token stale.
-    const dbRole = userCheck.rows[0].role;
-    req.user = { id: decoded.id, email: decoded.email, role: dbRole };
+  try {
+    let decoded;
+    let dbRole;
+    if (doApp) {
+      // validar() já confere conta removida e lê o papel do banco.
+      decoded = { id: doApp.usuario.id, email: doApp.usuario.email };
+      dbRole = doApp.usuario.role;
+      req.appSessao = doApp.sessao;
+    } else {
+      decoded = jwt.verify(token, jwtSecret);
+
+      // LGPD: rejeita JWT de conta removida (soft-deleted). Também cobre user apagado
+      // manualmente do banco (userCheck vem vazio).
+      const userCheck = await query(
+        'SELECT deleted_at, role FROM users WHERE id = $1',
+        [decoded.id]
+      );
+      if (userCheck.rows.length === 0 || userCheck.rows[0].deleted_at) {
+        return res.status(401).json({ error: 'Conta removida' });
+      }
+
+      // role vem do BANCO (fonte da verdade), não do token: o JWT antigo não
+      // carregava role, então `decoded.role` era sempre undefined e o bypass
+      // de admin abaixo nunca disparava. Ler do banco também evita token stale.
+      dbRole = userCheck.rows[0].role;
+    }
+    req.user = { id: decoded.id, email: decoded.email, role: dbRole, viaApp: !!doApp };
 
     let accessible = { workspaces: [], clubs: [] };
     try {
@@ -206,5 +256,7 @@ const authMiddleware = async (req, res, next) => {
 };
 
 authMiddleware.invalidateAccessibleCache = invalidateAccessibleCache;
+authMiddleware.validarTokenApp = validarTokenApp;
+authMiddleware.ROTAS_FECHADAS_AO_APP = ROTAS_FECHADAS_AO_APP;
 
 module.exports = authMiddleware;

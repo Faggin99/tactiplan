@@ -105,3 +105,14 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
 - Senhas com bcrypt
 - JWT para auth (exp 7 dias)
 - Upload de arquivos: max 50MB, tipos permitidos: imagens, video, PDF
+
+## App nativo (T1, 21/10/2026): token do app também abre o web
+- `authMiddleware` aceita `Bearer tpa_…` (app_sessions, migration 056) além do JWT: valida pelo hash
+  (não revogado, não vencido, conta não removida, renova com o uso) e monta o MESMO `req.user`
+  (`req.user.viaApp = true`, `req.appSessao`). `requireActiveSubscription` também reconhece o token
+  (só leitura 402 vale no app). Token do app NÃO abre `/api/admin/*` nem `/api/billing/*` (403 ROTA_FORA_DO_APP).
+  Banco fora na conferência = 503 (nunca 401: o app sai da conta em qualquer 401).
+- Trocar/redefinir a senha no web (`PUT /api/auth/password`, `POST /api/auth/reset`) revoga TODAS as
+  sessões do app da pessoa (`appSessoes.revogarTodasDoUsuario`).
+- `POST /api/app/convites/:token/recusar` (BFF): só o dono do e-mail, só pendente; apaga o convite.
+- Testes: `tests/app-token-web.test.js` (revogado/vencido 401, workspace alheia, 402 READ_ONLY, 409 CLUB_ARCHIVED).

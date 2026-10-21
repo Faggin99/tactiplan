@@ -5,6 +5,7 @@
 //   GET  /api/app/me                        → pessoa, contas, clubes, papel, permissões, só leitura,
 //                                             personalização do clube e convites pendentes
 //   POST /api/app/convites/:token/aceitar   → aceita um convite do PRÓPRIO e-mail
+//   POST /api/app/convites/:token/recusar   → recusa (apaga) um convite pendente do PRÓPRIO e-mail
 //   POST /api/app/push/registrar            → guarda o token de push (nada é enviado ainda)
 const express = require('express');
 const { query } = require('../config/database');
@@ -96,6 +97,45 @@ router.post('/convites/:token/aceitar', appAuth, async (req, res) => {
   }
 });
 
+// Recusar convite: só quem recebeu (e-mail do convite = e-mail da conta) e só enquanto pendente.
+// O convite some da lista do dono da equipe (como se ele o tivesse cancelado). Mensagens neutras.
+async function recusarConvite(email, token) {
+  const r = await query(
+    `SELECT m.id, m.invited_email, m.accepted_at
+       FROM workspace_members m
+      WHERE m.invite_token = $1`,
+    [token]
+  );
+  const convite = r.rows[0];
+  if (!convite) return { status: 404, corpo: { error: 'Convite inválido ou já usado.', code: 'CONVITE_INVALIDO' } };
+  if (convite.accepted_at) return { status: 410, corpo: { error: 'Este convite já foi aceito.', code: 'CONVITE_USADO' } };
+  if (!convite.invited_email || String(convite.invited_email).toLowerCase() !== String(email || '').toLowerCase()) {
+    return { status: 403, corpo: { error: 'Este convite é para outro e-mail.', code: 'CONVITE_OUTRO_EMAIL' } };
+  }
+  const del = await query(
+    'DELETE FROM workspace_members WHERE id = $1 AND accepted_at IS NULL AND invite_token = $2 RETURNING id',
+    [convite.id, token]
+  );
+  if (!del.rows.length) return { status: 410, corpo: { error: 'Este convite já foi aceito.', code: 'CONVITE_USADO' } };
+  return { status: 200, corpo: { ok: true } };
+}
+
+router.post('/convites/:token/recusar', appAuth, async (req, res) => {
+  try {
+    const token = String(req.params.token || '');
+    if (!/^[0-9a-f]{16,128}$/i.test(token)) {
+      return res.status(404).json({ error: 'Convite inválido ou já usado.', code: 'CONVITE_INVALIDO' });
+    }
+    const r = await recusarConvite(req.user.email, token);
+    if (r.status !== 200) return res.status(r.status).json(r.corpo);
+    const me = await appMe.carregarMe(req.user.id);
+    res.json({ ...r.corpo, me });
+  } catch (err) {
+    console.error('app convite recusar:', err.message);
+    res.status(500).json({ error: 'Não foi possível recusar o convite agora.' });
+  }
+});
+
 // Push: estrutura pronta, DESLIGADA (só guarda o token; não há envio no servidor).
 router.post('/push/registrar', appAuth, async (req, res) => {
   try {
@@ -115,3 +155,4 @@ router.use((req, res) => res.status(404).json({ error: 'Rota do app não encontr
 
 module.exports = router;
 module.exports.aceitarConvite = aceitarConvite;
+module.exports.recusarConvite = recusarConvite;
