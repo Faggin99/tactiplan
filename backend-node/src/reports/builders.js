@@ -31,6 +31,17 @@ const CONTENT_ABBR = {
 };
 function abbreviateContent(name) { return CONTENT_ABBR[name] || name; }
 
+// Abreviação média para as etiquetas do Relatório do clube (como no protótipo)
+const CONTENT_CHIP_ABBR = {
+  'Bola Parada Ofensiva': 'Bola Parada Of.',
+  'Bola Parada Defensiva': 'Bola Parada Def.',
+  'Transição Ofensiva': 'Trans. Ofensiva',
+  'Transição Defensiva': 'Trans. Defensiva',
+  'Organização Ofensiva': 'Org. Ofensiva',
+  'Organização Defensiva': 'Org. Defensiva',
+};
+function chipContent(name) { return CONTENT_CHIP_ABBR[name] || name; }
+
 const SPECIAL_LIMITS = { sessionPhotos: 9, weekPhotos: 12 };
 
 // ---------------------------------------------------------------- período
@@ -714,7 +725,7 @@ function buildClubTraining(ts) {
       activities: p.activities,
       minutes: p.minutes,
       pct: useTime ? p.pctTime : p.pctActivities,
-      chips: list.slice(0, CONTENTS_PER_PILLAR).map((c) => c.name),
+      chips: list.slice(0, CONTENTS_PER_PILLAR).map((c) => chipContent(c.name)),
       more: Math.max(0, list.length - CONTENTS_PER_PILLAR),
     };
   });

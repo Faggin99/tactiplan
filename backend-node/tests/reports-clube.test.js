@@ -96,7 +96,7 @@ test('builder: treinos com minutos trabalhados, média por sessão e pilares por
   assert.deepStrictEqual([t.minutes, t.sessions, t.activities, t.distinctContents, t.avgPerSession], [185, 2, 7, 7, 93]);
   assert.strictEqual(t.useTime, true);
   assert.deepStrictEqual(t.pillars.map((p) => [p.label, p.activities, p.pct]), [['Físico', 3, 49], ['Tático', 3, 43], ['Técnico', 1, 8]]);
-  assert.deepStrictEqual(t.pillars[1].chips, ['Bola Parada Defensiva', 'Organização Ofensiva', 'Organização Defensiva']);
+  assert.deepStrictEqual(t.pillars[1].chips, ['Bola Parada Def.', 'Org. Ofensiva', 'Org. Defensiva']);
   // mais de 8 conteúdos num pilar: 8 + "+N"
   const many = { ...TRAINING, byContent: Array.from({ length: 11 }, (_, i) => ({ name: `C${i}`, dimension: 'tatico', count: 11 - i, minutes: 0 })) };
   const p = B.buildClubTraining(many).pillars.find((x) => x.key === 'tatico');
