@@ -82,4 +82,16 @@ object Icones {
     val paleta = traco("paleta", "M12 2a10 10 0 1 0 0 20c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h2.3c3.1 0 5.7-2.6 5.7-5.7C23 5.5 18.1 2 12 2zM7.5 10.5h.01M12 7.5h.01M16.5 10.5h.01")
     val contrasteIcone = traco("contraste", "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20M12 2v20")
     val nuvemSemRede = traco("semRede", "M2 2l20 20M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07")
+    // T1 (lucide): semana, dia, editar atividade, anexos e relatórios.
+    val lapis = traco("lapis", "M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5zM15 5l4 4")
+    val clipe = traco("clipe", "M13.234 20.252 21 12.3M16 6l-8.414 8.586a2 2 0 0 0 0 2.828 2 2 0 0 0 2.828 0l8.414-8.586a4 4 0 0 0 0-5.656 4 4 0 0 0-5.656 0l-8.415 8.585a6 6 0 1 0 8.486 8.486")
+    val adicionar = traco("adicionar", "M5 12h14M12 5v14")
+    val menos = traco("menos", "M5 12h14")
+    val lua = traco("lua", "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z")
+    val video = traco("video", "M16 13l5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5M4 6h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2")
+    val olho = traco("olho", "M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0M12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6")
+    val cima = traco("cima", "M18 15l-6-6-6 6")
+    val baixo = traco("baixo", "M6 9l6 6 6-6")
+    val fechar = traco("fechar", "M18 6 6 18M6 6l12 12")
+    val apito = traco("apito", "M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83")
 }

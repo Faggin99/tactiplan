@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Só pastas temporárias do cache: fotos da câmera (apagadas depois de reduzidas), anexo baixado
+     para abrir no visualizador do sistema e o PDF do relatório (só o último fica). -->
+<paths>
+    <cache-path name="fotos-camera" path="fotos-camera/" />
+    <cache-path name="anexos" path="anexos/" />
+    <cache-path name="relatorios" path="relatorios/" />
+</paths>

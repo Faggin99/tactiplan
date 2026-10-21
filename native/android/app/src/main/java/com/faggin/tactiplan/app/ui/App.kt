@@ -17,7 +17,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.faggin.tactiplan.app.BuildConfig
+import com.faggin.tactiplan.app.dados.Api
 import com.faggin.tactiplan.app.dados.Aparelho
+import com.faggin.tactiplan.app.dados.treino.ApiTreino
+import com.faggin.tactiplan.app.dados.treino.ApiTreinoHttp
+import com.faggin.tactiplan.app.dados.treino.ServicoTreino
 import com.faggin.tactiplan.app.dados.ApiApp
 import com.faggin.tactiplan.app.dados.ConfigApp
 import com.faggin.tactiplan.app.dados.ControleSessao
@@ -51,6 +56,9 @@ fun App(
     google: LoginGoogle?,
     trava: TravaDoApp?,
     versaoInstalada: String,
+    apiBase: String = BuildConfig.API_BASE,
+    /** Rotas de treino do web com o token do app (os testes trocam por uma falsa). */
+    fabricaTreino: (token: String, workspaceId: String) -> ApiTreino = { t, w -> ApiTreinoHttp(Api(apiBase), t, w) },
 ) {
     val estado by controle.estado.collectAsState()
     val semConexao by controle.semConexao.collectAsState()
@@ -74,10 +82,15 @@ fun App(
                         e, semConexao,
                         escolher = { controle.escolher(it.escolha) },
                         aceitar = { controle.aceitarConvite(it.token) },
+                        recusar = { controle.recusarConvite(it.token) },
                         voltar = { controle.cancelarTroca() },
                         sair = { escopo.launch { controle.sair() } },
                     )
                     is EstadoApp.NoClube -> key(e.sessao.token, e.contexto.escolha) {
+                        val token = e.sessao.token
+                        val treino = remember(token, e.contexto.escolha.workspaceId) {
+                            ServicoTreino(fabricaTreino(token, e.contexto.escolha.workspaceId))
+                        }
                         Casca(
                             AmbienteClube(
                                 contexto = e.contexto,
@@ -91,6 +104,10 @@ fun App(
                                 termosUrl = config.termosUrl ?: TERMOS_URL_PADRAO,
                                 trocarClube = { controle.abrirTroca() },
                                 sair = { escopo.launch { controle.sair() } },
+                                usuarioId = e.sessao.me.usuario.id,
+                                apiBase = apiBase,
+                                treino = treino,
+                                tratarErro = { err -> controle.tratarErro(err, token) },
                             ),
                         )
                     }

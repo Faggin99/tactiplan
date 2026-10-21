@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,6 +38,9 @@ import com.faggin.tactiplan.app.dados.primeiroNome
 import com.faggin.tactiplan.app.design.TactiPlan
 import com.faggin.tactiplan.app.design.cor
 import com.faggin.tactiplan.app.ui.comum.Botao
+import com.faggin.tactiplan.app.ui.comum.BotaoTexto
+import com.faggin.tactiplan.app.dados.TEXTO_RECUSAR_CONVITE
+import com.faggin.tactiplan.app.dados.TITULO_RECUSAR_CONVITE
 import com.faggin.tactiplan.app.ui.comum.Cartao
 import com.faggin.tactiplan.app.ui.comum.Divisoria
 import com.faggin.tactiplan.app.ui.comum.EstadoVazio
@@ -64,8 +69,10 @@ fun OndeEntrarTela(
     aceitar: suspend (Convite) -> Unit,
     voltar: () -> Unit,
     sair: () -> Unit,
+    recusar: suspend (Convite) -> Unit = {},
 ) {
     val me = estado.sessao.me
+    var paraRecusar by remember { mutableStateOf<Convite?>(null) }
     val (ativas, arquivadas) = remember(me) { secoesDeEntrada(me) }
     val troca = estado.atual != null
     val escopo = rememberCoroutineScope()
@@ -117,6 +124,12 @@ fun OndeEntrarTela(
                         habilitado = aceitando == null,
                         modifier = Modifier.padding(top = 12.dp).testTag("onde:aceitar"),
                     )
+                    BotaoTexto(
+                        "Recusar",
+                        { paraRecusar = cv },
+                        habilitado = aceitando == null,
+                        cor = c.erroTinta,
+                    )
                 }
             }
         }
@@ -130,6 +143,25 @@ fun OndeEntrarTela(
             Text(TEXTO_TROCAR_DEPOIS, style = TactiPlan.tipos.corpo13, color = c.tinta2)
         }
         if (troca) Botao("Voltar ao clube atual", voltar, variante = VarianteBotao.NEUTRO)
+    }
+    paraRecusar?.let { cv ->
+        AlertDialog(
+            onDismissRequest = { paraRecusar = null },
+            title = { Text(TITULO_RECUSAR_CONVITE) },
+            text = { Text(TEXTO_RECUSAR_CONVITE) },
+            confirmButton = {
+                TextButton(modifier = Modifier.testTag("onde:confirmar-recusa"), onClick = {
+                    paraRecusar = null
+                    aceitando = cv.token
+                    erro = null
+                    escopo.launch {
+                        try { recusar(cv) } catch (e: Exception) { erro = mensagemDeErro(e) }
+                        aceitando = null
+                    }
+                }) { Text("Recusar", color = c.erroTinta) }
+            },
+            dismissButton = { TextButton(onClick = { paraRecusar = null }) { Text("Cancelar") } },
+        )
     }
 }
 

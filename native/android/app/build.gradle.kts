@@ -105,6 +105,8 @@ dependencies {
     // Privacidade, termos, "Esqueci a senha": Custom Tabs (navegador in-app).
     implementation(libs.androidx.browser)
     implementation(libs.androidx.fragment.ktx)
+    // Fotos dos anexos: rotação do EXIF aplicada antes de reduzir (T1).
+    implementation(libs.androidx.exifinterface)
     // Push (estrutura pronta, desligada): Firebase Cloud Messaging.
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)

@@ -33,6 +33,18 @@
             </intent-filter>
         </activity>
 
+        <!-- T1: câmera (TakePicture grava aqui, sem permissão CAMERA), anexo baixado para ver e o PDF
+             do relatório para a folha de compartilhar. Só pastas do cache (caminhos_arquivos.xml). -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.arquivos"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/caminhos_arquivos" />
+        </provider>
+
         <service
             android:name=".push.ServicoPush"
             android:exported="false">

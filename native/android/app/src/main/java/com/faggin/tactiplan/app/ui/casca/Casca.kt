@@ -30,6 +30,8 @@ import com.faggin.tactiplan.app.dados.DefAba
 import com.faggin.tactiplan.app.dados.abasDoContexto
 import com.faggin.tactiplan.app.design.TactiPlan
 import com.faggin.tactiplan.app.ui.comum.Icones
+import com.faggin.tactiplan.app.dados.treino.ServicoTreino
+import com.faggin.tactiplan.app.ui.semana.SemanaAba
 
 /** O que a casca entrega às telas do clube (tudo que vem da sessão + as ações do Mais). */
 class AmbienteClube(
@@ -44,6 +46,12 @@ class AmbienteClube(
     val termosUrl: String,
     val trocarClube: () -> Unit,
     val sair: () -> Unit,
+    /** T1: id da pessoa (preferências do aparelho), token da sessão e as rotas de treino do web. */
+    val usuarioId: String = "",
+    val apiBase: String = "",
+    val treino: ServicoTreino? = null,
+    /** Erro de qualquer chamada com o token: 401 encerra a sessão (devolve true quando tratou). */
+    val tratarErro: (Throwable) -> Boolean = { false },
 )
 
 fun iconeDaAba(a: DefAba): ImageVector = when (a.id) {
@@ -71,6 +79,7 @@ fun Casca(amb: AmbienteClube) {
         Box(Modifier.weight(1f)) {
             when (ativa) {
                 ABA_MAIS.id -> MaisTela(amb)
+                ABA_SEMANA.id -> if (amb.treino != null) SemanaAba(amb, amb.treino) else EmBreveTela(abas.first { it.id == ativa }, amb)
                 else -> EmBreveTela(abas.first { it.id == ativa }, amb)
             }
         }
