@@ -53,6 +53,10 @@ final class ApiFalsa: ApiApp, @unchecked Sendable {
     func aceitarConvite(token: String, convite: String) async throws -> RespostaConvite {
         anotar("aceitar:\(convite)"); return try respostaConvite.get()
     }
+    var respostaRecusar: Result<Me, Error> = .failure(ErroApi.offline())
+    func recusarConvite(token: String, convite: String) async throws -> Me {
+        anotar("recusar:\(convite)"); return try respostaRecusar.get()
+    }
     func sair(token: String) async throws { anotar("sair:\(token)"); if let erroSair { throw erroSair } }
     func registrarPush(token: String, tokenPush: String, plataforma: String) async throws {
         anotar("push:\(tokenPush):\(plataforma)")

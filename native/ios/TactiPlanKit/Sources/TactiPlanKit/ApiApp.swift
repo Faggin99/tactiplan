@@ -31,6 +31,8 @@ public protocol ApiApp: Sendable {
     func entrarComApple(identityToken: String, nome: String?, aparelho: Aparelho) async throws -> RespostaLogin
     func me(token: String) async throws -> Me
     func aceitarConvite(token: String, convite: String) async throws -> RespostaConvite
+    /// Recusa (apaga) um convite pendente do próprio e-mail; devolve o /me novo.
+    func recusarConvite(token: String, convite: String) async throws -> Me
     func sair(token: String) async throws
     func registrarPush(token: String, tokenPush: String, plataforma: String) async throws
 }
@@ -67,6 +69,12 @@ public final class ApiAppHttp: ApiApp {
 
     public func aceitarConvite(token: String, convite: String) async throws -> RespostaConvite {
         try await api.chamar("/app/convites/\(codificarComponente(convite))/aceitar", metodo: "POST", token: token)
+    }
+
+    public func recusarConvite(token: String, convite: String) async throws -> Me {
+        let j = try await api.chamarJson("/app/convites/\(codificarComponente(convite))/recusar", metodo: "POST", token: token)
+        guard let me = j["me"] else { throw ErroApi(status: 0, codigo: nil, mensagem: ErroApi.MSG_FALHA) }
+        return try me.decodificar(Me.self)
     }
 
     public func sair(token: String) async throws {

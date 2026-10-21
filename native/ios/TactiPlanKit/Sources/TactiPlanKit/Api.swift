@@ -4,7 +4,7 @@ import FoundationNetworking
 #endif
 
 // Cliente HTTP do app (copiado do Gestsport). Paridade: dados/Api.kt (Android).
-// Uploads (anexos, fotos) chegam nas próximas fases com a mesma semântica de erro.
+// Uploads (anexos): ApiTreino.swift (multipart com progresso), mesma semântica de erro.
 
 /// Requisição já montada e validada, pronta pro transporte.
 public struct Requisicao: Sendable, Equatable {
@@ -119,6 +119,28 @@ public final class Api: Sendable {
     ) async throws -> T {
         try await chamarJson(caminho, metodo: metodo, corpo: corpo, token: token, cabecalhos: cabecalhos)
             .decodificar(T.self)
+    }
+
+    /// Chamada que devolve BYTES (PDF do relatório). 2xx → corpo cru; senão o mesmo [ErroApi].
+    public func chamarDados(
+        _ caminho: String,
+        metodo: String = "POST",
+        corpo: Json? = nil,
+        token: String? = nil,
+        cabecalhos: [(String, String)] = []
+    ) async throws -> Data {
+        guard let req = montar(caminho, metodo: metodo, corpo: corpo, token: token, cabecalhos: cabecalhos) else {
+            throw ErroApi.offline()
+        }
+        let resposta: Resposta
+        do {
+            resposta = try await transporte.enviar(req)
+        } catch {
+            if error is CancellationError || Task.isCancelled { throw CancellationError() }
+            throw ErroApi.offline()
+        }
+        guard (200...299).contains(resposta.status) else { _ = try respostaOuErro(resposta); return Data() }
+        return resposta.corpo
     }
 
     /// Caminho assinado do servidor → URL absoluta na origem da API.

@@ -177,6 +177,31 @@ public final class ControleSessao {
         }
     }
 
+    /// Recusa um convite pendente (some da lista; a equipe deixa de ver o convite). Erro sobe.
+    public func recusarConvite(_ convite: String) async throws {
+        guard let s0 = sessao else { return }
+        do {
+            let me = try await api.recusarConvite(token: s0.token, convite: convite)
+            guard var s = sessao, s.token == s0.token else { return }
+            s.me = me
+            s.meEm = relogio()
+            let estavaNoClube: Bool = { if case .noClube = self.estado { return true }; return false }()
+            let atual = currentEscolha()
+            cofre.salvar(s)
+            if estavaNoClube, let a = atual, let ctx = contextoDe(me, a) {
+                estado = .noClube(s, ctx)
+            } else if atual == nil, me.convites.isEmpty {
+                // Sem convite pendente: a mesma decisão da abertura (um clube só entra direto).
+                estado = Self.decidir(s, cofre: cofre)
+            } else {
+                estado = .ondeEntrar(s, atual: escolhaValida(atual, me) ? atual : nil)
+            }
+        } catch {
+            if tratarErro(error, token: s0.token) { return }
+            throw error
+        }
+    }
+
     private func currentEscolha() -> Escolha? {
         switch estado {
         case .ondeEntrar(_, let atual): return atual
