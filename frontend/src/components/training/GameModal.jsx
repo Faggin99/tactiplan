@@ -316,6 +316,13 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
     setSelectedPlayers(selectedPlayers.map(p => p.athlete_id === athleteId ? { ...p, minutes_manual: false } : p));
   };
 
+  // Duas pessoas com a mesma camisa no jogo: destaca (quase sempre é digitação sem querer)
+  const camisaRepetida = (player) => {
+    const n = player.jersey_number;
+    if (n === '' || n == null) return false;
+    return selectedPlayers.filter((p) => String(p.jersey_number ?? '') === String(n)).length > 1;
+  };
+
   const updatePlayerJersey = (athleteId, raw) => {
     const v = raw === '' ? '' : Math.min(99, Math.max(1, parseInt(raw) || 0));
     setSelectedPlayers(selectedPlayers.map(p =>
@@ -866,12 +873,13 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                                     max="99"
                                     value={player.jersey_number ?? ''}
                                     onChange={(e) => updatePlayerJersey(player.athlete_id, e.target.value)}
-                                    title="Camisa neste jogo"
+                                    onWheel={(e) => e.currentTarget.blur()}
+                                    title={camisaRepetida(player) ? `Camisa ${player.jersey_number} repetida neste jogo` : 'Camisa neste jogo'}
                                     placeholder="–"
                                     style={{
                                       width: '34px', height: '24px', borderRadius: '50%',
                                       backgroundColor: '#22c55e20',
-                                      border: '1px solid #22c55e40',
+                                      border: camisaRepetida(player) ? '1px solid #ef4444' : '1px solid #22c55e40',
                                       color: '#22c55e',
                                       fontSize: '0.7rem', fontWeight: 700,
                                       textAlign: 'center', flexShrink: 0,
@@ -922,12 +930,13 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                                     max="99"
                                     value={player.jersey_number ?? ''}
                                     onChange={(e) => updatePlayerJersey(player.athlete_id, e.target.value)}
-                                    title="Camisa neste jogo"
+                                    onWheel={(e) => e.currentTarget.blur()}
+                                    title={camisaRepetida(player) ? `Camisa ${player.jersey_number} repetida neste jogo` : 'Camisa neste jogo'}
                                     placeholder="–"
                                     style={{
                                       width: '34px', height: '24px', borderRadius: '50%',
                                       backgroundColor: '#f59e0b20',
-                                      border: '1px solid #f59e0b40',
+                                      border: camisaRepetida(player) ? '1px solid #ef4444' : '1px solid #f59e0b40',
                                       color: '#f59e0b',
                                       fontSize: '0.7rem', fontWeight: 700,
                                       textAlign: 'center', flexShrink: 0,

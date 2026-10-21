@@ -373,7 +373,7 @@ export function EventModal({ isOpen, onClose, onAdd, matchDuration = 90, editing
                 <select style={selectStyle} value={secondaryPlayerId} onChange={(e) => setSecondaryPlayerId(e.target.value)} aria-label="Quem saiu">
                   <option value="">{subOutOptions.length ? 'Quem saiu…' : `Ninguém em campo aos ${formatMinuteDisplay()}`}</option>
                   {subOutOptions.map(p => (
-                    <option key={p.id} value={p.id}>{p.jersey_number ? `#${p.jersey_number} — ` : ''}{p.name}</option>
+                    <option key={p.id} value={p.id}>{p.name}{p.jersey_number ? ` · camisa ${p.jersey_number}` : ''}</option>
                   ))}
                 </select>
               </div>
@@ -383,7 +383,7 @@ export function EventModal({ isOpen, onClose, onAdd, matchDuration = 90, editing
                   <select style={selectStyle} value={playerId} onChange={(e) => setPlayerId(e.target.value)} aria-label="Quem entrou">
                     <option value="">Quem entrou…</option>
                     {subInOptions.map(p => (
-                      <option key={p.id} value={p.id}>{p.jersey_number ? `#${p.jersey_number} — ` : ''}{p.name}</option>
+                      <option key={p.id} value={p.id}>{p.name}{p.jersey_number ? ` · camisa ${p.jersey_number}` : ''}</option>
                     ))}
                   </select>
                 ) : (
@@ -402,7 +402,7 @@ export function EventModal({ isOpen, onClose, onAdd, matchDuration = 90, editing
               <select style={selectStyle} value={playerId} onChange={(e) => setPlayerId(e.target.value)}>
                 <option value="">{playersList.length ? 'Selecione um atleta…' : 'Nenhum jogador na escalação'}</option>
                 {inOptions.map(p => (
-                  <option key={p.id} value={p.id}>{p.jersey_number ? `#${p.jersey_number} — ` : ''}{p.name}</option>
+                  <option key={p.id} value={p.id}>{p.name}{p.jersey_number ? ` · camisa ${p.jersey_number}` : ''}</option>
                 ))}
               </select>
             </div>
@@ -415,7 +415,7 @@ export function EventModal({ isOpen, onClose, onAdd, matchDuration = 90, editing
               <select style={selectStyle} value={secondaryPlayerId} onChange={(e) => setSecondaryPlayerId(e.target.value)}>
                 <option value="">Sem assistência</option>
                 {outOptions.map(p => (
-                  <option key={p.id} value={p.id}>{p.jersey_number ? `#${p.jersey_number} — ` : ''}{p.name}</option>
+                  <option key={p.id} value={p.id}>{p.name}{p.jersey_number ? ` · camisa ${p.jersey_number}` : ''}</option>
                 ))}
               </select>
             </div>
