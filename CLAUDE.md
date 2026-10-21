@@ -42,13 +42,19 @@ Resumo: /api/auth/*, /api/clubs/*, /api/athletes/*, /api/microcycles/*,
 /api/sessions/*, /api/contents, /api/stages, /api/titles/*, /api/games/*,
 /api/stats/*, /api/plays/*, /api/files/*, /api/competitions/*, /api/external/*
 
-## Multi-clube
-- Pro / Pro Anual: `max_clubs = 1`
-- Clube / Clube Anual: `max_clubs = 3` (subido na migration 037)
-- Lifetime / admin: ilimitado
-- Add-on avulso: coluna `subscriptions.extra_club_slots` (INT, default 0). Soma ao
-  `features.max_clubs` do plano. Sem UI de compra ainda — pra liberar slot extra
-  manualmente: `UPDATE subscriptions SET extra_club_slots = 1 WHERE id = ...`
+## Multi-clube (21/10/2026: 1 clube ATIVO + arquivados sem limite)
+- Plano Clube / Clube Anual: `features.max_clubs = 1` clube ATIVO. Lifetime / admin: ilimitado.
+- Arquivar: `clubs.archived_at` (migration 055). Clube arquivado = só leitura (histórico e relatórios),
+  some do seletor (fica em "Arquivados" na tela Cadastros › Clubes) e NÃO conta no limite.
+  `POST /api/clubs/:id/archive` · `POST /api/clubs/:id/unarchive` (402 ADDON_REQUIRED sem vaga) · `GET /api/clubs/limit`.
+  Trava de escrita: `src/utils/clubArquivado.js` (chamada no fim do authMiddleware) → 409 `CLUB_ARCHIVED`.
+- Add-on: `subscriptions.extra_club_slots` (INT) soma clubes ATIVOS extras (R$20/mês). Sem tela de compra:
+  "fale com a gente" → `UPDATE subscriptions SET extra_club_slots = 1 WHERE id = ...`
+- `workspaces.tipo` ('clube' | 'comissao' | NULL): "Você é" do cadastro; só ajusta textos (`PUT /api/workspaces/:id/tipo`).
+- Biblioteca da CONTA (vale pra todos os clubes): conteúdos, submomentos (stages), títulos de atividade.
+  Jogadas do quadro (`tactical_plays`) ainda são POR CLUBE (lista filtra por club_id).
+- Nomes de pessoas (users.name, athletes.name) passam por `formatarNome` ao salvar
+  (`backend-node/src/utils/formatarNome.js` = `frontend/src/lib/formatarNome.js`, teste de paridade).
 
 ## Integração externa de dados (api-football)
 - Status: estrutura pronta, **NÃO ATIVADA**. Sem `API_FOOTBALL_KEY` no .env os
@@ -72,8 +78,9 @@ Resumo: /api/auth/*, /api/clubs/*, /api/athletes/*, /api/microcycles/*,
   implementado — sai num sprint futuro se a feature decolar.)
 
 ## Billing (Assinaturas) — F1 (15/10/2026): SEM plano Free
-- Planos vendidos: `pro`/`pro_annual` (nome de exibição "Comissão", dono + 1 convidado) e `clube`/`clube_annual`
-  (dono + 5 convidados, até 5 categorias). Nomes em `shared/planos.json` (fonte única back+front); ids internos não mudam.
+- Desde 21/10/2026 SÓ o Clube é vendido: `clube` R$120/mês e `clube_annual` R$1.200/ano (migration 054;
+  dono + 5 convidados, até 5 categorias, 1 clube ativo). `pro`/`pro_annual` ("Essencial") estão is_active=false:
+  só exibem o nome de assinaturas antigas. Nomes em `shared/planos.json` (fonte única back+front); ids internos não mudam.
 - `billing.getEffectiveSubscription({userId, workspaceId})` decide pelo DONO da workspace: admin → cortesia
   (`users.cortesia_permanente` ou `LIFETIME_EMAILS`) → assinatura paga usável → senão SÓ LEITURA
   (`plan_id='inactive'`, `read_only=true`). O plano `free` não dá mais acesso.
