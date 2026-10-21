@@ -30,6 +30,7 @@ const TacticalCanvas = forwardRef(function TacticalCanvas({
   onBackgroundTap,
   selectedElementId,
   selectedDrawingId,
+  bottomReserve = 0,
 }, ref) {
   const containerRef = useRef(null);
   const stageRef = useRef(null);
@@ -61,9 +62,9 @@ const TacticalCanvas = forwardRef(function TacticalCanvas({
   const updateDimensions = useCallback(() => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const dims = calculateCanvasDimensions(rect.width, rect.height, fieldType, fieldView);
+    const dims = calculateCanvasDimensions(rect.width, rect.height, fieldType, fieldView, bottomReserve);
     setDimensions(dims);
-  }, [fieldType, fieldView]);
+  }, [fieldType, fieldView, bottomReserve]);
 
   useEffect(() => {
     updateDimensions();

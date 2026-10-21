@@ -88,7 +88,9 @@ export function getAspectRatio(fieldType, fieldView = FIELD_VIEWS.FULL) {
 // Layout: o Stage ocupa o container inteiro (gramado em tudo) e o retângulo
 // de linhas cabe ("contain") centralizado com respiro em volta, pra peças
 // poderem ficar fora das linhas e os gols aparecerem.
-export function calculateCanvasDimensions(containerWidth, containerHeight, fieldType, fieldView = FIELD_VIEWS.FULL) {
+// bottomReserve: faixa (px) embaixo reservada pros controles de playback/frames,
+// pra barra ficar ABAIXO da linha de fundo e não em cima do campo.
+export function calculateCanvasDimensions(containerWidth, containerHeight, fieldType, fieldView = FIELD_VIEWS.FULL, bottomReserve = 0) {
   const stageW = Math.max(1, Math.round(containerWidth));
   const stageH = Math.max(1, Math.round(containerHeight));
   const aspectRatio = getAspectRatio(fieldType, fieldView);
@@ -97,7 +99,8 @@ export function calculateCanvasDimensions(containerWidth, containerHeight, field
   const padX = Math.max(stageW * 0.06, 28);
   const padY = Math.max(stageH * 0.06, 24);
   const availW = Math.max(40, stageW - padX * 2);
-  const availH = Math.max(40, stageH - padY * 2);
+  const reserve = Math.max(0, Math.min(bottomReserve, stageH * 0.25));
+  const availH = Math.max(40, stageH - padY * 2 - reserve);
 
   let fieldW, fieldH;
   if (availW / availH > aspectRatio) {
@@ -109,7 +112,7 @@ export function calculateCanvasDimensions(containerWidth, containerHeight, field
   }
 
   const fieldX = (stageW - fieldW) / 2;
-  const fieldY = (stageH - fieldH) / 2;
+  const fieldY = padY + (availH - fieldH) / 2;
   return {
     stageWidth: stageW,
     stageHeight: stageH,

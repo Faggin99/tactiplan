@@ -512,6 +512,7 @@ export default function TacticalBoardPage() {
       <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
         <TacticalCanvas
           ref={canvasRef}
+          bottomReserve={64}
           fieldType={board.fieldType}
           fieldView={board.fieldView}
           elements={displayElements}
@@ -638,15 +639,17 @@ export default function TacticalBoardPage() {
       </div>
 
       {/* Barra inferior flutuante — playback + frames */}
+      {/* Uma linha só, na faixa reservada ABAIXO da linha de fundo (bottomReserve do canvas) */}
       <div style={{
-        position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 25,
+        position: 'absolute', bottom: 8, left: '50%', transform: 'translateX(-50%)', zIndex: 25,
         maxWidth: 'calc(100vw - 20px)',
+        display: 'flex', alignItems: 'center', flexWrap: 'nowrap',
         backgroundColor: 'rgba(11,18,32,0.82)', backdropFilter: 'blur(10px)',
         border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12,
         boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
         ...chromeStyle,
       }}>
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', transform: 'scale(0.86)', transformOrigin: 'right center', margin: '-4px -6px' }}>
           <PlaybackControls
             isPlaying={playback.isPlaying}
             speed={playback.speed}
@@ -658,7 +661,8 @@ export default function TacticalBoardPage() {
             onSpeedChange={playback.setSpeed}
           />
         </div>
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ width: 1, alignSelf: 'stretch', margin: '8px 0', backgroundColor: 'rgba(255,255,255,0.08)' }} />
+        <div style={{ transform: 'scale(0.86)', transformOrigin: 'left center', margin: '-4px -6px' }}>
           <FrameControls
             currentFrameIndex={board.currentFrameIndex}
             totalFrames={board.totalFrames}
