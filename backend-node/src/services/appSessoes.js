@@ -34,6 +34,13 @@ function limpar(v, max) {
   return s ? s.slice(0, max) : null;
 }
 
+// O pg deste projeto devolve timestamptz como texto do Postgres ("2027-04-19 02:57:22.2+00"):
+// o app recebe ISO 8601.
+function isoOuNull(v) {
+  const d = new Date(v);
+  return Number.isFinite(d.getTime()) ? d.toISOString() : null;
+}
+
 function plataformaValida(p) {
   const s = String(p || '').toLowerCase();
   return s === 'ios' || s === 'android' ? s : null;
@@ -50,7 +57,7 @@ async function criar({ userId, metodo, plataforma, aparelho, versaoApp, ip }) {
     [userId, hashToken(token), metodo, plataformaValida(plataforma), limpar(aparelho, 120),
      limpar(versaoApp, 20), limpar(ip, 64), String(dias)]
   );
-  return { token, id: r.rows[0].id, expira_em: r.rows[0].expires_at };
+  return { token, id: r.rows[0].id, expira_em: isoOuNull(r.rows[0].expires_at) };
 }
 
 // Token → { sessao, usuario } ou null (inexistente, revogado, vencido, conta removida).
@@ -79,7 +86,7 @@ async function validar(token) {
     ).catch((e) => console.error('appSessoes.renovar:', e.message));
   }
   return {
-    sessao: { id: s.id, metodo: s.metodo, plataforma: s.plataforma, expira_em: s.expires_at },
+    sessao: { id: s.id, metodo: s.metodo, plataforma: s.plataforma, expira_em: isoOuNull(s.expires_at) },
     usuario: { id: s.user_id, email: s.email, role: s.role },
   };
 }

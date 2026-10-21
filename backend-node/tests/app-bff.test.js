@@ -234,7 +234,7 @@ test('entrar com e-mail e senha devolve token + me; o e-mail não diferencia cai
   const r = await entrar('Dono@Exemplo.com');
   assert.strictEqual(r.status, 200);
   assert.match(r.body.token, /^tpa_/);
-  assert.ok(r.body.expira_em);
+  assert.match(r.body.expira_em, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
   assert.strictEqual(r.body.me.usuario.email, 'dono@exemplo.com');
   assert.strictEqual(r.headers['cache-control'], 'no-store');
   assert.strictEqual(db.sessions[0].metodo, 'senha');
