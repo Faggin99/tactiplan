@@ -52,6 +52,8 @@ function parseFotosConfig(raw, candidateIds) {
     layout,
     proporcao,
     legendas: raw.legendas !== false,
+    // tamanho das fotos na página (% da largura útil): 50–100, de 10 em 10
+    tamanho: Math.min(100, Math.max(50, Math.round((Number(raw.tamanho) || 100) / 10) * 10)),
     agrupar: raw.agrupar !== false,
     posicao: POSICOES.includes(raw.posicao) ? raw.posicao : 'fim',
     legendasCustom,
@@ -80,7 +82,7 @@ function effectiveLayout(layout, count) {
 // Opções da grade a partir do modo: padrão antigo (config null) ou escolhido.
 function gridOptions(config, count) {
   if (!config) return { layout: count <= 4 ? 'medio' : 'compacto', proporcao: null, legendas: true };
-  return { layout: effectiveLayout(config.layout, count), proporcao: config.proporcao, legendas: config.legendas };
+  return { layout: effectiveLayout(config.layout, count), proporcao: config.proporcao, legendas: config.legendas, tamanho: config.tamanho || 100 };
 }
 
 module.exports = {

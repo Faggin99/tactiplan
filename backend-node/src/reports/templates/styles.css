@@ -213,7 +213,7 @@ body{font-family:Inter,sans-serif;color:var(--ink);font-size:8.5pt;line-height:1
 .reststate b{font:700 16pt Poppins;color:var(--ink-2)}
 
 /* ============ FOTOS ============ */
-.photos{display:grid;gap:3mm}
+.photos{display:grid;gap:3mm;margin-inline:auto}
 .photos.c3{grid-template-columns:repeat(3,1fr)}
 .photos.c2{grid-template-columns:repeat(2,1fr)}
 .ph-item{break-inside:avoid;min-width:0}

@@ -10,7 +10,7 @@ const LAYOUT_CLASS = { grande: 'c1', medio: 'c2', compacto: 'c3', mosaico: 'c3 m
 const RATIO_CLASS = { '4:3': 'r43', '1:1': 'r11', original: 'rorig' };
 
 // items: [{ src, caption: { title, context } }]
-function photoGrid(items, { layout = 'compacto', proporcao = null, legendas = true, showContext = true } = {}) {
+function photoGrid(items, { layout = 'compacto', proporcao = null, legendas = true, showContext = true, tamanho = 100 } = {}) {
   const lay = effectiveLayout(layout, items.length); // mosaico com 1–2 fotos vira grande/médio
   const hero = lay === 'mosaico';
   const fig = (p, extra = '', unit = true) => {
@@ -27,7 +27,8 @@ function photoGrid(items, { layout = 'compacto', proporcao = null, legendas = tr
     : items.map((p) => fig(p)).join('');
   const cls = ['photos', LAYOUT_CLASS[lay] || 'c3', RATIO_CLASS[proporcao] || '']
     .filter(Boolean).join(' ');
-  return `<div class="${cls}">${cells}</div>`;
+  const largura = tamanho && tamanho < 100 ? ` style="width:${Math.round(tamanho)}%"` : '';
+  return `<div class="${cls}"${largura}>${cells}</div>`;
 }
 
 // Corpo da página de fotos. photos = { items, groups|null, hidden, total, grid }

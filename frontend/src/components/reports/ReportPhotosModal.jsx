@@ -77,12 +77,15 @@ export function ReportPhotosModal({ tipo, body, filename, list, onClose }) {
       legendas: typeof p.legendas === 'boolean' ? p.legendas : true,
       agrupar: typeof p.agrupar === 'boolean' ? p.agrupar : true,
       posicao: p.posicao === 'blocos' ? 'blocos' : 'fim',
+      tamanho: Number.isFinite(p.tamanho) ? Math.min(100, Math.max(50, p.tamanho)) : 100,
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [layout, setLayout] = useState(initial.layout);
   const [proporcao, setProporcao] = useState(initial.proporcao);
   const [legendas, setLegendas] = useState(initial.legendas);
+  // Tamanho das fotos na página (% da largura): 50–100
+  const [tamanho, setTamanho] = useState(initial.tamanho);
   const [agrupar, setAgrupar] = useState(initial.agrupar);
   // Ficha do dia: fotos numa página no final ou logo abaixo de cada bloco
   const [posicao, setPosicao] = useState(initial.posicao);
@@ -97,8 +100,8 @@ export function ReportPhotosModal({ tipo, body, filename, list, onClose }) {
   const grouped = semana && agrupar;
 
   useEffect(() => {
-    writePrefs(user?.id, { layout, proporcao, legendas, agrupar, posicao });
-  }, [user?.id, layout, proporcao, legendas, agrupar, posicao]);
+    writePrefs(user?.id, { layout, proporcao, legendas, agrupar, posicao, tamanho });
+  }, [user?.id, layout, proporcao, legendas, agrupar, posicao, tamanho]);
 
   // Escape fecha; trava o scroll da página por baixo
   useEffect(() => {
@@ -132,8 +135,8 @@ export function ReportPhotosModal({ tipo, body, filename, list, onClose }) {
     for (const id of ids) {
       if (custom[id] !== undefined && custom[id] !== (byId.get(id)?.titulo || '')) legendasCustom[id] = custom[id].slice(0, MAX_LEGENDA);
     }
-    return { ids, layout, proporcao, legendas, agrupar, legendasCustom, ...(semana ? {} : { posicao }) };
-  }, [displayOrder, selected, custom, layout, proporcao, legendas, agrupar, posicao, semana, byId]);
+    return { ids, layout, proporcao, legendas, agrupar, tamanho, legendasCustom, ...(semana ? {} : { posicao }) };
+  }, [displayOrder, selected, custom, layout, proporcao, legendas, agrupar, posicao, tamanho, semana, byId]);
 
   // ------------------------------------------------------------ prévia
   const [preview, setPreview] = useState({ html: null, loading: true, error: null });
@@ -318,6 +321,18 @@ export function ReportPhotosModal({ tipo, body, filename, list, onClose }) {
           ))}
         </div>
         {proporcao === 'original' && <p style={{ fontSize: '0.72rem', color: sub, margin: '0.35rem 0 0' }}>A foto aparece inteira, sem corte.</p>}
+      </section>
+
+      <section>
+        <p style={label}>Tamanho das fotos · {tamanho}%</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <span style={{ fontSize: '0.72rem', color: sub }}>Menor</span>
+          <input type="range" min="50" max="100" step="10" value={tamanho}
+            onChange={(e) => setTamanho(Number(e.target.value))}
+            aria-label="Tamanho das fotos" style={{ flex: 1, accentColor: colors.primary }} />
+          <span style={{ fontSize: '0.72rem', color: sub }}>Maior</span>
+        </div>
+        <p style={{ fontSize: '0.72rem', color: sub, margin: '0.35rem 0 0' }}>Fotos menores cabem mais por página.</p>
       </section>
 
       <section style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
