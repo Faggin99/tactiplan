@@ -95,7 +95,7 @@ export function ContentsConfigPage() {
 
   const newBtnStyle = {
     display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-    padding: '0.5rem 1rem', backgroundColor: colors.primary, color: '#fff',
+    padding: '0.5rem 1rem', backgroundColor: colors.primary, color: colors.primaryText,
     border: 'none', borderRadius: '0.375rem', fontSize: '0.875rem', fontWeight: 500, cursor: 'pointer',
     whiteSpace: 'nowrap',
   };

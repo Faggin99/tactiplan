@@ -126,7 +126,7 @@ export function SetPasswordPage() {
             disabled={loading}
             style={{
               padding: '0.65rem 1rem',
-              backgroundColor: colors.primary, color: '#fff',
+              backgroundColor: colors.primary, color: colors.primaryText,
               border: 'none', borderRadius: '0.375rem',
               fontSize: '0.875rem', fontWeight: 600,
               cursor: loading ? 'not-allowed' : 'pointer',

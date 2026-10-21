@@ -258,7 +258,7 @@ export function WeekPickerModal({ isOpen, onClose, currentWeek, onSelectWeek, se
     backgroundColor: colors.primary,
     border: 'none',
     borderRadius: '0.375rem',
-    color: '#fff',
+    color: colors.primaryText,
     cursor: 'pointer',
     fontSize: '0.875rem',
     fontWeight: '500',

@@ -160,7 +160,7 @@ export function ActivitiesConfigPage() {
     gap: '0.5rem',
     padding: '0.625rem 1rem',
     backgroundColor: colors.primary,
-    color: '#fff',
+    color: colors.primaryText,
     border: 'none',
     borderRadius: '0.375rem',
     fontSize: '0.875rem',

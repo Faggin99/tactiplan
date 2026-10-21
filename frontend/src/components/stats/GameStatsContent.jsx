@@ -71,10 +71,10 @@ export function GameStatsContent({
 
       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
         <div style={{ display: 'flex', gap: '0.25rem', padding: '0.25rem', backgroundColor: colors.surface, borderRadius: '0.5rem', border: `1px solid ${colors.border}` }}>
-          <button onClick={() => setChartViewMode('type')} style={{ padding: '0.4rem 0.75rem', borderRadius: '0.375rem', border: 'none', backgroundColor: chartViewMode === 'type' ? colors.primary : 'transparent', color: chartViewMode === 'type' ? '#fff' : colors.textSecondary, fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+          <button onClick={() => setChartViewMode('type')} style={{ padding: '0.4rem 0.75rem', borderRadius: '0.375rem', border: 'none', backgroundColor: chartViewMode === 'type' ? colors.primary : 'transparent', color: chartViewMode === 'type' ? colors.primaryText : colors.textSecondary, fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             <Target size={14} /> Tipo de Gol
           </button>
-          <button onClick={() => setChartViewMode('minute')} style={{ padding: '0.4rem 0.75rem', borderRadius: '0.375rem', border: 'none', backgroundColor: chartViewMode === 'minute' ? colors.primary : 'transparent', color: chartViewMode === 'minute' ? '#fff' : colors.textSecondary, fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+          <button onClick={() => setChartViewMode('minute')} style={{ padding: '0.4rem 0.75rem', borderRadius: '0.375rem', border: 'none', backgroundColor: chartViewMode === 'minute' ? colors.primary : 'transparent', color: chartViewMode === 'minute' ? colors.primaryText : colors.textSecondary, fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             <Clock size={14} /> Minuto do Gol
           </button>
         </div>

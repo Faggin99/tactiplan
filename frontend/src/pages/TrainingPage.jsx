@@ -436,7 +436,7 @@ export function TrainingPage() {
   const dayHeaderStyle = (isCurrentDay = false) => ({
     padding: isMobile ? '0.3rem' : '0.5rem',
     backgroundColor: isCurrentDay ? '#10b981' : colors.primary,
-    color: '#ffffff',
+    color: isCurrentDay ? '#ffffff' : colors.primaryText,
     borderRadius: '0.375rem',
     textAlign: 'center',
     fontWeight: '600',

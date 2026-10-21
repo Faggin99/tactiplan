@@ -308,7 +308,7 @@ export function TourGuide({ steps = [], isOpen, onClose, onFinish, storageKey })
             )}
             <button onClick={handleNext} style={{
               padding: '0.5rem 0.875rem',
-              background: colors.primary, color: '#fff',
+              background: colors.primary, color: colors.primaryText,
               border: 'none', borderRadius: 6,
               fontSize: '0.8125rem', fontWeight: 600,
               cursor: 'pointer',

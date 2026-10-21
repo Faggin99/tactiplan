@@ -217,7 +217,7 @@ export function TrainingStatsPage() {
     border: `1px solid ${a ? colors.primary : colors.border}`,
     borderRadius: '0.375rem',
     backgroundColor: a ? colors.primary : colors.background,
-    color: a ? '#fff' : colors.text,
+    color: a ? colors.primaryText : colors.text,
     cursor: 'pointer', fontSize: '0.8rem', fontWeight: 500,
   });
   const tabStyle = (a) => ({

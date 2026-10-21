@@ -330,7 +330,7 @@ export function ViewToggle({ value, onChange, colors }) {
     borderRadius: '0.3rem',
     border: 'none',
     backgroundColor: active ? colors.primary : 'transparent',
-    color: active ? '#fff' : colors.textSecondary,
+    color: active ? colors.primaryText : colors.textSecondary,
     cursor: 'pointer',
     transition: 'all 0.15s',
   });
@@ -358,7 +358,7 @@ export function ModeToggle({ value, onChange, colors }) {
     borderRadius: '0.375rem',
     border: 'none',
     backgroundColor: active ? colors.primary : 'transparent',
-    color: active ? '#fff' : colors.textSecondary,
+    color: active ? colors.primaryText : colors.textSecondary,
     fontSize: '0.75rem',
     fontWeight: 600,
     cursor: 'pointer',

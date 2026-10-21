@@ -98,7 +98,7 @@ export function MultiSelect({ label, options = [], value = [], onChange, placeho
     gap: '0.25rem',
     padding: '0.25rem 0.5rem',
     backgroundColor: colors.primary,
-    color: '#fff',
+    color: colors.primaryText,
     borderRadius: '0.25rem',
     fontSize: '0.875rem',
   };

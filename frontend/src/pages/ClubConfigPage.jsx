@@ -160,7 +160,7 @@ export function ClubConfigPage() {
     gap: '0.5rem',
     padding: '0.625rem 1rem',
     backgroundColor: colors.primary,
-    color: '#fff',
+    color: colors.primaryText,
     border: 'none',
     borderRadius: '0.375rem',
     fontSize: '0.875rem',
@@ -354,7 +354,7 @@ export function ClubConfigPage() {
     backgroundColor: colors.primary,
     border: 'none',
     borderRadius: '0.375rem',
-    color: '#fff',
+    color: colors.primaryText,
     fontSize: '0.875rem',
     fontWeight: '500',
     cursor: 'pointer',
@@ -456,7 +456,7 @@ export function ClubConfigPage() {
                     </div>
                   )}
                   <label style={cameraButtonStyle}>
-                    <Camera size={16} color="#fff" />
+                    <Camera size={16} color={colors.primaryText} />
                     <input
                       type="file"
                       accept="image/*"

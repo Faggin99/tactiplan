@@ -465,7 +465,7 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
     padding: '0.5rem 1rem',
     border: 'none',
     background: isActive ? colors.primary : 'transparent',
-    color: isActive ? '#fff' : colors.text,
+    color: isActive ? colors.primaryText : colors.text,
     cursor: 'pointer',
     borderRadius: '0.375rem 0.375rem 0 0',
     fontWeight: isActive ? '600' : '500',
@@ -911,7 +911,7 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
                                   display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
                                   padding: '0.45rem 0.85rem', borderRadius: '0.375rem',
                                   backgroundColor: podeAnexar ? colors.primary : colors.surfaceHover,
-                                  color: podeAnexar ? '#fff' : colors.textMuted,
+                                  color: podeAnexar ? colors.primaryText : colors.textMuted,
                                   fontSize: '0.825rem', fontWeight: 600,
                                   cursor: podeAnexar ? 'pointer' : 'not-allowed',
                                 }}

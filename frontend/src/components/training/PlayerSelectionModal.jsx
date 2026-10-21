@@ -231,7 +231,7 @@ export function PlayerSelectionModal({ isOpen, onClose, athletes, selectedPlayer
                     }}
                   >
                     {selected ? (
-                      <Check size={18} color="#fff" />
+                      <Check size={18} color={colors.primaryText} />
                     ) : (
                       <User size={18} color={colors.textSecondary} />
                     )}

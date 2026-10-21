@@ -33,7 +33,7 @@ export function Checkbox({ label, checked, onChange, ...props }) {
   return (
     <label style={containerStyle} {...props}>
       <div style={checkboxStyle}>
-        {checked && <Check size={16} color="#ffffff" strokeWidth={3} />}
+        {checked && <Check size={16} color={colors.primaryText} strokeWidth={3} />}
       </div>
       <span style={labelStyle}>{label}</span>
       <input

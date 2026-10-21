@@ -52,7 +52,7 @@ export function ExportMenu({
   const fontSize = size === 'sm' ? '0.75rem' : '0.8rem';
 
   const btnStyle = variant === 'primary' ? {
-    backgroundColor: colors.primary, color: '#fff',
+    backgroundColor: colors.primary, color: colors.primaryText,
     border: 'none',
   } : variant === 'floating' ? {
     // Pra usar sobre overlays/headers escuros: fundo branco semi-transparente

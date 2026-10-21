@@ -96,7 +96,7 @@ export function SlotAthletePicker({
       <div style={sheet} onClick={(e) => e.stopPropagation()} role="dialog" aria-label={`Escolher atleta para a vaga ${slot.role}`}>
         <div style={{ padding: '0.75rem 1rem', borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{
-            fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.05em', color: '#fff',
+            fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.05em', color: colors.primaryText,
             backgroundColor: colors.primary, borderRadius: '0.3rem', padding: '0.15rem 0.45rem',
           }}>{slot.role}</span>
           <span style={{ fontSize: '0.95rem', fontWeight: 600, flex: 1 }}>

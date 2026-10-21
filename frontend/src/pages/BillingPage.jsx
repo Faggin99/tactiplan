@@ -623,7 +623,7 @@ function AddonsSection({ colors }) {
           style={{
             padding: '0.45rem 0.9rem', borderRadius: 8, border: 'none',
             backgroundColor: (!dirty || saving || isAnnual) ? colors.border : colors.primary,
-            color: '#fff', fontSize: '0.82rem', fontWeight: 600,
+            color: colors.primaryText, fontSize: '0.82rem', fontWeight: 600,
             cursor: (!dirty || saving || isAnnual) ? 'default' : 'pointer',
           }}
         >
@@ -692,7 +692,7 @@ function PlanItem({ plan, colors, onSelect, loading, highlight, isCurrent }) {
       {highlight && !isCurrent && (
         <span style={{
           position: 'absolute', top: -10, right: 12,
-          background: colors.primary, color: '#fff',
+          background: colors.primary, color: colors.primaryText,
           fontSize: '0.65rem', fontWeight: 700, padding: '3px 8px', borderRadius: 999,
           letterSpacing: '0.04em',
         }}>RECOMENDADO</span>

@@ -234,7 +234,7 @@ export function SettingsPage() {
                   </div>
 
                   <label style={cameraButtonStyle}>
-                    <Camera size={20} color="#fff" />
+                    <Camera size={20} color={colors.primaryText} />
                     <input
                       type="file"
                       accept="image/*"

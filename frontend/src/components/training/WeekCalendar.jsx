@@ -135,7 +135,7 @@ export function WeekCalendar({ currentWeek, onWeekSelect, onClose }) {
       minHeight: '36px',
       border: isCurrent ? `2px solid #10b981` : `1px solid ${colors.border}`,
       backgroundColor: isSelected ? colors.primary : colors.surface,
-      color: isSelected ? '#fff' : isCurrent ? '#10b981' : colors.text,
+      color: isSelected ? colors.primaryText : isCurrent ? '#10b981' : colors.text,
       borderRadius: '0.375rem',
       cursor: 'pointer',
       fontSize: '0.8rem',

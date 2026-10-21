@@ -33,7 +33,7 @@ export function Button({
   const variants = {
     primary: {
       backgroundColor: colors.primary,
-      color: '#ffffff',
+      color: colors.primaryText,
       ':hover': {
         backgroundColor: disabled ? colors.primary : colors.primaryHover,
       }

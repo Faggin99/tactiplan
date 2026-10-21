@@ -129,7 +129,7 @@ export function SubcontentsConfigPage() {
   const titleStyle = { fontSize: isMobile ? '1.25rem' : '1.875rem', fontWeight: 700, color: colors.text };
   const addButtonStyle = {
     display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.625rem 1rem',
-    backgroundColor: colors.primary, color: '#fff', border: 'none', borderRadius: '0.375rem',
+    backgroundColor: colors.primary, color: colors.primaryText, border: 'none', borderRadius: '0.375rem',
     fontSize: '0.875rem', fontWeight: 500, cursor: 'pointer',
   };
   const filtersStyle = {

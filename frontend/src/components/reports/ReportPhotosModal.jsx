@@ -271,7 +271,7 @@ export function ReportPhotosModal({ tipo, body, filename, list, onClose }) {
     padding: '0.55rem 0.9rem', borderRadius: '0.45rem', fontSize: '0.85rem', fontWeight: 600,
     cursor: exporting ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
     ...(kind === 'primary'
-      ? { background: colors.primary, color: '#fff', border: 'none' }
+      ? { background: colors.primary, color: colors.primaryText, border: 'none' }
       : { background: 'transparent', color: colors.text, border: `1px solid ${colors.border}` }),
     opacity: exporting && exporting !== kind ? 0.6 : 1,
   });

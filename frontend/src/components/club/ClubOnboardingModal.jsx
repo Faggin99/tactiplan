@@ -119,7 +119,7 @@ export function ClubOnboardingModal({ onCreateClub }) {
     width: '100%',
     padding: '0.875rem',
     backgroundColor: colors.primary,
-    color: '#fff',
+    color: colors.primaryText,
     border: 'none',
     borderRadius: '0.5rem',
     fontSize: '1rem',

@@ -133,7 +133,7 @@ export default function SavePlayModal({ isOpen, onClose, onSave, initialData = {
             borderRadius: '0.375rem',
             border: 'none',
             backgroundColor: name.trim() && !saving ? colors.primary : colors.border,
-            color: 'white',
+            color: colors.primaryText,
             fontSize: '0.875rem',
             fontWeight: '600',
             cursor: name.trim() && !saving ? 'pointer' : 'not-allowed',

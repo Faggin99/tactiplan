@@ -431,7 +431,7 @@ export default function PlayerModal({ isOpen, onClose, onSave, player = null }) 
               onClick={() => setShowInjuryForm(true)}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                padding: '0.5rem 0.85rem', backgroundColor: colors.primary, color: '#fff',
+                padding: '0.5rem 0.85rem', backgroundColor: colors.primary, color: colors.primaryText,
                 border: 'none', borderRadius: '0.375rem', fontSize: '0.85rem', fontWeight: 500,
                 cursor: 'pointer', alignSelf: 'flex-start',
               }}

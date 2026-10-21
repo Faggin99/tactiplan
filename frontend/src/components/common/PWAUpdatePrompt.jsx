@@ -71,7 +71,7 @@ export function PWAUpdatePrompt() {
         onClick={applyUpdate}
         style={{
           padding: '6px 12px',
-          background: colors.primary, color: '#fff',
+          background: colors.primary, color: colors.primaryText,
           border: 'none', borderRadius: 6,
           fontWeight: 600, fontSize: '0.8125rem',
           cursor: 'pointer',

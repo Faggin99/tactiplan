@@ -168,7 +168,7 @@ function PerfilTab() {
               ? <img src={userProfileService.getPhotoUrl(user.profile_photo)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               : <User size={32} color={colors.textSecondary} />}
           </div>
-          <label style={{ position: 'absolute', bottom: -2, right: -2, width: 28, height: 28, borderRadius: '50%', backgroundColor: colors.primary, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: `2px solid ${colors.background}` }}>
+          <label style={{ position: 'absolute', bottom: -2, right: -2, width: 28, height: 28, borderRadius: '50%', backgroundColor: colors.primary, color: colors.primaryText, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: `2px solid ${colors.background}` }}>
             <Camera size={14} />
             <input type="file" accept="image/*" onChange={onPickPhoto} style={{ display: 'none' }} disabled={loading} />
           </label>

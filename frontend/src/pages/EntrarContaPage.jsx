@@ -61,7 +61,7 @@ export function EntrarContaPage() {
             <AlertCircle size={40} color={colors.error || '#ef4444'} style={{ margin: '0 auto 12px' }} />
             <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: colors.text, margin: 0 }}>Não deu para entrar</h1>
             <p style={{ fontSize: '0.875rem', color: colors.textSecondary, marginTop: 8, lineHeight: 1.5 }}>{erro}</p>
-            <Link to="/login" style={{ display: 'inline-block', marginTop: 20, padding: '0.65rem 1.25rem', borderRadius: '0.6rem', backgroundColor: colors.primary, color: '#fff', fontSize: '0.875rem', fontWeight: 600, textDecoration: 'none' }}>
+            <Link to="/login" style={{ display: 'inline-block', marginTop: 20, padding: '0.65rem 1.25rem', borderRadius: '0.6rem', backgroundColor: colors.primary, color: colors.primaryText, fontSize: '0.875rem', fontWeight: 600, textDecoration: 'none' }}>
               Ir para o login
             </Link>
           </>
