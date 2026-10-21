@@ -1,0 +1,145 @@
+# Pipelines dos apps NATIVOS do TactiPlan (native/ios em SwiftUI, native/android em Kotlin/Compose).
+# Base: o codemagic.yaml do Gestsport (/var/www/escola-app). O app Capacitor antigo e o workflow
+# "ios-testflight" dele continuam no codemagic.yaml dos branches master/app-nativo (intocados);
+# este arquivo só existe no branch producao-2026-10-14 e não mexe no Capacitor nem em mobile-artifacts/.
+#
+# Pré-requisitos (uma vez, na UI do Codemagic — NENHUM segredo neste arquivo):
+#   - Integração App Store Connect "tactiplan" (já existe: chave 6UM3Z49UN2 do time S9BLFLWZLY).
+#   - Code signing identities (iOS): certificado de distribuição "tactiplan-dist" (já existe, é por
+#     time) + profile App Store NOVO "tactiplan-app-appstore" (App ID com.faggin.tactiplan.app).
+#   - Code signing identities (Android): keystore NOVO "tactiplan-app-release"
+#     (/var/www/arquivos/tactiplan-app-build/android-assinatura/tactiplan-app-release.jks; o
+#     Codemagic expõe CM_KEYSTORE_PATH/…_PASSWORD/CM_KEY_ALIAS/CM_KEY_PASSWORD).
+#   - App no Codemagic apontando para o repositório, branch producao-2026-10-14.
+workflows:
+  tactiplan-ios-testflight:
+    name: TactiPlan iOS — TestFlight (nativo)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: tactiplan
+    environment:
+      ios_signing:
+        certificates:
+          - tactiplan-dist
+        provisioning_profiles:
+          - tactiplan-app-appstore
+      # Xcode 26+ OBRIGATÓRIO: os testes do TactiPlanKit usam nomes com crases (Swift 6.2+).
+      xcode: "26.0"
+      # GRUPOS DE VARIÁVEIS (Codemagic → app → Environment variables). Grupo que NÃO existe derruba
+      # o build: descomente `groups:` e SÓ os grupos já criados.
+      #   • tactiplan-apple: TACTIPLAN_APPLE_ATIVO=1 (Sign in with Apple). Antes: capability Sign in
+      #     with Apple no App ID e o profile "tactiplan-app-appstore" regenerado e reenviado.
+      #   • tactiplan-push:  TACTIPLAN_PUSH_ATIVO=1 (push — estrutura pronta, DESLIGADA). Antes:
+      #     capability Push Notifications no App ID e o profile regenerado.
+      # groups:
+      #   - tactiplan-apple
+      #   - tactiplan-push
+    scripts:
+      - name: Conferir Swift (>= 6.2)
+        script: |
+          xcodebuild -version
+          swift --version
+          V=$(swift --version 2>&1 | sed -nE 's/.*Swift version ([0-9]+)\.([0-9]+).*/\1 \2/p' | head -1)
+          set -- $V
+          if [ "${1:-0}" -lt 6 ] || { [ "${1:-0}" -eq 6 ] && [ "${2:-0}" -lt 2 ]; }; then
+            echo "Precisa de Swift 6.2+ (Xcode 26+); achei: $V" >&2
+            exit 1
+          fi
+      - name: XcodeGen
+        script: |
+          set -e
+          [ -d native/ios ] || { echo "ERRO: native/ios não existe neste branch — rode no producao-2026-10-14."; exit 1; }
+          brew install xcodegen
+          cd native/ios
+          # Entitlements SÓ com as flags (o profile precisa ter cada capability ligada):
+          #   TACTIPLAN_APPLE_ATIVO=1 → com.apple.developer.applesignin (sem ele, Apple e Google
+          #                             não aparecem no iPhone — regra 4.8);
+          #   TACTIPLAN_PUSH_ATIVO=1  → aps-environment.
+          bash scripts/gerar-projeto.sh
+          xcodegen generate --spec project-gerado.yml
+      - name: Testes do TactiPlanKit (swift test)
+        script: |
+          cd native/ios/TactiPlanKit
+          swift test
+      - name: Testes do app no simulador (xcodebuild test)
+        # Só Keychain, fontes e Info.plist (a lógica foi testada no passo anterior). O simulador do
+        # Codemagic às vezes trava no boot: falha aqui fica visível, mas não impede o TestFlight.
+        ignore_failure: true
+        script: |
+          cd native/ios
+          SIM_ID=$(xcrun simctl list devices available --json | python3 -c '
+          import json, sys
+          d = json.load(sys.stdin)["devices"]
+          print(next((x["udid"] for rt, xs in sorted(d.items(), reverse=True) if "iOS" in rt
+                      for x in xs if x["name"].startswith("iPhone")), ""))')
+          [ -n "$SIM_ID" ] || { echo "sem simulador iPhone"; exit 1; }
+          st=0
+          xcodebuild build-for-testing \
+            -project TactiPlan.xcodeproj -scheme TactiPlan -configuration Debug \
+            -destination "id=$SIM_ID" \
+            OTHER_SWIFT_FLAGS='$(inherited) -Xfrontend -warn-long-expression-type-checking=300' \
+            > /tmp/build-for-testing.log 2>&1 || st=$?
+          grep -E "error:|warning: .*type-check" /tmp/build-for-testing.log | tail -100 || true
+          [ "$st" -eq 0 ] || { tail -80 /tmp/build-for-testing.log; exit "$st"; }
+          xcrun simctl shutdown all 2>/dev/null || true
+          xcrun simctl erase "$SIM_ID" 2>/dev/null || true
+          xcrun simctl boot "$SIM_ID" 2>/dev/null || true
+          xcrun simctl bootstatus "$SIM_ID" -b
+          timeout 420 xcodebuild test-without-building \
+            -project TactiPlan.xcodeproj -scheme TactiPlan -configuration Debug \
+            -destination "id=$SIM_ID" -parallel-testing-enabled NO \
+            -test-timeouts-enabled YES -default-test-execution-time-allowance 60
+      - name: Número de build
+        script: |
+          cd native/ios
+          agvtool new-version -all "$PROJECT_BUILD_NUMBER"
+      - name: Assinatura (profiles do Codemagic)
+        script: |
+          xcode-project use-profiles
+      - name: Build IPA
+        script: |
+          xcode-project build-ipa \
+            --project native/ios/TactiPlan.xcodeproj \
+            --scheme TactiPlan
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - /tmp/build-for-testing.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        # Só testadores INTERNOS por enquanto.
+        submit_to_testflight: false
+
+  tactiplan-android-aab:
+    name: TactiPlan Android — AAB (nativo)
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      android_signing:
+        - tactiplan-app-release
+      # Push (estrutura pronta, DESLIGADA): grupo "tactiplan-firebase" com a variável secreta
+      # GOOGLE_SERVICES_JSON. Sem ele o AAB sai igual, só sem push. Grupo inexistente derruba o build.
+      # groups:
+      #   - tactiplan-firebase
+      java: 21
+    scripts:
+      - name: Firebase (google-services.json, opcional)
+        script: |
+          if [ -n "${GOOGLE_SERVICES_JSON:-}" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > native/android/app/google-services.json
+            echo "google-services.json gravado — push neste build."
+          else
+            echo "GOOGLE_SERVICES_JSON ausente — build SEM push."
+          fi
+      - name: Testes + AAB assinado
+        script: |
+          [ -n "${CM_KEYSTORE_PATH:-}" ] || { echo "keystore tactiplan-app-release ausente"; exit 1; }
+          cd native/android
+          chmod +x gradlew
+          # versionCode = $PROJECT_BUILD_NUMBER (lido no app/build.gradle.kts).
+          ./gradlew --no-daemon testDebugUnitTest bundleRelease
+    artifacts:
+      - native/android/app/build/outputs/bundle/release/*.aab
+      - native/android/app/build/reports/tests/**
