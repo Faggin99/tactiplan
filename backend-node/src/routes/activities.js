@@ -1,6 +1,7 @@
 const express = require('express');
 const { query, pool } = require('../config/database');
 const authMiddleware = require('../middleware/auth');
+const { removeStoredFile } = require('../utils/sessionFiles');
 
 const router = express.Router();
 
@@ -203,13 +204,20 @@ router.delete('/block/:blockId', async (req, res) => {
       await client.query('DELETE FROM training_activity_stages WHERE activity_id = $1', [activity.id]);
     }
 
+    // Anexos da atividade: o registro sai por FK CASCADE; o arquivo do disco, aqui.
+    const filesResult = await client.query(
+      'SELECT file_path FROM training_activity_files WHERE activity_id = ANY($1)',
+      [activitiesResult.rows.map((a) => a.id)]
+    );
+
     await client.query(
       'DELETE FROM training_activities WHERE block_id = $1 AND workspace_id = ANY($2)',
       [req.params.blockId, tenantIds]
     );
 
     await client.query('COMMIT');
-    res.json({ message: 'Activities deleted successfully' });
+    for (const f of filesResult.rows) removeStoredFile(f.file_path);
+    res.json({ message: 'Activities deleted successfully', files_removed: filesResult.rows.length });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Delete block activities error:', err);

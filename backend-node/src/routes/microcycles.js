@@ -52,7 +52,8 @@ async function getFullMicrocycle(microcycleId, workspaceIds, allowedCategoryIds 
     const blocks = [];
     for (const block of blocksResult.rows) {
       const activitiesResult = await query(
-        `SELECT a.*, t.title as title_name, t.description as title_description
+        `SELECT a.*, t.title as title_name, t.description as title_description,
+                (SELECT COUNT(*)::int FROM training_activity_files f WHERE f.activity_id = a.id) AS files_count
          FROM training_activities a
          LEFT JOIN activity_titles t ON a.title_id = t.id
          WHERE a.block_id = $1
