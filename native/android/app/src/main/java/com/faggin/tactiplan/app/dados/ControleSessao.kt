@@ -172,6 +172,30 @@ class ControleSessao(
         }
     }
 
+    /** Recusa um convite pendente (some da lista; a equipe deixa de ver o convite). Erro sobe. */
+    suspend fun recusarConvite(convite: String) {
+        val s0 = sessao ?: return
+        try {
+            val me = api.recusarConvite(s0.token, convite)
+            val atualS = sessao ?: return
+            if (atualS.token != s0.token) return
+            val s = atualS.copy(me = me, meEm = relogio())
+            val estavaNoClube = _estado.value is EstadoApp.NoClube
+            val atual = escolhaAtual()
+            cofre.salvar(s)
+            val ctx = atual?.let { contextoDe(me, it) }
+            _estado.value = when {
+                estavaNoClube && ctx != null -> EstadoApp.NoClube(s, ctx)
+                // Sem convite pendente: a mesma decisão da abertura (um clube só entra direto).
+                atual == null && me.convites.isEmpty() -> decidir(s)
+                else -> EstadoApp.OndeEntrar(s, atual?.takeIf { escolhaValida(it, me) })
+            }
+        } catch (e: Exception) {
+            if (tratarErro(e, s0.token)) return
+            throw e
+        }
+    }
+
     private fun escolhaAtual(): Escolha? = when (val e = _estado.value) {
         is EstadoApp.OndeEntrar -> e.atual
         is EstadoApp.NoClube -> e.contexto.escolha

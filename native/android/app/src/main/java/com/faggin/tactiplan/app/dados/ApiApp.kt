@@ -29,6 +29,8 @@ interface ApiApp {
     suspend fun entrarComApple(identityToken: String, nome: String?, aparelho: Aparelho): RespostaLogin
     suspend fun me(token: String): Me
     suspend fun aceitarConvite(token: String, convite: String): RespostaConvite
+    /** Recusa (apaga) um convite pendente do próprio e-mail; devolve o /me novo. */
+    suspend fun recusarConvite(token: String, convite: String): Me
     suspend fun sair(token: String)
     suspend fun registrarPush(token: String, tokenPush: String, plataforma: String)
 }
@@ -55,6 +57,12 @@ class ApiAppHttp(private val api: Api) : ApiApp {
 
     override suspend fun aceitarConvite(token: String, convite: String): RespostaConvite =
         api.chamar("/app/convites/${codificarComponente(convite)}/aceitar", "POST", token = token)
+
+    override suspend fun recusarConvite(token: String, convite: String): Me {
+        val j = api.chamarJson("/app/convites/${codificarComponente(convite)}/recusar", "POST", token = token)
+        val me = (j as? kotlinx.serialization.json.JsonObject)?.get("me") ?: throw ErroApi(0, null, ErroApi.MSG_FALHA)
+        return api.json.decodeFromJsonElement(Me.serializer(), me)
+    }
 
     override suspend fun sair(token: String) {
         api.chamarJson("/app/auth/sair", "POST", token = token)

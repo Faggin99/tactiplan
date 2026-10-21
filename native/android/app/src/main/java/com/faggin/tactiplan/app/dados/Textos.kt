@@ -28,6 +28,19 @@ const val TEXTO_TROCAR_DEPOIS = "Você pode trocar a qualquer hora em Mais › C
 const val TITULO_SEM_EQUIPE = "Você ainda não está em nenhuma equipe"
 const val TEXTO_SEM_EQUIPE = "Peça ao responsável pela equipe um convite para o seu e-mail. Assim que ele chegar, o convite aparece aqui."
 const val MSG_CONVITE_ACEITO = "Convite aceito."
+const val MSG_CONVITE_RECUSADO = "Convite recusado."
+const val TITULO_RECUSAR_CONVITE = "Recusar o convite?"
+const val TEXTO_RECUSAR_CONVITE = "O convite some daqui e a equipe deixa de ver o seu convite. Para entrar depois, peça um convite novo."
+
+// Tela da Semana / Dia (T1).
+const val TITULO_SEM_ATIVIDADE = "Nada planejado neste dia"
+const val TEXTO_SEM_ATIVIDADE_EDITA = "Toque num bloco para adicionar a atividade."
+const val TEXTO_SEM_ATIVIDADE_LE = "Quando a comissão planejar este dia, as atividades aparecem aqui."
+const val TEXTO_DIA_DESCANSO = "Dia de descanso: sem atividades."
+const val TEXTO_JOGO_NO_APP = "A escalação, os eventos e a convocação do jogo chegam numa próxima atualização do app."
+const val ROTULO_NAO_RELACIONADOS = "Não relacionados"
+const val TEXTO_NAO_RELACIONADOS = "Atividade de quem não foi relacionado para o jogo."
+const val TITULO_ERRO_SEMANA = "Não foi possível carregar a semana"
 
 const val TEXTO_EM_BREVE = "Estamos preparando esta parte do app. Ela chega numa próxima atualização."
 const val TEXTO_ATUALIZAR_APP = "Há uma versão nova do TactiPlan. Atualize o app na loja para continuar com tudo funcionando."

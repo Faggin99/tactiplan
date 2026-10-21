@@ -37,6 +37,8 @@ class ApiFalsa : ApiApp {
     override suspend fun entrarComApple(identityToken: String, nome: String?, aparelho: Aparelho): RespostaLogin { chamadas += "apple"; return login() }
     override suspend fun me(token: String): Me { chamadas += "me:$token"; return proximoMe() }
     override suspend fun aceitarConvite(token: String, convite: String): RespostaConvite { chamadas += "convite:$convite"; return convite(convite) }
+    var recusar: (String) -> Me = { proximoMe() }
+    override suspend fun recusarConvite(token: String, convite: String): Me { chamadas += "recusar:$convite"; return recusar(convite) }
     override suspend fun sair(token: String) { chamadas += "sair:$token" }
     override suspend fun registrarPush(token: String, tokenPush: String, plataforma: String) { chamadas += "push:$tokenPush:$plataforma" }
 }
