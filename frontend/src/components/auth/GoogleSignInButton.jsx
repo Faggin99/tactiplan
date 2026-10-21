@@ -59,6 +59,10 @@ export function GoogleSignInButton({
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const containerRef = useRef(null);
+  // O callback do Google é registrado uma vez: lê o destino ATUAL pelo ref (ex.: "Você é"
+  // escolhido no cadastro depois de o botão aparecer entra no ?tipo= do destino).
+  const redirectRef = useRef(redirectTo);
+  redirectRef.current = redirectTo;
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   // Troca o credential (idToken) do Google pelo nosso token e entra no app.
@@ -70,7 +74,7 @@ export function GoogleSignInButton({
       localStorage.setItem('auth_token', token);
       localStorage.setItem('user', JSON.stringify(user));
       onSuccessProp?.({ token, user });
-      window.location.href = '/#' + redirectTo;
+      window.location.href = '/#' + redirectRef.current;
       window.location.reload();
     } catch (err) {
       console.error('[GoogleSignIn] backend error', err);

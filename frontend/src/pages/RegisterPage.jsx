@@ -5,6 +5,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { Input } from '../components/common/Input';
 import { Button } from '../components/common/Button';
 import { authService } from '../services/authService';
+import { formatarNome } from '../lib/formatarNome';
 import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
 import { AppleSignInButton } from '../components/auth/AppleSignInButton';
 
@@ -15,9 +16,11 @@ export function RegisterPage() {
   // F1: não há cadastro grátis. Depois de criar a conta a pessoa vai direto escolher
   // o plano e pagar — exceto quando veio de um convite (?redirect=/accept-invite/...).
   const redirect = params.get('redirect');
+  // "Você é": clube/escolinha ou comissão técnica → workspaces.tipo (só ajusta textos; preço igual).
+  const [tipo, setTipo] = useState(params.get('tipo') === 'comissao' ? 'comissao' : (params.get('tipo') === 'clube' ? 'clube' : ''));
   const destino = (redirect && redirect.startsWith('/'))
     ? redirect
-    : `/billing?novo=1${params.get('plano') ? `&plano=${encodeURIComponent(params.get('plano'))}` : ''}${params.get('ciclo') ? `&ciclo=${encodeURIComponent(params.get('ciclo'))}` : ''}`;
+    : `/billing?novo=1${params.get('plano') ? `&plano=${encodeURIComponent(params.get('plano'))}` : ''}${params.get('ciclo') ? `&ciclo=${encodeURIComponent(params.get('ciclo'))}` : ''}${tipo ? `&tipo=${tipo}` : ''}`;
   const [accept, setAccept] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -44,8 +47,9 @@ export function RegisterPage() {
       const { token, user } = await authService.register({
         email: form.email.trim().toLowerCase(),
         password: form.password,
-        name: form.name.trim(),
+        name: formatarNome(form.name),
         phone: form.phone.trim() || undefined,
+        tipo: tipo || undefined,
         accept_terms: true,
       });
       localStorage.setItem('auth_token', token);
@@ -85,8 +89,35 @@ export function RegisterPage() {
         </div>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: colors.text, textAlign: 'center', marginBottom: 4 }}>Criar conta</h1>
         <p style={{ fontSize: '0.875rem', color: colors.textSecondary, textAlign: 'center', marginBottom: '1.5rem' }}>
-          Para comissões técnicas, clubes e escolinhas. Depois do cadastro você escolhe o plano.
+          Para comissões técnicas, clubes e escolinhas. Depois do cadastro você assina o plano Clube.
         </p>
+
+        {!redirect && (
+          <fieldset style={{ border: 'none', padding: 0, margin: '0 0 1rem' }}>
+            <legend style={{ fontSize: '0.8125rem', fontWeight: 600, color: colors.text, marginBottom: '0.5rem' }}>Você é:</legend>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+              {[['clube', 'Clube / Escolinha'], ['comissao', 'Comissão técnica']].map(([v, rotulo]) => {
+                const on = tipo === v;
+                return (
+                  <button key={v} type="button" onClick={() => setTipo(v)} aria-pressed={on}
+                    style={{
+                      padding: '0.6rem 0.5rem', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 600,
+                      border: `1px solid ${on ? colors.primary : colors.border}`,
+                      backgroundColor: on ? `${colors.primary}18` : 'transparent',
+                      color: on ? colors.primary : colors.text,
+                    }}>
+                    {rotulo}
+                  </button>
+                );
+              })}
+            </div>
+            {tipo === 'comissao' && (
+              <p style={{ fontSize: '0.75rem', color: colors.textSecondary, margin: '0.4rem 0 0', lineHeight: 1.45 }}>
+                Mudou de time? Você arquiva o anterior (o histórico fica guardado) e cadastra o novo. O plano é o mesmo.
+              </p>
+            )}
+          </fieldset>
+        )}
 
         {/* Aceite dos termos — obrigatório antes de qualquer fluxo de cadastro (Google ou email).
             Fica acima dos botões pra que o usuário nunca clique em "Google" sem consentir. */}

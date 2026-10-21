@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { Building2, ArrowRight } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { MODALITIES, MODALITY_LABELS, MODALITY_DESCRIPTIONS } from '../../lib/sportConfig';
+import { useWorkspace } from '../../contexts/WorkspaceContext';
 
 export function ClubOnboardingModal({ onCreateClub }) {
   const { colors } = useTheme();
+  const comissao = useWorkspace()?.activeWorkspace?.tipo === 'comissao';
   const [clubName, setClubName] = useState('');
   const [modality, setModality] = useState('football_11');
   const [loading, setLoading] = useState(false);
@@ -157,7 +159,9 @@ export function ClubOnboardingModal({ onCreateClub }) {
           </div>
           <h2 style={titleStyle}>Bem-vindo!</h2>
           <p style={subtitleStyle}>
-            Para começar, vamos criar seu primeiro clube. Todos os seus treinos e atletas serão organizados por clube.
+            {comissao
+              ? 'Para começar, cadastre o time em que sua comissão trabalha. Treinos, atletas e jogos ficam organizados por clube.'
+              : 'Para começar, vamos criar seu clube. Todos os seus treinos e atletas serão organizados por clube.'}
           </p>
         </div>
 
@@ -230,7 +234,9 @@ export function ClubOnboardingModal({ onCreateClub }) {
 
         <div style={infoBoxStyle}>
           <p style={infoTextStyle}>
-            💡 <strong>Dica:</strong> Você pode adicionar mais clubes depois nas configurações. Cada clube terá seus próprios treinos e atletas.
+            💡 <strong>Dica:</strong> {comissao
+              ? 'Mudou de time? Em Cadastros › Clubes você arquiva o anterior (o histórico fica guardado) e cadastra o novo.'
+              : 'Conteúdos e atividades valem para a conta toda. Em Cadastros › Clubes você arquiva um clube antigo sem perder o histórico.'}
           </p>
         </div>
       </div>

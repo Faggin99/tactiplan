@@ -1,4 +1,8 @@
 import { api } from '../../../services/api';
+import { formatarNome } from '../../../lib/formatarNome';
+
+// Nome do atleta sai com a primeira letra maiúscula (o servidor aplica a mesma regra).
+const comNome = (data) => (data && typeof data.name === 'string' ? { ...data, name: formatarNome(data.name) } : data);
 
 export const athleteService = {
   async getAll(params = {}) {
@@ -15,11 +19,11 @@ export const athleteService = {
   },
 
   async create(data) {
-    return await api.post('/athletes', data);
+    return await api.post('/athletes', comNome(data));
   },
 
   async update(id, data) {
-    return await api.put(`/athletes/${id}`, data);
+    return await api.put(`/athletes/${id}`, comNome(data));
   },
 
   async delete(id) {

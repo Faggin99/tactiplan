@@ -1,4 +1,5 @@
 import { api } from './api';
+import { formatarNome } from '../lib/formatarNome';
 
 export const userProfileService = {
   async getProfile() {
@@ -7,7 +8,7 @@ export const userProfileService = {
 
   async updateProfile(profileData) {
     return await api.put('/auth/profile', {
-      name: profileData.name,
+      name: formatarNome(profileData.name), // mesma regra do servidor
       phone: profileData.phone,
       bio: profileData.bio,
     });

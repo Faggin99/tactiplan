@@ -16,8 +16,8 @@ export const authService = {
     return { data: { message: 'Logout realizado com sucesso' } };
   },
 
-  async register({ email, password, name, phone, accept_terms }) {
-    const data = await api.post('/auth/register', { email, password, name, phone, accept_terms: accept_terms ? 'true' : 'false' });
+  async register({ email, password, name, phone, accept_terms, tipo }) {
+    const data = await api.post('/auth/register', { email, password, name, phone, tipo, accept_terms: accept_terms ? 'true' : 'false' });
     return { user: data.user, token: data.token };
   },
 

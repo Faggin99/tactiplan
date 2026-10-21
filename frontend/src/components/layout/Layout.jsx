@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ClubOnboardingModal } from '../club/ClubOnboardingModal';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { SubscriptionBanner } from './SubscriptionBanner';
+import { ArchivedClubBanner } from './ArchivedClubBanner';
 import { WorkspaceSwapNotice } from '../workspace/WorkspaceSwapNotice';
 import { CadastrosTabs } from './CadastrosTabs';
 import { isCadastrosPath } from '../../lib/cadastros';
@@ -18,7 +19,7 @@ const FIXED_VIEWPORT_ROUTES = ['/training', '/tactical-board'];
 
 export function Layout({ children }) {
   const { colors } = useTheme();
-  const { clubs, loading, loadError, createClub } = useClub();
+  const { allClubs, loading, loadError, createClub } = useClub();
   const isMobile = useIsMobile();
   const location = useLocation();
 
@@ -77,7 +78,7 @@ export function Layout({ children }) {
 
   const showOnboarding = !loading
     && !loadError
-    && clubs.length === 0
+    && allClubs.length === 0 // só arquivados: não força criar clube (o histórico segue visível)
     && pendingInvites !== null
     && !showInvites
     && location.pathname !== '/billing';
@@ -92,6 +93,7 @@ export function Layout({ children }) {
         <div style={containerStyle}>
           {isMobile ? <AppMobileBar onOpenMenu={() => setDrawer(true)} /> : <AppTopBar collapsed={recolhida} onToggle={alternarBarra} />}
           <SubscriptionBanner />
+          <ArchivedClubBanner />
           <main style={contentStyle}>
             {isCadastrosPath(location.pathname) && <CadastrosTabs />}
             {children}

@@ -46,7 +46,7 @@ export default function PlantelPage() {
 
   useEffect(() => {
     loadAthletes();
-  }, []);
+  }, [selectedClub?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!selectedClub?.id) { setCategories([]); return; }
@@ -56,7 +56,9 @@ export default function PlantelPage() {
   const loadAthletes = async () => {
     try {
       setLoading(true);
-      const data = await athleteService.getAll();
+      // Plantel é DO CLUBE aberto (com clubes arquivados a conta pode ter vários clubes).
+      if (!selectedClub?.id) { setAthletes([]); return; }
+      const data = await athleteService.getAll({ club_id: selectedClub.id });
       setAthletes(data);
       setError(null);
     } catch (err) {

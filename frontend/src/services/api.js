@@ -106,7 +106,9 @@ class ApiClient {
         // Só redireciona automaticamente quando NÃO é gate de feature, só leitura
         // (a tela continua visível, com o banner) nem limite de membros.
         const semRedirecionar = ['PLAN_REQUIRED', 'READ_ONLY', 'MEMBER_LIMIT'];
-        if (!semRedirecionar.includes(err.code) && !window.location.hash.startsWith('#/billing')) {
+        // Limite de clubes ATIVOS: a tela de Clubes mostra o aviso (arquivar ou "fale com a gente").
+        const limiteClubes = err.code === 'ADDON_REQUIRED' && body.addon === 'extra_club';
+        if (!semRedirecionar.includes(err.code) && !limiteClubes && !window.location.hash.startsWith('#/billing')) {
           window.location.hash = '#/billing?reason=' + encodeURIComponent(err.code);
         }
         throw err;
@@ -126,6 +128,15 @@ class ApiClient {
         }
         const err = new Error(msg || 'Acesso negado');
         err.statusCode = 403;
+        throw err;
+      }
+      if (response.status === 409) {
+        // 409 traz mensagem pronta em `error` (ex.: CLUB_ARCHIVED = clube arquivado, só leitura).
+        const body = await response.json().catch(() => ({}));
+        const err = new Error(body.error || body.message || 'Conflito');
+        err.code = body.code;
+        err.statusCode = 409;
+        if (body.code === 'CLUB_ARCHIVED') notify.info(err.message);
         throw err;
       }
       const error = await response.json().catch(() => ({ message: 'Request failed' }));

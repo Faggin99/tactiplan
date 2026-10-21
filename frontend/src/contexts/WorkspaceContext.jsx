@@ -86,6 +86,13 @@ export function WorkspaceProvider({ children }) {
     return ws;
   }, [load]);
 
+  // "Você é": 'clube' (clube/escolinha) ou 'comissao' (comissão técnica). Só muda textos.
+  const setWorkspaceTipo = useCallback(async (id, tipo) => {
+    const ws = await api.put(`/workspaces/${id}/tipo`, { tipo });
+    setWorkspaces((prev) => prev.map((w) => (w.id === id ? { ...w, tipo } : w)));
+    return ws;
+  }, []);
+
   const activeWorkspace = workspaces.find(w => w.id === activeId) || null;
 
   const value = {
@@ -97,6 +104,7 @@ export function WorkspaceProvider({ children }) {
     refresh: load,
     createWorkspace,
     renameWorkspace,
+    setWorkspaceTipo,
     swapToUsableWorkspace,
   };
 
