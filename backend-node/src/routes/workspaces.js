@@ -21,6 +21,7 @@ router.get('/', async (req, res) => {
       id: w.workspace_id,
       name: w.name,
       owner_id: w.owner_id,
+      tipo: w.tipo || null, // 'clube' | 'comissao' | null (não informado → textos de clube)
       role: w.role,
       is_owner: w.is_owner,
       category_ids: w.category_ids || null,
@@ -73,6 +74,28 @@ router.put('/:id', async (req, res) => {
     res.json(r.rows[0]);
   } catch (err) {
     console.error('Update workspace error:', err);
+    res.status(500).json({ error: 'Failed to update workspace' });
+  }
+});
+
+// PUT /api/workspaces/:id/tipo — "Você é": clube/escolinha ou comissão técnica (só owner).
+// Só ajusta textos ("seu clube"/"seus clubes", dica de arquivar); o preço é o mesmo.
+router.put('/:id/tipo', async (req, res) => {
+  try {
+    const { tipo } = req.body || {};
+    if (!['clube', 'comissao'].includes(tipo)) return res.status(400).json({ error: "tipo deve ser 'clube' ou 'comissao'" });
+    if (!req.user.isWorkspaceOwner(req.params.id)) {
+      return res.status(403).json({ error: 'Apenas o dono pode alterar o tipo da conta' });
+    }
+    const r = await query(
+      `UPDATE workspaces SET tipo = $1, updated_at = NOW() WHERE id = $2 RETURNING id, name, tipo`,
+      [tipo, req.params.id]
+    );
+    if (r.rows.length === 0) return res.status(404).json({ error: 'Workspace não encontrada' });
+    authMiddleware.invalidateAccessibleCache?.(req.user.id);
+    res.json(r.rows[0]);
+  } catch (err) {
+    console.error('Update workspace tipo error:', err);
     res.status(500).json({ error: 'Failed to update workspace' });
   }
 });

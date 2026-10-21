@@ -22,28 +22,52 @@ function removerLogo(logoPath) {
 // ?variant=dark → logo do tema escuro (clubs.logo_dark_path); qualquer outro → logo principal.
 const colunaLogo = (req) => (req.query.variant === 'dark' ? 'logo_dark_path' : 'logo_path');
 
-// Quantos clubes a workspace ativa ainda pode criar? Retorna { allowed, limit, current }.
+// Clubes ATIVOS da workspace (arquivados não contam no limite — migration 055).
+async function contarClubesAtivos(workspaceId) {
+  const r = await query(
+    'SELECT COUNT(*)::int AS n FROM clubs WHERE workspace_id = $1 AND archived_at IS NULL',
+    [workspaceId]
+  );
+  return r.rows[0].n;
+}
+
+// Quantos clubes ATIVOS a workspace ativa ainda pode ter? Retorna { allowed, limit, current }.
+// Limite = features.max_clubs do plano (Clube = 1) + subscriptions.extra_club_slots (add-on,
+// R$20/mês por clube extra, liberado manualmente). Clubes arquivados não contam.
 async function canCreateClub(user) {
+  const current = user.workspaceId ? await contarClubesAtivos(user.workspaceId) : 0;
   if (user.role === 'admin' || isAdmin?.(user.email) || isLifetime?.(user.email)) {
-    return { allowed: true, limit: -1 };
+    return { allowed: true, limit: -1, current };
   }
   if (!user.workspaceId) return { allowed: false, limit: 0, current: 0 };
 
   const sub = await billing.getEffectiveSubscription({ userId: user.id, workspaceId: user.workspaceId });
+  if (sub?.is_admin || sub?.plan_id === 'lifetime') return { allowed: true, limit: -1, current };
   const planLimit = sub?.features?.max_clubs;
-  if (planLimit === undefined || planLimit === -1) return { allowed: true, limit: planLimit ?? -1 };
+  if (planLimit === undefined || planLimit === -1) return { allowed: true, limit: planLimit ?? -1, current };
 
-  // Add-on: slots avulsos vendidos diretamente na subscription. Plano Clube hoje
-  // vem com 3 slots inclusos; cada compra adicional incrementa extra_club_slots.
   const extraSlots = Number(sub?.extra_club_slots || 0);
   const limit = planLimit + (Number.isFinite(extraSlots) ? extraSlots : 0);
-
-  const existing = await query(
-    'SELECT COUNT(*)::int AS n FROM clubs WHERE workspace_id = $1',
-    [user.workspaceId]
-  );
-  const current = existing.rows[0].n;
   return { allowed: current < limit, limit, current, planLimit, extraSlots };
+}
+
+function mensagemLimite(gate, acao) {
+  const n = gate.limit;
+  return `Seu plano permite ${n} clube${n === 1 ? '' : 's'} ativo${n === 1 ? '' : 's'} (em uso: ${gate.current}). `
+    + `Para ${acao}, arquive um clube ativo ou fale com a gente para liberar um clube extra (R$20/mês por clube).`;
+}
+
+function respostaLimite(res, gate, acao) {
+  return res.status(402).json({
+    error: mensagemLimite(gate, acao),
+    code: 'ADDON_REQUIRED',
+    required_feature: 'max_clubs',
+    addon: 'extra_club',
+    current: gate.current,
+    limit: gate.limit,
+    plan_limit: gate.planLimit,
+    extra_slots: gate.extraSlots,
+  });
 }
 
 const router = express.Router();
@@ -66,13 +90,31 @@ router.get('/', async (req, res) => {
                AND m.user_id = $1
                AND m.accepted_at IS NOT NULL
         WHERE c.workspace_id = ANY($2)
-        ORDER BY is_owner DESC, c.created_at ASC`,
+        ORDER BY is_owner DESC, (c.archived_at IS NOT NULL), c.created_at ASC`,
       [req.user.id, workspaceIds]
     );
     res.json(result.rows);
   } catch (err) {
     console.error('List clubs error:', err);
     res.status(500).json({ error: 'Failed to list clubs' });
+  }
+});
+
+// GET /api/clubs/limit — limite de clubes ATIVOS da conta ativa (tela Cadastros › Clubes).
+router.get('/limit', async (req, res) => {
+  try {
+    const gate = await canCreateClub(req.user);
+    res.json({
+      limit: gate.limit,
+      current: gate.current,
+      plan_limit: gate.planLimit ?? gate.limit,
+      extra_slots: gate.extraSlots || 0,
+      can_create: !!gate.allowed,
+      extra_club_price_cents: 2000,
+    });
+  } catch (err) {
+    console.error('Club limit error:', err);
+    res.status(500).json({ error: 'Falha ao ler o limite de clubes' });
   }
 });
 
@@ -134,21 +176,10 @@ router.post('/', async (req, res) => {
       return res.status(403).json({ error: 'Sem permissão de escrita nesta workspace' });
     }
 
-    // Gate por plano: Pro/Clube = 1 clube incluso; clube extra = add-on (+R$20/mês
-    // via extra_club_slots); admin/lifetime = ilimitado.
+    // Gate por plano: Clube = 1 clube ATIVO; clube extra = add-on (+R$20/mês via
+    // extra_club_slots); arquivados não contam; admin/lifetime = ilimitado.
     const gate = await canCreateClub(req.user);
-    if (!gate.allowed) {
-      return res.status(402).json({
-        error: `Seu plano permite ${gate.limit} clube${gate.limit === 1 ? '' : 's'} (já em uso: ${gate.current}). Adicione um clube extra por R$20/mês.`,
-        code: 'ADDON_REQUIRED',
-        required_feature: 'max_clubs',
-        addon: 'extra_club',
-        current: gate.current,
-        limit: gate.limit,
-        plan_limit: gate.planLimit,
-        extra_slots: gate.extraSlots,
-      });
-    }
+    if (!gate.allowed) return respostaLimite(res, gate, 'criar outro clube');
 
     const result = await query(
       `INSERT INTO clubs (name, description, workspace_id, modality, primary_color, secondary_color)
@@ -260,6 +291,51 @@ router.delete('/:id', async (req, res) => {
   } catch (err) {
     console.error('Delete club error:', err);
     res.status(500).json({ error: 'Failed to delete club' });
+  }
+});
+
+// POST /api/clubs/:id/archive — arquiva o clube: vira só leitura (histórico e relatórios
+// continuam), some do seletor e deixa de contar no limite de clubes ativos.
+router.post('/:id/archive', async (req, res) => {
+  try {
+    if (!req.user.can('club_settings:manage')) return res.status(403).json({ error: 'Sem permissão' });
+    const result = await query(
+      `UPDATE clubs SET archived_at = COALESCE(archived_at, NOW()), updated_at = NOW()
+        WHERE id = $1 AND workspace_id = ANY($2)
+        RETURNING *`,
+      [req.params.id, req.user.workspaceIds || []]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Club not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Archive club error:', err);
+    res.status(500).json({ error: 'Falha ao arquivar o clube' });
+  }
+});
+
+// POST /api/clubs/:id/unarchive — só se houver vaga no limite de clubes ativos.
+router.post('/:id/unarchive', async (req, res) => {
+  try {
+    if (!req.user.can('club_settings:manage')) return res.status(403).json({ error: 'Sem permissão' });
+    const atual = await query(
+      'SELECT id, archived_at FROM clubs WHERE id = $1 AND workspace_id = ANY($2)',
+      [req.params.id, req.user.workspaceIds || []]
+    );
+    if (atual.rows.length === 0) return res.status(404).json({ error: 'Club not found' });
+    if (atual.rows[0].archived_at) {
+      const gate = await canCreateClub(req.user);
+      if (!gate.allowed) return respostaLimite(res, gate, 'desarquivar este clube');
+    }
+    const result = await query(
+      `UPDATE clubs SET archived_at = NULL, updated_at = NOW()
+        WHERE id = $1 AND workspace_id = ANY($2)
+        RETURNING *`,
+      [req.params.id, req.user.workspaceIds || []]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Unarchive club error:', err);
+    res.status(500).json({ error: 'Falha ao desarquivar o clube' });
   }
 });
 

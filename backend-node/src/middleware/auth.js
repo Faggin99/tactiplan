@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const { jwtSecret } = require('../config/auth');
 const { query } = require('../config/database');
 const { effectivePermissionsForMember, PERMISSIONS } = require('../utils/permissions');
+const { travaClubeArquivado } = require('../utils/clubArquivado');
 
 // Cache pequeno por user_id pra reduzir queries por request — invalida em 30s
 const accessibleCache = new Map();
@@ -15,12 +16,12 @@ async function loadAccessible(userId) {
 
   // Workspaces: próprias (owner) + onde sou member aceito
   const workspacesRes = await query(
-    `SELECT w.id AS workspace_id, w.name, w.owner_id, 'owner' AS role,
+    `SELECT w.id AS workspace_id, w.name, w.owner_id, w.tipo, 'owner' AS role,
             NULL::uuid[] AS category_ids, NULL::jsonb AS permissions, TRUE AS is_owner
        FROM workspaces w
       WHERE w.owner_id = $1
       UNION
-     SELECT w.id AS workspace_id, w.name, w.owner_id, m.role,
+     SELECT w.id AS workspace_id, w.name, w.owner_id, w.tipo, m.role,
             m.category_ids, m.permissions, FALSE AS is_owner
        FROM workspace_members m
        JOIN workspaces w ON w.id = m.workspace_id
@@ -192,14 +193,16 @@ const authMiddleware = async (req, res, next) => {
       const access = (req.user.accessibleClubs || []).find(c => c.club_id === clubId);
       return access ? access.tenant_id : null;
     };
-
-    next();
   } catch (err) {
     if (err.name === 'TokenExpiredError') {
       return res.status(401).json({ error: 'Token expired' });
     }
     return res.status(401).json({ error: 'Invalid token' });
   }
+
+  // Clube arquivado = só leitura (409 CLUB_ARCHIVED). Fora do try: erro de rota
+  // não pode virar "Invalid token".
+  return travaClubeArquivado(req, res, next);
 };
 
 authMiddleware.invalidateAccessibleCache = invalidateAccessibleCache;

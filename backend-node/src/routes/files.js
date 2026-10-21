@@ -4,6 +4,7 @@ const { query } = require('../config/database');
 const authMiddleware = require('../middleware/auth');
 const { uploadSessionFile } = require('../middleware/upload');
 const { MAX_FILES_PER_ACTIVITY, removeStoredFile } = require('../utils/sessionFiles');
+const { clubesArquivados, mensagemArquivado } = require('../utils/clubArquivado');
 
 const router = express.Router();
 
@@ -59,6 +60,9 @@ router.post('/upload', (req, res) => {
       const ctx = await activityContext(activity_id, req.user.workspaceIds || []);
       if (!ctx) return recusar(404, 'Atividade não encontrada');
       if (!canWriteActivity(req.user, ctx)) return recusar(403, 'Sem permissão de escrita nesta atividade');
+      // Clube arquivado = só leitura (o corpo multipart só existe aqui, depois do multer).
+      const arquivado = (await clubesArquivados([ctx.club_id]))[0];
+      if (arquivado) return recusar(409, mensagemArquivado(arquivado.name));
 
       const count = await query(
         'SELECT COUNT(*)::int AS n FROM training_activity_files WHERE activity_id = $1',
