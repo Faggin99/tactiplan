@@ -4,8 +4,9 @@ import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home, Calendar, BarChart3, Waypoints, Building2, LayoutGrid, Users, User, Trophy, BookOpen, Target,
   ChevronDown, ChevronRight, LogOut, CreditCard, Settings, Lock, X, PanelLeft, HelpCircle, Moon, Sun, Menu,
-  Check, Loader2,
+  Check, Loader2, FolderCog,
 } from 'lucide-react';
+import { CADASTROS_TABS, isCadastrosPath, CADASTROS_EXTRA } from '../../lib/cadastros';
 import { usePlanFeatures } from '../../hooks/usePlanFeatures';
 import { useCan } from '../../hooks/useCan';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -33,16 +34,11 @@ const SECTIONS = [
     { to: '/training-stats', icon: BarChart3, label: 'Estatísticas' },
     { to: '/tactical-board', icon: Waypoints, label: 'Quadro Tático', gated: 'quadro_tatico' },
   ] },
-  { header: 'Minha equipe', items: [
+  { header: 'Equipe', items: [
     { to: '/plantel', icon: Users, label: 'Plantel de Atletas', permission: 'athletes:view' },
-    { to: '/settings/competitions', icon: Trophy, label: 'Campeonatos', permission: 'training:edit' },
     { to: '/settings/team', icon: User, label: 'Staff', gated: 'equipe', permission: 'members:manage' },
-    { to: '/settings/categories', icon: LayoutGrid, label: 'Categorias', gated: 'multi_user', permission: 'categories:manage' },
-    { to: '/settings/clubs', icon: Building2, label: 'Clubes' },
-  ] },
-  { header: 'Cadastros', items: [
-    { to: '/settings/contents', icon: BookOpen, label: 'Conteúdos', permission: 'library:edit' },
-    { to: '/settings/activities', icon: Target, label: 'Atividades', permission: 'library:edit' },
+    // Campeonatos, Categorias, Clubes, Conteúdos e Atividades viraram abas (ver lib/cadastros.js)
+    { to: '/settings/cadastros', icon: FolderCog, label: 'Cadastros', isActive: isCadastrosPath },
   ] },
 ];
 
@@ -65,6 +61,12 @@ export const SIDEBAR_RAIL_W = 76;
 const isNavActive = (to, pathname) => pathname === to || pathname.startsWith(to + '/');
 
 export function paginaDaRota(pathname) {
+  if (isCadastrosPath(pathname)) {
+    const alvo = CADASTROS_EXTRA[Object.keys(CADASTROS_EXTRA).find((p) => pathname.startsWith(p))];
+    const extra = OUTRAS_PAGINAS.find((i) => isNavActive(i.to, pathname));
+    const aba = CADASTROS_TABS.find((t) => isNavActive(t.to, pathname));
+    return { secao: 'Cadastros', pagina: extra?.label || aba?.label || (alvo ? null : 'Cadastros') };
+  }
   for (const sec of SECTIONS) {
     const it = sec.items.find((i) => isNavActive(i.to, pathname));
     if (it) return { secao: sec.header || null, pagina: it.label };
@@ -101,17 +103,17 @@ function Dica({ alvo, texto }) {
   );
 }
 
-function NavItem({ to, icon: Icon, label, locked, onNavigate, collapsed }) {
+function NavItem({ to, icon: Icon, label, locked, onNavigate, collapsed, isActive }) {
   const { colors } = useTheme();
   const location = useLocation();
   const [hov, setHov] = useState(null);
-  const active = isNavActive(to, location.pathname);
+  const active = isActive ? isActive(location.pathname) : isNavActive(to, location.pathname);
   return (
     <NavLink to={to} onClick={onNavigate} aria-label={collapsed ? label : undefined}
       title={locked ? 'Disponível em um plano pago' : undefined}
       style={{
         display: 'flex', alignItems: 'center', gap: '0.7rem',
-        padding: collapsed ? 0 : '0.6rem 0.75rem', height: collapsed ? 44 : undefined,
+        padding: collapsed ? 0 : '0.5rem 0.75rem', height: collapsed ? 42 : undefined,
         justifyContent: collapsed ? 'center' : 'flex-start', borderRadius: '0.7rem',
         fontSize: '0.875rem', fontWeight: active ? 600 : 500, textDecoration: 'none',
         color: active ? colors.primary : colors.textSecondary,
@@ -413,10 +415,10 @@ function SidebarContent({ onNavigate, collapsed = false, onOpenSettings }) {
         </div>
       )}
 
-      <nav style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: collapsed ? '0.55rem' : '1rem', margin: '0 -0.1rem', padding: '0.1rem 0.1rem 0' }}>
+      <nav style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: collapsed ? '0.5rem' : '0.85rem', margin: '0 -0.1rem', padding: '0.1rem 0.1rem 0' }}>
         {sections.map((sec, i) => (
           <div key={sec.header || i}>
-            {sec.header && !collapsed && <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: colors.textMuted, padding: '0 0.75rem 0.45rem' }}>{sec.header}</div>}
+            {sec.header && !collapsed && <div style={{ fontSize: '0.68rem', fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: colors.textMuted, padding: '0 0.75rem 0.35rem' }}>{sec.header}</div>}
             {sec.header && collapsed && i > 0 && <div style={{ height: 1, backgroundColor: colors.border, margin: '0 0.6rem 0.55rem' }} />}
             <div style={{ display: 'flex', flexDirection: 'column', gap: collapsed ? '0.3rem' : '0.15rem' }}>
               {sec.items.map((it) => (

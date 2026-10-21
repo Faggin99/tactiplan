@@ -28,6 +28,7 @@ import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { SetPasswordPage } from './pages/SetPasswordPage';
 import { HomePage } from './pages/HomePage';
+import { CadastrosIndex } from './components/layout/CadastrosTabs';
 import { Layout } from './components/layout/Layout';
 import PlantelPage from './modules/training-management/pages/PlantelPage';
 import { TacticalBoardPage } from './modules/tactical-board';
@@ -188,6 +189,14 @@ function AppRoutes() {
         }
       />
       <Route path="/settings" element={<Navigate to="/training" replace />} />
+      <Route
+        path="/settings/cadastros"
+        element={
+          <ProtectedRoute>
+            <CadastrosIndex />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/settings/clubs"
         element={

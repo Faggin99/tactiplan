@@ -8,6 +8,8 @@ import { ClubOnboardingModal } from '../club/ClubOnboardingModal';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { SubscriptionBanner } from './SubscriptionBanner';
 import { WorkspaceSwapNotice } from '../workspace/WorkspaceSwapNotice';
+import { CadastrosTabs } from './CadastrosTabs';
+import { isCadastrosPath } from '../../lib/cadastros';
 import { PendingInvitesModal, usePendingInvites } from '../workspace/PendingInvitesModal';
 
 // Rotas onde o conteúdo precisa caber na viewport (calendário, canvas tático).
@@ -15,8 +17,8 @@ import { PendingInvitesModal, usePendingInvites } from '../workspace/PendingInvi
 const FIXED_VIEWPORT_ROUTES = ['/training', '/tactical-board'];
 
 export function Layout({ children }) {
-  const { colors, isDark } = useTheme();
-  const { clubs, selectedClub, loading, loadError, createClub } = useClub();
+  const { colors } = useTheme();
+  const { clubs, loading, loadError, createClub } = useClub();
   const isMobile = useIsMobile();
   const location = useLocation();
 
@@ -91,6 +93,7 @@ export function Layout({ children }) {
           {isMobile ? <AppMobileBar onOpenMenu={() => setDrawer(true)} /> : <AppTopBar collapsed={recolhida} onToggle={alternarBarra} />}
           <SubscriptionBanner />
           <main style={contentStyle}>
+            {isCadastrosPath(location.pathname) && <CadastrosTabs />}
             {children}
           </main>
         </div>
