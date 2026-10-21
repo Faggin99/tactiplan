@@ -42,6 +42,7 @@ const externalCompetitionsRoutes = require('./src/routes/externalCompetitions');
 const publicStatsRoutes = require('./src/routes/publicStats');
 const contaRoutes = require('./src/routes/conta'); // seletor de produtos Faggin (F3)
 const reportsRoutes = require('./src/routes/reports'); // PDFs (HTML → Chromium)
+const appRoutes = require('./src/routes/app'); // BFF do app nativo (/api/app/*, token próprio)
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -88,6 +89,8 @@ app.use('/uploads', express.static(uploadDir));
 // IMPORTANTE: rotas com prefix específico DEVEM vir antes de qualquer mount em '/api'
 // (contentsRoutes usa app.use('/api', ...) e tem authMiddleware global no router —
 //  se vier antes, intercepta TUDO que começa com /api e quebra outras rotas)
+// BFF do app nativo (iPhone/Android): token próprio (tpa_…), não usa o authMiddleware do web.
+app.use('/api/app', appRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/conta', contaRoutes);
