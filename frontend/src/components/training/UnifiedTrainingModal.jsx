@@ -92,6 +92,14 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
     }
   }, [isOpen, initialTab, session]);
 
+  // Ao abrir num bloco do meio (ex.: Atividade 2 no celular), traz a aba ativa pra vista
+  useEffect(() => {
+    if (isOpen && !isLoadingData) {
+      const t = setTimeout(() => scrollTabIntoView(activeTab), 50);
+      return () => clearTimeout(t);
+    }
+  }, [isOpen, isLoadingData]); // eslint-disable-line react-hooks/exhaustive-deps
+
   async function loadData() {
     setIsLoadingData(true);
     try {
