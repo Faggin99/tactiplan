@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- = fundo claro (dados/Cores.kt): a janela antes do 1º quadro do Compose. -->
+    <color name="fundo_janela">#F2F4F7</color>
+    <!-- Navy da marca TactiPlan: fundo do ícone e da tela de abertura (Android 12+). -->
+    <color name="ic_launcher_fundo">#0F172A</color>
+</resources>

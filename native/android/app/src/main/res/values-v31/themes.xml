@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- API 31+: DayNight do sistema + a tela de abertura no navy da marca (ícone = o do app). -->
+<resources>
+    <style name="Tema.TactiPlan" parent="@android:style/Theme.DeviceDefault.DayNight">
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">@color/fundo_janela</item>
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="android:windowSplashScreenBackground">@color/ic_launcher_fundo</item>
+    </style>
+</resources>

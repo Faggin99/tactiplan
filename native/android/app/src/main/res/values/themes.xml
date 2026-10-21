@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tema da janela (o Compose pinta o resto com dados/Cores.kt). Segue o claro/escuro do aparelho. -->
+<resources>
+    <style name="Tema.TactiPlan" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/fundo_janela</item>
+    </style>
+</resources>

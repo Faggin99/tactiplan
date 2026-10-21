@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- API 29+: DayNight do sistema — o app segue o modo claro/escuro com a PALETA
+     PRÓPRIA (dados/Cores.kt). O sistema continua proibido de escurecer à força
+     ("forçar modo escuro" inverte as cores e quebra o contraste). -->
+<resources>
+    <style name="Tema.TactiPlan" parent="@android:style/Theme.DeviceDefault.DayNight">
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">@color/fundo_janela</item>
+        <item name="android:forceDarkAllowed">false</item>
+    </style>
+</resources>

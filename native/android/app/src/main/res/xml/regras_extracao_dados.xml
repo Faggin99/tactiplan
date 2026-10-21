@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  API 31+: allowBackup="false" NÃO vale para a transferência aparelho-a-aparelho.
+  Exclui tudo (sessão cifrada, keyset do Tink, cache offline) do backup em nuvem
+  E da transferência: o keyset só abre com a chave do Keystore do aparelho de
+  origem, e o cache pode ter dado da família — no aparelho novo, entra de novo.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </device-transfer>
+</data-extraction-rules>
