@@ -1,0 +1,12 @@
+# Gerado pelo XcodeGen a partir do project.yml
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+DerivedData/
+.build/
+.swiftpm/
+build/
+*.ipa
+# spec e entitlements gerados por scripts/gerar-projeto.sh (conforme as flags do build)
+project-gerado.yml
+Gerado/

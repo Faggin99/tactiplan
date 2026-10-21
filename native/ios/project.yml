@@ -1,0 +1,85 @@
+# XcodeGen: gera native/ios/TactiPlan.xcodeproj (NÃO versionado — .gitignore).
+#   brew install xcodegen && cd native/ios && bash scripts/gerar-projeto.sh && xcodegen generate --spec project-gerado.yml
+# O núcleo (TactiPlanKit) é um pacote Swift local, testado também no Linux (VPS).
+# Base: native/ios do Gestsport (mesmo time Apple, mesmo desenho).
+name: TactiPlan
+
+options:
+  bundleIdPrefix: com.faggin
+  deploymentTarget:
+    iOS: "16.0"
+  developmentLanguage: pt-BR
+  createIntermediateGroups: true
+
+packages:
+  TactiPlanKit:
+    path: TactiPlanKit
+
+settings:
+  base:
+    DEVELOPMENT_TEAM: S9BLFLWZLY
+    MARKETING_VERSION: 1.0.0
+    # O Codemagic troca pelo $PROJECT_BUILD_NUMBER (agvtool) a cada build.
+    CURRENT_PROJECT_VERSION: 1
+    VERSIONING_SYSTEM: apple-generic
+    # App em modo Swift 5 (SwiftUI + Keychain); o Kit compila em Swift 6.
+    SWIFT_VERSION: "5.0"
+    # Flags de capability: YES só no project-gerado.yml (scripts/gerar-projeto.sh), junto do
+    # entitlement — o profile "tactiplan-app-appstore" precisa ter a capability, senão a
+    # assinatura quebra.
+    TACTIPLAN_APPLE_LOGIN: "NO"
+    TACTIPLAN_PUSH: "NO"
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+
+targets:
+  TactiPlan:
+    type: application
+    platform: iOS
+    sources:
+      - path: TactiPlan
+        excludes:
+          - Info.plist
+          - PrivacyInfo.xcprivacy
+      # Manifesto de privacidade: recurso EXPLÍCITO na raiz do bundle (a Apple recusa sem ele).
+      - path: TactiPlan/PrivacyInfo.xcprivacy
+        buildPhase: resources
+    dependencies:
+      - package: TactiPlanKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.faggin.tactiplan.app
+        PRODUCT_NAME: TactiPlan
+        INFOPLIST_FILE: TactiPlan/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        CODE_SIGN_STYLE: Automatic
+        # Só iPhone no lançamento (decisão do dono, 21/10). iPad depois, com layout próprio.
+        TARGETED_DEVICE_FAMILY: "1"
+      configs:
+        # Debug: backend local visto do simulador. Trocar: `xcodebuild ... API_BASE=http://<host>:<porta>/api`.
+        Debug:
+          API_BASE: http://localhost:3001/api
+          APS_ENVIRONMENT: development
+        # Release (TestFlight/App Store): SEMPRE produção.
+        Release:
+          API_BASE: https://app.tactiplan.faggin.com.br/api
+          APS_ENVIRONMENT: production
+    scheme:
+      testTargets:
+        - TactiPlanTests
+      gatherCoverageData: false
+
+  TactiPlanTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: TactiPlanTests
+    dependencies:
+      - target: TactiPlan
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.faggin.tactiplan.app.tests
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "1"

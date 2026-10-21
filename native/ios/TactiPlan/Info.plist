@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>pt-BR</string>
+	<key>CFBundleDisplayName</key>
+	<string>TactiPlan</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>TactiPlan</string>
+	<key>CFBundlePackageType</key>
+	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<!-- Base da API por configuração (project.yml): Debug configurável, Release = produção. -->
+	<key>API_BASE</key>
+	<string>$(API_BASE)</string>
+	<!-- YES só no build com o entitlement Sign in with Apple (TACTIPLAN_APPLE_ATIVO=1). Sem ele,
+	     Apple e Google não aparecem no iPhone (regra 4.8). -->
+	<key>TactiPlanAppleLogin</key>
+	<string>$(TACTIPLAN_APPLE_LOGIN)</string>
+	<!-- YES só no build com push (TACTIPLAN_PUSH_ATIVO=1): estrutura pronta, desligada. -->
+	<key>TactiPlanPush</key>
+	<string>$(TACTIPLAN_PUSH)</string>
+	<!-- Só HTTPS padrão do sistema: isento de declaração de criptografia. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<!-- Libera http só para rede local (backend de dev no simulador); produção é https. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Poppins-Regular.ttf</string>
+		<string>Poppins-Medium.ttf</string>
+		<string>Poppins-SemiBold.ttf</string>
+		<string>Poppins-Bold.ttf</string>
+	</array>
+	<!-- "Exigir Face ID ao abrir" (Mais › Segurança), desligado por padrão. -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>Para pedir o Face ID ao abrir o TactiPlan, se você ligar essa opção em Mais › Segurança.</string>
+	<!-- Abertura: navy da marca com o T e a faísca lime. -->
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>FundoAbertura</string>
+		<key>UIImageName</key>
+		<string>SimboloAbertura</string>
+	</dict>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+	</dict>
+	<!-- Só iPhone no lançamento, em pé (o quadro tático deitado chega na T5). -->
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
+</dict>
+</plist>
