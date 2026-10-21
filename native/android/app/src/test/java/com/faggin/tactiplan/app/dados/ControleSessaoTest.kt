@@ -122,6 +122,20 @@ class ControleSessaoTest {
         assertTrue("convite:ab12" in api.chamadas)
     }
 
+    @Test fun `aceitar convite com varios clubes fica no Onde entrar com o me novo`() = runTest {
+        val c = controle()
+        c.entrou(login(me(conta("w1", clubes = listOf(clube("c1"))), convites = listOf(Convite("ab12")))))
+        api.convite = {
+            RespostaConvite("w2", me(conta("w1", clubes = listOf(clube("c1"))),
+                conta("w2", clubes = listOf(clube("c8"), clube("c9")), dono = false, papel = "head_coach")))
+        }
+        c.aceitarConvite("ab12")
+        val e = c.estado.value as EstadoApp.OndeEntrar
+        assertTrue(e.sessao.me.convites.isEmpty())
+        assertEquals(2, e.sessao.me.workspaces.size)
+        assertEquals(2, cofre.ler()?.me?.workspaces?.size)
+    }
+
     @Test fun `aceitar convite com erro sobe para a tela`() = runTest {
         val c = controle()
         c.entrou(login(me(convites = listOf(Convite("ab12")))))

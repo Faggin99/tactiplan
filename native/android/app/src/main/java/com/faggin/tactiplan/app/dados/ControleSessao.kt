@@ -155,16 +155,17 @@ class ControleSessao(
             if (atualS.token != s0.token) return
             val s = atualS.copy(me = r.me, meEm = relogio())
             cofre.salvar(s)
+            // Publica o me NOVO antes de escolher: o escolher lê a sessão do estado.
+            val atual = escolhaAtual()?.takeIf { escolhaValida(it, r.me) }
+            _estado.value = EstadoApp.OndeEntrar(s, atual)
             val conta = r.workspaceId?.let { ws -> r.me.workspaces.firstOrNull { it.id == ws } }
             if (conta != null) {
                 val clubes = conta.clubes.orEmpty().filter { it.arquivado != true }
                 if (clubes.size == 1) {
-                    _estado.value = EstadoApp.OndeEntrar(s, null)
                     escolher(Escolha(conta.id, clubes[0].id))
                     return
                 }
             }
-            _estado.value = EstadoApp.OndeEntrar(s, escolhaAtual())
         } catch (e: Exception) {
             if (tratarErro(e, s0.token)) return
             throw e
