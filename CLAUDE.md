@@ -116,3 +116,19 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   sessões do app da pessoa (`appSessoes.revogarTodasDoUsuario`).
 - `POST /api/app/convites/:token/recusar` (BFF): só o dono do e-mail, só pendente; apaga o convite.
 - Testes: `tests/app-token-web.test.js` (revogado/vencido 401, workspace alheia, 402 READ_ONLY, 409 CLUB_ARCHIVED).
+
+## Períodos do dia (22/10/2026): Manhã · Tarde · Noite
+- Cada período = 1 linha de `training_sessions` (mesma data/clube/workspace) com `periodo` ('manha'|'tarde'|'noite');
+  dia de período único = `periodo` NULL (todos os dados antigos). Migrations 057 (coluna + único
+  `(workspace_id, date, club_id, COALESCE(periodo,'unico'))`) e 058 (larga o único antigo). Ordem pelo nome.
+- Regras (`src/services/periodos.js`): máx 3; descanso é do dia inteiro (só com 1 período); 1 período de jogo por dia
+  (os outros são treino — "Manhã treino + Tarde jogo"). Tipo fica em cada período (`session_type`).
+- API: `POST /api/sessions/:id/periodos {novo, atual?}` (atual = nome do treino que já existia, obrigatório no 1º),
+  `PUT /api/sessions/:id/periodo {periodo}` (trocar horário), `DELETE /api/sessions/:id/periodo` (apaga atividades,
+  anexos e arquivos; sobrando 1, volta a NULL). `ensure` usa `ON CONFLICT DO NOTHING`.
+- `GET /api/microcycles`: `sessions` continua 1 por dia (o 1º período) — compatível com o app T1/T2;
+  dia com 2+ períodos traz `periodos` (cada um completo, com blocos).
+- Estatísticas: o dia conta 1 sessão; minutos/pilares/conteúdos/predominância/distância somam os períodos.
+  Relatórios: ficha com os períodos em sequência (`so_periodo: true` = só o de session_id), semana com "90+60".
+- Testes: `tests/periodos.test.js` e `tests/periodos-db.test.js` (Postgres descartável via `PERIODOS_TEST_DB`;
+  banco `sports_periodos_test` = schema de prod + 057/058).

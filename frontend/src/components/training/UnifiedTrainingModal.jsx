@@ -529,7 +529,7 @@ export function UnifiedTrainingModal({ isOpen, onClose, session, onSave, initial
       <Modal
         isOpen={isOpen}
         onClose={onClose}
-        title={`Treino - ${session?.day_name} (${session?.date ? session.date.split('-').reverse().slice(0, 2).join('/') : ''})`}
+        title={`Treino - ${session?.day_name}${session?.periodo ? ` · ${({ manha: 'Manhã', tarde: 'Tarde', noite: 'Noite' })[session.periodo] || ''}` : ''} (${session?.date ? session.date.split('-').reverse().slice(0, 2).join('/') : ''})`}
         size="xl"
         footer={
           <>

@@ -816,7 +816,7 @@ export function TrainingPage() {
                   {periodos ? (
                     // 2+ períodos: nome do período + pilar dele, setas ‹ › e pontinhos
                     <div
-                      style={{ ...contentsSummaryStyle, position: 'relative', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '0.1rem', padding: isMobile ? '0.15rem 0.15rem 0.35rem' : '0.2rem 0.15rem 0.4rem' }}
+                      style={{ ...contentsSummaryStyle, position: 'relative', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '0.1rem', padding: isMobile ? '0.3rem 0.1rem' : '0.4rem 0.15rem' }}
                       aria-roledescription="carrossel"
                       aria-label={`Períodos do dia: ${periodos.map((p) => rotuloPeriodo(p.periodo)).join(', ')}`}
                     >
@@ -825,7 +825,7 @@ export function TrainingPage() {
                         className="tp-periodo-seta"
                         aria-label="Período anterior"
                         onClick={(e) => { e.stopPropagation(); passoPeriodo(session.date, nPer, -1); }}
-                        style={{ flex: 'none', border: 'none', background: 'transparent', color: colors.text, cursor: 'pointer', padding: isMobile ? '0.35rem 0.3rem' : '0.1rem 0.15rem', borderRadius: 4, display: 'inline-flex', alignItems: 'center' }}
+                        style={{ flex: 'none', border: 'none', background: 'transparent', color: colors.text, cursor: 'pointer', padding: isMobile ? '0.35rem 0.3rem' : '0.1rem 0.15rem', margin: isMobile ? '-0.35rem 0' : '-0.1rem 0', borderRadius: 4, display: 'inline-flex', alignItems: 'center' }}
                       >
                         <ChevronLeft size={isMobile ? 16 : 13} />
                       </button>
@@ -840,17 +840,17 @@ export function TrainingPage() {
                         className="tp-periodo-seta"
                         aria-label="Próximo período"
                         onClick={(e) => { e.stopPropagation(); passoPeriodo(session.date, nPer, 1); }}
-                        style={{ flex: 'none', border: 'none', background: 'transparent', color: colors.text, cursor: 'pointer', padding: isMobile ? '0.35rem 0.3rem' : '0.1rem 0.15rem', borderRadius: 4, display: 'inline-flex', alignItems: 'center' }}
+                        style={{ flex: 'none', border: 'none', background: 'transparent', color: colors.text, cursor: 'pointer', padding: isMobile ? '0.35rem 0.3rem' : '0.1rem 0.15rem', margin: isMobile ? '-0.35rem 0' : '-0.1rem 0', borderRadius: 4, display: 'inline-flex', alignItems: 'center' }}
                       >
                         <ChevronRight size={isMobile ? 16 : 13} />
                       </button>
-                      <span style={{ position: 'absolute', left: 0, right: 0, bottom: 3, display: 'flex', justifyContent: 'center', gap: 3, pointerEvents: 'none' }}>
+                      <span style={{ position: 'absolute', left: 0, right: 0, bottom: 2, display: 'flex', justifyContent: 'center', gap: 3, pointerEvents: 'none' }}>
                         {periodos.map((p, i) => (
                           <i
                             key={p.id}
                             onClick={(e) => { e.stopPropagation(); irParaPeriodo(session.date, i); }}
                             title={rotuloPeriodo(p.periodo)}
-                            style={{ width: i === idxPer ? 10 : 4, height: 4, borderRadius: 2, background: i === idxPer ? colors.primary : colors.border, transition: 'width 200ms ease, background-color 200ms ease', pointerEvents: 'auto', cursor: 'pointer' }}
+                            style={{ width: i === idxPer ? 10 : 4, height: 4, borderRadius: 2, background: i === idxPer ? colors.primary : colors.textSecondary, opacity: i === idxPer ? 1 : 0.35, transition: 'width 200ms ease, background-color 200ms ease', pointerEvents: 'auto', cursor: 'pointer' }}
                           />
                         ))}
                       </span>
@@ -1101,12 +1101,20 @@ export function TrainingPage() {
               {/* Duration Badge - always visible to maintain alignment - fourth row */}
               {periodos ? (
                 // dia inteiro: total + divisão por período (ex.: 150 min · 90+60)
-                <div style={durationBadgeStyle} title={periodos.map((p) => `${rotuloPeriodo(p.periodo)}: ${minutosDaSessao(p)} min`).join(' · ')}>
+                // Uma linha só (grade intacta): a distância aparece quando a coluna tem
+                // espaço (container query .tp-km-dia); sempre no title.
+                <div
+                  style={{ ...durationBadgeStyle, flexWrap: 'nowrap', whiteSpace: 'nowrap', overflow: 'hidden', containerType: 'inline-size' }}
+                  title={[
+                    ...periodos.map((p) => `${rotuloPeriodo(p.periodo)}: ${minutosDaSessao(p)} min`),
+                    ...(distanciaDoDia(periodos) !== null ? [`Distância do dia: ${formatKm(distanciaDoDia(periodos), 1)} km`] : []),
+                  ].join(' · ')}
+                >
                   <span>⏱</span>
                   <span>{periodos.reduce((t, p) => t + minutosDaSessao(p), 0)} min</span>
                   <span style={{ color: colors.textSecondary, fontWeight: 500 }}>· {periodos.map((p) => minutosDaSessao(p)).join('+')}</span>
                   {distanciaDoDia(periodos) !== null && (
-                    <span title="Distância ideal do dia (soma dos períodos)" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', marginLeft: '0.35rem', paddingLeft: '0.45rem', borderLeft: `1px solid ${colors.border}` }}>
+                    <span className="tp-km-dia" style={{ alignItems: 'center', gap: '0.2rem', marginLeft: '0.35rem', paddingLeft: '0.45rem', borderLeft: `1px solid ${colors.border}` }}>
                       <span>📍</span>
                       <span>{formatKm(distanciaDoDia(periodos), 1)} km</span>
                     </span>

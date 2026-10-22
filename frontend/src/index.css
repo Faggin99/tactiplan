@@ -135,3 +135,6 @@ button, input, select, textarea { font-family: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .tp-periodo-in { animation: none; }
 }
+/* rodapé do dia com períodos: km só quando cabe na mesma linha */
+.tp-km-dia { display: none; }
+@container (min-width: 205px) { .tp-km-dia { display: inline-flex; } }

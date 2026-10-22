@@ -524,7 +524,10 @@ function buildDaySheet({ sessions, team, weekNumber = null, gamesById = null, ph
   const list = (sessions || []).slice().sort(P.compararPeriodos);
   if (list.length <= 1) {
     const only = list[0];
-    return buildSessionSheet({ session: only, team, weekNumber, game: gamesById?.get(only?.id) || null, photos });
+    const vm = buildSessionSheet({ session: only, team, weekNumber, game: gamesById?.get(only?.id) || null, photos });
+    // só um período de um dia com vários (so_periodo): o título diz qual
+    if (only?.periodo) vm.title = `${vm.title} · ${P.rotuloPeriodo(only.periodo)}`;
+    return vm;
   }
   const periodos = list.map((s) => {
     const vm = buildSessionSheet({ session: s, team, weekNumber, game: gamesById?.get(s.id) || null, photos: null });

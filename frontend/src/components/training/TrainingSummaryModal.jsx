@@ -17,7 +17,7 @@ export function TrainingSummaryModal({ isOpen, onClose, session: day }) {
   const [usarAntiga, setUsarAntiga] = useState(false);
   // Dia com 2+ períodos: ver/exportar o dia inteiro (padrão) ou só um período
   const [escolha, setEscolha] = useState('dia');
-  useEffect(() => { setUsarAntiga(false); setEscolha('dia'); }, [session?.id]);
+  useEffect(() => { setUsarAntiga(false); setEscolha('dia'); }, [day?.id]);
 
   if (!isOpen || !day) return null;
 
