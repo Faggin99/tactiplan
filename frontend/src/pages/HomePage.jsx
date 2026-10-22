@@ -14,6 +14,7 @@ import { homeService } from '../services/homeService';
 import { downloadReport, safeFileName } from '../services/reportsService';
 import { notify } from '../lib/notify';
 import { useFeatureGuard } from '../components/common/PlanGate';
+import { rotuloSessaoDoDia, listaPeriodos } from '../lib/periodos';
 
 const QUICK_LINKS = [
   { key: 'training',       label: 'Programação',   icon: Calendar,   route: '/training',          color: '#2563eb' },
@@ -223,7 +224,7 @@ export function HomePage() {
 
         {/* Resumo numérico — 4 cards de quick stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.6rem' }}>
-          <StatCard icon={<Calendar size={16} />}    color="#3b82f6" label="Próximo treino" value={nextSession ? `${SESSION_TYPE_LABEL[nextSession.session_type] || 'Treino'} · ${daysFromToday(nextSession.date)}` : '—'} sub={nextSession ? formatDateBR(nextSession.date) : 'Sem sessões futuras'} colors={colors} />
+          <StatCard icon={<Calendar size={16} />}    color="#3b82f6" label="Próximo treino" value={nextSession ? `${SESSION_TYPE_LABEL[nextSession.session_type] || 'Treino'} · ${daysFromToday(nextSession.date)}` : '—'} sub={nextSession ? `${formatDateBR(nextSession.date)}${nextSession.periodos?.length > 1 ? ` · ${listaPeriodos(nextSession.periodos)}` : ''}` : 'Sem sessões futuras'} colors={colors} />
           <StatCard icon={<Trophy size={16} />}      color="#f59e0b" label="Próximo jogo"   value={nextMatch ? (nextMatch.opponent_name || 'A definir') : '—'} sub={nextMatch ? `${formatDateBR(nextMatch.date)} · ${daysFromToday(nextMatch.date)}` : 'Sem jogo agendado'} colors={colors} />
           <StatCard icon={<Users size={16} />}       color="#22c55e" label="Plantel"        value={String(summary.totalAthletes || 0)} sub={`${summary.totalAthletes === 1 ? '1 atleta' : `${summary.totalAthletes} atletas`}`} colors={colors} />
           <StatCard icon={<HeartPulse size={16} />}  color="#ef4444" label="Lesionados"     value={String(summary.activeInjuries || 0)} sub={summary.activeInjuries === 0 ? 'Plantel pleno' : 'Ativos no DM'} colors={colors} clickable onClick={() => navigate('/plantel')} />
@@ -269,7 +270,7 @@ export function HomePage() {
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: '0.875rem', color: colors.text, fontWeight: 500 }}>
-                          {isMatch ? `Jogo${s.opponent_name ? ` · vs ${s.opponent_name}` : ''}` : (SESSION_TYPE_LABEL[s.session_type] || 'Treino')}
+                          {rotuloSessaoDoDia(s)}
                         </div>
                         <div style={{ fontSize: '0.72rem', color: colors.textSecondary, marginTop: 1 }}>
                           {formatDateBR(s.date)} · {daysFromToday(s.date)}

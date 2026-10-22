@@ -1,6 +1,7 @@
 const express = require('express');
 const { query } = require('../config/database');
 const authMiddleware = require('../middleware/auth');
+const { proximasPorDia, ordemSql } = require('../services/periodos');
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -15,15 +16,15 @@ router.get('/home/dashboard', async (req, res) => {
     }
 
     const nextSessionSql = `
-      SELECT s.id, s.date, s.day_name, s.session_type, s.opponent_name, m.club_id
+      SELECT s.id, s.date, s.day_name, s.session_type, s.opponent_name, s.periodo, s.workspace_id, m.club_id
         FROM training_sessions s
         JOIN training_microcycles m ON s.microcycle_id = m.id
        WHERE s.workspace_id = ANY($1)
          AND s.date >= CURRENT_DATE
          ${clubId ? 'AND m.club_id = $2' : ''}
          AND (s.session_type != 'rest' OR s.session_type IS NULL)
-       ORDER BY s.date ASC, s.day_of_week ASC
-       LIMIT 5
+       ORDER BY s.date ASC, s.day_of_week ASC, ${ordemSql('s')}
+       LIMIT 15
     `;
     const nextSessionParams = clubId ? [workspaceIds, clubId] : [workspaceIds];
     const nextSessionsResult = await query(nextSessionSql, nextSessionParams);
@@ -85,7 +86,8 @@ router.get('/home/dashboard', async (req, res) => {
     );
 
     res.json({
-      nextSessions: nextSessionsResult.rows,
+      // 1 linha por dia (dia com 2+ períodos traz `periodos`)
+      nextSessions: proximasPorDia(nextSessionsResult.rows, 5),
       nextMatch: nextMatchResult.rows[0] || null,
       activeInjuries: activeInjuriesResult.rows,
       announcements: announcementsResult.rows,

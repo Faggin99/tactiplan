@@ -180,7 +180,36 @@ function divisaoMinutos(periodos) {
   return periodos.map((p) => Number(p.minutes) || 0).join('+');
 }
 
+// Início › "Próximas sessões": 1 linha por DIA (o dia de 2+ períodos aparecia
+// duas vezes). Mantém a ordem de chegada (data), guarda o 1º período como base e,
+// no dia com 2+, `periodos` = [{id, periodo, session_type, opponent_name}] na ordem do nome.
+function proximasPorDia(rows, limite = 5) {
+  const dias = [];
+  const porChave = new Map();
+  for (const r of rows || []) {
+    const k = chaveDia(r);
+    if (!porChave.has(k)) {
+      if (dias.length >= limite) continue;
+      const lista = [];
+      porChave.set(k, lista);
+      dias.push(lista);
+    }
+    porChave.get(k).push(r);
+  }
+  return dias.map((lista) => {
+    lista.sort(compararPeriodos);
+    const base = { ...lista[0] };
+    if (lista.length > 1) {
+      base.periodos = lista.map((s) => ({ id: s.id, periodo: s.periodo, session_type: s.session_type, opponent_name: s.opponent_name || null }));
+      const jogo = lista.find((s) => s.session_type === 'match');
+      if (jogo) { base.session_type = 'match'; base.opponent_name = jogo.opponent_name || null; }
+    }
+    return base;
+  });
+}
+
 module.exports = {
+  proximasPorDia,
   PERIODOS,
   ROTULO_PERIODO,
   MAX_PERIODOS,

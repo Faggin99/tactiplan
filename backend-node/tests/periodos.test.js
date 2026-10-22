@@ -115,3 +115,22 @@ test('ficha do dia: 1 período = ficha de antes; 2 períodos = em sequência com
   assert.ok(html.indexOf('Linha do tempo · Manhã') > 0);
   assert.ok(html.indexOf('Linha do tempo · Manhã') < html.indexOf('Linha do tempo · Tarde'));
 });
+
+test('proximasPorDia (Início): dia com 2 períodos vira 1 linha, jogo prevalece no rótulo', () => {
+  const rows = [
+    linha('a1', 'manha', { date: '2031-03-11' }),
+    linha('a2', 'tarde', { date: '2031-03-11', session_type: 'match', opponent_name: 'Rival' }),
+    linha('b', null, { date: '2031-03-12' }),
+    linha('c2', 'tarde', { date: '2031-03-13' }),
+    linha('c1', 'manha', { date: '2031-03-13' }),
+  ];
+  const dias = P.proximasPorDia(rows, 5);
+  assert.equal(dias.length, 3);
+  assert.equal(dias[0].id, 'a1');
+  assert.equal(dias[0].session_type, 'match');
+  assert.equal(dias[0].opponent_name, 'Rival');
+  assert.deepEqual(dias[0].periodos.map((p) => p.periodo), ['manha', 'tarde']);
+  assert.equal(dias[1].periodos, undefined);
+  assert.deepEqual(dias[2].periodos.map((p) => p.id), ['c1', 'c2']);
+  assert.equal(P.proximasPorDia(rows, 2).length, 2);
+});
