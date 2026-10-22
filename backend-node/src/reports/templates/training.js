@@ -47,14 +47,14 @@ function weekGrid(vm) {
       return `<div class="day rest">${head}<div class="tag">Descanso</div><div class="fx"></div><div class="col"></div><div class="mn">—</div></div>`;
     }
     if (d.kind === 'avaliacao') {
-      return `<div class="day assess">${head}<div class="tag">Avaliação</div><div class="fx av-tipos">${esc(d.assessment.text || 'Tipo não informado')}</div><div class="col"></div><div class="mn">—</div></div>`;
+      return `<div class="day assess">${head}<div class="tag">Avaliação</div><div class="fx av-tipos">${d.assessment.types.length ? d.assessment.types.map((t) => `<span>${esc(t).replace(/\//g, '/<wbr>')}</span>`).join('') : 'Tipo não informado'}</div><div class="col"></div><div class="mn">—</div></div>`;
     }
     if (d.kind === 'vazio') {
       return `<div class="day none">${head}<div class="tag">Sem registro</div><div class="fx"></div><div class="col"></div><div class="mn">—</div></div>`;
     }
     const tag = d.assessment ? 'Treino + Avaliação' : 'Treino';
     return `<div class="day">${head}<div class="tag">${tag}</div><div class="fx">${esc(d.focus || '')}</div>${assessmentLine(d.assessment)}`
-      + `<div class="col bar">${pillarBar(d.pillars, d.minutes, max)}</div><div class="mn">${d.minutes > 0 ? `${d.minutes}'` : '—'}</div>`
+      + `<div class="col pcol">${pillarBar(d.pillars, d.minutes, max)}</div><div class="mn">${d.minutes > 0 ? `${d.minutes}'` : '—'}</div>`
       + `${d.split && d.minutes > 0 ? `<div class="pd" title="${esc(d.periods.map((p) => `${p.label} ${p.minutes}'`).join(' + '))}">${esc(d.split)}</div>` : ''}</div>`;
   }).join('');
   const notes = vm.dayNotes.map((n) => `<div class="note">${esc(n)}</div>`).join('');

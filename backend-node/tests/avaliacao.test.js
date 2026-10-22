@@ -96,7 +96,7 @@ test('microciclo do PDF: dia só de avaliação, dia misto, barra por pilar e se
   const html = renderTraining(vm, { now });
   assert.doesNotMatch(html, /125\+0/);
   assert.match(html, /class="day assess"/);
-  assert.match(html, /Avaliação<\/div><div class="fx av-tipos">Antropométrica/);
+  assert.match(html, /Avaliação<\/div><div class="fx av-tipos"><span>Antropométrica<\/span>/);
   assert.match(html, /Treino \+ Avaliação/);
   assert.match(html, /class="pbar"/, 'barra fina por pilar no lugar da coluna sólida');
   assert.doesNotMatch(html, /<div class="col"><i style="height/, 'nada de coluna sólida');
