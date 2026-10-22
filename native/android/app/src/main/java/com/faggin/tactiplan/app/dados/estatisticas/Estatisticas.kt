@@ -308,8 +308,6 @@ data class StatsJogos(
     val biggestWin: JogoPlacar? = null,
     val biggestLoss: JogoPlacar? = null,
     val form: List<JogoForma> = emptyList(),
-    val avgTimeFirstGoalFor: Double? = null,
-    val avgTimeFirstGoalAgainst: Double? = null,
     val goalDifference: Int? = null,
 )
 

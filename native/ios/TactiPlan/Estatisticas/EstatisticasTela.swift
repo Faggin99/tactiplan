@@ -607,8 +607,6 @@ struct CardsJogosVista: View {
             .padding(.top, 6)
             LinhaInfo(rotulo: "Média por jogo", valor: k.media)
             LinhaInfo(rotulo: "Jogos sem sofrer", valor: "\(s.semSofrer)")
-            LinhaInfo(rotulo: "1º gol nosso (méd.)", valor: s.primeiroGolPro.map { "\($0)'" } ?? "—")
-            LinhaInfo(rotulo: "1º gol sofrido (méd.)", valor: s.primeiroGolContra.map { "\($0)'" } ?? "—")
         }
         // Jogo a jogo
         Cartao {

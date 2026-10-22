@@ -407,8 +407,6 @@ public struct StatsJogos: Decodable, Equatable, Sendable {
     public var mediaFeitos: Double = 0
     public var mediaSofridos: Double = 0
     public var semSofrer: Int = 0
-    public var primeiroGolPro: Int?
-    public var primeiroGolContra: Int?
     public var substituicoes: Int = 0
     public var substituicoesPorJogo: Double = 0
     public var minutoMedioTroca: Int?
@@ -433,7 +431,7 @@ public struct StatsJogos: Decodable, Equatable, Sendable {
              golsSofridos = "totalGoalsConceded", pontosGanhos = "pointsWon", pontosDisputados = "pointsPlayed",
              sequenciaVitorias = "winStreak", sequenciaInvicta = "unbeatenStreak", saldo = "goalDifference",
              mediaFeitos = "avgGoalsScored", mediaSofridos = "avgGoalsConceded", semSofrer = "cleanSheets",
-             primeiroGolPro = "avgTimeFirstGoalFor", primeiroGolContra = "avgTimeFirstGoalAgainst", substituicoes = "substitutionsTotal",
+             substituicoes = "substitutionsTotal",
              substituicoesPorJogo = "avgSubstitutionsPerGame", minutoMedioTroca = "avgSubstitutionMinute", amarelos = "yellowCards",
              vermelhos = "redCards", assistencias = "assists", faltasAcumuladas = "accumulatedFouls", sextaFalta = "sixthFouls",
              modalidade = "modality", maiorVitoria = "biggestWin", maiorDerrota = "biggestLoss", forma = "form",
@@ -452,7 +450,7 @@ public struct StatsJogos: Decodable, Equatable, Sendable {
         golsFeitos = n(.golsFeitos); golsSofridos = n(.golsSofridos); pontosGanhos = n(.pontosGanhos); pontosDisputados = n(.pontosDisputados)
         sequenciaVitorias = n(.sequenciaVitorias); sequenciaInvicta = n(.sequenciaInvicta); saldo = n(.saldo)
         mediaFeitos = c.numeroFlex(.mediaFeitos) ?? 0; mediaSofridos = c.numeroFlex(.mediaSofridos) ?? 0
-        semSofrer = n(.semSofrer); primeiroGolPro = o(.primeiroGolPro); primeiroGolContra = o(.primeiroGolContra)
+        semSofrer = n(.semSofrer)
         substituicoes = n(.substituicoes); substituicoesPorJogo = c.numeroFlex(.substituicoesPorJogo) ?? 0
         minutoMedioTroca = o(.minutoMedioTroca); amarelos = n(.amarelos); vermelhos = n(.vermelhos); assistencias = n(.assistencias)
         faltasAcumuladas = n(.faltasAcumuladas); sextaFalta = n(.sextaFalta)

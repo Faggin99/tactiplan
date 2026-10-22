@@ -467,8 +467,6 @@ private fun ConteudoJogos(s: StatsJogos, verTodas: () -> Unit) {
         }
         LinhaInfo("Média por jogo", k.media)
         LinhaInfo("Jogos sem sofrer", "${s.cleanSheets}")
-        LinhaInfo("1º gol nosso (méd.)", s.avgTimeFirstGoalFor?.let { "${Math.round(it)}'" } ?: "—")
-        LinhaInfo("1º gol sofrido (méd.)", s.avgTimeFirstGoalAgainst?.let { "${Math.round(it)}'" } ?: "—")
     }
     // Jogo a jogo
     Cartao(Modifier.semantics(mergeDescendants = true) {}) {
