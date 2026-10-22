@@ -130,7 +130,7 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   (os outros são treino — "Manhã treino + Tarde jogo"). Tipo fica em cada período (`session_type`).
 - API: `POST /api/sessions/:id/periodos {novo, atual?}` (atual = nome do treino que já existia, obrigatório no 1º),
   `PUT /api/sessions/:id/periodo {periodo}` (trocar horário), `DELETE /api/sessions/:id/periodo` (apaga atividades,
-  anexos e arquivos; sobrando 1, volta a NULL). `ensure` usa `ON CONFLICT DO NOTHING`.
+  anexos e arquivos; sobrando 1, ele mantém o nome). `ensure` usa `ON CONFLICT DO NOTHING`.
 - `GET /api/microcycles`: `sessions` continua 1 por dia (o 1º período) — compatível com o app T1/T2;
   dia com 2+ períodos traz `periodos` (cada um completo, com blocos).
 - Estatísticas: o dia conta 1 sessão; minutos/pilares/conteúdos/predominância/distância somam os períodos.
