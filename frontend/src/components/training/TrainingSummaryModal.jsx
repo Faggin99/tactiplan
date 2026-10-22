@@ -7,16 +7,29 @@ import { useReportPhotosExport } from '../reports/useReportPhotosExport';
 import { ReportSheetView } from '../reports/ReportSheetView';
 import { notify } from '../../lib/notify';
 import { formatKm, toKm } from '../../utils/distancia';
+import { periodosDoDia, rotuloPeriodo, distanciaDoDia } from '../../lib/periodos';
 
-export function TrainingSummaryModal({ isOpen, onClose, session }) {
+export function TrainingSummaryModal({ isOpen, onClose, session: day }) {
   const { colors } = useTheme();
   // Exportar PDF: com fotos no dia abre o modal "Fotos do relatório"
   const photoExport = useReportPhotosExport();
   // Tela = a ficha nova (mesmo modelo do PDF). Se não carregar, cai na visualização antiga.
   const [usarAntiga, setUsarAntiga] = useState(false);
-  useEffect(() => { setUsarAntiga(false); }, [session?.id]);
+  // Dia com 2+ períodos: ver/exportar o dia inteiro (padrão) ou só um período
+  const [escolha, setEscolha] = useState('dia');
+  useEffect(() => { setUsarAntiga(false); setEscolha('dia'); }, [session?.id]);
 
-  if (!isOpen || !session) return null;
+  if (!isOpen || !day) return null;
+
+  const periodos = periodosDoDia(day);
+  const periodoEscolhido = periodos && escolha !== 'dia' ? periodos.find((p) => p.id === escolha) : null;
+  // `session` = o que a tela antiga/Excel mostram: o período escolhido, ou o dia
+  // inteiro (blocos de todos os períodos em sequência, nome do bloco com o período).
+  const session = periodoEscolhido || (periodos ? {
+    ...day,
+    avg_distance_km: distanciaDoDia(periodos),
+    blocks: periodos.flatMap((p) => (p.blocks || []).map((b) => ({ ...b, name: `${rotuloPeriodo(p.periodo)} · ${b.name}` }))),
+  } : day);
 
   const getTotalDuration = () => {
     if (!session?.blocks) return 0;
@@ -73,9 +86,10 @@ export function TrainingSummaryModal({ isOpen, onClose, session }) {
       notify.info('Nenhuma atividade pra exportar.');
       return;
     }
-    const filename = `treino-${session.day_name}-${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
+    const sufixo = periodoEscolhido ? `-${rotuloPeriodo(periodoEscolhido.periodo)}` : '';
+    const filename = `treino-${session.day_name}-${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}${sufixo}.pdf`;
     try {
-      await photoExport.start('sessao', { session_id: session.id }, filename);
+      await photoExport.start('sessao', { session_id: session.id, ...(periodoEscolhido ? { so_periodo: true } : {}) }, filename);
     } catch (error) {
       console.error('Error generating PDF:', error);
       notify.error(error.message || 'Erro ao gerar PDF. Por favor, tente novamente.');
@@ -281,6 +295,22 @@ export function TrainingSummaryModal({ isOpen, onClose, session }) {
     <div style={overlayStyle} onClick={onClose}>
       <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
         {/* Action Buttons */}
+        {periodos && (
+          <div className="no-print" role="tablist" aria-label="Período" style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', zIndex: 10, display: 'flex', gap: 2, padding: 3, borderRadius: 999, background: 'rgba(255,255,255,0.95)', border: '1px solid #ddd', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+            {[{ id: 'dia', label: 'Dia inteiro' }, ...periodos.map((p) => ({ id: p.id, label: rotuloPeriodo(p.periodo) }))].map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                role="tab"
+                aria-selected={escolha === o.id}
+                onClick={() => setEscolha(o.id)}
+                style={{ border: 'none', cursor: 'pointer', borderRadius: 999, padding: '0.3rem 0.7rem', fontSize: '0.75rem', fontWeight: 600, background: escolha === o.id ? '#0f172a' : 'transparent', color: escolha === o.id ? '#fff' : '#334155' }}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        )}
         <div style={headerStyle} className="no-print">
           <ExportMenu
             size="sm"
@@ -308,7 +338,7 @@ export function TrainingSummaryModal({ isOpen, onClose, session }) {
         {/* Scrollable Content */}
         <div style={scrollContainerStyle}>
           {session.id && !usarAntiga ? (
-            <ReportSheetView sessionId={session.id} onFallback={() => setUsarAntiga(true)} />
+            <ReportSheetView sessionId={session.id} soPeriodo={!!periodoEscolhido} onFallback={() => setUsarAntiga(true)} />
           ) : (
           <div>
             {/* Single Page: Training Summary */}

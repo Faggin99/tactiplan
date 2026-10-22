@@ -43,7 +43,8 @@ async function fetchReportJson(tipo, body, signal) {
 export const fetchReportPhotos = (tipo, body, { signal } = {}) => fetchReportJson(tipo, { ...body, formato: 'fotos' }, signal);
 export const fetchReportPreview = (tipo, body, { signal } = {}) => fetchReportJson(tipo, { ...body, formato: 'html' }, signal);
 // Ficha do dia inteira em HTML, para ver na tela (resumo do dia) — mesmo modelo do PDF.
-export const fetchSessionSheetView = (sessionId, { signal } = {}) => fetchReportJson('sessao', { session_id: sessionId, formato: 'visualizar' }, signal);
+// soPeriodo: dia com 2+ períodos, só o período de sessionId (senão o dia inteiro)
+export const fetchSessionSheetView = (sessionId, { signal, soPeriodo = false } = {}) => fetchReportJson('sessao', { session_id: sessionId, formato: 'visualizar', ...(soPeriodo ? { so_periodo: true } : {}) }, signal);
 
 // Nomes de arquivo no mesmo padrão dos PDFs antigos.
 export const safeFileName = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '_').replace(/[^\w-]/g, '');

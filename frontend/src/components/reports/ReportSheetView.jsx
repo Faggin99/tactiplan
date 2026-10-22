@@ -7,7 +7,7 @@ const A4_H = 1123;
 // Mostra a ficha de sessão NOVA (mesmo template do PDF) dentro de um iframe
 // isolado, escalado para caber na largura. Se falhar, chama onFallback para a
 // tela antiga continuar funcionando.
-export function ReportSheetView({ sessionId, onFallback, refreshKey }) {
+export function ReportSheetView({ sessionId, onFallback, refreshKey, soPeriodo = false }) {
   const [html, setHtml] = useState(null);
   const [state, setState] = useState('loading'); // loading | ok | erro
   const [height, setHeight] = useState(A4_H);
@@ -18,7 +18,7 @@ export function ReportSheetView({ sessionId, onFallback, refreshKey }) {
   useEffect(() => {
     const ctrl = new AbortController();
     setState('loading');
-    fetchSessionSheetView(sessionId, { signal: ctrl.signal })
+    fetchSessionSheetView(sessionId, { signal: ctrl.signal, soPeriodo })
       .then((r) => {
         if (ctrl.signal.aborted) return;
         if (!r?.html) { setState('erro'); onFallback?.(); return; }
@@ -29,7 +29,7 @@ export function ReportSheetView({ sessionId, onFallback, refreshKey }) {
         setState('erro'); onFallback?.();
       });
     return () => ctrl.abort();
-  }, [sessionId, refreshKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sessionId, refreshKey, soPeriodo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const onMsg = (e) => {

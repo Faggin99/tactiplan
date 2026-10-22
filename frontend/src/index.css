@@ -123,3 +123,15 @@ body {
 
 /* Poppins também em campos e botões (inputs nativos não herdam no Safari). */
 button, input, select, textarea { font-family: inherit; }
+
+/* Programação: carrossel dos períodos do dia (Manhã/Tarde/Noite) */
+@keyframes tpPeriodoIn {
+  from { opacity: 0; transform: translateX(var(--tp-periodo-dx, 8px)); }
+  to { opacity: 1; transform: none; }
+}
+.tp-periodo-in { animation: tpPeriodoIn 260ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.tp-periodo-seta { opacity: 0.55; transition: opacity 150ms ease, background-color 150ms ease; }
+.tp-periodo-seta:hover, .tp-periodo-seta:focus-visible { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .tp-periodo-in { animation: none; }
+}

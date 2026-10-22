@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Moon, Trophy, Paperclip } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useClub } from '../contexts/ClubContext';
@@ -26,6 +26,7 @@ import { formatKm, toKm } from '../utils/distancia';
 import { ExportMenu } from '../components/common/ExportMenu';
 import { safeFileName } from '../services/reportsService';
 import { useReportPhotosExport } from '../components/reports/useReportPhotosExport';
+import { periodosDoDia, rotuloPeriodo, minutosDaSessao, distanciaDoDia } from '../lib/periodos';
 
 export function TrainingPage() {
   const { colors } = useTheme();
@@ -65,8 +66,8 @@ export function TrainingPage() {
       selector: '[data-tour="calendar"]',
       title: 'Calendário da semana',
       content: isMobileDevice
-        ? 'Cada coluna é um dia. Toque num dia pra abrir as atividades. Pressione e segure (long-press) um dia pra mudar o tipo de sessão (Treino, Jogo, Descanso).'
-        : 'Cada coluna é um dia. Clique em um dia pra abrir as atividades. Clique direito num dia pra trocar o tipo de sessão (Treino, Jogo, Descanso).',
+        ? 'Cada coluna é um dia. Toque num dia pra abrir as atividades. Pressione e segure (long-press) um dia pra mudar o tipo de sessão (Treino, Jogo, Descanso) ou adicionar outro período (Manhã, Tarde, Noite).'
+        : 'Cada coluna é um dia. Clique em um dia pra abrir as atividades. Clique direito num dia pra trocar o tipo de sessão (Treino, Jogo, Descanso) ou adicionar outro período (Manhã, Tarde, Noite).',
       placement: 'top',
     },
     {
@@ -160,6 +161,60 @@ export function TrainingPage() {
   const [showGameModal, setShowGameModal] = useState(false);
   const [microcycleCache, setMicrocycleCache] = useState({});
   const [themeContentIds, setThemeContentIds] = useState([]);
+  // Dia com 2+ períodos: o dia do menu (o período em exibição vai em selectedSession)
+  const [selectedDay, setSelectedDay] = useState(null);
+
+  // ---- Carrossel dos períodos (Manhã/Tarde/Noite) ----
+  // Índice do período em exibição por data. Troca sozinho a cada ~6 s; pausa com
+  // o mouse sobre a coluna, por 20 s depois de tocar/usar as setas, com modal
+  // aberto, aba escondida ou prefers-reduced-motion.
+  const TROCA_MS = 6000;
+  const PAUSA_MS = 20000;
+  const [periodoIdx, setPeriodoIdx] = useState({});
+  const [periodoDir, setPeriodoDir] = useState({});
+  const carrossel = useRef({ hover: null, pausaAte: {}, ultimaTroca: {}, toque: null });
+  const [reduzMovimento] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+  const algumModalAberto = showUnifiedModal || showSummaryModal || showSessionTypeModal || showGameModal || showCreateTitle || !!photoExport.modal || tour.isOpen;
+  const diasComPeriodos = (microcycle?.sessions || []).filter((s) => periodosDoDia(s)).map((s) => ({ date: s.date, n: s.periodos.length }));
+  const chaveDiasComPeriodos = diasComPeriodos.map((d) => `${d.date}:${d.n}`).join(',');
+
+  useEffect(() => {
+    if (!chaveDiasComPeriodos || reduzMovimento || algumModalAberto) return undefined;
+    const c = carrossel.current;
+    const inicio = Date.now();
+    for (const d of diasComPeriodos) c.ultimaTroca[d.date] = inicio; // recomeça a contar
+    const t = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      const agora = Date.now();
+      const avancar = diasComPeriodos.filter((d) => c.hover !== d.date
+        && (c.pausaAte[d.date] || 0) <= agora
+        && agora - (c.ultimaTroca[d.date] || 0) >= TROCA_MS);
+      if (!avancar.length) return;
+      for (const d of avancar) c.ultimaTroca[d.date] = agora;
+      setPeriodoDir((prev) => ({ ...prev, ...Object.fromEntries(avancar.map((d) => [d.date, 1])) }));
+      setPeriodoIdx((prev) => {
+        const n = { ...prev };
+        for (const d of avancar) n[d.date] = ((prev[d.date] || 0) + 1) % d.n;
+        return n;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, [chaveDiasComPeriodos, reduzMovimento, algumModalAberto]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function pausarCarrossel(date) {
+    carrossel.current.pausaAte[date] = Date.now() + PAUSA_MS;
+  }
+  function passoPeriodo(date, n, delta) {
+    pausarCarrossel(date);
+    carrossel.current.ultimaTroca[date] = Date.now();
+    setPeriodoDir((prev) => ({ ...prev, [date]: delta }));
+    setPeriodoIdx((prev) => ({ ...prev, [date]: (((prev[date] || 0) + delta) % n + n) % n }));
+  }
+  function irParaPeriodo(date, i) {
+    pausarCarrossel(date);
+    carrossel.current.ultimaTroca[date] = Date.now();
+    setPeriodoIdx((prev) => ({ ...prev, [date]: i }));
+  }
 
   // Get current month from the microcycle start date
   const currentMonth = (() => {
@@ -250,6 +305,17 @@ export function TrainingPage() {
       setLoading(false);
       setInitialLoad(false);
     }
+  }
+
+  // Invalida o cache da semana e recarrega do servidor.
+  async function recarregarSemana() {
+    const k = `${selectedClub.id}-${currentWeek.identifier}`;
+    setMicrocycleCache((prev) => {
+      const n = { ...prev };
+      delete n[k];
+      return n;
+    });
+    await loadMicrocycle(true);
   }
 
   function getWeekInfo(date) {
@@ -637,6 +703,11 @@ export function TrainingPage() {
                 <div style={{ fontSize: '0.7rem', opacity: 0.8, marginTop: '0.15rem' }}>
                   {(() => { const [y,m,d] = (session.date || '').split('-'); return d && m ? `${d}/${m}` : ''; })()}
                 </div>
+                {periodosDoDia(session) && (
+                  <div aria-label={`${session.periodos.length} períodos`} style={{ display: 'flex', justifyContent: 'center', gap: 2, marginTop: 3 }}>
+                    {session.periodos.map((p) => <i key={p.id} style={{ width: 4, height: 4, borderRadius: 2, background: 'currentColor', opacity: 0.75 }} />)}
+                  </div>
+                )}
               </button>
             );
           })}
@@ -650,8 +721,34 @@ export function TrainingPage() {
             : microcycle?.sessions
           )?.map((session, dayIndex) => {
             const currentDay = isToday(session.date);
+            // Dia com 2+ períodos: a coluna mostra UM período por vez (carrossel)
+            const periodos = periodosDoDia(session);
+            const nPer = periodos?.length || 1;
+            const idxPer = periodos ? ((periodoIdx[session.date] || 0) % nPer) : 0;
+            const shown = periodos ? periodos[idxPer] : session;
             return (
-              <div key={session.id || `empty-${session.date}`} style={dayColumnStyle}>
+              <div
+                key={session.id || `empty-${session.date}`}
+                style={dayColumnStyle}
+                data-periodos={periodos ? nPer : undefined}
+                onMouseEnter={periodos ? () => { carrossel.current.hover = session.date; } : undefined}
+                onMouseLeave={periodos ? () => { carrossel.current.hover = null; carrossel.current.ultimaTroca[session.date] = Date.now(); } : undefined}
+                onTouchStart={periodos ? (e) => {
+                  pausarCarrossel(session.date);
+                  const t = e.touches[0];
+                  carrossel.current.toque = { x: t.clientX, y: t.clientY, date: session.date };
+                } : undefined}
+                onTouchEnd={periodos ? (e) => {
+                  // arraste lateral troca o período
+                  const ini = carrossel.current.toque;
+                  carrossel.current.toque = null;
+                  const t = e.changedTouches[0];
+                  if (!ini || ini.date !== session.date || !t) return;
+                  const dx = t.clientX - ini.x;
+                  const dy = t.clientY - ini.y;
+                  if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) passoPeriodo(session.date, nPer, dx < 0 ? 1 : -1);
+                } : undefined}
+              >
                 <div
                   style={dayHeaderStyle(currentDay)}
                   onClick={() => {
@@ -661,14 +758,16 @@ export function TrainingPage() {
                   onContextMenu={(e) => {
                     e.preventDefault();
                     if (!podeEditarTreino) { notify.semPermissao('mudar o tipo do dia'); return; }
-                    setSelectedSession(session);
+                    setSelectedSession(shown);
+                    setSelectedDay(session);
                     setShowSessionTypeModal(true);
                   }}
                   onTouchStart={(e) => {
                     // Long press on mobile opens session type modal
                     const timer = setTimeout(() => {
                       if (!podeEditarTreino) { notify.semPermissao('mudar o tipo do dia'); return; }
-                      setSelectedSession(session);
+                      setSelectedSession(shown);
+                      setSelectedDay(session);
                       setShowSessionTypeModal(true);
                     }, 600);
                     e.currentTarget._longPressTimer = timer;
@@ -706,18 +805,61 @@ export function TrainingPage() {
                 {/* Pilar predominante do dia (tooltip: conteúdos predominantes) */}
                 <Tooltip
                   content={
-                    getDayContentsSummary(session).length > 0
-                      ? getDayContentsSummary(session).map(c => c.full).join(' | ')
+                    getDayContentsSummary(shown).length > 0
+                      ? getDayContentsSummary(shown).map(c => c.full).join(' | ')
                       : null
                   }
                   position="bottom"
                   delay={400}
                   maxWidth={200}
                 >
+                  {periodos ? (
+                    // 2+ períodos: nome do período + pilar dele, setas ‹ › e pontinhos
+                    <div
+                      style={{ ...contentsSummaryStyle, position: 'relative', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '0.1rem', padding: isMobile ? '0.15rem 0.15rem 0.35rem' : '0.2rem 0.15rem 0.4rem' }}
+                      aria-roledescription="carrossel"
+                      aria-label={`Períodos do dia: ${periodos.map((p) => rotuloPeriodo(p.periodo)).join(', ')}`}
+                    >
+                      <button
+                        type="button"
+                        className="tp-periodo-seta"
+                        aria-label="Período anterior"
+                        onClick={(e) => { e.stopPropagation(); passoPeriodo(session.date, nPer, -1); }}
+                        style={{ flex: 'none', border: 'none', background: 'transparent', color: colors.text, cursor: 'pointer', padding: isMobile ? '0.35rem 0.3rem' : '0.1rem 0.15rem', borderRadius: 4, display: 'inline-flex', alignItems: 'center' }}
+                      >
+                        <ChevronLeft size={isMobile ? 16 : 13} />
+                      </button>
+                      <span key={shown.id} className="tp-periodo-in" style={{ '--tp-periodo-dx': `${(periodoDir[session.date] || 1) * 6}px`, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }} aria-live="polite">
+                        {(() => {
+                          const pilares = shown.session_type === 'match' ? ['Jogo'] : getDayPillarSummary(shown);
+                          return `${rotuloPeriodo(shown.periodo)}${pilares.length ? ` · ${pilares.join(' | ')}` : ''}`;
+                        })()}
+                      </span>
+                      <button
+                        type="button"
+                        className="tp-periodo-seta"
+                        aria-label="Próximo período"
+                        onClick={(e) => { e.stopPropagation(); passoPeriodo(session.date, nPer, 1); }}
+                        style={{ flex: 'none', border: 'none', background: 'transparent', color: colors.text, cursor: 'pointer', padding: isMobile ? '0.35rem 0.3rem' : '0.1rem 0.15rem', borderRadius: 4, display: 'inline-flex', alignItems: 'center' }}
+                      >
+                        <ChevronRight size={isMobile ? 16 : 13} />
+                      </button>
+                      <span style={{ position: 'absolute', left: 0, right: 0, bottom: 3, display: 'flex', justifyContent: 'center', gap: 3, pointerEvents: 'none' }}>
+                        {periodos.map((p, i) => (
+                          <i
+                            key={p.id}
+                            onClick={(e) => { e.stopPropagation(); irParaPeriodo(session.date, i); }}
+                            title={rotuloPeriodo(p.periodo)}
+                            style={{ width: i === idxPer ? 10 : 4, height: 4, borderRadius: 2, background: i === idxPer ? colors.primary : colors.border, transition: 'width 200ms ease, background-color 200ms ease', pointerEvents: 'auto', cursor: 'pointer' }}
+                          />
+                        ))}
+                      </span>
+                    </div>
+                  ) : (
                   <div
                     style={contentsSummaryStyle}
                     onMouseEnter={(e) => {
-                      if (getDayPillarSummary(session).length > 0) {
+                      if (getDayPillarSummary(shown).length > 0) {
                         e.currentTarget.style.backgroundColor = `${colors.primary}20`;
                         e.currentTarget.style.transform = 'scale(1.02)';
                         e.currentTarget.style.boxShadow = `0 2px 8px ${colors.primary}40`;
@@ -730,16 +872,21 @@ export function TrainingPage() {
                     }}
                   >
                     {(() => {
-                      const pilares = getDayPillarSummary(session);
+                      const pilares = getDayPillarSummary(shown);
                       return pilares.length ? pilares.join(' | ') : '\u00A0';
                     })()}
                   </div>
+                  )}
                 </Tooltip>
 
               {/* Blocks container - third row */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+              <div
+                key={periodos ? shown.id : undefined}
+                className={periodos ? 'tp-periodo-in' : undefined}
+                style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', flex: 1, minHeight: 0, overflow: 'hidden', ...(periodos ? { '--tp-periodo-dx': `${(periodoDir[session.date] || 1) * 8}px` } : {}) }}
+              >
               {(() => {
-                const sessionType = session.session_type || 'training';
+                const sessionType = shown.session_type || 'training';
 
                 // DESCANSO - Bloco único
                 if (sessionType === 'rest') {
@@ -784,7 +931,7 @@ export function TrainingPage() {
                           cursor: 'pointer',
                         }}
                         onClick={() => {
-                          setSelectedSession(session);
+                          setSelectedSession(shown);
                           setShowGameModal(true);
                         }}
                         onMouseEnter={(e) => {
@@ -802,22 +949,22 @@ export function TrainingPage() {
                       >
                         <Trophy size={isMobile ? 28 : 48} strokeWidth={1.5} />
                         <div style={{ fontSize: isMobile ? '0.9rem' : '1.2rem' }}>JOGO</div>
-                        {session.opponent_name && (
+                        {shown.opponent_name && (
                           <div style={{ fontSize: isMobile ? '0.75rem' : '1rem', color: colors.textSecondary }}>
-                            vs {session.opponent_name}
+                            vs {shown.opponent_name}
                           </div>
                         )}
                       </div>
 
                       {/* Bloco "Não relacionados" - ocupa 1/6 do espaço */}
-                      {session.blocks && session.blocks.length > 0 && (
+                      {shown.blocks && shown.blocks.length > 0 && (
                         <div
                           style={{
                             ...blockStyle,
                             flex: '1 1 0',
                           }}
                           onClick={() => {
-                            setSelectedSession(session);
+                            setSelectedSession(shown);
                             if (!podeEditarTreino) {
                               setShowSummaryModal(true);
                               notify.semPermissao('editar treinos');
@@ -839,31 +986,31 @@ export function TrainingPage() {
                             e.currentTarget.style.boxShadow = 'none';
                           }}
                         >
-                          <div style={blockNameStyle}>Não relacionados{anexosBadge(session.blocks[0]?.activity)}</div>
-                          {session.blocks[0]?.activity ? (
+                          <div style={blockNameStyle}>Não relacionados{anexosBadge(shown.blocks[0]?.activity)}</div>
+                          {shown.blocks[0]?.activity ? (
                             <div style={{ fontSize: '0.7rem', color: colors.text, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                               {/* Conteúdo em destaque; a atividade é o último nível (mais discreta) */}
-                              {session.blocks[0].activity.contents?.length > 0 && (
+                              {shown.blocks[0].activity.contents?.length > 0 && (
                                 <Tooltip
-                                  content={session.blocks[0].activity.contents.map(c => c.name).join(' | ')}
+                                  content={shown.blocks[0].activity.contents.map(c => c.name).join(' | ')}
                                   position="bottom"
                                   delay={400}
                                   maxWidth={180}
                                 >
                                   <div style={{ fontWeight: '600', display: 'block', width: '100%' }}>
-                                    {session.blocks[0].activity.contents.map(c => abbreviateContent(c.name)).join(', ')}
+                                    {shown.blocks[0].activity.contents.map(c => abbreviateContent(c.name)).join(', ')}
                                   </div>
                                 </Tooltip>
                               )}
-                              {session.blocks[0].activity.title?.title && (
+                              {shown.blocks[0].activity.title?.title && (
                                 <Tooltip
-                                  content={session.blocks[0].activity.title.title}
+                                  content={shown.blocks[0].activity.title.title}
                                   position="bottom"
                                   delay={400}
                                   maxWidth={180}
                                 >
                                   <div style={{ fontSize: '0.65rem', color: colors.textSecondary, display: 'block', width: '100%' }}>
-                                    {session.blocks[0].activity.title.title}
+                                    {shown.blocks[0].activity.title.title}
                                   </div>
                                 </Tooltip>
                               )}
@@ -878,20 +1025,20 @@ export function TrainingPage() {
                 }
 
                 // TREINO NORMAL - 6 blocos
-                return session.blocks?.map((block, blockIndex) => {
+                return shown.blocks?.map((block, blockIndex) => {
                   const blockMatchesTheme = themeContentIds.length > 0 && block.activity?.contents?.some(c => {
                     const contentId = c.content?.id || c.content_id || c.id;
                     return themeContentIds.includes(contentId);
                   });
                   return (
                   <div
-                    key={block.id || `empty-block-${session.date}-${blockIndex}`}
+                    key={block.id || `empty-block-${shown.date}-${blockIndex}`}
                     style={{
                       ...blockStyle,
                       ...(blockMatchesTheme ? { borderLeft: '3px solid #2563eb', paddingLeft: '0.3rem' } : {}),
                     }}
                     onClick={() => {
-                      setSelectedSession(session);
+                      setSelectedSession(shown);
                       if (!podeEditarTreino) {
                         setShowSummaryModal(true);
                         notify.semPermissao('editar treinos');
@@ -952,16 +1099,31 @@ export function TrainingPage() {
               </div>
 
               {/* Duration Badge - always visible to maintain alignment - fourth row */}
+              {periodos ? (
+                // dia inteiro: total + divisão por período (ex.: 150 min · 90+60)
+                <div style={durationBadgeStyle} title={periodos.map((p) => `${rotuloPeriodo(p.periodo)}: ${minutosDaSessao(p)} min`).join(' · ')}>
+                  <span>⏱</span>
+                  <span>{periodos.reduce((t, p) => t + minutosDaSessao(p), 0)} min</span>
+                  <span style={{ color: colors.textSecondary, fontWeight: 500 }}>· {periodos.map((p) => minutosDaSessao(p)).join('+')}</span>
+                  {distanciaDoDia(periodos) !== null && (
+                    <span title="Distância ideal do dia (soma dos períodos)" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', marginLeft: '0.35rem', paddingLeft: '0.45rem', borderLeft: `1px solid ${colors.border}` }}>
+                      <span>📍</span>
+                      <span>{formatKm(distanciaDoDia(periodos), 1)} km</span>
+                    </span>
+                  )}
+                </div>
+              ) : (
               <div style={durationBadgeStyle}>
                 <span>⏱</span>
-                <span>{getTotalDuration(session)} min</span>
-                {toKm(session.avg_distance_km) !== null && (session.session_type || 'training') === 'training' && (
+                <span>{getTotalDuration(shown)} min</span>
+                {toKm(shown.avg_distance_km) !== null && (shown.session_type || 'training') === 'training' && (
                   <span title="Distância ideal do dia" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', marginLeft: '0.35rem', paddingLeft: '0.45rem', borderLeft: `1px solid ${colors.border}` }}>
                     <span>📍</span>
-                    <span>{formatKm(session.avg_distance_km, 1)} km</span>
+                    <span>{formatKm(shown.avg_distance_km, 1)} km</span>
                   </span>
                 )}
               </div>
+              )}
               </div>
             );
           })}
@@ -1018,9 +1180,11 @@ export function TrainingPage() {
 
             // Get the current session with real IDs — sempre do snapshot fresh,
             // não do state (que pode estar stale após o setMicrocycle assíncrono).
-            const currentSession = freshMicrocycle?.sessions?.find(s =>
-              s.day_of_week === freshSession?.day_of_week
-            ) || freshSession;
+            // Dia com períodos: o período certo é o de mesmo id (não o 1º do dia).
+            const todasAsSessoes = (freshMicrocycle?.sessions || []).flatMap((s) => periodosDoDia(s) || [s]);
+            const currentSession = (freshSession?.id && todasAsSessoes.find((s) => s.id === freshSession.id))
+              || freshMicrocycle?.sessions?.find(s => s.day_of_week === freshSession?.day_of_week)
+              || freshSession;
 
             console.log('Current session for saving:', currentSession?.id, 'blocks:', currentSession?.blocks?.length);
 
@@ -1174,6 +1338,50 @@ export function TrainingPage() {
         isOpen={showSessionTypeModal}
         onClose={() => setShowSessionTypeModal(false)}
         session={selectedSession}
+        day={selectedDay}
+        podeApagar={can('training:delete')}
+        onAddPeriod={async ({ atual, novo }) => {
+          try {
+            let sessionId = selectedSession?.id;
+            if (!sessionId) {
+              // semana ainda não criada no banco: cria a estrutura antes
+              const response = await trainingService.ensureMicrocycleStructure(currentWeek.identifier, selectedClub.id);
+              sessionId = response.data?.sessions?.find((s) => s.day_of_week === selectedSession?.day_of_week)?.id;
+              if (!sessionId) throw new Error('Falha ao criar sessão no banco de dados');
+            }
+            const r = await trainingService.addPeriod(sessionId, { atual, novo });
+            notify.success(`Período ${rotuloPeriodo(novo)} adicionado.`);
+            setShowSessionTypeModal(false);
+            await recarregarSemana();
+            // mostra o período novo na coluna
+            const lista = r.data?.periodos || [];
+            const i = lista.findIndex((p) => p.id === r.data?.id);
+            if (i >= 0) irParaPeriodo(selectedSession?.date, i);
+          } catch (error) {
+            notify.error(error.message || 'Não foi possível adicionar o período.');
+          }
+        }}
+        onRenamePeriod={async (periodo) => {
+          try {
+            await trainingService.renamePeriod(selectedSession.id, periodo);
+            setShowSessionTypeModal(false);
+            await recarregarSemana();
+          } catch (error) {
+            notify.error(error.message || 'Não foi possível trocar o horário.');
+          }
+        }}
+        onRemovePeriod={async () => {
+          try {
+            const r = await trainingService.removePeriod(selectedSession.id);
+            const n = r.data?.anexos_apagados || 0;
+            notify.success(`Período ${rotuloPeriodo(selectedSession.periodo)} removido${n ? ` (com ${n} anexo${n > 1 ? 's' : ''})` : ''}.`);
+            setShowSessionTypeModal(false);
+            irParaPeriodo(selectedSession.date, 0);
+            await recarregarSemana();
+          } catch (error) {
+            notify.error(error.message || 'Não foi possível remover o período.');
+          }
+        }}
         onSave={async (data) => {
           try {
             // FIRST: Ensure database structure exists if session doesn't have ID

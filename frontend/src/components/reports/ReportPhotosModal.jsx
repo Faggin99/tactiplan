@@ -97,7 +97,14 @@ export function ReportPhotosModal({ tipo, body, filename, list, onClose }) {
   const [dragId, setDragId] = useState(null);
 
   const byId = useMemo(() => new Map(fotos.map((f) => [f.id, f])), [fotos]);
-  const grouped = semana && agrupar;
+  // Dia com 2+ períodos (Manhã/Tarde/Noite): agrupa também por período
+  const temPeriodos = useMemo(() => fotos.some((f) => f.periodo), [fotos]);
+  const grouped = (semana && agrupar) || (!semana && temPeriodos);
+  const ORDEM_PERIODO = { manha: 1, tarde: 2, noite: 3 };
+  const chaveGrupo = useCallback((f) => {
+    const per = f?.periodo ? `${ORDEM_PERIODO[f.periodo] || 9}${f.periodo}` : '0';
+    return semana ? `${f?.date || 'sem-data'}|${temPeriodos ? per : ''}` : per;
+  }, [semana, temPeriodos]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     writePrefs(user?.id, { layout, proporcao, legendas, agrupar, posicao, tamanho });
@@ -121,12 +128,15 @@ export function ReportPhotosModal({ tipo, body, filename, list, onClose }) {
     const map = new Map();
     for (const id of order) {
       const f = byId.get(id);
-      const k = f?.date || 'sem-data';
-      if (!map.has(k)) map.set(k, { key: k, label: f?.dia ? `${f.dia} · ${f.dd}` : 'Sem data', ids: [] });
+      const k = chaveGrupo(f);
+      const dia = semana ? (f?.dia ? `${f.dia} · ${f.dd}` : 'Sem data') : null;
+      const per = f?.periodoRotulo || null;
+      const label = [dia, per].filter(Boolean).join(' · ') || (semana ? 'Sem data' : 'Dia');
+      if (!map.has(k)) map.set(k, { key: k, label, ids: [] });
       map.get(k).ids.push(id);
     }
     return Array.from(map.values()).sort((a, b) => a.key.localeCompare(b.key));
-  }, [grouped, order, byId]);
+  }, [grouped, order, byId, chaveGrupo, semana]);
   const displayOrder = useMemo(() => groups.flatMap((g) => g.ids), [groups]);
 
   const config = useMemo(() => {
@@ -210,7 +220,7 @@ export function ReportPhotosModal({ tipo, body, filename, list, onClose }) {
   const selectNone = () => setSelected(new Set());
 
   // move dentro do mesmo grupo (dia) quando agrupado; livre na lista corrida
-  const groupOf = useCallback((id) => (grouped ? (byId.get(id)?.date || 'sem-data') : 'all'), [grouped, byId]);
+  const groupOf = useCallback((id) => (grouped ? chaveGrupo(byId.get(id)) : 'all'), [grouped, byId, chaveGrupo]);
   const move = (id, dir) => {
     const seq = displayOrder;
     const i = seq.indexOf(id);

@@ -39,6 +39,23 @@ export const trainingService = {
     return { data: result };
   },
 
+  // Períodos do dia (Manhã/Tarde/Noite). atual = nome do treino que já existe
+  // (só quando o dia ainda tem 1 período).
+  async addPeriod(sessionId, { novo, atual = null }) {
+    const result = await api.post(`/sessions/${sessionId}/periodos`, { novo, ...(atual ? { atual } : {}) });
+    return { data: result };
+  },
+
+  async renamePeriod(sessionId, periodo) {
+    const result = await api.put(`/sessions/${sessionId}/periodo`, { periodo });
+    return { data: result };
+  },
+
+  async removePeriod(sessionId) {
+    const result = await api.delete(`/sessions/${sessionId}/periodo`);
+    return { data: result };
+  },
+
   // Distância ideal no dia (km). null limpa.
   async updateSessionDistance(sessionId, avgDistanceKm) {
     const result = await api.put(`/sessions/${sessionId}/distance`, {
