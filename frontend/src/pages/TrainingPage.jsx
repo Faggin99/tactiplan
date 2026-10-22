@@ -1100,24 +1100,19 @@ export function TrainingPage() {
 
               {/* Duration Badge - always visible to maintain alignment - fourth row */}
               {periodos ? (
-                // dia inteiro: total + divisão por período (ex.: 150 min · 90+60)
-                // Uma linha só (grade intacta): a distância aparece quando a coluna tem
-                // espaço (container query .tp-km-dia); sempre no title.
+                // dia inteiro em forma curta para caber SEMPRE numa linha (grade intacta):
+                // "⏱150′ · 90+60 · 📍8,5". O texto completo fica no title.
                 <div
-                  style={{ ...durationBadgeStyle, flexWrap: 'nowrap', whiteSpace: 'nowrap', overflow: 'hidden', containerType: 'inline-size' }}
+                  style={{ ...durationBadgeStyle, flexWrap: 'nowrap', whiteSpace: 'nowrap', overflow: 'hidden', gap: '0.25rem' }}
                   title={[
                     ...periodos.map((p) => `${rotuloPeriodo(p.periodo)}: ${minutosDaSessao(p)} min`),
-                    ...(distanciaDoDia(periodos) !== null ? [`Distância do dia: ${formatKm(distanciaDoDia(periodos), 1)} km`] : []),
+                    ...(distanciaDoDia(periodos) !== null ? [`Distância ideal do dia: ${formatKm(distanciaDoDia(periodos), 1)} km`] : []),
                   ].join(' · ')}
                 >
-                  <span>⏱</span>
-                  <span>{periodos.reduce((t, p) => t + minutosDaSessao(p), 0)} min</span>
+                  <span>⏱{periodos.reduce((t, p) => t + minutosDaSessao(p), 0)}′</span>
                   <span style={{ color: colors.textSecondary, fontWeight: 500 }}>· {periodos.map((p) => minutosDaSessao(p)).join('+')}</span>
                   {distanciaDoDia(periodos) !== null && (
-                    <span className="tp-km-dia" style={{ alignItems: 'center', gap: '0.2rem', marginLeft: '0.35rem', paddingLeft: '0.45rem', borderLeft: `1px solid ${colors.border}` }}>
-                      <span>📍</span>
-                      <span>{formatKm(distanciaDoDia(periodos), 1)} km</span>
-                    </span>
+                    <span style={{ color: colors.textSecondary, fontWeight: 500 }}>· <span style={{ color: colors.text, fontWeight: 600 }}>📍{formatKm(distanciaDoDia(periodos), 1)}</span></span>
                   )}
                 </div>
               ) : (
