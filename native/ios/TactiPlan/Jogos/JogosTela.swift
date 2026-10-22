@@ -74,9 +74,9 @@ struct JogosTela: View {
     @StateObject private var exportar: ExportadorRelatorio
     @StateObject private var rede = MonitorRede()
     @Environment(\.tema) private var tema
-    @State private var novoJogo = false
-    @State private var abrir: String?
-    @State private var abrirAtivo = false
+    @State var novoJogo = false
+    @State var abrir: String?
+    @State var abrirAtivo = false
 
     init(sessao: Sessao, contexto: ContextoClube, servico: ServicoJogo, treino: ServicoTreino, fila: FilaJogos,
          aoSessaoAcabar: @escaping (Error) -> Bool) {
@@ -366,10 +366,10 @@ struct NovoJogoFolha: View {
 
     @Environment(\.dismiss) private var fechar
     @Environment(\.tema) private var tema
-    @State private var data = Date()
-    @State private var adversario = ""
-    @State private var ocupado = false
-    @State private var erro: String?
+    @State var data = Date()
+    @State var adversario = ""
+    @State var ocupado = false
+    @State var erro: String?
 
     var body: some View {
         let c = tema.cores

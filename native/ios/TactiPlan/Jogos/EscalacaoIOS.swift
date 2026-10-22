@@ -11,8 +11,8 @@ struct EscalacaoAba: View {
     @ObservedObject var modelo: JogoModelo
     let podeEditar: Bool
     @Environment(\.tema) private var tema
-    @State private var vagaAberta: VagaAberta?
-    @State private var movendo: String?
+    @State var vagaAberta: VagaAberta?
+    @State var movendo: String?
 
     var body: some View {
         let c = tema.cores
@@ -166,7 +166,7 @@ struct SlotAtletaFolha: View {
     let aoEscolher: (AcaoVaga) -> Void
     @Environment(\.dismiss) private var fechar
     @Environment(\.tema) private var tema
-    @State private var busca = ""
+    @State var busca = ""
 
     private func normal(_ s: String) -> String {
         s.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "pt_BR"))
@@ -261,8 +261,8 @@ struct RelacionadosFolha: View {
     @ObservedObject var modelo: JogoModelo
     @Environment(\.dismiss) private var fechar
     @Environment(\.tema) private var tema
-    @State private var selecao: [(atletaId: String, status: String)] = []
-    @State private var busca = ""
+    @State var selecao: [(atletaId: String, status: String)] = []
+    @State var busca = ""
 
     var body: some View {
         let c = tema.cores
@@ -357,12 +357,12 @@ struct ConvocacaoAba: View {
     let podeExportar: Bool
     let aoExportar: () -> Void
     @Environment(\.tema) private var tema
-    @State private var relacionados = false
-    @State private var vagaAberta: VagaAberta?
-    @State private var editandoCamisa: JogadorJogo?
-    @State private var camisaTexto = ""
-    @State private var editandoMinutos: JogadorJogo?
-    @State private var minutosTexto = ""
+    @State var relacionados = false
+    @State var vagaAberta: VagaAberta?
+    @State var editandoCamisa: JogadorJogo?
+    @State var camisaTexto = ""
+    @State var editandoMinutos: JogadorJogo?
+    @State var minutosTexto = ""
 
     var body: some View {
         let c = tema.cores
