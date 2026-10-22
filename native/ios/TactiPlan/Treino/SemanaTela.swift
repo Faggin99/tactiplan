@@ -253,7 +253,7 @@ struct LinhaDoDia: View {
                 HStack(spacing: 6) {
                     if r.tipo == .jogo { Image(systemName: "trophy.fill").foregroundColor(c.avisoTinta.color) }
                     if r.tipo == .descanso { Image(systemName: "moon.fill").foregroundColor(c.tinta2.color) }
-                    Text(tituloDaLinha(r))
+                    Text(tituloDaLinhaDoDia(dia))
                         .font(Tipos.corpo15.comPeso(.seminegrito).font)
                         .foregroundColor(c.tinta.color)
                         .linhasAcessiveis(2)
@@ -284,7 +284,7 @@ struct LinhaDoDia: View {
     }
 
     private func rotuloAcessivel(_ r: ResumoDia) -> String {
-        var p = [rotuloDiaCurto(dia.data) + (hoje ? ", hoje" : ""), tituloDaLinha(r)]
+        var p = [rotuloDiaCurto(dia.data) + (hoje ? ", hoje" : ""), tituloDaLinhaDoDia(dia)]
         if let selo = seloPeriodos(dia) { p.append("\(selo): \(divisaoMinutos(dia) ?? "") minutos") }
         let d = detalheDaLinha(r)
         if !d.isEmpty { p.append(d) }

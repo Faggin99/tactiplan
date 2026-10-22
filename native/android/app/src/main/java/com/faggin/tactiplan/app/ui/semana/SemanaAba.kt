@@ -100,6 +100,7 @@ import com.faggin.tactiplan.app.dados.treino.rotuloDoPeriodo
 import com.faggin.tactiplan.app.dados.treino.seloPeriodos
 import com.faggin.tactiplan.app.dados.treino.sugestaoNovoPeriodo
 import com.faggin.tactiplan.app.dados.treino.periodosParaTrocar
+import com.faggin.tactiplan.app.dados.treino.periodoEfetivo
 import com.faggin.tactiplan.app.dados.treino.temPeriodos
 import com.faggin.tactiplan.app.dados.treino.textoRemoverPeriodo
 import com.faggin.tactiplan.app.ui.comum.Pastilha
@@ -353,7 +354,7 @@ private fun LinhaDia(d: Dia, hoje: Boolean, aoTocar: () -> Unit) {
     val r = resumoDoDiaInteiro(d)
     val selo = seloPeriodos(d)
     val (sigla, num) = siglaEDia(d.data)
-    val titulo = com.faggin.tactiplan.app.dados.treino.tituloDaLinha(r)
+    val titulo = com.faggin.tactiplan.app.dados.treino.tituloDaLinhaDoDia(d)
     val detalhe = detalheDaLinha(r)
     Row(
         Modifier.fillMaxWidth().heightIn(min = 60.dp).clickable(role = Role.Button, onClick = aoTocar)
@@ -492,7 +493,7 @@ fun DiaTela(
                 DropdownMenu(expanded = menuAberto, onDismissRequest = { menuAberto = false }) {
                     if (podeAdicionar) DropdownMenuItem(text = { Text("Adicionar período") },
                         onClick = { menuAberto = false; adicionando = true }, modifier = Modifier.testTag("dia:periodo:adicionar"))
-                    if (horariosLivres.isNotEmpty()) DropdownMenuItem(text = { Text("Trocar horário (${rotuloDoPeriodo(dia.periodo) ?: ""})") },
+                    if (horariosLivres.isNotEmpty()) DropdownMenuItem(text = { Text("Trocar horário (${periodoEfetivo(dia)?.rotulo ?: ""})") },
                         onClick = { menuAberto = false; trocandoHorario = true }, modifier = Modifier.testTag("dia:periodo:trocar"))
                     if (podeRemover) DropdownMenuItem(text = { Text("Remover período ${rotuloDoPeriodo(dia.periodo) ?: ""}") },
                         onClick = { menuAberto = false; confirmarRemover = true }, modifier = Modifier.testTag("dia:periodo:remover"))
@@ -519,6 +520,12 @@ fun DiaTela(
             val total = resumoDoDiaInteiro(diaInteiro)
             Text("Dia: ${total.minutos} min · ${divisaoMinutos(diaInteiro)}" + (total.distanciaKm?.let { " · ${formatarKm(it)} km" } ?: ""),
                 style = TactiPlan.tipos.corpo13, fontWeight = FontWeight.Medium, color = c.tinta2, modifier = Modifier.testTag("dia:total"))
+        } else if (dia.tipo == TipoDia.TREINO) {
+            // dia de 1 período: o horário também aparece (Manhã é o padrão); troca pelo menu
+            periodoEfetivo(dia)?.let { p ->
+                Text("Período: ${p.rotulo}", style = TactiPlan.tipos.corpo13, fontWeight = FontWeight.Medium, color = c.tinta2,
+                    modifier = Modifier.testTag("dia:periodo-unico").semantics { contentDescription = "Período do treino: ${p.rotulo}" })
+            }
         }
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
             TipoDia.entries.forEachIndexed { i, t ->
@@ -684,7 +691,7 @@ fun DiaTela(
             title = { Text("Trocar horário") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("${rotuloDoPeriodo(alvo.periodo) ?: "O período"} passa a ser:", style = TactiPlan.tipos.corpo13, color = c.tinta2)
+                    Text("${periodoEfetivo(alvo)?.rotulo ?: "O período"} passa a ser:", style = TactiPlan.tipos.corpo13, color = c.tinta2)
                     livres.forEach { p ->
                         TextButton(onClick = {
                             trocandoHorario = false
@@ -692,7 +699,7 @@ fun DiaTela(
                                 try {
                                     treino.trocarPeriodo(alvo, diaInteiro, p)
                                     irParaPeriodo = p.bruto
-                                    avisar("${rotuloDoPeriodo(alvo.periodo) ?: ""} agora é ${p.rotulo}.")
+                                    avisar("${periodoEfetivo(alvo)?.rotulo ?: ""} agora é ${p.rotulo}.")
                                     mudou()
                                 } catch (e: Exception) {
                                     if (!amb.tratarErro(e)) avisar(mensagemErroTreino(e))

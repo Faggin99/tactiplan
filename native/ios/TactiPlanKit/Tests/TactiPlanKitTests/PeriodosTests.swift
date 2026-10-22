@@ -113,7 +113,24 @@ let JSON_MICRO_PERIODOS = """
         let manha = ter.listaPeriodos[0]
         #expect(periodosParaTrocar(ter, manha) == [.noite])
         #expect(periodosParaTrocar(ter, ter.listaPeriodos[1]) == [.noite])
-        #expect(periodosParaTrocar(try micro().dias[0], try micro().dias[0]).isEmpty, "dia de 1 período não troca")
+        let seg = try micro().dias[0]   // 1 período, sem nome = Manhã
+        #expect(periodoEfetivo(seg) == .manha)
+        #expect(periodosParaTrocar(seg, seg) == [.tarde, .noite], "dia de 1 período troca para os outros horários")
+        #expect(erroTrocarPeriodo(seg, seg, para: .manha) == "O período já é Manhã.")
+        #expect(erroTrocarPeriodo(seg, seg, para: .noite) == nil)
+        var tarde = seg; tarde.periodo = "tarde"
+        #expect(periodoEfetivo(tarde) == .tarde)
+        #expect(sugestaoNovoPeriodo(tarde)?.atual == .tarde)
+        #expect(sugestaoNovoPeriodo(tarde)?.novo == .manha)
+        #expect(tituloDaLinhaDoDia(seg) == "Manhã · Físico")
+        #expect(tituloDaLinhaDoDia(tarde) == "Tarde · Físico")
+        var descanso = seg; descanso.tipoBruto = "rest"
+        #expect(periodoEfetivo(descanso) == nil)
+        #expect(periodosParaTrocar(descanso, descanso).isEmpty)
+        #expect(tituloDaLinhaDoDia(descanso) == "Descanso")
+        var jogo = seg; jogo.tipoBruto = "match"
+        #expect(periodosParaTrocar(jogo, jogo).isEmpty, "jogo de 1 período: só 'Jogo', sem horário")
+        #expect(tituloDaLinhaDoDia(jogo) == "Jogo")
         #expect(erroTrocarPeriodo(ter, manha, para: .tarde) == "O dia já tem o período Tarde.")
         #expect(erroTrocarPeriodo(ter, manha, para: .manha) == "O período já é Manhã.")
         #expect(erroTrocarPeriodo(ter, manha, para: .noite) == nil)

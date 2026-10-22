@@ -76,11 +76,30 @@ fun periodosDisponiveis(d: Dia): List<Periodo> {
     return Periodo.entries.filter { it.bruto !in usados }
 }
 
-/** Sugestão ao abrir "Adicionar período": dia único → (Manhã, Tarde); senão (null, 1º livre). */
+/**
+ * Período que o dia MOSTRA (espelha periodoEfetivo do servidor): o nome gravado ou, no dia de
+ * período único sem nome (dados antigos), Manhã — o padrão. Descanso não tem período.
+ */
+fun periodoEfetivo(d: Dia): Periodo? = if (d.tipo == TipoDia.DESCANSO) null else (Periodo.de(d.periodo) ?: Periodo.MANHA)
+
+/** Título da linha na Semana: treino de 1 período = "Manhã · Tático" (ou "Manhã · Treino"); o resto como antes. */
+fun tituloDaLinhaDoDia(d: Dia): String {
+    if (d.temPeriodos) return tituloDaLinha(resumoDoDiaInteiro(d))
+    val r = resumoDoDia(d)
+    val p = periodoEfetivo(d)
+    if (r.tipo != TipoDia.TREINO || p == null) return tituloDaLinha(r)
+    return "${p.rotulo} · ${if (r.pilares.isEmpty()) "Treino" else r.rotuloPilares}"
+}
+
+/** Sugestão ao abrir "Adicionar período": dia único → (o horário dele, o 1º outro); senão (null, 1º livre). */
 fun sugestaoNovoPeriodo(d: Dia): Pair<Periodo?, Periodo>? {
     val livres = periodosDisponiveis(d)
     if (livres.isEmpty()) return null
-    return if (!d.temPeriodos) Periodo.MANHA to Periodo.TARDE else null to livres[0]
+    if (!d.temPeriodos) {
+        val a = periodoEfetivo(d) ?: Periodo.MANHA
+        return a to (Periodo.entries.firstOrNull { it != a } ?: Periodo.TARDE)
+    }
+    return null to livres[0]
 }
 
 const val MSG_PERIODO_DESCANSO = "Dia de descanso não tem períodos. Mude o tipo do dia antes."
@@ -118,14 +137,24 @@ fun textoRemoverPeriodo(p: Dia): String {
  * período usa). Vazio no dia de 1 período. Paridade: periodosParaTrocar no TactiPlanKit.
  */
 fun periodosParaTrocar(d: Dia, p: Dia): List<Periodo> {
-    if (!d.temPeriodos || p.periodo == null) return emptyList()
+    // dia de 1 período (treino): os outros dois horários (Manhã é o padrão do dia sem nome)
+    if (!d.temPeriodos) {
+        if (p.tipo != TipoDia.TREINO) return emptyList()
+        val ef = periodoEfetivo(p) ?: return emptyList()
+        return Periodo.entries.filter { it != ef }
+    }
+    if (p.periodo == null) return emptyList()
     val outros = d.listaPeriodos.filter { it.id != p.id }.mapNotNull { it.periodo }.toSet()
     return Periodo.entries.filter { it.bruto != p.periodo && it.bruto !in outros }
 }
 
 /** Confere a troca antes de mandar (mesmas regras de validarRenomear no servidor). null = ok. */
 fun erroTrocarPeriodo(d: Dia, p: Dia, para: Periodo): String? {
-    if (!d.temPeriodos || p.periodo == null) return "O dia tem um período só: adicione um período antes."
+    if (!d.temPeriodos) {
+        if (p.tipo == TipoDia.DESCANSO) return "Dia de descanso não tem períodos."
+        return if (periodoEfetivo(p) == para) "O período já é ${para.rotulo}." else null
+    }
+    if (p.periodo == null) return "O período não tem nome."
     if (p.periodo == para.bruto) return "O período já é ${para.rotulo}."
     if (d.listaPeriodos.any { it.id != p.id && it.periodo == para.bruto }) return "O dia já tem o período ${para.rotulo}."
     return null

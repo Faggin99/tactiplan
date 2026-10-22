@@ -58,7 +58,18 @@ struct DiaTela: View {
         let r = resumoDoDia(d)
         TelaGrande(rotuloDiaCurto(data), empilhada: true, aoAtualizar: { await modelo.invalidar() }) {
             FaixasDoTopo(contexto: contexto, sessao: sessao)
-            if todo.temPeriodos { seletorDePeriodo(todo) }
+            if todo.temPeriodos {
+                seletorDePeriodo(todo)
+            } else if d.tipo == .treino, let p = periodoEfetivo(d) {
+                // dia de 1 período: o horário também aparece (Manhã é o padrão); troca pelo menu
+                HStack(spacing: 6) {
+                    Image(systemName: "clock")
+                    Text("Período: \(p.rotulo)").tipo(Tipos.corpo13.comPeso(.medio))
+                }
+                .foregroundColor(tema.cores.tinta2.color)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Período do treino: \(p.rotulo)")
+            }
             seletorDeTipo(d)
             if d.tipo == .treino { resumo(r, d) }
             switch d.tipo {
@@ -103,13 +114,13 @@ struct DiaTela: View {
                     if podeEditar, contexto.clube != nil, !periodosDisponiveis(todo).isEmpty {
                         Button { abrirAdicionarPeriodo(todo) } label: { Label("Adicionar período", systemImage: "plus.square.on.square") }
                     }
-                    if todo.temPeriodos, podeEditar, !periodosParaTrocar(todo, d).isEmpty {
+                    if podeEditar, !periodosParaTrocar(todo, d).isEmpty {
                         Menu {
                             ForEach(periodosParaTrocar(todo, d), id: \.self) { p in
                                 Button(p.rotulo) { trocarPeriodo(d, todo, para: p) }
                             }
                         } label: {
-                            Label("Trocar horário (\(rotuloDoPeriodo(d.periodo) ?? ""))", systemImage: "clock.arrow.2.circlepath")
+                            Label("Trocar horário (\(periodoEfetivo(d)?.rotulo ?? ""))", systemImage: "clock.arrow.2.circlepath")
                         }
                     }
                     if todo.temPeriodos, contexto.podeEditar("training:delete") {
@@ -260,7 +271,7 @@ struct DiaTela: View {
     }
 
     private func trocarPeriodo(_ p: Dia, _ todo: Dia, para: Periodo) {
-        let de = rotuloDoPeriodo(p.periodo) ?? ""
+        let de = periodoEfetivo(p)?.rotulo ?? ""
         ocupado = true
         Task {
             defer { ocupado = false }

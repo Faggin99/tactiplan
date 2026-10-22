@@ -86,11 +86,31 @@ public func periodosDisponiveis(_ d: Dia) -> [Periodo] {
     return Periodo.allCases.filter { !usados.contains($0.rawValue) }
 }
 
-/// Sugestão ao abrir "Adicionar período": dia único → atual Manhã, novo Tarde; senão o 1º livre.
+/// Período que o dia MOSTRA (espelha periodoEfetivo do servidor): o nome gravado ou, no dia de
+/// período único sem nome (dados antigos), Manhã — o padrão. Descanso não tem período.
+public func periodoEfetivo(_ d: Dia) -> Periodo? {
+    if d.tipo == .descanso { return nil }
+    return d.periodo.flatMap { Periodo(rawValue: $0) } ?? .manha
+}
+
+/// Título da linha do dia na Semana: dia de treino de 1 período = "Manhã · Tático" (ou "Manhã · Treino");
+/// dia com 2+ períodos, jogo e descanso = como antes (o selo "2 períodos" mostra a divisão).
+public func tituloDaLinhaDoDia(_ d: Dia) -> String {
+    if d.temPeriodos { return tituloDaLinha(resumoDoDiaInteiro(d)) }
+    let r = resumoDoDia(d)
+    guard r.tipo == .treino, let p = periodoEfetivo(d) else { return tituloDaLinha(r) }
+    return "\(p.rotulo) · \(r.pilares.isEmpty ? "Treino" : r.rotuloPilares)"
+}
+
+/// Sugestão ao abrir "Adicionar período": dia único → atual = o horário dele (Manhã no dia sem nome),
+/// novo = o 1º outro; senão o 1º livre.
 public func sugestaoNovoPeriodo(_ d: Dia) -> (atual: Periodo?, novo: Periodo)? {
     let livres = periodosDisponiveis(d)
     guard !livres.isEmpty else { return nil }
-    if !d.temPeriodos { return (.manha, .tarde) }
+    if !d.temPeriodos {
+        let a = periodoEfetivo(d) ?? .manha
+        return (a, Periodo.allCases.first { $0 != a } ?? .tarde)
+    }
     return (nil, livres[0])
 }
 
@@ -125,16 +145,25 @@ public func textoRemoverPeriodo(_ p: Dia) -> String {
 }
 
 /// "Trocar horário" de um período (PUT /api/sessions/:id/periodo): os nomes livres no dia
-/// (os que nenhum OUTRO período usa). Vazio no dia de 1 período (não há o que trocar).
+/// (os que nenhum OUTRO período usa). No dia de 1 período (treino), os outros dois.
 public func periodosParaTrocar(_ d: Dia, _ p: Dia) -> [Periodo] {
-    guard d.temPeriodos, p.periodo != nil else { return [] }
+    // dia de 1 período (treino): troca para qualquer outro horário (Manhã é o padrão do dia sem nome)
+    if !d.temPeriodos {
+        guard p.tipo == .treino, let ef = periodoEfetivo(p) else { return [] }
+        return Periodo.allCases.filter { $0 != ef }
+    }
+    guard p.periodo != nil else { return [] }
     let outros = Set(d.listaPeriodos.filter { $0.id != p.id }.compactMap(\.periodo))
     return Periodo.allCases.filter { $0.rawValue != p.periodo && !outros.contains($0.rawValue) }
 }
 
 /// Confere a troca antes de mandar (mesmas regras de validarRenomear no servidor). nil = ok.
 public func erroTrocarPeriodo(_ d: Dia, _ p: Dia, para: Periodo) -> String? {
-    guard d.temPeriodos, p.periodo != nil else { return "O dia tem um período só: adicione um período antes." }
+    if !d.temPeriodos {
+        guard p.tipo != .descanso else { return "Dia de descanso não tem períodos." }
+        return periodoEfetivo(p) == para ? "O período já é \(para.rotulo)." : nil
+    }
+    guard p.periodo != nil else { return "O período não tem nome." }
     if p.periodo == para.rawValue { return "O período já é \(para.rotulo)." }
     if d.listaPeriodos.contains(where: { $0.id != p.id && $0.periodo == para.rawValue }) { return "O dia já tem o período \(para.rotulo)." }
     return nil
