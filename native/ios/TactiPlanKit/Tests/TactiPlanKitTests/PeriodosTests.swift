@@ -108,6 +108,23 @@ let JSON_MICRO_PERIODOS = """
         await #expect(throws: ErroApi.self) { try await s.adicionarPeriodo(ter, novo: .tarde, atual: nil, semana: semana, clubeId: "c") }
     }
 
+    @Test func `trocar horario: so os nomes livres, regras do servidor`() async throws {
+        let ter = try micro().dias[1]   // Manhã (t1) + Tarde (t2)
+        let manha = ter.listaPeriodos[0]
+        #expect(periodosParaTrocar(ter, manha) == [.noite])
+        #expect(periodosParaTrocar(ter, ter.listaPeriodos[1]) == [.noite])
+        #expect(periodosParaTrocar(try micro().dias[0], try micro().dias[0]).isEmpty, "dia de 1 período não troca")
+        #expect(erroTrocarPeriodo(ter, manha, para: .tarde) == "O dia já tem o período Tarde.")
+        #expect(erroTrocarPeriodo(ter, manha, para: .manha) == "O período já é Manhã.")
+        #expect(erroTrocarPeriodo(ter, manha, para: .noite) == nil)
+        let api = ApiTreinoFalsa()
+        let s = ServicoTreino(api: api)
+        try await s.trocarPeriodo(manha, noDia: ter, para: .noite)
+        #expect(api.chamadas == ["periodo~:t1:noite"])
+        await #expect(throws: ErroApi.self) { try await s.trocarPeriodo(manha, noDia: ter, para: .tarde) }
+        #expect(api.chamadas.count == 1, "não chama o servidor com troca inválida")
+    }
+
     @Test func `ficha: dia inteiro ou so o periodo, nome do PDF`() throws {
         let ter = try micro().dias[1]
         #expect(corpoFichaDoDia("t2") == ["session_id": .texto("t2")])

@@ -99,6 +99,7 @@ import com.faggin.tactiplan.app.dados.treino.periodosDisponiveis
 import com.faggin.tactiplan.app.dados.treino.rotuloDoPeriodo
 import com.faggin.tactiplan.app.dados.treino.seloPeriodos
 import com.faggin.tactiplan.app.dados.treino.sugestaoNovoPeriodo
+import com.faggin.tactiplan.app.dados.treino.periodosParaTrocar
 import com.faggin.tactiplan.app.dados.treino.temPeriodos
 import com.faggin.tactiplan.app.dados.treino.textoRemoverPeriodo
 import com.faggin.tactiplan.app.ui.comum.Pastilha
@@ -442,6 +443,7 @@ fun DiaTela(
     var menuAberto by remember { mutableStateOf(false) }
     var adicionando by remember { mutableStateOf(false) }
     var confirmarRemover by remember { mutableStateOf(false) }
+    var trocandoHorario by remember { mutableStateOf(false) }
     var mudandoTipo by remember { mutableStateOf(false) }
     var pedirAdversario by remember { mutableStateOf(false) }
     var pedirKm by remember { mutableStateOf(false) }
@@ -463,6 +465,7 @@ fun DiaTela(
 
     val podeAdicionar = podeEditar && periodosDisponiveis(diaInteiro).isNotEmpty()
     val podeRemover = diaInteiro.temPeriodos && ctx.podeEditar("training:delete")
+    val horariosLivres = if (podeEditar) periodosParaTrocar(diaInteiro, dia) else emptyList()
     val podeExportarPeriodo = diaInteiro.temPeriodos && ctx.conta.somenteLeitura != true && dia.id != null
     TelaRaiz(rotuloDiaCurto(dia.data), aoVoltar = voltar, pequena = true, acoes = {
         val idDia = diaInteiro.id
@@ -477,7 +480,7 @@ fun DiaTela(
                 }
             }
         }
-        if (podeAdicionar || podeRemover || podeExportarPeriodo) {
+        if (podeAdicionar || podeRemover || podeExportarPeriodo || horariosLivres.isNotEmpty()) {
             Box {
                 IconButton(onClick = { menuAberto = true }, modifier = Modifier.testTag("dia:menu-periodos")) {
                     Icon(Icones.mais, contentDescription = "Períodos do dia")
@@ -485,6 +488,8 @@ fun DiaTela(
                 DropdownMenu(expanded = menuAberto, onDismissRequest = { menuAberto = false }) {
                     if (podeAdicionar) DropdownMenuItem(text = { Text("Adicionar período") },
                         onClick = { menuAberto = false; adicionando = true }, modifier = Modifier.testTag("dia:periodo:adicionar"))
+                    if (horariosLivres.isNotEmpty()) DropdownMenuItem(text = { Text("Trocar horário (${rotuloDoPeriodo(dia.periodo) ?: ""})") },
+                        onClick = { menuAberto = false; trocandoHorario = true }, modifier = Modifier.testTag("dia:periodo:trocar"))
                     if (podeRemover) DropdownMenuItem(text = { Text("Remover período ${rotuloDoPeriodo(dia.periodo) ?: ""}") },
                         onClick = { menuAberto = false; confirmarRemover = true }, modifier = Modifier.testTag("dia:periodo:remover"))
                     if (podeExportarPeriodo) DropdownMenuItem(text = { Text("Exportar só ${rotuloDoPeriodo(dia.periodo) ?: "o período"} (PDF)") },
@@ -665,6 +670,37 @@ fun DiaTela(
                 }) { Text("Adicionar") }
             },
             dismissButton = { TextButton(onClick = { adicionando = false }) { Text("Cancelar") } },
+        )
+    }
+    if (trocandoHorario) {
+        val alvo = dia
+        val livres = periodosParaTrocar(diaInteiro, alvo)
+        AlertDialog(
+            onDismissRequest = { trocandoHorario = false },
+            title = { Text("Trocar horário") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("${rotuloDoPeriodo(alvo.periodo) ?: "O período"} passa a ser:", style = TactiPlan.tipos.corpo13, color = c.tinta2)
+                    livres.forEach { p ->
+                        TextButton(onClick = {
+                            trocandoHorario = false
+                            escopo.launch {
+                                try {
+                                    treino.trocarPeriodo(alvo, diaInteiro, p)
+                                    irParaPeriodo = p.bruto
+                                    avisar("${rotuloDoPeriodo(alvo.periodo) ?: ""} agora é ${p.rotulo}.")
+                                    mudou()
+                                } catch (e: Exception) {
+                                    if (!amb.tratarErro(e)) avisar(mensagemErroTreino(e))
+                                }
+                            }
+                        }, modifier = Modifier.fillMaxWidth().testTag("periodo:trocar:${p.bruto}")) { Text(p.rotulo) }
+                    }
+                    Text("As atividades e anexos continuam iguais; só muda o horário.", style = TactiPlan.tipos.corpo13, color = c.tinta2)
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { trocandoHorario = false }) { Text("Cancelar") } },
         )
     }
     if (confirmarRemover) {

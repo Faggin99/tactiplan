@@ -315,6 +315,7 @@ class ApiTreinoFalsa : ApiTreino {
         chamadas += "periodo+:$diaId:${novo.bruto}:${atual?.bruto ?: ""}"; return "p-novo"
     }
     override suspend fun removerPeriodo(periodoId: String): Int { chamadas += "periodo-:$periodoId"; return 2 }
+    override suspend fun trocarPeriodo(periodoId: String, para: Periodo) { chamadas += "periodo~:$periodoId:${para.bruto}" }
     override suspend fun enviarAnexo(atividadeId: String, arquivo: ArquivoUpload, titulo: String, progresso: (Double) -> Unit): Anexo {
         chamadas += "anexo:$atividadeId:$titulo"
         erroAnexo[titulo]?.let { throw it }

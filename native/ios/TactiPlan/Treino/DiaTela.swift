@@ -8,7 +8,7 @@ import TactiPlanKit
 // No topo: ver a ficha do dia (HTML do servidor) e exportar o PDF.
 // Dia com 2+ períodos (Manhã · Tarde · Noite): seletor segmentado no topo; tipo, blocos, distância
 // e edição são do período escolhido; o total do dia soma todos ("150 min · 90+60"). O menu do topo
-// adiciona/remove período e exporta a ficha do dia inteiro ou só do período.
+// adiciona/remove período, troca o horário (Manhã/Tarde/Noite) e exporta a ficha do dia inteiro ou só do período.
 
 struct DiaTela: View {
     let data: String
@@ -102,6 +102,15 @@ struct DiaTela: View {
                 Menu {
                     if podeEditar, contexto.clube != nil, !periodosDisponiveis(todo).isEmpty {
                         Button { abrirAdicionarPeriodo(todo) } label: { Label("Adicionar período", systemImage: "plus.square.on.square") }
+                    }
+                    if todo.temPeriodos, podeEditar, !periodosParaTrocar(todo, d).isEmpty {
+                        Menu {
+                            ForEach(periodosParaTrocar(todo, d), id: \.self) { p in
+                                Button(p.rotulo) { trocarPeriodo(d, todo, para: p) }
+                            }
+                        } label: {
+                            Label("Trocar horário (\(rotuloDoPeriodo(d.periodo) ?? ""))", systemImage: "clock.arrow.2.circlepath")
+                        }
                     }
                     if todo.temPeriodos, contexto.podeEditar("training:delete") {
                         Button(role: .destructive) { confirmarRemover = true } label: {
@@ -243,6 +252,24 @@ struct DiaTela: View {
                 await modelo.invalidar()
                 periodoSel = diaInteiro.listaPeriodos.firstIndex { $0.periodo == novo.rawValue } ?? 0
                 aviso = "Período \(novo.rotulo) adicionado."
+            } catch {
+                if app.controle.tratarErro(error, token: sessao.token) { return }
+                aviso = mensagemErroTreino(error)
+            }
+        }
+    }
+
+    private func trocarPeriodo(_ p: Dia, _ todo: Dia, para: Periodo) {
+        let de = rotuloDoPeriodo(p.periodo) ?? ""
+        ocupado = true
+        Task {
+            defer { ocupado = false }
+            do {
+                try await modelo.servico.trocarPeriodo(p, noDia: todo, para: para)
+                await modelo.invalidar()
+                // a ordem sai do nome: segue o período trocado
+                periodoSel = diaInteiro.listaPeriodos.firstIndex { $0.periodo == para.rawValue } ?? 0
+                aviso = "\(de) agora é \(para.rotulo)."
             } catch {
                 if app.controle.tratarErro(error, token: sessao.token) { return }
                 aviso = mensagemErroTreino(error)

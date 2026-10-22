@@ -119,6 +119,13 @@ class ServicoTreino(val api: ApiTreino) {
         return api.removerPeriodo(id)
     }
 
+    /** Troca o horário de um período (dia com 2+). A ordem do dia muda junto (sai do nome). */
+    suspend fun trocarPeriodo(periodo: Dia, dia: Dia, para: Periodo) {
+        erroTrocarPeriodo(dia, periodo, para)?.let { throw ErroApi(0, "PERIODO_INVALIDO", it) }
+        val id = periodo.id ?: throw ErroApi(0, null, ErroApi.MSG_FALHA)
+        api.trocarPeriodo(id, para)
+    }
+
     suspend fun mudarDistancia(dia: Dia, km: Double?, semana: SemanaISO, clubeId: String): String {
         val id = diaReal(dia, semana, clubeId).id ?: throw ErroApi(0, null, ErroApi.MSG_FALHA)
         api.mudarDistancia(id, km)

@@ -123,3 +123,19 @@ public func textoRemoverPeriodo(_ p: Dia) -> String {
     }
     return t + "Não dá para desfazer."
 }
+
+/// "Trocar horário" de um período (PUT /api/sessions/:id/periodo): os nomes livres no dia
+/// (os que nenhum OUTRO período usa). Vazio no dia de 1 período (não há o que trocar).
+public func periodosParaTrocar(_ d: Dia, _ p: Dia) -> [Periodo] {
+    guard d.temPeriodos, p.periodo != nil else { return [] }
+    let outros = Set(d.listaPeriodos.filter { $0.id != p.id }.compactMap(\.periodo))
+    return Periodo.allCases.filter { $0.rawValue != p.periodo && !outros.contains($0.rawValue) }
+}
+
+/// Confere a troca antes de mandar (mesmas regras de validarRenomear no servidor). nil = ok.
+public func erroTrocarPeriodo(_ d: Dia, _ p: Dia, para: Periodo) -> String? {
+    guard d.temPeriodos, p.periodo != nil else { return "O dia tem um período só: adicione um período antes." }
+    if p.periodo == para.rawValue { return "O período já é \(para.rotulo)." }
+    if d.listaPeriodos.contains(where: { $0.id != p.id && $0.periodo == para.rawValue }) { return "O dia já tem o período \(para.rotulo)." }
+    return nil
+}

@@ -319,6 +319,7 @@ final class ApiTreinoFalsa: ApiTreino, @unchecked Sendable {
         anotar("periodo+:\(diaId):\(novo.rawValue):\(atual?.rawValue ?? "")"); return "p-novo"
     }
     func removerPeriodo(_ periodoId: String) async throws -> Int { anotar("periodo-:\(periodoId)"); return 2 }
+    func trocarPeriodo(_ periodoId: String, para: Periodo) async throws { anotar("periodo~:\(periodoId):\(para.rawValue)") }
     func enviarAnexo(atividadeId: String, arquivo: ArquivoUpload, titulo: String,
                      progresso: @escaping @Sendable (Double) -> Void) async throws -> Anexo {
         anotar("anexo:\(atividadeId):\(titulo)")

@@ -150,6 +150,8 @@ public protocol ApiTreino: Sendable {
     func adicionarPeriodo(_ diaId: String, novo: Periodo, atual: Periodo?) async throws -> String
     /// DELETE /api/sessions/:id/periodo — devolve quantos anexos foram apagados.
     func removerPeriodo(_ periodoId: String) async throws -> Int
+    /// PUT /api/sessions/:id/periodo — troca o horário (Manhã/Tarde/Noite) do período.
+    func trocarPeriodo(_ periodoId: String, para: Periodo) async throws
     func enviarAnexo(atividadeId: String, arquivo: ArquivoUpload, titulo: String,
                      progresso: @escaping @Sendable (Double) -> Void) async throws -> Anexo
     func renomearAnexo(_ id: String, titulo: String) async throws -> Anexo
@@ -252,6 +254,10 @@ public final class ApiTreinoHttp: ApiTreino {
         let j = try await json(CaminhosTreino.periodos(diaId), "POST", .objeto(corpo))
         guard let id = j["id"]?.texto else { throw ErroApi(status: 0, codigo: nil, mensagem: ErroApi.MSG_FALHA) }
         return id
+    }
+
+    public func trocarPeriodo(_ periodoId: String, para: Periodo) async throws {
+        _ = try await json(CaminhosTreino.periodo(periodoId), "PUT", ["periodo": .texto(para.rawValue)])
     }
 
     public func removerPeriodo(_ periodoId: String) async throws -> Int {

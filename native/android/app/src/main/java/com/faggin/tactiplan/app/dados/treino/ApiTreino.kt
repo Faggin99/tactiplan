@@ -146,6 +146,8 @@ interface ApiTreino {
     suspend fun adicionarPeriodo(diaId: String, novo: Periodo, atual: Periodo?): String
     /** DELETE /api/sessions/:id/periodo — devolve quantos anexos foram apagados. */
     suspend fun removerPeriodo(periodoId: String): Int
+    /** PUT /api/sessions/:id/periodo — troca o horário (Manhã/Tarde/Noite) do período. */
+    suspend fun trocarPeriodo(periodoId: String, para: Periodo)
     suspend fun enviarAnexo(atividadeId: String, arquivo: ArquivoUpload, titulo: String, progresso: (Double) -> Unit): Anexo
     suspend fun renomearAnexo(id: String, titulo: String): Anexo
     suspend fun apagarAnexo(id: String)
@@ -250,6 +252,10 @@ class ApiTreinoHttp(
         })
         return ((r as? JsonObject)?.get("id") as? JsonPrimitive)?.contentOrNull
             ?: throw ErroApi(0, null, ErroApi.MSG_FALHA)
+    }
+
+    override suspend fun trocarPeriodo(periodoId: String, para: Periodo) {
+        j(CaminhosTreino.periodo(periodoId), "PUT", buildJsonObject { put("periodo", para.bruto) })
     }
 
     override suspend fun removerPeriodo(periodoId: String): Int {

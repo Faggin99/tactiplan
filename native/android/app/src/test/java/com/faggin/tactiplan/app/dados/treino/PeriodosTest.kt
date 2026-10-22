@@ -114,6 +114,23 @@ class PeriodosTest {
         try { s.adicionarPeriodo(ter, Periodo.TARDE, null, semana, "c"); fail() } catch (_: ErroApi) {}
     }
 
+    @Test fun `trocar horario so os nomes livres e as regras do servidor`() = runBlocking {
+        val ter = micro().dias[1]   // Manhã (t1) + Tarde (t2)
+        val manha = ter.listaPeriodos[0]
+        assertEquals(listOf(Periodo.NOITE), periodosParaTrocar(ter, manha))
+        assertEquals(listOf(Periodo.NOITE), periodosParaTrocar(ter, ter.listaPeriodos[1]))
+        assertTrue(periodosParaTrocar(micro().dias[0], micro().dias[0]).isEmpty())
+        assertEquals("O dia já tem o período Tarde.", erroTrocarPeriodo(ter, manha, Periodo.TARDE))
+        assertEquals("O período já é Manhã.", erroTrocarPeriodo(ter, manha, Periodo.MANHA))
+        assertNull(erroTrocarPeriodo(ter, manha, Periodo.NOITE))
+        val api = ApiTreinoFalsa()
+        val s = ServicoTreino(api)
+        s.trocarPeriodo(manha, ter, Periodo.NOITE)
+        assertEquals(listOf("periodo~:t1:noite"), api.chamadas)
+        try { s.trocarPeriodo(manha, ter, Periodo.TARDE); fail() } catch (_: ErroApi) {}
+        assertEquals(1, api.chamadas.size)
+    }
+
     @Test fun `ficha do dia inteiro ou so do periodo e nome do PDF`() {
         val ter = micro().dias[1]
         assertEquals(mapOf("session_id" to JsonPrimitive("t2")), corpoFichaDoDia("t2"))

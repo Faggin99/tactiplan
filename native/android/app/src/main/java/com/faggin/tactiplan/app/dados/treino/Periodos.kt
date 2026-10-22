@@ -112,3 +112,21 @@ fun textoRemoverPeriodo(p: Dia): String {
     }
     return sb.append("Não dá para desfazer.").toString()
 }
+
+/**
+ * "Trocar horário" (PUT /api/sessions/:id/periodo): os nomes livres no dia (que nenhum OUTRO
+ * período usa). Vazio no dia de 1 período. Paridade: periodosParaTrocar no TactiPlanKit.
+ */
+fun periodosParaTrocar(d: Dia, p: Dia): List<Periodo> {
+    if (!d.temPeriodos || p.periodo == null) return emptyList()
+    val outros = d.listaPeriodos.filter { it.id != p.id }.mapNotNull { it.periodo }.toSet()
+    return Periodo.entries.filter { it.bruto != p.periodo && it.bruto !in outros }
+}
+
+/** Confere a troca antes de mandar (mesmas regras de validarRenomear no servidor). null = ok. */
+fun erroTrocarPeriodo(d: Dia, p: Dia, para: Periodo): String? {
+    if (!d.temPeriodos || p.periodo == null) return "O dia tem um período só: adicione um período antes."
+    if (p.periodo == para.bruto) return "O período já é ${para.rotulo}."
+    if (d.listaPeriodos.any { it.id != p.id && it.periodo == para.bruto }) return "O dia já tem o período ${para.rotulo}."
+    return null
+}

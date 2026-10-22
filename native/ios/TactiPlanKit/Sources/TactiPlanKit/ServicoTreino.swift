@@ -141,6 +141,13 @@ public struct ServicoTreino: Sendable {
         return try await api.removerPeriodo(id)
     }
 
+    /// Troca o horário de um período (dia com 2+). A ordem do dia muda junto (sai do nome).
+    public func trocarPeriodo(_ periodo: Dia, noDia dia: Dia, para: Periodo) async throws {
+        if let erro = erroTrocarPeriodo(dia, periodo, para: para) { throw ErroApi(status: 0, codigo: "PERIODO_INVALIDO", mensagem: erro) }
+        guard let id = periodo.id else { throw ErroApi(status: 0, codigo: nil, mensagem: ErroApi.MSG_FALHA) }
+        try await api.trocarPeriodo(id, para: para)
+    }
+
     /// Só a distância ideal (o lápis do topo do Dia).
     @discardableResult
     public func mudarDistancia(_ dia: Dia, km: Double?, semana: SemanaISO, clubeId: String) async throws -> String {
