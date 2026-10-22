@@ -43,9 +43,9 @@ struct StaffConteudo: View {
     @StateObject private var modelo: StaffModelo
     @EnvironmentObject private var app: AppEstado
     @Environment(\.tema) private var tema
-    @State private var editando: MembroEquipe?
+    @State private var editando: MembroEquipe? = nil
     @State private var convidando = false
-    @State private var remover: MembroEquipe?
+    @State private var remover: MembroEquipe? = nil
 
     init(sessao: Sessao, contexto: ContextoClube, api: ApiStaff) {
         self.sessao = sessao
@@ -249,7 +249,7 @@ struct MembroFolha: View {
     @State var r: RascunhoMembro
     @State var avancado: Bool
     @State var salvando = false
-    @State var erro: String?
+    @State var erro: String? = nil
 
     init(membro: MembroEquipe?, clube: String, categorias: [CategoriaCadastro], api: ApiStaff, clubeId: String,
          aoSessaoAcabar: @escaping (Error) -> Bool, aoConcluir: @escaping (String, String?) -> Void) {

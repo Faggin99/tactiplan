@@ -9,11 +9,13 @@ struct MaisTela: View {
     let contexto: ContextoClube
 
     @State private var confirmarSair = false
+    @StateObject private var exportar: ExportadorRelatorio
     @Environment(\.openURL) private var abrirUrl
 
-    init(sessao: Sessao, contexto: ContextoClube) {
+    init(sessao: Sessao, contexto: ContextoClube, treino: ServicoTreino, aoSessaoAcabar: @escaping (Error) -> Bool) {
         self.sessao = sessao
         self.contexto = contexto
+        _exportar = StateObject(wrappedValue: ExportadorRelatorio(servico: treino, aoSessaoAcabar: aoSessaoAcabar))
     }
 
     var body: some View {
@@ -40,6 +42,19 @@ struct MaisTela: View {
                             .overlay(alignment: .trailing) { Seta() }
                     }
                     .buttonStyle(.plain)
+                }
+            }
+
+            SecaoCadastros(sessao: sessao, contexto: contexto)
+
+            if let clube = contexto.clube, contexto.pode("stats:view"), !(contexto.conta.somenteLeitura ?? false) {
+                ListaAgrupada("Relatórios") {
+                    LinhaAgrupada(icone: "doc.richtext", titulo: "Relatório do clube (PDF)",
+                                  detalhe: "Plantel, treinos e jogos de \(String(hojeBrasilia().prefix(4)))", habilitado: !exportar.ocupado) {
+                        let ano = String(hojeBrasilia().prefix(4))
+                        exportar.iniciar(tipo: "clube", corpo: corpoRelatorioClube(clubeId: clube.id, ano: ano),
+                                         nome: nomePdfRelatorioClube(clube.nome, ano: ano), usuarioId: sessao.me.usuario.id)
+                    }
                 }
             }
 
@@ -77,6 +92,7 @@ struct MaisTela: View {
         } message: {
             Text("Você vai precisar entrar de novo com o seu e-mail e senha.")
         }
+        .modifier(ApresentacaoRelatorio(exportar: exportar))
     }
 }
 

@@ -20,13 +20,13 @@ struct AtletaTela: View {
     @State var atleta: Atleta
     @State var lesoes: [Lesao] = []
     @State var carregandoLesoes = true
-    @State var erroLesoes: String?
+    @State var erroLesoes: String? = nil
     @State var editando = false
     @State var registrando = false
     @State var confirmarRemover = false
-    @State var removerLesao: Lesao?
+    @State var removerLesao: Lesao? = nil
     @State var ocupado = false
-    @State var aviso: String?
+    @State var aviso: String? = nil
 
     init(atleta: Atleta, sessao: Sessao, contexto: ContextoClube, servico: ServicoElenco, categorias: [CategoriaCadastro],
          aoSessaoAcabar: @escaping (Error) -> Bool, aoMudar: @escaping () -> Void) {
@@ -313,7 +313,7 @@ struct LesaoFolha: View {
     @State var retorno = Date()
     @State var notas = ""
     @State var salvando = false
-    @State var erro: String?
+    @State var erro: String? = nil
 
     var body: some View {
         NavigationStack {

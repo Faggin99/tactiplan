@@ -23,13 +23,13 @@ struct AtletaFolha: View {
     @State var alturaTexto: String
     @State var temNascimento: Bool
     @State var nascimento: Date
-    @State var fotoNova: ArquivoUpload?
-    @State var fotoPrevia: UIImage?
-    @State var itemGaleria: PhotosPickerItem?
+    @State var fotoNova: ArquivoUpload? = nil
+    @State var fotoPrevia: UIImage? = nil
+    @State var itemGaleria: PhotosPickerItem? = nil
     @State var camera = false
     @State var removerFoto = false
     @State var salvando = false
-    @State var erro: String?
+    @State var erro: String? = nil
 
     init(atleta: Atleta?, contexto: ContextoClube, servico: ServicoElenco, categorias: [CategoriaCadastro],
          aoSessaoAcabar: @escaping (Error) -> Bool, aoConcluir: @escaping (String) -> Void, aoSalvar: ((Atleta) -> Void)? = nil) {

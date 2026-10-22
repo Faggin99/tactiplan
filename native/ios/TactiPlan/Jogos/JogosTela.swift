@@ -96,6 +96,17 @@ struct JogosTela: View {
     var body: some View {
         TelaGrande(ABA_JOGOS.rotulo, aoAtualizar: { await modelo.carregar() }) {
             HStack(spacing: 4) {
+                if contexto.clube != nil && contexto.pode("stats:view") {
+                    NavigationLink {
+                        EstatisticasTela(sessao: sessao, contexto: contexto, api: app.apiEstatisticas(sessao, contexto),
+                                         treino: app.servicoTreino(sessao, contexto), jogos: true,
+                                         aoSessaoAcabar: { [token = sessao.token] e in app.controle.tratarErro(e, token: token) })
+                    } label: {
+                        Image(systemName: "chart.bar.xaxis").font(.system(size: 18, weight: .semibold))
+                            .frame(width: ALVO_TOQUE, height: ALVO_TOQUE)
+                    }
+                    .accessibilityLabel("Estatísticas dos jogos")
+                }
                 if podeExportar {
                     Button { exportarJogos() } label: {
                         Image(systemName: "doc.richtext").font(.system(size: 18, weight: .semibold))
