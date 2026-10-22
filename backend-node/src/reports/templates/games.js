@@ -42,14 +42,13 @@ function heroMoment(vm) {
 function kpis(vm) {
   const k = vm.kpis;
   const diffVariant = k.diff > 0 ? 'pos' : (k.diff < 0 ? 'neg' : '');
-  return `<div>${C.sec('Números do período')}<div class="grid g4">
+  // 6 números (tempo médio do 1º gol saiu a pedido do dono, 22/10/2026)
+  return `<div>${C.sec('Números do período')}<div class="grid g3">
     ${C.kpi({ label: 'Jogos', value: k.games, sub: `${k.home} em casa · ${k.away} fora` })}
     ${C.kpi({ label: 'Gols pró', value: k.goalsFor, sub: `${F.dec1(k.avgFor)} por jogo` })}
     ${C.kpi({ label: 'Gols contra', value: k.goalsAgainst, sub: `${F.dec1(k.avgAgainst)} por jogo` })}
     ${C.kpi({ label: 'Saldo', value: F.signed(k.diff), variant: diffVariant })}
     ${C.kpi({ label: 'Jogos sem sofrer', value: k.cleanSheets, sub: `${k.cleanPct}% dos jogos` })}
-    ${k.firstFor == null ? C.kpi({ label: '1º gol nosso', value: '—', sub: 'média', variant: 'nil' }) : C.kpi({ label: '1º gol nosso', value: `${k.firstFor}'`, sub: 'média' })}
-    ${k.firstAgainst == null ? C.kpi({ label: '1º gol sofrido', value: '—', sub: 'média', variant: 'nil' }) : C.kpi({ label: '1º gol sofrido', value: `${k.firstAgainst}'`, sub: 'média' })}
     ${C.kpi({ label: 'Cartões', value: `${k.yellow} <small>· ${k.red}</small>`, sub: 'amarelos · vermelhos' })}
   </div></div>`;
 }

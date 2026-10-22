@@ -675,8 +675,6 @@ function GameSummaryCards({ stats, colors }) {
         </div>
         <SummaryLine label="Média por jogo" value={`${dec(stats.avgGoalsScored)} × ${dec(stats.avgGoalsConceded)}`} colors={colors} />
         <SummaryLine label="Jogos sem sofrer" value={stats.cleanSheets || 0} colors={colors} />
-        <SummaryLine label="1º gol nosso (méd.)" value={stats.avgTimeFirstGoalFor != null ? `${stats.avgTimeFirstGoalFor}'` : '—'} muted={stats.avgTimeFirstGoalFor == null} colors={colors} />
-        <SummaryLine label="1º gol sofrido (méd.)" value={stats.avgTimeFirstGoalAgainst != null ? `${stats.avgTimeFirstGoalAgainst}'` : '—'} muted={stats.avgTimeFirstGoalAgainst == null} colors={colors} />
       </SummaryCard>
 
       {/* Jogo a jogo */}
