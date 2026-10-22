@@ -3,6 +3,8 @@ package com.faggin.tactiplan.app.ui.semana
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +26,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -93,6 +96,11 @@ import com.faggin.tactiplan.app.dados.treino.resumoDoDiaInteiro
 import com.faggin.tactiplan.app.dados.treino.Periodo
 import com.faggin.tactiplan.app.dados.treino.MSG_SEM_PERMISSAO_APAGAR
 import com.faggin.tactiplan.app.dados.treino.divisaoMinutos
+import com.faggin.tactiplan.app.dados.treino.EscolhaAvaliacao
+import com.faggin.tactiplan.app.dados.treino.MAX_OUTRA_AVALIACAO
+import com.faggin.tactiplan.app.dados.treino.TipoAvaliacao
+import com.faggin.tactiplan.app.dados.treino.normalizarAvaliacao
+import com.faggin.tactiplan.app.dados.treino.textoAvaliacao
 import com.faggin.tactiplan.app.dados.treino.erroNovoPeriodo
 import com.faggin.tactiplan.app.dados.treino.listaPeriodos
 import com.faggin.tactiplan.app.dados.treino.periodosDisponiveis
@@ -297,7 +305,7 @@ fun SemanaTela(
                         CartaoHeroi(
                             rotulo = "Hoje · ${rotuloDiaMinusculo(d.data)}",
                             valor = if (r.minutos > 0) "${r.minutos} min" else r.tipo.rotulo,
-                            frase = fraseDoHeroi(r) + (seloPeriodos(d)?.let { "\n$it · ${divisaoMinutos(d)}" } ?: ""), selo = r.tipo.rotulo,
+                            frase = fraseDoHeroi(r) + (seloPeriodos(d)?.let { sl -> "\n" + (divisaoMinutos(d)?.let { "$sl · $it" } ?: sl) } ?: ""), selo = r.tipo.rotulo,
                             modifier = Modifier.clickable(role = Role.Button) { abrirDia(d) }.testTag("semana:hoje"),
                             rodape = tema?.frase?.let { f -> { Text(f, style = TactiPlan.tipos.corpo13, color = c.sobreHeroi2) } },
                         )
@@ -361,7 +369,7 @@ private fun LinhaDia(d: Dia, hoje: Boolean, aoTocar: () -> Unit) {
             .padding(vertical = 8.dp).testTag(TAG_DIA + d.data)
             .semantics(mergeDescendants = true) {
                 contentDescription = "${rotuloDiaCurto(d.data)}${if (hoje) ", hoje" else ""}. $titulo. " +
-                    (selo?.let { "$it: ${divisaoMinutos(d)} minutos. " } ?: "") + detalhe +
+                    (selo?.let { sl -> divisaoMinutos(d)?.let { "$sl: $it minutos. " } ?: "$sl. " } ?: "") + detalhe +
                     if (r.anexos > 0) ". ${r.anexos} anexos" else ""
             },
         verticalAlignment = Alignment.CenterVertically,
@@ -375,7 +383,8 @@ private fun LinhaDia(d: Dia, hoje: Boolean, aoTocar: () -> Unit) {
                 when (r.tipo) {
                     TipoDia.JOGO -> Icon(Icones.trofeu, null, Modifier.size(16.dp).padding(end = 2.dp), tint = c.avisoTinta)
                     TipoDia.DESCANSO -> Icon(Icones.lua, null, Modifier.size(16.dp).padding(end = 2.dp), tint = c.tinta2)
-                    else -> {}
+                    TipoDia.AVALIACAO -> Icon(Icones.prancheta, null, Modifier.size(16.dp).padding(end = 2.dp), tint = c.acaoTinta)
+                    else -> if (r.avaliacao != null) Icon(Icones.prancheta, null, Modifier.size(16.dp).padding(end = 2.dp), tint = c.acaoTinta)
                 }
                 Text(titulo, style = TactiPlan.tipos.corpo15, fontWeight = FontWeight.SemiBold, color = c.tinta,
                     maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
@@ -453,13 +462,15 @@ fun DiaTela(
     var pedirAdversario by remember { mutableStateOf(false) }
     var pedirKm by remember { mutableStateOf(false) }
     var editando by remember { mutableStateOf<Int?>(null) }
+    // Período de avaliação: a folha dos tipos (trocar o tipo para Avaliação / editar os tipos)
+    var escolhendoAvaliacao by remember { mutableStateOf(false) }
 
-    fun trocarTipo(tipo: TipoDia, adversario: String?) {
+    fun trocarTipo(tipo: TipoDia, adversario: String?, avaliacao: EscolhaAvaliacao? = null) {
         mudandoTipo = true
         avisar(null)
         escopo.launch {
             try {
-                treino.mudarTipo(dia, tipo, adversario, semana, clubeId)
+                treino.mudarTipo(dia, tipo, adversario, semana, clubeId, avaliacao)
                 mudou()
             } catch (e: Exception) {
                 if (!amb.tratarErro(e)) avisar(mensagemErroTreino(e))
@@ -518,13 +529,14 @@ fun DiaTela(
                 }
             }
             val total = resumoDoDiaInteiro(diaInteiro)
-            Text("Dia: ${total.minutos} min · ${divisaoMinutos(diaInteiro)}" + (total.distanciaKm?.let { " · ${formatarKm(it)} km" } ?: ""),
+            // "90+60" só quando 2+ períodos têm minutos (nunca "125+0")
+            Text("Dia: ${total.minutos} min" + (divisaoMinutos(diaInteiro)?.let { " · $it" } ?: "") + (total.distanciaKm?.let { " · ${formatarKm(it)} km" } ?: ""),
                 style = TactiPlan.tipos.corpo13, fontWeight = FontWeight.Medium, color = c.tinta2, modifier = Modifier.testTag("dia:total"))
-        } else if (dia.tipo == TipoDia.TREINO) {
+        } else if (dia.tipo == TipoDia.TREINO || dia.tipo == TipoDia.AVALIACAO) {
             // dia de 1 período: o horário também aparece (Manhã é o padrão); troca pelo menu
             periodoEfetivo(dia)?.let { p ->
                 Text("Período: ${p.rotulo}", style = TactiPlan.tipos.corpo13, fontWeight = FontWeight.Medium, color = c.tinta2,
-                    modifier = Modifier.testTag("dia:periodo-unico").semantics { contentDescription = "Período do treino: ${p.rotulo}" })
+                    modifier = Modifier.testTag("dia:periodo-unico").semantics { contentDescription = "Período: ${p.rotulo}" })
             }
         }
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
@@ -533,19 +545,23 @@ fun DiaTela(
                     selected = dia.tipo == t,
                     onClick = {
                         if (t == dia.tipo) return@SegmentedButton
-                        if (t == TipoDia.JOGO) pedirAdversario = true else trocarTipo(t, null)
+                        when (t) {
+                            TipoDia.JOGO -> pedirAdversario = true
+                            TipoDia.AVALIACAO -> escolhendoAvaliacao = true
+                            else -> trocarTipo(t, null)
+                        }
                     },
                     enabled = podeEditar && !mudandoTipo,
                     shape = SegmentedButtonDefaults.itemShape(i, TipoDia.entries.size),
                     colors = SegmentedButtonDefaults.colors(activeContainerColor = c.acaoSuave, activeContentColor = c.acaoTinta),
                     modifier = Modifier.testTag("dia:tipo:${t.bruto}"),
-                ) { Text(t.rotulo) }
+                ) { Text(t.rotulo, maxLines = 1, overflow = TextOverflow.Ellipsis) }
             }
         }
         if (dia.tipo == TipoDia.JOGO && !dia.adversario.isNullOrBlank()) {
             Text("Jogo vs ${dia.adversario}", style = TactiPlan.tipos.cabecalho17, color = c.tinta)
         }
-        if (dia.tipo != TipoDia.DESCANSO) {
+        if (dia.tipo != TipoDia.DESCANSO && dia.tipo != TipoDia.AVALIACAO) {
             Cartao {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Info("Pilar", r.rotuloPilares.ifEmpty { "—" }, Modifier.weight(1f))
@@ -563,6 +579,21 @@ fun DiaTela(
         }
         when (dia.tipo) {
             TipoDia.DESCANSO -> EstadoVazio(Icones.lua, "Descanso", TEXTO_DIA_DESCANSO)
+            TipoDia.AVALIACAO -> {
+                // no lugar dos blocos: ícone + AVALIAÇÃO + os tipos
+                val txt = textoAvaliacao(dia)
+                Cartao(Modifier.testTag("dia:avaliacao"), aoTocar = if (podeEditar) ({ escolhendoAvaliacao = true }) else null) {
+                    Column(Modifier.fillMaxWidth().padding(vertical = 8.dp).semantics(mergeDescendants = true) {
+                        contentDescription = "Avaliação: ${txt.ifEmpty { "tipo não informado" }}"
+                    }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Icon(Icones.prancheta, null, Modifier.size(36.dp), tint = c.acaoTinta)
+                        Text("AVALIAÇÃO", style = TactiPlan.tipos.corpo15, fontWeight = FontWeight.SemiBold, color = c.tinta)
+                        Text(txt.ifEmpty { "Tipo de avaliação não informado" }, style = TactiPlan.tipos.corpo13, color = c.tinta2,
+                            modifier = Modifier.testTag("dia:avaliacao:tipos"))
+                        if (podeEditar) Text("Tocar para escolher os tipos", style = TactiPlan.tipos.legenda11, color = c.tinta3)
+                    }
+                }
+            }
             TipoDia.JOGO -> {
                 val idJogo = dia.id
                 if (idJogo != null && abrirJogo != null && ctx.pode("games:view")) {
@@ -634,15 +665,19 @@ fun DiaTela(
         val unico = !diaInteiro.temPeriodos
         var atual by remember { mutableStateOf(sug?.first ?: Periodo.MANHA) }
         var novo by remember { mutableStateOf(sug?.second ?: Periodo.TARDE) }
+        var ehAvaliacao by remember { mutableStateOf(false) }
+        var avTipos by remember { mutableStateOf(setOf<String>()) }
+        var avOutra by remember { mutableStateOf("") }
         val livres = periodosDisponiveis(diaInteiro)
-        val erroP = erroNovoPeriodo(diaInteiro, if (unico) atual else null, novo)
+        val escolha = normalizarAvaliacao(avTipos.toList(), avOutra)
+        val erroP = erroNovoPeriodo(diaInteiro, if (unico) atual else null, novo) ?: if (ehAvaliacao && !escolha.ok) escolha.erro else null
         AlertDialog(
             onDismissRequest = { adicionando = false },
             title = { Text("Adicionar período") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (unico) {
-                        Text("O treino que já existe é", style = TactiPlan.tipos.corpo13, color = c.tinta2)
+                        Text("O que já existe é de", style = TactiPlan.tipos.corpo13, color = c.tinta2)
                         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                             Periodo.entries.forEachIndexed { i, p ->
                                 SegmentedButton(selected = atual == p, onClick = { atual = p },
@@ -659,7 +694,17 @@ fun DiaTela(
                                 modifier = Modifier.testTag("periodo:novo:${p.bruto}")) { Text(p.rotulo) }
                         }
                     }
-                    Text(erroP ?: "O novo período começa com os 6 blocos vazios. Máximo de 3 por dia.",
+                    Text("Tipo do novo período", style = TactiPlan.tipos.corpo13, color = c.tinta2)
+                    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                        listOf(false, true).forEachIndexed { i, av ->
+                            SegmentedButton(selected = ehAvaliacao == av, onClick = { ehAvaliacao = av },
+                                shape = SegmentedButtonDefaults.itemShape(i, 2),
+                                modifier = Modifier.testTag("periodo:tipo:${if (av) "assessment" else "training"}")) { Text(if (av) "Avaliação" else "Treino") }
+                        }
+                    }
+                    if (ehAvaliacao) CamposAvaliacao(avTipos, { avTipos = it }, avOutra, { avOutra = it })
+                    Text(erroP ?: if (ehAvaliacao) "Avaliação não tem blocos: só o tipo. Máximo de 3 períodos por dia."
+                        else "O novo período começa com os 6 blocos vazios. Máximo de 3 por dia.",
                         style = TactiPlan.tipos.corpo13, color = if (erroP != null) c.erroTinta else c.tinta2)
                 }
             },
@@ -668,9 +713,10 @@ fun DiaTela(
                     adicionando = false
                     val a = if (unico) atual else null
                     val n = novo
+                    val av = if (ehAvaliacao) escolha else null
                     escopo.launch {
                         try {
-                            treino.adicionarPeriodo(diaInteiro, n, a, semana, clubeId)
+                            treino.adicionarPeriodo(diaInteiro, n, a, semana, clubeId, av)
                             irParaPeriodo = n.bruto
                             avisar("Período ${n.rotulo} adicionado.")
                             mudou()
@@ -681,6 +727,28 @@ fun DiaTela(
                 }) { Text("Adicionar") }
             },
             dismissButton = { TextButton(onClick = { adicionando = false }) { Text("Cancelar") } },
+        )
+    }
+    if (escolhendoAvaliacao) {
+        var avTipos by remember { mutableStateOf(dia.tiposAvaliacao.orEmpty().toSet()) }
+        var avOutra by remember { mutableStateOf(dia.outraAvaliacao.orEmpty()) }
+        val escolha = normalizarAvaliacao(avTipos.toList(), avOutra)
+        AlertDialog(
+            onDismissRequest = { escolhendoAvaliacao = false },
+            title = { Text("Avaliação") },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CamposAvaliacao(avTipos, { avTipos = it }, avOutra, { avOutra = it })
+                    escolha.erro?.let { Text(it, style = TactiPlan.tipos.corpo13, color = c.erroTinta) }
+                }
+            },
+            confirmButton = {
+                TextButton(enabled = escolha.ok && !mudandoTipo, modifier = Modifier.testTag("avaliacao:salvar"), onClick = {
+                    escolhendoAvaliacao = false
+                    trocarTipo(TipoDia.AVALIACAO, null, escolha)
+                }) { Text("Salvar") }
+            },
+            dismissButton = { TextButton(onClick = { escolhendoAvaliacao = false }) { Text("Cancelar") } },
         )
     }
     if (trocandoHorario) {
@@ -805,3 +873,21 @@ fun CartaoBloco(b: Bloco, rotulo: String, podeEditar: Boolean, aoTocar: () -> Un
     }
 }
 
+
+/** Os tipos da lista fixa (seleção múltipla, chips) + "Outra" com texto curto (até 60). */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CamposAvaliacao(tipos: Set<String>, aoMudarTipos: (Set<String>) -> Unit, outra: String, aoMudarOutra: (String) -> Unit) {
+    val c = TactiPlan.cores
+    Text("Tipo de avaliação (um ou mais)", style = TactiPlan.tipos.corpo13, color = c.tinta2)
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        TipoAvaliacao.entries.filter { it != TipoAvaliacao.OUTRA }.forEach { t ->
+            val on = t.bruto in tipos
+            FilterChip(selected = on, onClick = { aoMudarTipos(if (on) tipos - t.bruto else tipos + t.bruto) },
+                label = { Text(t.rotulo) }, modifier = Modifier.testTag("avaliacao:tipo:${t.bruto}"))
+        }
+    }
+    OutlinedTextField(outra, { aoMudarOutra(it.take(MAX_OUTRA_AVALIACAO)) }, label = { Text("Outra (opcional)") },
+        singleLine = true, supportingText = { Text("${outra.length}/$MAX_OUTRA_AVALIACAO") },
+        modifier = Modifier.fillMaxWidth().testTag("avaliacao:outra"))
+}

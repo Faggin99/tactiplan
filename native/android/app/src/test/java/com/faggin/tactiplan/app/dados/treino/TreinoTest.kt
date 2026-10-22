@@ -309,10 +309,12 @@ class ApiTreinoFalsa : ApiTreino {
     }
     override suspend fun atualizarAtividade(id: String, corpo: JsonObject) { chamadas += "atualizar:$id" }
     override suspend fun apagarAtividadeDoBloco(blocoId: String) { chamadas += "apagar:$blocoId" }
-    override suspend fun mudarTipo(diaId: String, tipo: TipoDia, adversario: String?) { chamadas += "tipo:$diaId:${tipo.bruto}:${adversario ?: ""}" }
+    override suspend fun mudarTipo(diaId: String, tipo: TipoDia, adversario: String?, avaliacao: EscolhaAvaliacao?) {
+        chamadas += "tipo:$diaId:${tipo.bruto}:${adversario ?: ""}" + (avaliacao?.let { ":" + it.tipos.joinToString(",") } ?: "")
+    }
     override suspend fun mudarDistancia(diaId: String, km: Double?) { chamadas += "km:$diaId:${km ?: "nil"}" }
-    override suspend fun adicionarPeriodo(diaId: String, novo: Periodo, atual: Periodo?): String {
-        chamadas += "periodo+:$diaId:${novo.bruto}:${atual?.bruto ?: ""}"; return "p-novo"
+    override suspend fun adicionarPeriodo(diaId: String, novo: Periodo, atual: Periodo?, avaliacao: EscolhaAvaliacao?): String {
+        chamadas += "periodo+:$diaId:${novo.bruto}:${atual?.bruto ?: ""}" + (avaliacao?.let { ":av=" + it.tipos.joinToString(",") } ?: ""); return "p-novo"
     }
     override suspend fun removerPeriodo(periodoId: String): Int { chamadas += "periodo-:$periodoId"; return 2 }
     override suspend fun trocarPeriodo(periodoId: String, para: Periodo) { chamadas += "periodo~:$periodoId:${para.bruto}" }

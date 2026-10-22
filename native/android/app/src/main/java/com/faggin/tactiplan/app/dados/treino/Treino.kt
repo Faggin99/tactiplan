@@ -100,7 +100,9 @@ data class Bloco(
 
 /** Tipo do dia (training_sessions.session_type). null no banco = treino. */
 enum class TipoDia(val bruto: String, val rotulo: String) {
-    TREINO("training", "Treino"), JOGO("match", "Jogo"), DESCANSO("rest", "Descanso");
+    TREINO("training", "Treino"), JOGO("match", "Jogo"), DESCANSO("rest", "Descanso"),
+    /** Período de avaliação (migration 059): sem blocos; só o tipo de avaliação. Não soma minutos. */
+    AVALIACAO("assessment", "Avaliação");
 
     companion object {
         fun de(s: String?): TipoDia = entries.firstOrNull { it.bruto == s } ?: TREINO
@@ -123,6 +125,9 @@ data class Dia(
     val periodo: String? = null,
     /** Dia com 2+ períodos: TODOS (o 1º é este), ordem Manhã → Noite. null no dia de 1 período. */
     val periodos: List<Dia>? = null,
+    /** Período de avaliação: os tipos ("fisica", "tecnica"…, "outra") e o texto da "Outra". */
+    @SerialName("assessment_types") val tiposAvaliacao: List<String>? = null,
+    @SerialName("assessment_other") val outraAvaliacao: String? = null,
 ) {
     val diaDaSemana: Int get() = diaDaSemanaBruto ?: 0
     val tipo: TipoDia get() = TipoDia.de(tipoBruto)

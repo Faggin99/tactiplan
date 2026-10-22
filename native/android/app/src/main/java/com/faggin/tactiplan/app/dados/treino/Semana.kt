@@ -123,6 +123,8 @@ data class ResumoDia(
     val anexos: Int,
     val distanciaKm: Double?,
     val adversario: String?,
+    /** Tipos de avaliação do dia ("Física, Técnica"); null sem período de avaliação. */
+    val avaliacao: String? = null,
 ) {
     val rotuloPilares: String
         get() {
@@ -133,6 +135,10 @@ data class ResumoDia(
 }
 
 fun resumoDoDia(d: Dia): ResumoDia {
+    // avaliação: sem blocos, sem minutos (não entra em nada das estatísticas)
+    if (d.tipo == TipoDia.AVALIACAO) {
+        return ResumoDia(TipoDia.AVALIACAO, emptyList(), emptyList(), 0, 0, 0, 0, null, null, textoAvaliacao(d))
+    }
     val minP = mutableMapOf<String, Int>()
     val cntP = mutableMapOf<String, Int>()
     var total = 0
@@ -169,6 +175,7 @@ fun resumoDoDia(d: Dia): ResumoDia {
 fun tituloDaLinha(r: ResumoDia): String = when (r.tipo) {
     TipoDia.JOGO -> r.adversario?.trim()?.takeIf { it.isNotEmpty() }?.let { "Jogo vs $it" } ?: "Jogo"
     TipoDia.DESCANSO -> "Descanso"
+    TipoDia.AVALIACAO -> "Avaliação"
     TipoDia.TREINO -> if (r.pilares.isEmpty()) "Treino" else "Treino · ${r.rotuloPilares}"
 }
 
@@ -177,11 +184,13 @@ fun detalheDaLinha(r: ResumoDia): String {
     if (r.minutos > 0) p += "${r.minutos} min"
     r.distanciaKm?.let { p += "${formatarKm(it)} km" }
     if (r.tipo == TipoDia.TREINO && r.atividades == 0) p += "Sem atividades"
+    r.avaliacao?.let { av -> p += if (av.isEmpty()) "Avaliação" else if (r.tipo == TipoDia.AVALIACAO) av else "Avaliação: $av" }
     return p.joinToString(" · ")
 }
 
 fun fraseDoHeroi(r: ResumoDia): String = when (r.tipo) {
     TipoDia.DESCANSO -> "Dia de descanso"
+    TipoDia.AVALIACAO -> "Dia de avaliação"
     TipoDia.JOGO -> r.adversario?.trim()?.takeIf { it.isNotEmpty() }?.let { "Jogo vs $it" } ?: "Dia de jogo"
     TipoDia.TREINO -> if (r.atividades == 0) "Nenhuma atividade planejada" else {
         val p = mutableListOf<String>()

@@ -99,17 +99,23 @@ class ServicoTreino(val api: ApiTreino) {
         return ResultadoSalvar(diaId, atividadeId, enviados, falhas)
     }
 
-    suspend fun mudarTipo(dia: Dia, tipo: TipoDia, adversario: String?, semana: SemanaISO, clubeId: String): String {
+    suspend fun mudarTipo(dia: Dia, tipo: TipoDia, adversario: String?, semana: SemanaISO, clubeId: String,
+                          avaliacao: EscolhaAvaliacao? = null): String {
+        if (tipo == TipoDia.AVALIACAO && avaliacao != null && !avaliacao.ok) {
+            throw ErroApi(0, "AVALIACAO_INVALIDA", avaliacao.erro ?: ErroApi.MSG_FALHA)
+        }
         val id = diaReal(dia, semana, clubeId).id ?: throw ErroApi(0, null, ErroApi.MSG_FALHA)
-        api.mudarTipo(id, tipo, adversario)
+        api.mudarTipo(id, tipo, adversario, if (tipo == TipoDia.AVALIACAO) avaliacao else null)
         return id
     }
 
     /** Adiciona um período ao dia (cria o dia antes, se preciso). Devolve o id do período novo. */
-    suspend fun adicionarPeriodo(dia: Dia, novo: Periodo, atual: Periodo?, semana: SemanaISO, clubeId: String): String {
+    suspend fun adicionarPeriodo(dia: Dia, novo: Periodo, atual: Periodo?, semana: SemanaISO, clubeId: String,
+                                 avaliacao: EscolhaAvaliacao? = null): String {
         erroNovoPeriodo(dia, atual, novo)?.let { throw ErroApi(0, "PERIODO_INVALIDO", it) }
+        if (avaliacao != null && !avaliacao.ok) throw ErroApi(0, "AVALIACAO_INVALIDA", avaliacao.erro ?: ErroApi.MSG_FALHA)
         val id = diaReal(dia, semana, clubeId).id ?: throw ErroApi(0, null, ErroApi.MSG_FALHA)
-        return api.adicionarPeriodo(id, novo, if (dia.temPeriodos) null else atual)
+        return api.adicionarPeriodo(id, novo, if (dia.temPeriodos) null else atual, avaliacao)
     }
 
     /** Remove um período (só no dia com 2+). Devolve os anexos apagados. */

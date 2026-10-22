@@ -140,10 +140,12 @@ interface ApiTreino {
     suspend fun criarAtividade(corpo: JsonObject): String
     suspend fun atualizarAtividade(id: String, corpo: JsonObject)
     suspend fun apagarAtividadeDoBloco(blocoId: String)
-    suspend fun mudarTipo(diaId: String, tipo: TipoDia, adversario: String?)
+    /** PUT /api/sessions/:id/type — `avaliacao` só no tipo AVALIACAO (os outros tipos limpam os campos). */
+    suspend fun mudarTipo(diaId: String, tipo: TipoDia, adversario: String?, avaliacao: EscolhaAvaliacao? = null)
     suspend fun mudarDistancia(diaId: String, km: Double?)
     /** POST /api/sessions/:id/periodos — `atual` só no dia de 1 período. Devolve o id do novo. */
-    suspend fun adicionarPeriodo(diaId: String, novo: Periodo, atual: Periodo?): String
+    /** `avaliacao` não-nula = o período novo já nasce de avaliação (tipo 'assessment'). */
+    suspend fun adicionarPeriodo(diaId: String, novo: Periodo, atual: Periodo?, avaliacao: EscolhaAvaliacao? = null): String
     /** DELETE /api/sessions/:id/periodo — devolve quantos anexos foram apagados. */
     suspend fun removerPeriodo(periodoId: String): Int
     /** PUT /api/sessions/:id/periodo — troca o horário (Manhã/Tarde/Noite) do período. */
@@ -233,22 +235,32 @@ class ApiTreinoHttp(
 
     override suspend fun apagarAtividadeDoBloco(blocoId: String) { j(CaminhosTreino.atividadeDoBloco(blocoId), "DELETE") }
 
-    override suspend fun mudarTipo(diaId: String, tipo: TipoDia, adversario: String?) {
+    override suspend fun mudarTipo(diaId: String, tipo: TipoDia, adversario: String?, avaliacao: EscolhaAvaliacao?) {
         val a = adversario?.trim().orEmpty()
-        j(CaminhosTreino.tipoDoDia(diaId), "PUT", JsonObject(mapOf(
+        val corpo = mutableMapOf<String, JsonElement>(
             "session_type" to JsonPrimitive(tipo.bruto),
             "opponent_name" to if (tipo == TipoDia.JOGO && a.isNotEmpty()) JsonPrimitive(a) else JsonNull,
-        )))
+        )
+        if (tipo == TipoDia.AVALIACAO) {
+            corpo["assessment_types"] = JsonArray(avaliacao?.tipos.orEmpty().map { JsonPrimitive(it) })
+            corpo["assessment_other"] = avaliacao?.outra?.let { JsonPrimitive(it) } ?: JsonNull
+        }
+        j(CaminhosTreino.tipoDoDia(diaId), "PUT", JsonObject(corpo))
     }
 
     override suspend fun mudarDistancia(diaId: String, km: Double?) {
         j(CaminhosTreino.distancia(diaId), "PUT", JsonObject(mapOf("avg_distance_km" to (km?.let { JsonPrimitive(it) } ?: JsonNull))))
     }
 
-    override suspend fun adicionarPeriodo(diaId: String, novo: Periodo, atual: Periodo?): String {
+    override suspend fun adicionarPeriodo(diaId: String, novo: Periodo, atual: Periodo?, avaliacao: EscolhaAvaliacao?): String {
         val r = j(CaminhosTreino.periodos(diaId), "POST", buildJsonObject {
             put("novo", novo.bruto)
             if (atual != null) put("atual", atual.bruto)
+            if (avaliacao != null) {
+                put("tipo", TipoDia.AVALIACAO.bruto)
+                put("assessment_types", JsonArray(avaliacao.tipos.map { JsonPrimitive(it) }))
+                put("assessment_other", avaliacao.outra?.let { JsonPrimitive(it) } ?: JsonNull)
+            }
         })
         return ((r as? JsonObject)?.get("id") as? JsonPrimitive)?.contentOrNull
             ?: throw ErroApi(0, null, ErroApi.MSG_FALHA)

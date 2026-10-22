@@ -39,9 +39,12 @@ val Dia.temPeriodos: Boolean get() = listaPeriodos.size > 1
 /** Selo do card do dia na Semana: "2 períodos" (null no dia de 1 período). */
 fun seloPeriodos(d: Dia): String? = d.listaPeriodos.size.takeIf { it > 1 }?.let { "$it períodos" }
 
-/** Divisão dos minutos: "90+60" (null no dia de 1 período). */
-fun divisaoMinutos(d: Dia): String? =
-    if (!d.temPeriodos) null else d.listaPeriodos.joinToString("+") { resumoDoDia(it).minutos.toString() }
+/** Divisão dos minutos: "90+60" — só quando 2+ períodos TÊM minutos (nunca "125+0"; avaliação = 0). */
+fun divisaoMinutos(d: Dia): String? {
+    if (!d.temPeriodos) return null
+    val com = d.listaPeriodos.map { resumoDoDia(it).minutos }.filter { it > 0 }
+    return if (com.size >= 2) com.joinToString("+") else null
+}
 
 /** Distância do dia = soma dos períodos de TREINO com registro (null sem nenhum). */
 fun distanciaDoDia(d: Dia): Double? {
@@ -59,11 +62,20 @@ fun resumoDoDiaInteiro(d: Dia): ResumoDia {
     if (!d.temPeriodos) return resumoDoDia(d)
     val ps = d.listaPeriodos
     val jogo = ps.firstOrNull { it.tipo == TipoDia.JOGO }
-    val r = resumoDoDia(d.copy(tipoBruto = TipoDia.TREINO.bruto, blocos = ps.flatMap { it.blocos }, periodos = null))
+    // avaliação não soma blocos nem minutos
+    val avaliacoes = ps.filter { it.tipo == TipoDia.AVALIACAO }
+    val r = resumoDoDia(d.copy(tipoBruto = TipoDia.TREINO.bruto,
+        blocos = ps.filter { it.tipo != TipoDia.AVALIACAO }.flatMap { it.blocos }, periodos = null))
+    val tiposAv = avaliacoes.flatMap { rotulosAvaliacao(it) }.distinct()
     return r.copy(
-        tipo = if (jogo != null) TipoDia.JOGO else TipoDia.TREINO,
+        tipo = when {
+            jogo != null -> TipoDia.JOGO
+            avaliacoes.size == ps.size -> TipoDia.AVALIACAO
+            else -> TipoDia.TREINO
+        },
         distanciaKm = distanciaDoDia(d),
         adversario = jogo?.adversario,
+        avaliacao = if (avaliacoes.isEmpty()) null else tiposAv.joinToString(", "),
     )
 }
 
@@ -84,8 +96,18 @@ fun periodoEfetivo(d: Dia): Periodo? = if (d.tipo == TipoDia.DESCANSO) null else
 
 /** Título da linha na Semana: treino de 1 período = "Manhã · Tático" (ou "Manhã · Treino"); o resto como antes. */
 fun tituloDaLinhaDoDia(d: Dia): String {
-    if (d.temPeriodos) return tituloDaLinha(resumoDoDiaInteiro(d))
+    if (d.temPeriodos) {
+        // com avaliação: cada período na linha ("Manhã · Avaliação + Tarde · Tático")
+        if (d.listaPeriodos.any { it.tipo == TipoDia.AVALIACAO }) {
+            return d.listaPeriodos.joinToString(" + ") { p ->
+                val r = resumoDoDia(p)
+                rotuloLinhaPeriodo(p, if (p.tipo == TipoDia.TREINO) listOf(if (r.pilares.isEmpty()) "Treino" else r.rotuloPilares) else emptyList())
+            }
+        }
+        return tituloDaLinha(resumoDoDiaInteiro(d))
+    }
     val r = resumoDoDia(d)
+    if (r.tipo == TipoDia.AVALIACAO) return rotuloLinhaPeriodo(d)
     val p = periodoEfetivo(d)
     if (r.tipo != TipoDia.TREINO || p == null) return tituloDaLinha(r)
     return "${p.rotulo} · ${if (r.pilares.isEmpty()) "Treino" else r.rotuloPilares}"
@@ -139,7 +161,7 @@ fun textoRemoverPeriodo(p: Dia): String {
 fun periodosParaTrocar(d: Dia, p: Dia): List<Periodo> {
     // dia de 1 período (treino): os outros dois horários (Manhã é o padrão do dia sem nome)
     if (!d.temPeriodos) {
-        if (p.tipo != TipoDia.TREINO) return emptyList()
+        if (p.tipo != TipoDia.TREINO && p.tipo != TipoDia.AVALIACAO) return emptyList()
         val ef = periodoEfetivo(p) ?: return emptyList()
         return Periodo.entries.filter { it != ef }
     }
