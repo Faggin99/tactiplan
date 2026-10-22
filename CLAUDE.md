@@ -164,3 +164,17 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   cada atividade no pilar do 1º conteúdo), comprimento proporcional ao maior dia, total em destaque; dia sem minutos "—".
   Períodos longos: coluna por semana empilhada pelos pilares.
 - Testes: `tests/avaliacao.test.js` (puro) e `tests/avaliacao-db.test.js` (banco descartável `PERIODOS_TEST_DB`, com 059).
+
+## App nativo T5 (22/10/2026): QUADRO TÁTICO nativo (iOS SwiftUI + Android Compose)
+- Aba Quadro: jogadas da CONTA (`/api/plays` como está), busca, "criada em <clube>", criar/duplicar/renomear/excluir
+  (`tactical:edit` + conta com assinatura; só leitura = só assistir). Assistir EM PÉ (play 0,5–2×, trajetórias);
+  editor DEITADO (iOS: AppDelegate + `forcarOrientacao`; Android: `requestedOrientation` num Dialog de tela cheia).
+- Mesmo formato do web (keyframes/elements/drawings, ids `tipo-<ms>-<n>`): o app guarda cada peça/desenho/quadro
+  como JSON cru e só mexe nas chaves que o web mexe; salvar = `{...getPlayData(), name, description, club_id}`.
+- Desenho nativo (CoreGraphics / android.graphics) copiado do FieldBackground/PlayerToken/BallToken/MarkerToken/
+  DrawingLayer/TrajectoryLayer; o MESMO desenho gera o vídeo MP4 (AVAssetWriter / MediaCodec+MediaMuxer) no
+  ritmo do web: 30 fps, 46 imagens por transição + 1 s parado (`linhaDoVideo`).
+- Paridade: `native/paridade/quadro.json` gerado por `native/paridade/gerar-quadro.mjs` (executa o
+  `useTacticalBoard.js` com um React mínimo + fieldDimensions/defaultFormations/interpolation + Konva); teste
+  `paridade-app-quadro`. Mexeu no quadro do web → regere e rode Kit/Android.
+- Migration 060: `tactical_plays.field_type` aceita `football_7` (antes o web oferecia F7 e salvar dava 500).
