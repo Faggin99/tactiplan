@@ -8,6 +8,7 @@ const { gridOptions } = require('./photoConfig');
 const { positionSector, roleSector, sectorInfo, SECTOR_ORDER, normCode, comparePlayers } = require('./positionSector');
 const { slotPosition, playerInitials } = require('./lineup');
 const { posicaoEmCampo } = require('../utils/posicaoEmCampo');
+const P = require('../services/periodos');
 
 const PERIOD_LABELS = {
   '1-micro': 'Microciclo',
@@ -269,17 +270,34 @@ function buildDays({ period, sessions, sessionsByDate, gamesById }) {
   const days = [];
   for (let i = 0; i < period.days; i++) {
     const date = F.addDays(period.start, i);
-    const list = byDate.get(date) || [];
+    const list = (byDate.get(date) || []).slice().sort(P.compararPeriodos);
     const minutes = list.reduce((sum, s) => sum + (Number(s.minutes) || 0), 0);
     const match = list.find((s) => s.session_type === 'match');
     const isRest = list.length > 0 && list.every((s) => s.session_type === 'rest');
     const contents = list.flatMap((s) => contentsBySession.get(s.id) || []);
-    const base = { date, dn: F.weekdayShort(date), dd: F.ddmm(date), minutes, note: null, distanceKm: null };
+    const base = { date, dn: F.weekdayShort(date), dd: F.ddmm(date), minutes, note: null, distanceKm: null, periods: null, split: null };
+    // Dia com 2+ períodos (Manhã/Tarde/Noite): soma no dia + divisão por período
+    const comPeriodos = list.length > 1 && list.some((s) => s.periodo);
+    if (comPeriodos) {
+      base.periods = list.map((s) => ({
+        periodo: s.periodo,
+        label: P.rotuloPeriodo(s.periodo) || 'Período',
+        kind: s.session_type === 'match' ? 'jogo' : 'treino',
+        minutes: Number(s.minutes) || 0,
+      }));
+      base.split = base.periods.map((p) => p.minutes).join('+');
+    }
     if (match) {
       const g = gamesById?.get(match.id);
       const extra = list.filter((s) => s.id !== match.id).reduce((sum, s) => sum + (Number(s.minutes) || 0), 0) + (Number(match.minutes) || 0);
       let note = null;
-      if (extra > 0) {
+      if (extra > 0 && comPeriodos) {
+        // Manhã de treino + Tarde de jogo: cada período com o seu tempo
+        const partes = base.periods.filter((p) => p.minutes > 0).map((p) => (p.kind === 'jogo'
+          ? `${p.minutes}' com os não relacionados (${p.label})`
+          : `${p.label} ${p.minutes}' de treino`));
+        note = `${F.weekdayShort(date)} ${F.ddmm(date)}: ${partes.join(' + ')} (contabilizado no total do período).`;
+      } else if (extra > 0) {
         const names = Array.from(new Set(contents.map((c) => c.name))).slice(0, 2).join(' e ');
         note = `${F.weekdayShort(date)} ${F.ddmm(date)}: ${extra}'${names ? ` de ${names}` : ''} com os não relacionados (contabilizado no total do período).`;
       }
@@ -294,8 +312,11 @@ function buildDays({ period, sessions, sessionsByDate, gamesById }) {
     } else if (isRest) {
       days.push({ ...base, kind: 'descanso' });
     } else if (minutes > 0 || contents.length > 0) {
-      const km = list.map((s) => s.avg_distance_km).find((v) => v !== null && v !== undefined);
-      days.push({ ...base, kind: 'treino', focus: dayFocus(contents), distanceKm: km != null ? Number(km) : null });
+      const km = P.distanciaDoDia(list);
+      const note = comPeriodos && minutes > 0
+        ? `${F.weekdayShort(date)} ${F.ddmm(date)}: ${base.periods.filter((p) => p.minutes > 0).map((p) => `${p.label} ${p.minutes}'`).join(' + ')} = ${minutes}'.`
+        : null;
+      days.push({ ...base, kind: 'treino', focus: dayFocus(contents), distanceKm: km != null ? Number(km) : null, note });
     } else {
       days.push({ ...base, kind: 'vazio' });
     }
@@ -491,6 +512,61 @@ function buildSessionSheet({ session, team, weekNumber = null, game = null, phot
       score: game ? `${game.goals_scored} × ${game.goals_conceded}` : null,
       result: game ? ({ win: 'V', draw: 'E', loss: 'D' })[game.result] : null,
     } : null,
+    photos,
+  };
+}
+
+// Ficha do DIA com 2+ períodos: cada período com a própria linha do tempo e
+// blocos (vm de buildSessionSheet), em sequência; o cabeçalho soma o dia.
+// sessions: detalhes (getSessionDetail) na ordem Manhã → Noite.
+// gamesById: Map session_id → jogo (matchesHistory) do período de jogo.
+function buildDaySheet({ sessions, team, weekNumber = null, gamesById = null, photos = null }) {
+  const list = (sessions || []).slice().sort(P.compararPeriodos);
+  if (list.length <= 1) {
+    const only = list[0];
+    return buildSessionSheet({ session: only, team, weekNumber, game: gamesById?.get(only?.id) || null, photos });
+  }
+  const periodos = list.map((s) => {
+    const vm = buildSessionSheet({ session: s, team, weekNumber, game: gamesById?.get(s.id) || null, photos: null });
+    return { ...vm, sessionId: s.id, periodo: s.periodo, label: P.rotuloPeriodo(s.periodo) || 'Período' };
+  });
+  const blocks = periodos.flatMap((p) => p.blocks);
+  const total = periodos.reduce((sum, p) => sum + p.total, 0);
+  const focus = dayFocus(
+    Object.values(blocks.reduce((m, b) => {
+      for (const c of b.contents) {
+        m[c] = m[c] || { name: c, count: 0, minutes: 0 };
+        m[c].count += 1;
+        m[c].minutes += b.minutes;
+      }
+      return m;
+    }, {})),
+  );
+  const km = P.distanciaDoDia(list);
+  const date = F.toDateStr(list[0].date);
+  const split = periodos.map((p) => p.total).join('+');
+  const badgeSubParts = [];
+  if (km != null) badgeSubParts.push(`${F.dec1(km)} km`);
+  badgeSubParts.push(`${periodos.length} períodos · ${split}`);
+  return {
+    kind: 'sessao',
+    team,
+    type: 'periodos',
+    date,
+    weekNumber,
+    title: `${F.weekdayLong(date)}, ${F.ddmm(date)}`,
+    eyebrow: weekNumber ? `Ficha de sessão · Semana ${weekNumber}` : 'Ficha de sessão',
+    focus,
+    distanceKm: km,
+    total,
+    split,
+    badgeTop: `${total} min`,
+    badgeSub: badgeSubParts.join(' · '),
+    blocks,
+    pillarsPresent: DIM_ORDER.filter((d) => blocks.some((b) => b.pillar === d)),
+    groupsAll: Array.from(new Set(blocks.flatMap((b) => b.groups))).sort(),
+    periodos,
+    game: null,
     photos,
   };
 }
@@ -839,6 +915,7 @@ module.exports = {
   buildTrainingReport,
   blockIsFilled,
   buildSessionSheet,
+  buildDaySheet,
   captionFor,
   selectSessionPhotos,
   groupPhotosByDay,

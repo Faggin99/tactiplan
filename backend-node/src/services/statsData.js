@@ -3,6 +3,7 @@
 // Regra de negócio fica SÓ aqui; as rotas validam permissão e repassam.
 const { query } = require('../config/database');
 const { computeMinutagem } = require('../utils/minutagem');
+const P = require('./periodos');
 
 // Tipos de gol com detalhe novo (ex.: bp_def_falta_lateral) que não estão no mapa:
 // monta "BP Def. — Falta lateral" em vez de mostrar o código cru.
@@ -134,7 +135,7 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
 
   const tenantIds = workspaceIds || [];
   let sessionSql = `
-    SELECT s.id, s.date, s.session_type, s.avg_distance_km
+    SELECT s.id, s.date, s.session_type, s.avg_distance_km, s.periodo, s.workspace_id, m.club_id
     FROM training_sessions s
     JOIN training_microcycles m ON s.microcycle_id = m.id
     WHERE s.workspace_id = ANY($1) AND s.date >= $2 AND s.date <= $3
@@ -147,7 +148,10 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
   sessionSql += categoryFilterSql(sessionParams, allowedCategoryIds);
   const sessionsResult = await query(sessionSql, sessionParams);
   const sessionIds = sessionsResult.rows.map(s => s.id);
-  const distance = buildDistanceStats(sessionsResult.rows, start, end);
+  // Períodos (Manhã/Tarde/Noite): o DIA conta como 1 sessão. Cada período é
+  // remapeado para o 1º período do dia; distância do dia = soma dos períodos.
+  const diaDe = P.mapaDoDia(sessionsResult.rows);
+  const distance = buildDistanceStats(P.distanciaPorDia(sessionsResult.rows), start, end);
 
   const empty = {
     range: { start, end },
@@ -185,6 +189,10 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
   );
 
   const activities = activitiesResult.rows;
+  for (const a of activities) {
+    a.periodo_session_id = a.session_id;
+    a.session_id = diaDe.get(a.session_id) || a.session_id;
+  }
   const activityIds = activities.map(a => a.id);
   const totalMinutes = minutosTrabalhados(activities);
   const sessionsWithActivities = new Set(activities.map(a => a.session_id));
@@ -997,7 +1005,7 @@ async function getPeriodSessions({ workspaceIds, start, end, clubId = null, allo
   const params = [workspaceIds || [], start, end];
   let sql = `
     SELECT s.id, s.date, s.session_type, s.opponent_name, s.avg_distance_km,
-           s.match_round, s.match_location,
+           s.match_round, s.match_location, s.periodo, s.workspace_id, m.club_id,
            COALESCE(SUM(a.duration_minutes), 0)::int AS minutes,
            COUNT(a.id)::int AS activities
       FROM training_sessions s
@@ -1010,7 +1018,7 @@ async function getPeriodSessions({ workspaceIds, start, end, clubId = null, allo
     sql += ` AND m.club_id = $${params.length}`;
   }
   sql += categoryFilterSql(params, allowedCategoryIds);
-  sql += ' GROUP BY s.id ORDER BY s.date ASC';
+  sql += ` GROUP BY s.id, m.club_id ORDER BY s.date ASC, ${P.ordemSql('s')} ASC`;
   const r = await query(sql, params);
   return r.rows;
 }

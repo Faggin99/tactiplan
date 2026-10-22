@@ -32,7 +32,8 @@ function weekGrid(vm) {
     }
     const h = Math.max(4, Math.round((d.minutes / max) * 100));
     return `<div class="day">${head}<div class="tag">Treino</div><div class="fx">${esc(d.focus || '')}</div>`
-      + `<div class="col">${d.minutes > 0 ? `<i style="height:${h}%"></i>` : ''}</div><div class="mn">${d.minutes > 0 ? `${d.minutes}'` : '—'}</div></div>`;
+      + `<div class="col">${d.minutes > 0 ? `<i style="height:${h}%"></i>` : ''}</div><div class="mn">${d.minutes > 0 ? `${d.minutes}'` : '—'}</div>`
+      + `${d.split && d.minutes > 0 ? `<div class="pd" title="${esc(d.periods.map((p) => `${p.label} ${p.minutes}'`).join(' + '))}">${esc(d.split)}</div>` : ''}</div>`;
   }).join('');
   const notes = vm.dayNotes.map((n) => `<div class="note">${esc(n)}</div>`).join('');
   return `<div>${C.sec('Microciclo', 'minutos por dia')}<div class="week">${cells}</div>${notes}</div>`;

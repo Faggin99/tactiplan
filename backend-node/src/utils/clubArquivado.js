@@ -44,7 +44,7 @@ const RECURSOS = [
   [['POST'], /^\/api\/athletes\/([0-9a-f-]{36})\/injuries\/?$/i, SQL_ATLETA],
   [['PUT', 'DELETE'], /^\/api\/injuries\/([0-9a-f-]{36})\/?$/i,
     'SELECT a.club_id FROM athlete_injuries i JOIN athletes a ON a.id = i.athlete_id WHERE i.id = $1'],
-  [['PUT', 'PATCH', 'DELETE'], /^\/api\/sessions\/([0-9a-f-]{36})(?:\/[a-z_-]+)?\/?$/i, SQL_SESSAO],
+  [['PUT', 'PATCH', 'DELETE', 'POST'], /^\/api\/sessions\/([0-9a-f-]{36})(?:\/[a-z_-]+)?\/?$/i, SQL_SESSAO],
   [['POST', 'PUT', 'DELETE'], /^\/api\/games\/([0-9a-f-]{36})(?:\/.*)?$/i, SQL_SESSAO],
   [['PUT', 'DELETE'], /^\/api\/activities\/([0-9a-f-]{36})\/?$/i, SQL_ATIVIDADE],
   [['DELETE', 'PUT', 'POST'], /^\/api\/activities\/block\/([0-9a-f-]{36})\/?$/i, SQL_BLOCO],

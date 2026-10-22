@@ -154,6 +154,7 @@ body{font-family:Inter,sans-serif;color:var(--ink);font-size:8.5pt;line-height:1
 .day .col{flex:1;display:flex;align-items:flex-end;min-height:10mm}
 .day .col i{display:block;width:100%;border-radius:1mm;background:var(--team-bar);opacity:.9}
 .day .mn{font:700 9pt Poppins;white-space:nowrap}
+.day .pd{font:600 6.5pt Poppins;color:var(--muted);white-space:nowrap;margin-top:-.6mm}
 .day.game{background:var(--team);border-color:var(--team);color:var(--on-team)}
 .day.game .dd,.day.game .tag{color:var(--on-team);opacity:.85}
 .day.game .fx{white-space:normal}
@@ -204,6 +205,7 @@ body{font-family:Inter,sans-serif;color:var(--ink);font-size:8.5pt;line-height:1
 .notes{flex:1;min-height:20mm;border:1px solid var(--line);border-radius:2.5mm;padding:3mm 4mm;
   background:repeating-linear-gradient(transparent 0 6.5mm,var(--line-2) 6.5mm calc(6.5mm + 1px))}
 .gamecard{display:flex;align-items:center;gap:5mm;background:var(--team);color:var(--on-team);border-radius:3mm;padding:5mm 6mm;break-inside:avoid}
+.per{display:flex;flex-direction:column;gap:3mm}.per-h{display:flex;align-items:baseline;gap:3mm;padding:1.5mm 0 1.5mm 3mm;border-left:1.2mm solid var(--team);margin-top:1mm;break-after:avoid}.per-h b{font:700 12pt Poppins;color:var(--ink)}.per-h span{font-size:8pt;color:var(--muted)}
 .gamecard .k{font:600 7pt Inter;text-transform:uppercase;letter-spacing:.14em;opacity:.8}
 .gamecard .op{font:700 15pt Poppins}
 .gamecard .sc{margin-left:auto;display:flex;align-items:center;gap:3mm;font:800 20pt Poppins}

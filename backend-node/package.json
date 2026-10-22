@@ -7,7 +7,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "smoke": "node tests/smoke.test.js",
-    "test": "node --test tests/revenuecat-sandbox.test.js tests/f1-somente-leitura.test.js tests/f1-membros-cortesia.test.js tests/f1-documento.test.js tests/f1-virada.test.js tests/distancia.test.js tests/escalacao.test.js tests/reports.test.js tests/reports-fotos.test.js tests/convocacao.test.js tests/posicoes-br.test.js tests/minutagem.test.js tests/posicao-em-campo.test.js tests/reports-clube.test.js tests/anexos-atividade.test.js tests/club-branding.test.js tests/planos-clube.test.js tests/formatar-nome.test.js tests/clube-arquivado.test.js tests/app-bff.test.js tests/plays-conta.test.js tests/app-token-web.test.js tests/paridade-app-jogo.test.js"
+    "test": "node --test tests/revenuecat-sandbox.test.js tests/f1-somente-leitura.test.js tests/f1-membros-cortesia.test.js tests/f1-documento.test.js tests/f1-virada.test.js tests/distancia.test.js tests/escalacao.test.js tests/reports.test.js tests/reports-fotos.test.js tests/convocacao.test.js tests/posicoes-br.test.js tests/minutagem.test.js tests/posicao-em-campo.test.js tests/reports-clube.test.js tests/anexos-atividade.test.js tests/club-branding.test.js tests/planos-clube.test.js tests/formatar-nome.test.js tests/clube-arquivado.test.js tests/app-bff.test.js tests/plays-conta.test.js tests/app-token-web.test.js tests/paridade-app-jogo.test.js tests/periodos.test.js tests/periodos-db.test.js"
   },
   "dependencies": {
     "@sentry/node": "^10.53.1",

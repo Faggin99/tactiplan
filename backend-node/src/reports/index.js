@@ -17,6 +17,7 @@ const { renderSession } = require('./templates/session');
 const { renderConvocacao } = require('./templates/convocacao');
 const { renderClube } = require('./templates/clube');
 const { formacaoValida, formacaoPadrao } = require('../utils/formacao');
+const P = require('../services/periodos');
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_SPAN_DAYS = 400;
@@ -124,7 +125,7 @@ async function photoCandidates(sessions, workspaceIds) {
   const info = await activitiesInfo(Array.from(new Set(files.map((f) => f.activity_id).filter(Boolean))));
   return B.selectSessionPhotos(files, info).map((f) => {
     const sess = bySession.get(f.session_id);
-    return { ...f, id: String(f.id), date: sess ? F.toDateStr(sess.date) : null };
+    return { ...f, id: String(f.id), date: sess ? F.toDateStr(sess.date) : null, periodo: sess?.periodo || null };
   });
 }
 
@@ -143,6 +144,9 @@ async function photoList(cands, byDay, limit) {
       date: t.date,
       dia: t.date ? F.weekdayLong(t.date) : null,
       dd: t.date ? F.ddmm(t.date) : null,
+      // dia com 2+ períodos: o modal agrupa por período (null = período único)
+      periodo: t.periodo || null,
+      periodoRotulo: P.rotuloPeriodo(t.periodo),
       titulo: t.caption?.title || '',
       origem: t.caption?.context || '',
       thumb: `data:image/jpeg;base64,${t.buffer.toString('base64')}`,
@@ -241,6 +245,26 @@ async function buildTreino(body, user, assets, mode = 'pdf') {
   };
 }
 
+// Períodos do dia da sessão (getSessionDetail de cada um), ordem Manhã → Noite.
+// Dia de período único = [a própria sessão].
+async function periodosDoDia(session, workspaceIds) {
+  const r = await query(
+    `SELECT id FROM training_sessions
+      WHERE workspace_id = $1 AND date = $2 AND club_id IS NOT DISTINCT FROM $3
+      ORDER BY ${P.ordemSql()} ASC`,
+    [session.workspace_id, F.toDateStr(session.date), session.club_id],
+  );
+  if (r.rows.length <= 1) return [session];
+  const out = [];
+  for (const row of r.rows) {
+    if (row.id === session.id) { out.push(session); continue; }
+    const d = await getSessionDetail(row.id, workspaceIds);
+    if (d) out.push(d);
+  }
+  return out.sort(P.compararPeriodos);
+}
+
+// body.so_periodo = true: só o período de session_id (dia com 2+ períodos).
 async function buildSessao(body, user, assets, mode = 'pdf') {
   const { workspaceIds } = scope(user);
   const sessionId = String(body.session_id || '');
@@ -254,19 +278,20 @@ async function buildSessao(body, user, assets, mode = 'pdf') {
   }
   const team = await loadTeam(micro.club_id || session.club_id, workspaceIds, assets, body.primary_color);
   const date = F.toDateStr(session.date);
+  const sessoes = body.so_periodo === true ? [session] : await periodosDoDia(session, workspaceIds);
   const withPhotos = body.include_photos !== false;
   if (mode === 'fotos' && !withPhotos) return { list: emptyList(false) };
   // 'visualizar' = a ficha inteira na tela (resumo do dia), com miniaturas como a prévia
   const photoMode = mode === 'visualizar' ? 'html' : mode;
-  const photos = withPhotos ? await preparePhotos({ sessions: [session], workspaceIds, body, mode: photoMode, assets, week: false }) : null;
+  const photos = withPhotos ? await preparePhotos({ sessions: sessoes, workspaceIds, body, mode: photoMode, assets, week: false }) : null;
   if (mode === 'fotos') return { list: photos };
-  let game = null;
-  if ((mode === 'pdf' || mode === 'visualizar') && session.session_type === 'match') {
+  const gamesById = new Map();
+  if ((mode === 'pdf' || mode === 'visualizar') && sessoes.some((s) => s.session_type === 'match')) {
     const g = await stats.getGameStats({ workspaceIds, start: date, end: date, clubId: team.id });
-    game = (g.matchesHistory || []).find((m) => m.session_id === session.id) || null;
+    for (const m of g.matchesHistory || []) gamesById.set(m.session_id, m);
   }
   const weekNumber = micro.week_identifier ? Number(String(micro.week_identifier).split('-')[1]) || null : (F.isoWeek(date)?.week || null);
-  const vm = B.buildSessionSheet({ session, team, weekNumber, game, photos });
+  const vm = B.buildDaySheet({ sessions: sessoes, team, weekNumber, gamesById, photos });
   if (mode === 'html') {
     if (!photos) return { html: null };
     // fotos junto dos blocos: a prévia precisa mostrar a ficha inteira
@@ -274,9 +299,10 @@ async function buildSessao(body, user, assets, mode = 'pdf') {
     return { html: renderSession(vm, { now: new Date(), onlyPhotos: !inteira }), count: photos.items.length };
   }
   if (mode === 'visualizar') return { html: renderSession(vm, { now: new Date() }) };
+  const sufixo = sessoes.length === 1 && session.periodo ? `-${safeName(P.rotuloPeriodo(session.periodo))}` : '';
   return {
     html: renderSession(vm, { now: new Date() }),
-    filename: `treino-${safeName(session.day_name || F.weekdayLong(date))}-${date}.pdf`,
+    filename: `treino-${safeName(session.day_name || F.weekdayLong(date))}-${date}${sufixo}.pdf`,
   };
 }
 

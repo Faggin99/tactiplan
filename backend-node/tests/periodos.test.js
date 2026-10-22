@@ -1,0 +1,117 @@
+// Períodos do dia (Manhã/Tarde/Noite): regras puras (services/periodos.js) e
+// o que os relatórios montam (buildDays / buildDaySheet / ficha). Sem Postgres.
+// O caminho completo no banco está em tests/periodos-db.test.js.
+const test = require('node:test');
+const assert = require('node:assert');
+const P = require('../src/services/periodos');
+const B = require('../src/reports/builders');
+const { renderSession } = require('../src/reports/templates/session');
+const { teamPalette } = require('../src/reports/theme');
+
+const WS = 'ws';
+const CL = 'club';
+const linha = (id, periodo, extra = {}) => ({ id, periodo, session_type: 'training', workspace_id: WS, club_id: CL, date: '2031-03-11', ...extra });
+
+test('ordem e rótulos: único, Manhã, Tarde, Noite', () => {
+  assert.deepEqual(['noite', null, 'tarde', 'manha'].map((p) => ({ periodo: p })).sort(P.compararPeriodos).map((x) => x.periodo), [null, 'manha', 'tarde', 'noite']);
+  assert.equal(P.rotuloPeriodo('manha'), 'Manhã');
+  assert.equal(P.rotuloPeriodo(null), null);
+  assert.match(P.ordemSql('s'), /CASE s\.periodo WHEN 'manha'/);
+});
+
+test('montarDias: 1 por dia em `sessions`, períodos no campo novo, sem ciclo', () => {
+  const dias = P.montarDias([
+    { id: 'seg', date: '2031-03-10', periodo: null },
+    { id: 't2', date: '2031-03-11', periodo: 'tarde' },
+    { id: 't1', date: '2031-03-11', periodo: 'manha' },
+  ]);
+  assert.equal(dias.length, 2);
+  assert.equal(dias[0].periodos, undefined);
+  assert.equal(dias[1].id, 't1');
+  assert.deepEqual(dias[1].periodos.map((p) => p.id), ['t1', 't2']);
+  assert.equal(dias[1].periodos[0].periodos, undefined);
+  JSON.stringify(dias);
+});
+
+test('mapaDoDia e distância: o dia soma os períodos de treino', () => {
+  const rows = [
+    linha('a', 'manha', { avg_distance_km: '5.00' }),
+    linha('b', 'tarde', { avg_distance_km: 3.5 }),
+    linha('c', 'noite', { session_type: 'match', avg_distance_km: 9 }),
+    linha('d', null, { date: '2031-03-12' }),
+  ];
+  const mapa = P.mapaDoDia(rows);
+  assert.equal(mapa.get('b'), 'a');
+  assert.equal(mapa.get('c'), 'a');
+  assert.equal(mapa.get('d'), 'd');
+  assert.deepEqual(P.distanciaPorDia(rows), [{ id: 'a', date: '2031-03-11', session_type: 'training', avg_distance_km: 8.5 }]);
+});
+
+test('validarNovoPeriodo: nome do atual, repetido, máximo, descanso', () => {
+  assert.equal(P.validarNovoPeriodo([linha('a', null)], { novo: 'tarde' }).status, 400);
+  assert.deepEqual(P.validarNovoPeriodo([linha('a', null)], { atual: 'manha', novo: 'tarde' }), { ok: true, renomearAtual: 'manha', novo: 'tarde' });
+  assert.equal(P.validarNovoPeriodo([linha('a', null)], { atual: 'tarde', novo: 'tarde' }).ok, false);
+  assert.equal(P.validarNovoPeriodo([linha('a', 'manha'), linha('b', 'tarde')], { novo: 'tarde' }).status, 409);
+  assert.deepEqual(P.validarNovoPeriodo([linha('a', 'manha'), linha('b', 'tarde')], { novo: 'noite' }), { ok: true, renomearAtual: null, novo: 'noite' });
+  assert.equal(P.validarNovoPeriodo([linha('a', 'manha'), linha('b', 'tarde'), linha('c', 'noite')], { novo: 'noite' }).status, 409);
+  assert.equal(P.validarNovoPeriodo([linha('a', null, { session_type: 'rest' })], { atual: 'manha', novo: 'tarde' }).status, 409);
+  assert.equal(P.validarNovoPeriodo([linha('a', null)], { atual: 'manha', novo: 'madrugada' }).status, 400);
+});
+
+test('remoção e tipo: volta a único, descanso só no dia de 1 período, 1 jogo por dia', () => {
+  const dia = [linha('a', 'manha'), linha('b', 'tarde', { session_type: 'match' })];
+  assert.deepEqual(P.validarRemocao(dia, 'b'), { ok: true, voltaAUnico: 'a' });
+  assert.equal(P.validarRemocao([linha('a', null)], 'a').status, 409);
+  assert.equal(P.validarRemocao(dia, 'zz').status, 404);
+  assert.equal(P.validarTipo(dia, 'a', 'rest').ok, false);
+  assert.equal(P.validarTipo(dia, 'a', 'match').ok, false);
+  assert.equal(P.validarTipo(dia, 'b', 'match').ok, true);
+  assert.equal(P.validarTipo([linha('a', null)], 'a', 'rest').ok, true);
+  assert.equal(P.divisaoMinutos([{ minutes: 90 }, { minutes: 60 }]), '90+60');
+  assert.equal(P.divisaoMinutos([{ minutes: 90 }]), null);
+});
+
+const period = B.buildPeriod({ start: '2031-03-10', end: '2031-03-16', filterType: '1-micro' });
+
+test('relatório de treino (semana): soma do dia + divisão; jogo com período de treino', () => {
+  const sessions = [
+    { id: 'seg', date: '2031-03-10', session_type: 'training', periodo: null, minutes: 30 },
+    { id: 't2', date: '2031-03-11', session_type: 'training', periodo: 'tarde', minutes: 60, avg_distance_km: 3 },
+    { id: 't1', date: '2031-03-11', session_type: 'training', periodo: 'manha', minutes: 90, avg_distance_km: 5 },
+    { id: 'q1', date: '2031-03-12', session_type: 'training', periodo: 'manha', minutes: 70 },
+    { id: 'q2', date: '2031-03-12', session_type: 'match', periodo: 'tarde', minutes: 20, opponent_name: 'Rival' },
+  ];
+  const days = B.buildDays({ period, sessions, sessionsByDate: [{ session_id: 't1', contents: [{ name: 'Organização Ofensiva', minutes: 90, count: 1 }] }], gamesById: new Map() });
+  assert.equal(days[0].split, null, 'dia de período único: igual a antes');
+  assert.equal(days[0].note, null);
+  assert.equal(days[1].minutes, 150);
+  assert.equal(days[1].split, '90+60');
+  assert.equal(days[1].distanceKm, 8);
+  assert.equal(days[1].note, "Ter 11/03: Manhã 90' + Tarde 60' = 150'.");
+  assert.equal(days[2].kind, 'jogo');
+  assert.match(days[2].note, /Manhã 70' de treino \+ 20' com os não relacionados \(Tarde\)/);
+});
+
+const team = { name: 'Clube', short: 'CL', modalityLabel: 'Futebol 11', palette: teamPalette('#1B8A3E'), logoUrl: null };
+const sessao = (id, periodo, minutos, extra = {}) => ({
+  id, periodo, date: '2031-03-11', session_type: 'training', day_name: 'Terça',
+  blocks: [{ name: 'Aquecimento', order: 1, activity: { id: `a-${id}`, duration_minutes: minutos, contents: [{ name: 'Resistência', dimension: 'fisico' }], stages: [], groups: [] } }],
+  ...extra,
+});
+
+test('ficha do dia: 1 período = ficha de antes; 2 períodos = em sequência com a soma', () => {
+  const uma = B.buildDaySheet({ sessions: [sessao('x', null, 40)], team, weekNumber: 11 });
+  assert.equal(uma.type, 'training');
+  assert.equal(uma.periodos, undefined);
+
+  const vm = B.buildDaySheet({ sessions: [sessao('t', 'tarde', 60), sessao('m', 'manha', 90, { avg_distance_km: 5 })], team, weekNumber: 11 });
+  assert.equal(vm.type, 'periodos');
+  assert.deepEqual(vm.periodos.map((p) => p.label), ['Manhã', 'Tarde']);
+  assert.equal(vm.total, 150);
+  assert.equal(vm.split, '90+60');
+  assert.equal(vm.badgeTop, '150 min');
+  assert.match(vm.badgeSub, /2 períodos · 90\+60/);
+  const html = renderSession(vm, { now: new Date('2031-03-11T12:00:00Z') });
+  assert.ok(html.indexOf('Linha do tempo · Manhã') > 0);
+  assert.ok(html.indexOf('Linha do tempo · Manhã') < html.indexOf('Linha do tempo · Tarde'));
+});

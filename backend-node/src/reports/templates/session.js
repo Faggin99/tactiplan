@@ -11,7 +11,7 @@ function pillarLegend(vm) {
     .map((k) => `<span><i class="dot" style="background:${C.dimInfo(k).color}"></i>${esc(C.dimInfo(k).label)}</span>`).join('')}</span>`;
 }
 
-function timeline(vm) {
+function timeline(vm, titulo = 'Linha do tempo') {
   const timed = vm.blocks.filter((b) => b.minutes > 0);
   if (!timed.length || vm.total <= 0) return '';
   const segs = timed.map((b) => {
@@ -33,7 +33,7 @@ function timeline(vm) {
     kept.push({ ...ticks[i], pct: pctAt });
   }
   const tickHtml = kept.map((t) => `<span style="left:${t.pct}%">${esc(t.label)}</span>`).join('');
-  return `<div>${C.sec('Linha do tempo', pillarLegend(vm))}<div class="tl">${segs}</div><div class="tl-ticks">${tickHtml}</div></div>`;
+  return `<div>${C.sec(titulo, pillarLegend(vm))}<div class="tl">${segs}</div><div class="tl-ticks">${tickHtml}</div></div>`;
 }
 
 function blockCard(b, fotos = null) {
@@ -102,9 +102,22 @@ function renderSession(vm, { now, onlyPhotos = false }) {
     const grid = { ...ph0.grid, layout: ph0.grid.layout === 'grande' && items.length > 1 ? 'medio' : (ph0.grid.layout === 'mosaico' ? 'compacto' : ph0.grid.layout) };
     return { items, grid };
   };
-  const blocksHtml = vm.blocks.length ? `<div class="blocks" data-split=".blk">${vm.blocks.map((b) => blockCard(b, fotosDo(b))).join('')}</div>` : '';
+  const blocksDe = (lista) => (lista.length ? `<div class="blocks" data-split=".blk">${lista.map((b) => blockCard(b, fotosDo(b))).join('')}</div>` : '');
+  const blocksHtml = blocksDe(vm.blocks);
   let body;
-  if (vm.type === 'rest') {
+  if (vm.type === 'periodos') {
+    // Dia com 2+ períodos: cada um em sequência, com a própria linha do tempo e blocos
+    body = vm.periodos.map((p) => {
+      const cab = `<div class="per-h"><b>${esc(p.label)}</b><span>${esc(p.type === 'match' ? 'Jogo' : 'Treino')} · ${esc(F.plural(p.total, 'minuto', 'minutos'))}${p.focus ? ` · ${esc(p.focus)}` : ''}</span></div>`;
+      // o título do período anda junto do 1º elemento (não fica sozinho no pé da página)
+      if (p.type === 'match') {
+        return `<div class="per">${cab}${gameCard(p)}</div>`
+          + (p.blocks.length ? `<div>${C.sec('Não relacionados', esc(F.plural(p.total, 'minuto', 'minutos')))}</div>${blocksDe(p.blocks)}` : '');
+      }
+      if (!p.blocks.length) return `<div class="per">${cab}<div class="empty"><b>Nenhuma atividade neste período</b></div></div>`;
+      return `<div class="per">${cab}${timeline(p, `Linha do tempo · ${p.label}`)}</div>${blocksDe(p.blocks)}`;
+    }).join('') + notes(vm);
+  } else if (vm.type === 'rest') {
     body = `<div class="reststate"><b>Descanso</b>Dia sem treino programado.</div>${notes(vm)}`;
   } else if (vm.type === 'match') {
     const nr = vm.blocks.length ? `<div>${C.sec('Não relacionados', esc(F.plural(vm.total, 'minuto', 'minutos')))}</div>${blocksHtml}` : '';

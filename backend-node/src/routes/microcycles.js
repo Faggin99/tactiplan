@@ -1,6 +1,7 @@
 const express = require('express');
 const { query, pool } = require('../config/database');
 const authMiddleware = require('../middleware/auth');
+const { ordemSql, montarDias } = require('../services/periodos');
 
 const router = express.Router();
 
@@ -38,7 +39,7 @@ async function getFullMicrocycle(microcycleId, workspaceIds, allowedCategoryIds 
   const microcycle = microcycleResult.rows[0];
 
   const sessionsResult = await query(
-    `SELECT * FROM training_sessions WHERE microcycle_id = $1 ORDER BY date ASC`,
+    `SELECT * FROM training_sessions WHERE microcycle_id = $1 ORDER BY date ASC, ${ordemSql()} ASC`,
     [microcycleId]
   );
 
@@ -92,7 +93,8 @@ async function getFullMicrocycle(microcycleId, workspaceIds, allowedCategoryIds 
     sessions.push(session);
   }
 
-  microcycle.sessions = sessions;
+  // 1 por dia (o 1º período); dia com 2+ períodos traz todos em `periodos`.
+  microcycle.sessions = montarDias(sessions);
   return microcycle;
 }
 
@@ -192,14 +194,14 @@ router.post('/ensure', async (req, res) => {
         await client.query(
           `INSERT INTO training_sessions (microcycle_id, date, day_name, day_of_week, workspace_id, club_id)
            VALUES ($1, $2, $3, $4, $5, $6)
-           ON CONFLICT (workspace_id, date, club_id) DO NOTHING`,
+           ON CONFLICT DO NOTHING`,
           [microcycleId, dateStr, DAY_NAMES[i], i + 1, wsId, club_id]
         );
       }
     }
 
     const allSessions = await client.query(
-      'SELECT * FROM training_sessions WHERE microcycle_id = $1 ORDER BY date ASC',
+      `SELECT * FROM training_sessions WHERE microcycle_id = $1 ORDER BY date ASC, ${ordemSql()} ASC`,
       [microcycleId]
     );
 
@@ -236,3 +238,5 @@ router.post('/ensure', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.getFullMicrocycle = getFullMicrocycle;
+module.exports.BLOCK_NAMES = BLOCK_NAMES;
