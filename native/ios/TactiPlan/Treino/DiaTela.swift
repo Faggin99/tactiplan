@@ -6,6 +6,9 @@ import TactiPlanKit
 // submomentos, tempo, grupos e descrição, e a ATIVIDADE por último, mais discreta (a hierarquia do
 // web). Tocar num bloco abre a folha Editar atividade. Dia de jogo: só "Não relacionados".
 // No topo: ver a ficha do dia (HTML do servidor) e exportar o PDF.
+// Dia com 2+ períodos (Manhã · Tarde · Noite): seletor segmentado no topo; tipo, blocos, distância
+// e edição são do período escolhido; o total do dia soma todos ("150 min · 90+60"). O menu do topo
+// adiciona/remove período e exporta a ficha do dia inteiro ou só do período.
 
 struct DiaTela: View {
     let data: String
@@ -24,6 +27,12 @@ struct DiaTela: View {
     @State private var ocupado = false
     @State private var aviso: String?
     @State private var verFicha = false
+    @State private var fichaSoPeriodo = false
+    @State private var periodoSel = 0
+    @State private var adicionandoPeriodo = false
+    @State private var novoAtual: Periodo = .manha
+    @State private var novoPeriodo: Periodo = .tarde
+    @State private var confirmarRemover = false
 
     init(data: String, modelo: SemanaModelo, sessao: Sessao, contexto: ContextoClube) {
         self.data = data
@@ -33,15 +42,23 @@ struct DiaTela: View {
         _exportar = StateObject(wrappedValue: ExportadorRelatorio(servico: modelo.servico, aoSessaoAcabar: modelo.aoSessaoAcabar))
     }
 
-    private var dia: Dia { modelo.dia(data) ?? diaVazio(data) }
+    /// O dia inteiro (com `periodos` quando há 2+).
+    private var diaInteiro: Dia { modelo.dia(data) ?? diaVazio(data) }
+    /// O período escolhido (o próprio dia quando é único).
+    private var dia: Dia {
+        let ps = diaInteiro.listaPeriodos
+        return ps[max(0, min(periodoSel, ps.count - 1))]
+    }
     private var podeEditar: Bool { contexto.podeEditar("training:edit") }
     private var podeExportar: Bool { !(contexto.conta.somenteLeitura ?? false) }
 
     var body: some View {
+        let todo = diaInteiro
         let d = dia
         let r = resumoDoDia(d)
         TelaGrande(rotuloDiaCurto(data), empilhada: true, aoAtualizar: { await modelo.invalidar() }) {
             FaixasDoTopo(contexto: contexto, sessao: sessao)
+            if todo.temPeriodos { seletorDePeriodo(todo) }
             seletorDeTipo(d)
             if d.tipo == .treino { resumo(r, d) }
             switch d.tipo {
@@ -83,10 +100,23 @@ struct DiaTela: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
-                    if d.id != nil {
-                        Button { verFicha = true } label: { Label("Ver ficha do dia", systemImage: "doc.text.magnifyingglass") }
+                    if podeEditar, contexto.clube != nil, !periodosDisponiveis(todo).isEmpty {
+                        Button { abrirAdicionarPeriodo(todo) } label: { Label("Adicionar período", systemImage: "plus.square.on.square") }
+                    }
+                    if todo.temPeriodos, contexto.podeEditar("training:delete") {
+                        Button(role: .destructive) { confirmarRemover = true } label: {
+                            Label("Remover período \(rotuloDoPeriodo(d.periodo) ?? "")", systemImage: "minus.square")
+                        }
+                    }
+                    if todo.id != nil {
+                        Button { fichaSoPeriodo = false; verFicha = true } label: { Label("Ver ficha do dia", systemImage: "doc.text.magnifyingglass") }
                         if podeExportar {
-                            Button { exportarFicha(d) } label: { Label("Exportar ficha do dia (PDF)", systemImage: "square.and.arrow.up") }
+                            Button { exportarFicha(todo, soPeriodo: nil) } label: { Label("Exportar ficha do dia (PDF)", systemImage: "square.and.arrow.up") }
+                            if todo.temPeriodos {
+                                Button { exportarFicha(todo, soPeriodo: d) } label: {
+                                    Label("Exportar só \(rotuloDoPeriodo(d.periodo) ?? "o período") (PDF)", systemImage: "square.and.arrow.up.on.square")
+                                }
+                            }
                         }
                     } else {
                         Text("Nada salvo neste dia ainda")
@@ -108,7 +138,7 @@ struct DiaTela: View {
             .environmentObject(app)
         }
         .sheet(isPresented: $verFicha) {
-            FichaDoDiaTela(dia: d, contexto: contexto, sessao: sessao, servico: modelo.servico, podeExportar: podeExportar,
+            FichaDoDiaTela(dia: todo, contexto: contexto, sessao: sessao, servico: modelo.servico, podeExportar: podeExportar,
                            aoSessaoAcabar: modelo.aoSessaoAcabar)
                 .environment(\.tema, tema)
                 .environmentObject(app)
@@ -123,14 +153,117 @@ struct DiaTela: View {
             Button("Cancelar", role: .cancel) {}
             Button("Salvar") { salvarKm() }
         } message: { Text("Opcional · por jogador, no dia") }
+        .sheet(isPresented: $adicionandoPeriodo) { folhaAdicionarPeriodo(todo).environment(\.tema, tema) }
+        .confirmationDialog("Remover período", isPresented: $confirmarRemover, titleVisibility: .visible) {
+            Button("Remover \(rotuloDoPeriodo(d.periodo) ?? "período")", role: .destructive) { removerPeriodo(d) }
+            Button("Cancelar", role: .cancel) {}
+        } message: { Text(textoRemoverPeriodo(d)) }
         .overlay { if ocupado { ProgressView().padding(24).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16)) } }
         .avisoTemporario($aviso)
         .modifier(ApresentacaoRelatorio(exportar: exportar))
     }
 
-    private func exportarFicha(_ d: Dia) {
-        guard let id = d.id else { return }
-        exportar.iniciar(tipo: "sessao", corpo: corpoFichaDoDia(id), nome: nomePdfDoDia(d), usuarioId: sessao.me.usuario.id)
+    /// Ficha do dia inteiro (soPeriodo nil) ou só de um período.
+    private func exportarFicha(_ todo: Dia, soPeriodo p: Dia?) {
+        if let p, let id = p.id {
+            exportar.iniciar(tipo: "sessao", corpo: corpoFichaDoDia(id, soPeriodo: true), nome: nomePdfDoDia(todo, periodo: p.periodo),
+                             usuarioId: sessao.me.usuario.id)
+            return
+        }
+        guard let id = todo.id else { return }
+        exportar.iniciar(tipo: "sessao", corpo: corpoFichaDoDia(id), nome: nomePdfDoDia(todo), usuarioId: sessao.me.usuario.id)
+    }
+
+    // MARK: períodos
+
+    private func seletorDePeriodo(_ todo: Dia) -> some View {
+        let ps = todo.listaPeriodos
+        let total = resumoDoDiaInteiro(todo)
+        return VStack(alignment: .leading, spacing: 8) {
+            Picker("Período", selection: Binding(get: { min(periodoSel, ps.count - 1) }, set: { periodoSel = $0 })) {
+                ForEach(Array(ps.enumerated()), id: \.offset) { i, p in Text(rotuloDoPeriodo(p.periodo) ?? "Período").tag(i) }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityHint("Escolhe o período do dia")
+            Text("Dia: \(total.minutos) min · \(divisaoMinutos(todo) ?? "")\(total.distanciaKm.map { " · \(formatarKm($0)) km" } ?? "")")
+                .tipo(Tipos.corpo13.comPeso(.medio))
+                .foregroundColor(tema.cores.tinta2.color)
+                .accessibilityLabel("Total do dia: \(total.minutos) minutos, \(ps.count) períodos")
+        }
+    }
+
+    private func abrirAdicionarPeriodo(_ todo: Dia) {
+        guard let s = sugestaoNovoPeriodo(todo) else { return }
+        novoAtual = s.atual ?? .manha
+        novoPeriodo = s.novo
+        adicionandoPeriodo = true
+    }
+
+    private func folhaAdicionarPeriodo(_ todo: Dia) -> some View {
+        let livres = periodosDisponiveis(todo)
+        let unico = !todo.temPeriodos
+        let erro = erroNovoPeriodo(todo, atual: unico ? novoAtual : nil, novo: novoPeriodo)
+        return NavigationStack {
+            Form {
+                if unico {
+                    Section {
+                        Picker("O treino que já existe é", selection: $novoAtual) {
+                            ForEach(Periodo.allCases, id: \.self) { Text($0.rotulo).tag($0) }
+                        }
+                    } footer: { Text("O que já está planejado neste dia fica neste período.") }
+                }
+                Section {
+                    Picker("Novo período", selection: $novoPeriodo) {
+                        ForEach(livres, id: \.self) { Text($0.rotulo).tag($0) }
+                    }
+                } footer: { Text(erro ?? "O novo período começa com os 6 blocos vazios. Máximo de 3 por dia.") }
+            }
+            .navigationTitle("Adicionar período")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancelar") { adicionandoPeriodo = false } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Adicionar") { adicionarPeriodo(todo) }.disabled(erro != nil || ocupado)
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    private func adicionarPeriodo(_ todo: Dia) {
+        guard let clube = contexto.clube else { return }
+        let novo = novoPeriodo
+        let atual: Periodo? = todo.temPeriodos ? nil : novoAtual
+        adicionandoPeriodo = false
+        ocupado = true
+        Task {
+            defer { ocupado = false }
+            do {
+                try await modelo.servico.adicionarPeriodo(todo, novo: novo, atual: atual, semana: modelo.semana, clubeId: clube.id)
+                await modelo.invalidar()
+                periodoSel = diaInteiro.listaPeriodos.firstIndex { $0.periodo == novo.rawValue } ?? 0
+                aviso = "Período \(novo.rotulo) adicionado."
+            } catch {
+                if app.controle.tratarErro(error, token: sessao.token) { return }
+                aviso = mensagemErroTreino(error)
+            }
+        }
+    }
+
+    private func removerPeriodo(_ p: Dia) {
+        ocupado = true
+        Task {
+            defer { ocupado = false }
+            do {
+                try await modelo.servico.removerPeriodo(p)
+                periodoSel = 0
+                await modelo.invalidar()
+                aviso = "Período \(rotuloDoPeriodo(p.periodo) ?? "") removido."
+            } catch {
+                if app.controle.tratarErro(error, token: sessao.token) { return }
+                aviso = mensagemErroTreino(error, permissao: MSG_SEM_PERMISSAO_APAGAR)
+            }
+        }
     }
 
     // MARK: tipo do dia

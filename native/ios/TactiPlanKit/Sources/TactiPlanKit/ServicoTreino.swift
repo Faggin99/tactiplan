@@ -124,6 +124,7 @@ public struct ServicoTreino: Sendable {
     }
 
     /// Adiciona um período ao dia (cria o dia antes, se preciso). Devolve o id do período novo.
+    @discardableResult
     public func adicionarPeriodo(_ dia: Dia, novo: Periodo, atual: Periodo?, semana: SemanaISO, clubeId: String) async throws -> String {
         if let erro = erroNovoPeriodo(dia, atual: atual, novo: novo) { throw ErroApi(status: 0, codigo: "PERIODO_INVALIDO", mensagem: erro) }
         let real = try await diaReal(dia, semana: semana, clubeId: clubeId)

@@ -209,8 +209,8 @@ struct HeroiDoDia: View {
     let tema: TemaDoMes?
 
     var body: some View {
-        let r = resumoDoDia(dia)
-        let frase = [fraseDoHeroi(r), tema?.frase].compactMap { $0 }.joined(separator: "\n")
+        let r = resumoDoDiaInteiro(dia)
+        let frase = [fraseDoHeroi(r), seloPeriodos(dia).map { "\($0) · \(divisaoMinutos(dia) ?? "")" }, tema?.frase].compactMap { $0 }.joined(separator: "\n")
         CartaoHeroi(rotulo: "Hoje · \(rotuloDiaMinusculo(dia.data))", selo: r.tipo.rotulo,
                     valor: r.tipo == .treino ? (r.minutos > 0 ? "\(r.minutos) min" : "Sem atividades")
                         : tituloDaLinha(r),
@@ -227,7 +227,7 @@ struct LinhaDoDia: View {
 
     var body: some View {
         let c = tema.cores
-        let r = resumoDoDia(dia)
+        let r = resumoDoDiaInteiro(dia)
         let sd = siglaEDia(dia.data)
         HStack(spacing: 12) {
             VStack(spacing: 0) {
@@ -246,6 +246,7 @@ struct LinhaDoDia: View {
                         .font(Tipos.corpo15.comPeso(.seminegrito).font)
                         .foregroundColor(c.tinta.color)
                         .linhasAcessiveis(2)
+                    if let selo = seloPeriodos(dia) { Pastilha(texto: selo, tom: .neutro) }
                 }
                 if !r.minutosPorPilar.isEmpty { BarraPilares(r: r) }
                 let det = detalheDaLinha(r)
@@ -273,6 +274,7 @@ struct LinhaDoDia: View {
 
     private func rotuloAcessivel(_ r: ResumoDia) -> String {
         var p = [rotuloDiaCurto(dia.data) + (hoje ? ", hoje" : ""), tituloDaLinha(r)]
+        if let selo = seloPeriodos(dia) { p.append("\(selo): \(divisaoMinutos(dia) ?? "") minutos") }
         let d = detalheDaLinha(r)
         if !d.isEmpty { p.append(d) }
         if r.anexos > 0 { p.append(contagem(r.anexos, "anexo", "anexos")) }
