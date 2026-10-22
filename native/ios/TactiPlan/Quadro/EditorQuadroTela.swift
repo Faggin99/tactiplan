@@ -296,7 +296,7 @@ struct EditorQuadroTela: View {
                     ferramentas
                     campo
                 }
-                BarraQuadros(atual: m.ed.atual, total: m.ed.totalQuadros, tocando: m.tocando, velocidade: $m.reprodutor.velocidade,
+                BarraQuadros(atual: m.ed.atual, total: m.ed.totalQuadros, tocando: m.tocando, velocidade: Binding(get: { m.reprodutor.velocidade }, set: { m.reprodutor.velocidade = $0 }),
                              editar: true, aoVoltarInicio: { m.voltarInicio() }, aoTocar: { m.tocar() },
                              aoIr: { i in m.reprodutor.parar(); m.ed.irParaQuadro(i) },
                              aoAdicionar: { m.reprodutor.parar(); m.ed.adicionarQuadro() },
