@@ -23,6 +23,8 @@ import com.faggin.tactiplan.app.dados.Aparelho
 import com.faggin.tactiplan.app.dados.treino.ApiTreino
 import com.faggin.tactiplan.app.dados.treino.ApiTreinoHttp
 import com.faggin.tactiplan.app.dados.treino.ServicoTreino
+import com.faggin.tactiplan.app.dados.jogo.ApiJogo
+import com.faggin.tactiplan.app.dados.jogo.ApiJogoHttp
 import com.faggin.tactiplan.app.dados.ApiApp
 import com.faggin.tactiplan.app.dados.ConfigApp
 import com.faggin.tactiplan.app.dados.ControleSessao
@@ -59,6 +61,8 @@ fun App(
     apiBase: String = BuildConfig.API_BASE,
     /** Rotas de treino do web com o token do app (os testes trocam por uma falsa). */
     fabricaTreino: (token: String, workspaceId: String) -> ApiTreino = { t, w -> ApiTreinoHttp(Api(apiBase), t, w) },
+    /** Rotas de jogo do web (T2). */
+    fabricaJogo: (token: String, workspaceId: String) -> ApiJogo = { t, w -> ApiJogoHttp(Api(apiBase), t, w) },
 ) {
     val estado by controle.estado.collectAsState()
     val semConexao by controle.semConexao.collectAsState()
@@ -91,6 +95,7 @@ fun App(
                         val treino = remember(token, e.contexto.escolha.workspaceId) {
                             ServicoTreino(fabricaTreino(token, e.contexto.escolha.workspaceId))
                         }
+                        val jogo = remember(token, e.contexto.escolha.workspaceId) { fabricaJogo(token, e.contexto.escolha.workspaceId) }
                         Casca(
                             AmbienteClube(
                                 contexto = e.contexto,
@@ -107,6 +112,7 @@ fun App(
                                 usuarioId = e.sessao.me.usuario.id,
                                 apiBase = apiBase,
                                 treino = treino,
+                                jogo = jogo,
                                 tratarErro = { err -> controle.tratarErro(err, token) },
                             ),
                         )

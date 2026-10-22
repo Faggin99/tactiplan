@@ -118,6 +118,8 @@ sealed interface TelaSemana {
     data class DoDia(val data: String) : TelaSemana
     data class Ficha(val diaId: String, val data: String) : TelaSemana
     class Fotos(val pedido: PedidoFotos, val volta: TelaSemana) : TelaSemana
+    /** T2: o jogo do dia (a mesma tela da aba Jogos). */
+    data class Jogo(val sessaoId: String, val data: String) : TelaSemana
 }
 
 const val TAG_DIA = "semana:dia:"
@@ -200,6 +202,7 @@ fun SemanaAba(amb: AmbienteClube, treino: ServicoTreino) {
                     voltar = { tela = TelaSemana.Lista; aviso = null }, mudou = recarregar,
                     verFicha = { id -> tela = TelaSemana.Ficha(id, dia.data) },
                     exportarDia = { id -> exportar("sessao", corpoFichaDoDia(id), nomePdfDoDia(dia)) },
+                    abrirJogo = amb.jogo?.let { { id: String -> tela = TelaSemana.Jogo(id, dia.data) } },
                 )
             }
         }
@@ -211,6 +214,11 @@ fun SemanaAba(amb: AmbienteClube, treino: ServicoTreino) {
                 exportar = { exportar("sessao", corpoFichaDoDia(t.diaId), dia?.let { nomePdfDoDia(it) } ?: "ficha.pdf") },
                 tratarErro = amb.tratarErro, voltar = { tela = TelaSemana.DoDia(t.data) },
             )
+        }
+        is TelaSemana.Jogo -> {
+            val apiJogo = amb.jogo
+            if (apiJogo == null) LaunchedEffect(Unit) { tela = TelaSemana.DoDia(t.data) }
+            else com.faggin.tactiplan.app.ui.jogos.JogoTela(amb, treino, apiJogo, t.sessaoId, voltar = { tela = TelaSemana.DoDia(t.data); recarregar() })
         }
         is TelaSemana.Fotos -> FotosRelatorioTela(
             pedido = t.pedido, api = treino.api, usuarioId = amb.usuarioId, tratarErro = amb.tratarErro,
@@ -393,6 +401,7 @@ fun DiaTela(
     mudou: () -> Unit,
     verFicha: (String) -> Unit,
     exportarDia: (String) -> Unit,
+    abrirJogo: ((String) -> Unit)? = null,
 ) {
     val ctx = amb.contexto
     val c = TactiPlan.cores
@@ -470,7 +479,10 @@ fun DiaTela(
         when (dia.tipo) {
             TipoDia.DESCANSO -> EstadoVazio(Icones.lua, "Descanso", TEXTO_DIA_DESCANSO)
             TipoDia.JOGO -> {
-                FaixaTom(TEXTO_JOGO_NO_APP, Tom.INFO, Icones.trofeu)
+                val idJogo = dia.id
+                if (idJogo != null && abrirJogo != null && ctx.pode("games:view")) {
+                    Botao("Abrir jogo", { abrirJogo(idJogo) }, Modifier.testTag("dia:abrir-jogo"), icone = Icones.trofeu)
+                } else FaixaTom(TEXTO_JOGO_NO_APP, Tom.INFO, Icones.trofeu)
                 dia.blocos.firstOrNull()?.let { b ->
                     RotuloSecao(ROTULO_NAO_RELACIONADOS)
                     Text(TEXTO_NAO_RELACIONADOS, style = TactiPlan.tipos.corpo13, color = c.tinta2)
