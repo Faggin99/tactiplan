@@ -51,6 +51,9 @@
 	<!-- "Exigir Face ID ao abrir" (Mais › Segurança), desligado por padrão. -->
 	<key>NSFaceIDUsageDescription</key>
 	<string>Para pedir o Face ID ao abrir o TactiPlan, se você ligar essa opção em Mais › Segurança.</string>
+	<!-- T1: foto pela câmera direto para o anexo da atividade. -->
+	<key>NSCameraUsageDescription</key>
+	<string>Para tirar a foto que vai como anexo da atividade do treino.</string>
 	<!-- Abertura: navy da marca com o T e a faísca lime. -->
 	<key>UILaunchScreen</key>
 	<dict>

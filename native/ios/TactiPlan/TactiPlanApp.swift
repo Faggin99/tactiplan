@@ -18,13 +18,17 @@ final class AppEstado: ObservableObject {
     @Published private(set) var config = ConfigApp.padrao
 
     let api: ApiApp
+    /// Base da API (as rotas de treino do web usam o mesmo servidor).
+    let base: String
     let controle: ControleSessao
     let trava: TravaDoApp
     let aparelho: Aparelho
     private var ultimaAtualizacao: Date?
 
     init() {
-        let api = ApiAppHttp(api: Api(base: baseDaApi(Bundle.main.object(forInfoDictionaryKey: "API_BASE"))))
+        let base = baseDaApi(Bundle.main.object(forInfoDictionaryKey: "API_BASE"))
+        self.base = base
+        let api = ApiAppHttp(api: Api(base: base))
         self.api = api
         let controle = ControleSessao(api: api, cofre: Cofre.sessao)
         self.controle = controle

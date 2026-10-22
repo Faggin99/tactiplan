@@ -13,6 +13,7 @@ struct OndeEntrarTela: View {
     @State private var aceitando: String?
     @State private var erroConvite: String?
     @State private var confirmarSair = false
+    @State private var recusando: Convite?
 
     init(sessao: Sessao, atual: Escolha?) {
         self.sessao = sessao
@@ -49,9 +50,8 @@ struct OndeEntrarTela: View {
                 if !me.convites.isEmpty {
                     RotuloSecao(me.convites.count == 1 ? "Convite pendente" : "Convites pendentes").padding(.horizontal, 4)
                     ForEach(me.convites, id: \.token) { cv in
-                        CartaoConvite(convite: cv, aceitando: aceitando == cv.token, habilitado: aceitando == nil) {
-                            aceitar(cv.token)
-                        }
+                        CartaoConvite(convite: cv, aceitando: aceitando == cv.token, habilitado: aceitando == nil,
+                                      aceitar: { aceitar(cv.token) }, recusar: { recusando = cv })
                     }
                     if let erroConvite { FaixaTom(icone: "exclamationmark.circle", texto: erroConvite, tom: .erro) }
                 }
@@ -91,12 +91,32 @@ struct OndeEntrarTela: View {
         } message: {
             Text("Você vai precisar entrar de novo com o seu e-mail e senha.")
         }
+        .alert(TITULO_RECUSAR_CONVITE, isPresented: Binding(get: { recusando != nil }, set: { if !$0 { recusando = nil } })) {
+            Button("Recusar", role: .destructive) { if let cv = recusando { recusar(cv.token) } }
+            Button("Cancelar", role: .cancel) { recusando = nil }
+        } message: {
+            Text(TEXTO_RECUSAR_CONVITE)
+        }
     }
 
     private func linha(_ o: OpcaoEntrada) -> some View {
         LinhaAgrupada(titulo: o.titulo, detalhe: o.subtitulo, selo: o.escolha == atual ? "Atual" : o.papelRotulo,
                       aoTocar: { app.controle.escolher(o.escolha) }) {
             LogoClube(personalizacao: o.personalizacao, tamanho: 40)
+        }
+    }
+
+    private func recusar(_ token: String) {
+        recusando = nil
+        aceitando = token
+        erroConvite = nil
+        Task { @MainActor in
+            do {
+                try await app.controle.recusarConvite(token)
+            } catch {
+                erroConvite = mensagemDeErro(error)
+            }
+            aceitando = nil
         }
     }
 
@@ -120,6 +140,7 @@ private struct CartaoConvite: View {
     let aceitando: Bool
     let habilitado: Bool
     let aceitar: () -> Void
+    let recusar: () -> Void
     @Environment(\.tema) private var tema
 
     var body: some View {
@@ -138,8 +159,10 @@ private struct CartaoConvite: View {
                 }
                 Spacer(minLength: 0)
             }
-            Botao(texto: aceitando ? "Aceitando…" : "Aceitar convite", habilitado: habilitado, acao: aceitar)
+            Botao(texto: aceitando ? "Aguarde…" : "Aceitar convite", habilitado: habilitado, acao: aceitar)
                 .padding(.top, 12)
+            BotaoTexto(texto: "Recusar", habilitado: habilitado, cor: c.erroTinta.color, acao: recusar)
+                .frame(maxWidth: .infinity)
         }
     }
 

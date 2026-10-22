@@ -4,6 +4,7 @@ import TactiPlanKit
 /// As 5 abas do clube em uso (Semana · Jogos · Elenco · Quadro · Mais), com o tema do clube.
 /// Um NavigationStack por aba; tocar a aba ativa já na raiz rola para o topo.
 struct Casca: View {
+    @EnvironmentObject private var app: AppEstado
     let sessao: Sessao
     let contexto: ContextoClube
     @State private var aba = ABA_SEMANA.id
@@ -32,6 +33,9 @@ struct Casca: View {
     private func raiz(_ def: DefAba) -> some View {
         if def.id == ABA_MAIS.id {
             MaisTela(sessao: sessao, contexto: contexto)
+        } else if def.id == ABA_SEMANA.id {
+            SemanaTela(sessao: sessao, contexto: contexto, servico: app.servicoTreino(sessao, contexto),
+                       aoSessaoAcabar: { [token = sessao.token] e in app.controle.tratarErro(e, token: token) })
         } else {
             EmBreveTela(aba: def, contexto: contexto)
         }
