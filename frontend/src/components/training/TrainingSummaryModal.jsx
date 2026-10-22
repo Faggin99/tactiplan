@@ -43,7 +43,7 @@ export function TrainingSummaryModal({ isOpen, onClose, session: day }) {
   const distanciaKm = (session.session_type || 'training') === 'training' ? toKm(session.avg_distance_km) : null;
 
   // Filter blocks with activities
-  const activeBlocks = session.blocks?.filter(block => block.activity) || [];
+  const activeBlocks = session.session_type === 'assessment' ? [] : (session.blocks?.filter(block => block.activity) || []);
 
   const handleDownloadExcel = () => {
     if (activeBlocks.length === 0) {

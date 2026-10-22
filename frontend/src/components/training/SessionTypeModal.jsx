@@ -1,12 +1,43 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Dribbble, Moon, Trophy, Plus, Trash2, Sun, Sunset, MoonStar } from 'lucide-react';
+import { Dribbble, Moon, Trophy, Plus, Trash2, Sun, Sunset, MoonStar, ClipboardCheck } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { useTheme } from '../../contexts/ThemeContext';
-import { PERIODOS, MAX_PERIODOS, rotuloPeriodo, periodoEfetivo, periodosDoDia, periodosLivres } from '../../lib/periodos';
+import { PERIODOS, MAX_PERIODOS, rotuloPeriodo, periodoEfetivo, periodosDoDia, periodosLivres, TIPOS_AVALIACAO, ROTULO_AVALIACAO, MAX_OUTRA, normalizarAvaliacao } from '../../lib/periodos';
 
 const ICONE_PERIODO = { manha: Sun, tarde: Sunset, noite: MoonStar };
+
+// Chips do tipo de avaliação (seleção múltipla) + "Outra" com texto curto.
+function EscolhaAvaliacao({ tipos, setTipos, outra, setOutra, chip, inputStyle, colors }) {
+  const alternar = (t) => setTipos(tipos.includes(t) ? tipos.filter((x) => x !== t) : [...tipos, t]);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+      <div role="group" aria-label="Tipo de avaliação" style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+        {TIPOS_AVALIACAO.map((t) => (
+          <button key={t} type="button" aria-pressed={tipos.includes(t)} style={chip(tipos.includes(t))} onClick={() => alternar(t)}>
+            {ROTULO_AVALIACAO[t]}
+          </button>
+        ))}
+      </div>
+      {tipos.includes('outra') && (
+        <div>
+          <input
+            type="text"
+            value={outra}
+            maxLength={MAX_OUTRA}
+            onChange={(e) => setOutra(e.target.value)}
+            placeholder="Qual avaliação? (ex.: Teste de Yo-Yo)"
+            aria-label="Outra avaliação"
+            style={{ ...inputStyle, padding: '0.55rem 0.75rem', fontSize: '0.9rem' }}
+            autoFocus
+          />
+          <div style={{ fontSize: '0.7rem', color: colors.textSecondary, textAlign: 'right', marginTop: 2 }}>{outra.length}/{MAX_OUTRA}</div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Menu do dia (clique direito / toque longo): tipo do dia — ou do período, no
 // dia com 2+ períodos — e os períodos (Adicionar / Trocar horário / Remover).
@@ -20,19 +51,28 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
   const [novo, setNovo] = useState('tarde');
   const [confirmarRemocao, setConfirmarRemocao] = useState(false);
   const [ocupado, setOcupado] = useState(false);
+  // avaliação (tipo do período) e avaliação do período novo
+  const [avTipos, setAvTipos] = useState([]);
+  const [avOutra, setAvOutra] = useState('');
+  const [novoTipo, setNovoTipo] = useState('training');
+  const [novoAvTipos, setNovoAvTipos] = useState([]);
+  const [novoAvOutra, setNovoAvOutra] = useState('');
 
   const periodos = periodosDoDia(day);
   const livres = periodos ? periodosLivres(day) : PERIODOS;
   const outroJogo = !!periodos?.some((p) => p.id !== session?.id && p.session_type === 'match');
   const rotuloAtual = rotuloPeriodo(session?.periodo);
   // dia de período único (treino): o horário dele (Manhã é o padrão do dia sem nome)
-  const efetivoUnico = !periodos && (session?.session_type || 'training') === 'training' ? periodoEfetivo(session) : null;
+  const efetivoUnico = !periodos && ['training', 'assessment'].includes(session?.session_type || 'training') ? periodoEfetivo(session) : null;
 
   useEffect(() => {
     if (session) {
       setSessionType(session.session_type || 'training');
       setOpponentName(session.opponent_name || '');
+      setAvTipos(Array.isArray(session.assessment_types) ? session.assessment_types : []);
+      setAvOutra(session.assessment_other || '');
     }
+    setNovoTipo('training'); setNovoAvTipos([]); setNovoAvOutra('');
     setAdicionando(false);
     setConfirmarRemocao(false);
     setOcupado(false);
@@ -46,10 +86,16 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
     } else { setNovo(livres[0] || 'noite'); }
   }, [adicionando]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const avaliacaoAtual = normalizarAvaliacao({ tipos: avTipos, outra: avTipos.includes('outra') ? avOutra : '' });
+  const avaliacaoNova = normalizarAvaliacao({ tipos: novoAvTipos, outra: novoAvTipos.includes('outra') ? novoAvOutra : '' });
+  const salvarBloqueado = sessionType === 'assessment' && !avaliacaoAtual.ok;
+
   const handleSave = () => {
+    if (salvarBloqueado) return;
     onSave({
       session_type: sessionType,
       opponent_name: sessionType === 'match' ? opponentName : null,
+      ...(sessionType === 'assessment' ? { assessment_types: avaliacaoAtual.tipos, assessment_other: avaliacaoAtual.outra } : {}),
     });
   };
 
@@ -64,10 +110,13 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
     // Descanso é do dia inteiro: some no dia com 2+ períodos
     ...(periodos ? [] : [{ value: 'rest', label: 'Descanso', Icon: Moon }]),
     { value: 'match', label: 'Jogo', Icon: Trophy, disabled: outroJogo },
+    { value: 'assessment', label: 'Avaliação', Icon: ClipboardCheck },
   ];
 
   const optionStyle = (isSelected, disabled) => ({
-    padding: '1.5rem',
+    padding: '1.1rem 0.5rem',
+    minWidth: 0,
+    textAlign: 'center',
     border: `2px solid ${isSelected ? colors.primary : colors.border}`,
     borderRadius: '0.5rem',
     cursor: disabled ? 'not-allowed' : 'pointer',
@@ -80,7 +129,7 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
     gap: '0.5rem',
   });
 
-  const labelStyle = { fontSize: '1rem', fontWeight: '500', color: colors.text };
+  const labelStyle = { fontSize: '0.95rem', fontWeight: '500', color: colors.text };
 
   const inputStyle = {
     width: '100%',
@@ -136,7 +185,7 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
           <Button variant="secondary" onClick={onClose}>
             Cancelar
           </Button>
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} disabled={salvarBloqueado} title={salvarBloqueado ? 'Diga qual é a outra avaliação' : undefined}>
             Salvar
           </Button>
         </>
@@ -148,7 +197,7 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
           <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: '500', color: colors.text }}>
             {periodos ? `Tipo do período (${rotuloAtual}):` : 'Selecione o tipo de sessão:'}
           </label>
-          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${typeOptions.length}, 1fr)`, gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(96px, 1fr))', gap: '0.75rem' }}>
             {typeOptions.map((option) => (
               <div
                 key={option.value}
@@ -168,7 +217,7 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
                   }
                 }}
               >
-                <option.Icon size={48} strokeWidth={1.5} />
+                <option.Icon size={40} strokeWidth={1.5} />
                 <div style={labelStyle}>{option.label}</div>
               </div>
             ))}
@@ -192,6 +241,16 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
           </div>
         )}
 
+        {/* Tipo de avaliação (única informação do período de avaliação) */}
+        {sessionType === 'assessment' && (
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: colors.text }}>
+              Tipo de avaliação:
+            </label>
+            <EscolhaAvaliacao tipos={avTipos} setTipos={setAvTipos} outra={avOutra} setOutra={setAvOutra} chip={chip} inputStyle={inputStyle} colors={colors} />
+          </div>
+        )}
+
         {/* Descrição do tipo selecionado */}
         <div style={{
           padding: '1rem',
@@ -203,6 +262,7 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
           {sessionType === 'training' && 'Treino normal com 6 subdivisões de atividades.'}
           {sessionType === 'rest' && 'Dia de descanso - sem atividades programadas.'}
           {sessionType === 'match' && 'Dia de jogo - informação do adversário + 1 bloco "Não relacionados".'}
+          {sessionType === 'assessment' && 'Período de avaliação - sem blocos de atividade. Não soma minutos nem entra nas estatísticas.'}
         </div>
 
         {/* Períodos do dia */}
@@ -214,14 +274,14 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
                 {periodos
                   ? `${periodos.length} períodos: ${periodos.map((p) => rotuloPeriodo(p.periodo)).join(' · ')}. Cada um tem os seus 6 blocos.`
                   : efetivoUnico
-                    ? `Treino em um período só (${rotuloPeriodo(efetivoUnico)}). Treina duas vezes no dia? Adicione um período (até 3).`
+                    ? `${session?.session_type === 'assessment' ? 'Avaliação' : 'Treino'} em um período só (${rotuloPeriodo(efetivoUnico)}). Treina ou avalia duas vezes no dia? Adicione um período (até 3).`
                     : 'Treino em um período só. Treina duas vezes no dia? Adicione um período (até 3).'}
               </div>
             </div>
 
             {!periodos && efetivoUnico && onRenamePeriod && !adicionando && (
               <div>
-                <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.35rem' }}>Horário do treino</div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.35rem' }}>{session?.session_type === 'assessment' ? 'Horário da avaliação' : 'Horário do treino'}</div>
                 {escolhaPeriodo(efetivoUnico, (p) => { if (p !== efetivoUnico) rodar(() => onRenamePeriod(p)); })}
               </div>
             )}
@@ -261,7 +321,7 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
               <div style={{ border: `1px solid ${colors.border}`, borderRadius: '0.5rem', padding: '0.85rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {!periodos && (
                   <div>
-                    <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.35rem' }}>O treino que já existe é de:</div>
+                    <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.35rem' }}>{session?.session_type === 'assessment' ? 'A avaliação que já existe é de:' : session?.session_type === 'match' ? 'O jogo que já existe é de:' : 'O treino que já existe é de:'}</div>
                     {escolhaPeriodo(atual, (p) => { setAtual(p); if (p === novo) setNovo(PERIODOS.find((x) => x !== p)); })}
                   </div>
                 )}
@@ -269,14 +329,34 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
                   <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.35rem' }}>Novo período:</div>
                   {escolhaPeriodo(novo, setNovo, periodos ? PERIODOS.filter((p) => !livres.includes(p)) : [atual])}
                 </div>
+                <div>
+                  <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.35rem' }}>O novo período é de:</div>
+                  <div role="group" aria-label="Tipo do novo período" style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    <button type="button" aria-pressed={novoTipo === 'training'} style={chip(novoTipo === 'training')} onClick={() => setNovoTipo('training')}><Dribbble size={14} />Treino</button>
+                    <button type="button" aria-pressed={novoTipo === 'assessment'} style={chip(novoTipo === 'assessment')} onClick={() => setNovoTipo('assessment')}><ClipboardCheck size={14} />Avaliação</button>
+                  </div>
+                </div>
+                {novoTipo === 'assessment' && (
+                  <div>
+                    <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.35rem' }}>Tipo de avaliação:</div>
+                    <EscolhaAvaliacao tipos={novoAvTipos} setTipos={setNovoAvTipos} outra={novoAvOutra} setOutra={setNovoAvOutra} chip={chip} inputStyle={inputStyle} colors={colors} />
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                   <Button variant="secondary" size="sm" onClick={() => setAdicionando(false)}>Voltar</Button>
                   <Button
                     size="sm"
-                    disabled={ocupado || (!periodos && atual === novo)}
-                    onClick={() => rodar(async () => { await onAddPeriod({ atual: periodos ? null : atual, novo }); })}
+                    disabled={ocupado || (!periodos && atual === novo) || (novoTipo === 'assessment' && !avaliacaoNova.ok)}
+                    onClick={() => rodar(async () => {
+                      await onAddPeriod({
+                        atual: periodos ? null : atual,
+                        novo,
+                        tipo: novoTipo,
+                        ...(novoTipo === 'assessment' ? { assessment_types: avaliacaoNova.tipos, assessment_other: avaliacaoNova.outra } : {}),
+                      });
+                    })}
                   >
-                    {ocupado ? 'Adicionando…' : `Adicionar ${rotuloPeriodo(novo)}`}
+                    {ocupado ? 'Adicionando…' : `Adicionar ${rotuloPeriodo(novo)}${novoTipo === 'assessment' ? ' (avaliação)' : ''}`}
                   </Button>
                 </div>
               </div>

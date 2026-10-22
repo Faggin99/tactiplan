@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Moon, Trophy, Paperclip } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Moon, Trophy, Paperclip, ClipboardCheck } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useClub } from '../contexts/ClubContext';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -26,7 +26,7 @@ import { formatKm, toKm } from '../utils/distancia';
 import { ExportMenu } from '../components/common/ExportMenu';
 import { safeFileName } from '../services/reportsService';
 import { useReportPhotosExport } from '../components/reports/useReportPhotosExport';
-import { periodosDoDia, rotuloPeriodo, periodoEfetivo, minutosDaSessao, distanciaDoDia } from '../lib/periodos';
+import { periodosDoDia, rotuloPeriodo, periodoEfetivo, minutosDaSessao, distanciaDoDia, divisaoMinutos, rotuloLinhaPeriodo, rotulosAvaliacao } from '../lib/periodos';
 
 export function TrainingPage() {
   const { colors } = useTheme();
@@ -66,8 +66,8 @@ export function TrainingPage() {
       selector: '[data-tour="calendar"]',
       title: 'Calendário da semana',
       content: isMobileDevice
-        ? 'Cada coluna é um dia. Toque num dia pra abrir as atividades. Pressione e segure (long-press) um dia pra mudar o tipo de sessão (Treino, Jogo, Descanso) ou adicionar outro período (Manhã, Tarde, Noite).'
-        : 'Cada coluna é um dia. Clique em um dia pra abrir as atividades. Clique direito num dia pra trocar o tipo de sessão (Treino, Jogo, Descanso) ou adicionar outro período (Manhã, Tarde, Noite).',
+        ? 'Cada coluna é um dia. Toque num dia pra abrir as atividades. Pressione e segure (long-press) um dia pra mudar o tipo de sessão (Treino, Jogo, Descanso, Avaliação) ou adicionar outro período (Manhã, Tarde, Noite).'
+        : 'Cada coluna é um dia. Clique em um dia pra abrir as atividades. Clique direito num dia pra trocar o tipo de sessão (Treino, Jogo, Descanso, Avaliação) ou adicionar outro período (Manhã, Tarde, Noite).',
       placement: 'top',
     },
     {
@@ -389,7 +389,7 @@ export function TrainingPage() {
   // Empate mostra os dois.
   const PILAR_LABEL = { tatico: 'Tático', fisico: 'Físico', tecnico: 'Técnico', mental: 'Mental' };
   function getDayPillarSummary(session) {
-    if (!session?.blocks) return [];
+    if (!session?.blocks || session.session_type === 'assessment') return [];
     const min = {};
     const cnt = {};
     session.blocks.forEach((block) => {
@@ -411,7 +411,7 @@ export function TrainingPage() {
   }
 
   function getDayContentsSummary(session) {
-    if (!session?.blocks) return [];
+    if (!session?.blocks || session.session_type === 'assessment') return [];
 
     // Conta ocorrências de cada conteúdo nas atividades do dia
     const contentCounts = {};
@@ -443,7 +443,7 @@ export function TrainingPage() {
   }
 
   function getTotalDuration(session) {
-    if (!session?.blocks) return 0;
+    if (!session?.blocks || session.session_type === 'assessment') return 0;
 
     return session.blocks.reduce((total, block) => {
       const duration = block.activity?.duration_minutes || 0;
@@ -475,7 +475,7 @@ export function TrainingPage() {
   const calendarStyle = {
     display: isMobile ? 'flex' : 'grid',
     flexDirection: isMobile ? 'column' : undefined,
-    gridTemplateColumns: isMobile ? undefined : 'repeat(7, 1fr)',
+    gridTemplateColumns: isMobile ? undefined : 'repeat(7, minmax(0, 1fr))',
     gridAutoRows: isMobile ? undefined : '1fr',
     gap: isMobile ? '0.35rem' : '0.5rem',
     // Mobile também preenche a altura disponível (flex:1): os blocos do dia
@@ -494,6 +494,7 @@ export function TrainingPage() {
     flexDirection: 'column',
     gap: '0.3rem',
     minHeight: 0,
+    minWidth: 0,
     flex: isMobile ? 1 : undefined,
     height: isMobile ? undefined : '100%',
     width: '100%',
@@ -830,10 +831,7 @@ export function TrainingPage() {
                         <ChevronLeft size={isMobile ? 16 : 13} />
                       </button>
                       <span key={shown.id} className="tp-periodo-in" style={{ '--tp-periodo-dx': `${(periodoDir[session.date] || 1) * 6}px`, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }} aria-live="polite">
-                        {(() => {
-                          const pilares = shown.session_type === 'match' ? ['Jogo'] : getDayPillarSummary(shown);
-                          return `${rotuloPeriodo(shown.periodo)}${pilares.length ? ` · ${pilares.join(' | ')}` : ''}`;
-                        })()}
+                        {rotuloLinhaPeriodo(shown, getDayPillarSummary(shown))}
                       </span>
                       <button
                         type="button"
@@ -876,10 +874,11 @@ export function TrainingPage() {
                       // padrão do dia sem nome), sem setas nem pontinhos. Jogo e descanso: como antes.
                       const pilares = getDayPillarSummary(shown);
                       const tipo = shown.session_type || 'training';
-                      const per = tipo === 'training' ? rotuloPeriodo(periodoEfetivo(shown)) : null;
+                      // treino e avaliação mostram o período ("Manhã · Avaliação")
+                      const per = tipo === 'training' || tipo === 'assessment' ? rotuloPeriodo(periodoEfetivo(shown)) : null;
                       // uma linha só (não mexe na altura da grade); o texto inteiro fica no title
                       if (per) {
-                        const t = `${per}${pilares.length ? ` · ${pilares.join(' | ')}` : ''}`;
+                        const t = rotuloLinhaPeriodo(shown, pilares);
                         return <span title={t} style={{ display: 'block', minWidth: 0, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t}</span>;
                       }
                       return pilares.length ? pilares.join(' | ') : '\u00A0';
@@ -916,6 +915,44 @@ export function TrainingPage() {
                     >
                       <Moon size={isMobile ? 28 : 48} strokeWidth={1.5} />
                       <div style={{ fontSize: isMobile ? '0.9rem' : '1.2rem' }}>Descanso</div>
+                    </div>
+                  );
+                }
+
+                // AVALIAÇÃO - estado próprio no lugar dos 6 blocos (padrão do JOGO/Descanso):
+                // ícone + "AVALIAÇÃO" + os tipos. Sem blocos de atividade.
+                if (sessionType === 'assessment') {
+                  const tiposAv = rotulosAvaliacao(shown);
+                  return (
+                    <div
+                      data-testid="dia-avaliacao"
+                      style={{
+                        ...blockStyle,
+                        flex: 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textAlign: 'center',
+                        fontWeight: '600',
+                        color: colors.text,
+                        gap: isMobile ? '0.3rem' : '0.5rem',
+                        cursor: podeEditarTreino ? 'pointer' : 'default',
+                        minWidth: 0,
+                      }}
+                      title={podeEditarTreino ? 'Trocar o tipo de avaliação' : undefined}
+                      onClick={() => {
+                        if (!podeEditarTreino) return;
+                        setSelectedSession(shown);
+                        setSelectedDay(session);
+                        setShowSessionTypeModal(true);
+                      }}
+                    >
+                      <ClipboardCheck size={isMobile ? 28 : 48} strokeWidth={1.5} />
+                      <div style={{ fontSize: isMobile ? '0.9rem' : '1.2rem' }}>AVALIAÇÃO</div>
+                      <div style={{ fontSize: isMobile ? '0.72rem' : '0.85rem', color: colors.textSecondary, fontWeight: 500, lineHeight: 1.35, maxWidth: '100%', overflowWrap: 'anywhere' }}>
+                        {tiposAv.length ? tiposAv.join(', ') : (podeEditarTreino ? 'Escolha o tipo' : 'Tipo não informado')}
+                      </div>
                     </div>
                   );
                 }
@@ -1117,12 +1154,15 @@ export function TrainingPage() {
                   // distância nunca somem.
                   style={{ ...durationBadgeStyle, flexWrap: 'nowrap', whiteSpace: 'nowrap', overflow: 'hidden', gap: '0.15rem', containerType: 'inline-size', paddingLeft: '0.25rem', paddingRight: '0.25rem', fontSize: isMobile ? '0.68rem' : '0.76rem' }}
                   title={[
-                    ...periodos.map((p) => `${rotuloPeriodo(p.periodo)}: ${minutosDaSessao(p)} min`),
+                    ...periodos.map((p) => (p.session_type === 'assessment' ? `${rotuloPeriodo(p.periodo)}: avaliação` : `${rotuloPeriodo(p.periodo)}: ${minutosDaSessao(p)} min`)),
                     ...(distanciaDoDia(periodos) !== null ? [`Distância ideal do dia: ${formatKm(distanciaDoDia(periodos), 1)} km`] : []),
                   ].join(' · ')}
                 >
                   <span style={{ flexShrink: 0 }}>⏱{periodos.reduce((t, p) => t + minutosDaSessao(p), 0)}′</span>
-                  <span style={{ color: colors.textSecondary, fontWeight: 500, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>· {periodos.map((p) => minutosDaSessao(p)).join('+')}</span>
+                  {/* "90+60" só quando 2+ períodos têm minutos (nunca "125+0") */}
+                  {divisaoMinutos(periodos) && (
+                    <span style={{ color: colors.textSecondary, fontWeight: 500, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>· {divisaoMinutos(periodos)}</span>
+                  )}
                   {distanciaDoDia(periodos) !== null && (
                     <span style={{ flexShrink: 0 }}><span style={{ color: colors.textSecondary, fontWeight: 500 }}>· </span>📍{formatKm(distanciaDoDia(periodos), 1)}</span>
                   )}
@@ -1355,7 +1395,7 @@ export function TrainingPage() {
         session={selectedSession}
         day={selectedDay}
         podeApagar={can('training:delete')}
-        onAddPeriod={async ({ atual, novo }) => {
+        onAddPeriod={async ({ atual, novo, ...tipoNovo }) => {
           try {
             let sessionId = selectedSession?.id;
             if (!sessionId) {
@@ -1364,7 +1404,7 @@ export function TrainingPage() {
               sessionId = response.data?.sessions?.find((s) => s.day_of_week === selectedSession?.day_of_week)?.id;
               if (!sessionId) throw new Error('Falha ao criar sessão no banco de dados');
             }
-            const r = await trainingService.addPeriod(sessionId, { atual, novo });
+            const r = await trainingService.addPeriod(sessionId, { atual, novo, ...tipoNovo });
             notify.success(`Período ${rotuloPeriodo(novo)} adicionado.`);
             setShowSessionTypeModal(false);
             await recarregarSemana();

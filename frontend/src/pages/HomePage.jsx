@@ -36,6 +36,7 @@ const SESSION_TYPE_LABEL = {
   training: 'Treino',
   match:    'Jogo',
   rest:     'Descanso',
+  assessment: 'Avaliação',
 };
 
 const formatDateBR = (s) => {
