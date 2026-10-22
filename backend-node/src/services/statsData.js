@@ -147,10 +147,14 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
   }
   sessionSql += categoryFilterSql(sessionParams, allowedCategoryIds);
   const sessionsResult = await query(sessionSql, sessionParams);
-  const sessionIds = sessionsResult.rows.map(s => s.id);
+  // Avaliação (session_type 'assessment') NÃO entra nas estatísticas: nem minutos,
+  // nem pilares, nem sessões (o dia que só teve avaliação não é sessão de treino).
+  // Atividades que sobraram de quando o período era treino também ficam de fora.
+  const semAvaliacao = sessionsResult.rows.filter(s => !P.ehAvaliacao(s));
+  const sessionIds = semAvaliacao.map(s => s.id);
   // Períodos (Manhã/Tarde/Noite): o DIA conta como 1 sessão. Cada período é
   // remapeado para o 1º período do dia; distância do dia = soma dos períodos.
-  const diaDe = P.mapaDoDia(sessionsResult.rows);
+  const diaDe = P.mapaDoDia(semAvaliacao);
   const distance = buildDistanceStats(P.distanciaPorDia(sessionsResult.rows), start, end);
 
   const empty = {
@@ -486,11 +490,30 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
       c.minutes += a.duration_minutes || 0;
     }
   }
+  // Minutos do dia por PILAR (barra empilhada do microciclo no PDF): cada atividade
+  // UMA vez, no pilar do 1º conteúdo com pilar (mesma regra do bloco na ficha);
+  // sem pilar = 'none'.
+  const pilarDaAtividade = new Map(); // activity_id → { dia, dim, min }
+  for (const a of activities) {
+    if (!a.id || !a.session_id) continue;
+    const atual = pilarDaAtividade.get(a.id);
+    if (!atual) pilarDaAtividade.set(a.id, { dia: a.session_id, dim: a.dimension || null, min: Number(a.duration_minutes) || 0 });
+    else if (!atual.dim && a.dimension) atual.dim = a.dimension;
+  }
+  const pilaresDoDia = new Map();
+  for (const { dia, dim, min } of pilarDaAtividade.values()) {
+    if (!min) continue;
+    if (!pilaresDoDia.has(dia)) pilaresDoDia.set(dia, {});
+    const m = pilaresDoDia.get(dia);
+    const k = DIM_ORDER.includes(dim) ? dim : 'none';
+    m[k] = (m[k] || 0) + min;
+  }
   const sessionsByDate = Array.from(sessionDateMap.values())
     .map(s => ({
       session_id: s.session_id,
       date: s.date,
       contents: Array.from(s.contents.values()),
+      pillarMinutes: pilaresDoDia.get(s.session_id) || {},
     }))
     .sort((a, b) => a.date.localeCompare(b.date));
 
@@ -1006,8 +1029,10 @@ async function getPeriodSessions({ workspaceIds, start, end, clubId = null, allo
   let sql = `
     SELECT s.id, s.date, s.session_type, s.opponent_name, s.avg_distance_km,
            s.match_round, s.match_location, s.periodo, s.workspace_id, m.club_id,
-           COALESCE(SUM(a.duration_minutes), 0)::int AS minutes,
-           COUNT(a.id)::int AS activities
+           s.assessment_types, s.assessment_other,
+           -- avaliação não soma minutos (mesmo com atividade antiga de quando era treino)
+           CASE WHEN s.session_type = 'assessment' THEN 0 ELSE COALESCE(SUM(a.duration_minutes), 0) END::int AS minutes,
+           CASE WHEN s.session_type = 'assessment' THEN 0 ELSE COUNT(a.id) END::int AS activities
       FROM training_sessions s
       JOIN training_microcycles m ON s.microcycle_id = m.id
       LEFT JOIN training_activity_blocks b ON b.session_id = s.id

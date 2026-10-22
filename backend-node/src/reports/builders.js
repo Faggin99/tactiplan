@@ -257,10 +257,38 @@ function dayFocus(contents) {
   return winners.length <= 2 ? winners.join(' | ') : `${winners.slice(0, 2).join(' | ')} +${winners.length - 2}`;
 }
 
+// Segmentos de pilar de um dia/semana: { tatico: 60, fisico: 25, none: 10 } →
+// [{ key, minutes }] na ordem dos pilares (sem pilar por último), só os com tempo.
+function pillarSegments(pm) {
+  const m = pm || {};
+  return DIM_ORDER.concat(['none'])
+    .filter((k) => (Number(m[k]) || 0) > 0)
+    .map((k) => ({ key: k, label: DIM_LABELS[k] || 'Sem pilar', minutes: Number(m[k]) || 0 }));
+}
+
+function somarPilares(alvo, pm) {
+  for (const [k, v] of Object.entries(pm || {})) alvo[k] = (alvo[k] || 0) + (Number(v) || 0);
+  return alvo;
+}
+
+// Avaliação do dia (períodos de avaliação): null sem nenhuma. Não soma minutos.
+function dayAssessment(list) {
+  const av = (list || []).filter((s) => P.ehAvaliacao(s));
+  if (!av.length) return null;
+  const tipos = [];
+  for (const s of av) for (const t of P.rotulosAvaliacao(s)) if (!tipos.includes(t)) tipos.push(t);
+  return {
+    types: tipos,
+    text: tipos.join(', '),
+    periods: av.map((s) => P.rotuloPeriodo(P.periodoEfetivo(s))).filter(Boolean),
+  };
+}
+
 // sessions: linhas de statsData.getPeriodSessions (uma por sessão do período)
 // gamesById: Map session_id → { goals_scored, goals_conceded, result } (de matchesHistory)
 function buildDays({ period, sessions, sessionsByDate, gamesById }) {
   const contentsBySession = new Map((sessionsByDate || []).map((s) => [s.session_id, s.contents || []]));
+  const pillarsBySession = new Map((sessionsByDate || []).map((s) => [s.session_id, s.pillarMinutes || {}]));
   const byDate = new Map();
   for (const s of sessions || []) {
     const d = F.toDateStr(s.date);
@@ -271,25 +299,32 @@ function buildDays({ period, sessions, sessionsByDate, gamesById }) {
   for (let i = 0; i < period.days; i++) {
     const date = F.addDays(period.start, i);
     const list = (byDate.get(date) || []).slice().sort(P.compararPeriodos);
-    const minutes = list.reduce((sum, s) => sum + (Number(s.minutes) || 0), 0);
+    // avaliação não soma minutos (getPeriodSessions já devolve 0 para ela)
+    const minutes = list.reduce((sum, s) => sum + (P.ehAvaliacao(s) ? 0 : Number(s.minutes) || 0), 0);
     const match = list.find((s) => s.session_type === 'match');
     const isRest = list.length > 0 && list.every((s) => s.session_type === 'rest');
     const contents = list.flatMap((s) => contentsBySession.get(s.id) || []);
-    const base = { date, dn: F.weekdayShort(date), dd: F.ddmm(date), minutes, note: null, distanceKm: null, periods: null, split: null };
+    const pillarMinutes = list.reduce((acc, s) => somarPilares(acc, pillarsBySession.get(s.id)), {});
+    const assessment = dayAssessment(list);
+    const base = {
+      date, dn: F.weekdayShort(date), dd: F.ddmm(date), minutes, note: null, distanceKm: null, periods: null, split: null,
+      pillars: pillarSegments(pillarMinutes), assessment,
+    };
     // Dia com 2+ períodos (Manhã/Tarde/Noite): soma no dia + divisão por período
     const comPeriodos = list.length > 1 && list.some((s) => s.periodo);
     if (comPeriodos) {
       base.periods = list.map((s) => ({
         periodo: s.periodo,
         label: P.rotuloPeriodo(s.periodo) || 'Período',
-        kind: s.session_type === 'match' ? 'jogo' : 'treino',
-        minutes: Number(s.minutes) || 0,
+        kind: s.session_type === 'match' ? 'jogo' : (P.ehAvaliacao(s) ? 'avaliacao' : 'treino'),
+        minutes: P.ehAvaliacao(s) ? 0 : Number(s.minutes) || 0,
       }));
-      base.split = base.periods.map((p) => p.minutes).join('+');
+      // "90+60" só quando 2+ períodos têm minutos (nunca "125+0")
+      base.split = P.divisaoMinutos(base.periods);
     }
     if (match) {
       const g = gamesById?.get(match.id);
-      const extra = list.filter((s) => s.id !== match.id).reduce((sum, s) => sum + (Number(s.minutes) || 0), 0) + (Number(match.minutes) || 0);
+      const extra = list.filter((s) => s.id !== match.id).reduce((sum, s) => sum + (P.ehAvaliacao(s) ? 0 : Number(s.minutes) || 0), 0) + (Number(match.minutes) || 0);
       let note = null;
       if (extra > 0 && comPeriodos) {
         // Manhã de treino + Tarde de jogo: cada período com o seu tempo
@@ -313,10 +348,14 @@ function buildDays({ period, sessions, sessionsByDate, gamesById }) {
       days.push({ ...base, kind: 'descanso' });
     } else if (minutes > 0 || contents.length > 0) {
       const km = P.distanciaDoDia(list);
-      const note = comPeriodos && minutes > 0
-        ? `${F.weekdayShort(date)} ${F.ddmm(date)}: ${base.periods.filter((p) => p.minutes > 0).map((p) => `${p.label} ${p.minutes}'`).join(' + ')} = ${minutes}'.`
+      const comMin = comPeriodos ? base.periods.filter((p) => p.minutes > 0) : [];
+      const note = comMin.length >= 2
+        ? `${F.weekdayShort(date)} ${F.ddmm(date)}: ${comMin.map((p) => `${p.label} ${p.minutes}'`).join(' + ')} = ${minutes}'.`
         : null;
       days.push({ ...base, kind: 'treino', focus: dayFocus(contents), distanceKm: km != null ? Number(km) : null, note });
+    } else if (assessment) {
+      // dia só de avaliação: etiqueta AVALIAÇÃO + os tipos, sem minutos
+      days.push({ ...base, kind: 'avaliacao' });
     } else {
       days.push({ ...base, kind: 'vazio' });
     }
@@ -324,15 +363,21 @@ function buildDays({ period, sessions, sessionsByDate, gamesById }) {
   return days;
 }
 
-function buildWeeks({ period, sessions }) {
+// Minutos por semana, com a divisão por pilar (coluna empilhada no PDF).
+function buildWeeks({ period, sessions, sessionsByDate = null }) {
   const weeks = new Map();
-  for (let d = F.mondayOf(period.start); d <= period.end; d = F.addDays(d, 7)) weeks.set(d, 0);
+  for (let d = F.mondayOf(period.start); d <= period.end; d = F.addDays(d, 7)) weeks.set(d, { minutes: 0, pm: {} });
   for (const s of sessions || []) {
+    if (P.ehAvaliacao(s)) continue;
     const wk = F.mondayOf(F.toDateStr(s.date));
-    if (weeks.has(wk)) weeks.set(wk, weeks.get(wk) + (Number(s.minutes) || 0));
+    if (weeks.has(wk)) weeks.get(wk).minutes += Number(s.minutes) || 0;
   }
-  return Array.from(weeks.entries()).map(([start, minutes]) => ({
-    start, label: F.ddmm(start), week: F.isoWeek(start).week, minutes,
+  for (const x of sessionsByDate || []) {
+    const wk = F.mondayOf(F.toDateStr(x.date));
+    if (weeks.has(wk)) somarPilares(weeks.get(wk).pm, x.pillarMinutes);
+  }
+  return Array.from(weeks.entries()).map(([start, w]) => ({
+    start, label: F.ddmm(start), week: F.isoWeek(start).week, minutes: w.minutes, pillars: pillarSegments(w.pm),
   }));
 }
 
@@ -399,7 +444,7 @@ function buildTrainingReport({ stats, sessions, gamesById, team, period, photos 
   const trainingDaysWithActivity = days.filter((d) => d.kind === 'treino').length;
   const pillars = buildPillars(s);
   const dayMax = Math.max(0, ...days.filter((d) => d.kind === 'treino').map((d) => d.minutes));
-  const weeks = period.isSingleWeek ? null : buildWeeks({ period, sessions });
+  const weeks = period.isSingleWeek ? null : buildWeeks({ period, sessions, sessionsByDate: s.sessionsByDate });
   const sessionsCount = totals.sessions || 0;
   return {
     kind: 'treino',
@@ -445,7 +490,8 @@ function blockPillar(activity) {
 
 function buildSessionSheet({ session, team, weekNumber = null, game = null, photos = null }) {
   const type = session.session_type || 'training';
-  const filled = (session.blocks || []).filter(blockIsFilled);
+  // avaliação: sem blocos (atividades antigas de quando era treino não aparecem)
+  const filled = type === 'assessment' ? [] : (session.blocks || []).filter(blockIsFilled);
   let acc = 0;
   const blocks = filled.map((b) => {
     const a = b.activity;
@@ -498,13 +544,14 @@ function buildSessionSheet({ session, team, weekNumber = null, game = null, phot
     focus,
     distanceKm: km,
     total,
-    badgeTop: type === 'rest' ? 'Descanso' : (type === 'match' && total === 0 ? 'Jogo' : `${total} min`),
-    badgeSub: type === 'rest' || (type === 'match' && total === 0)
+    badgeTop: type === 'rest' ? 'Descanso' : type === 'assessment' ? 'Avaliação' : (type === 'match' && total === 0 ? 'Jogo' : `${total} min`),
+    badgeSub: type === 'rest' || type === 'assessment' || (type === 'match' && total === 0)
       ? F.ddmmyyyy(date)
       : (type === 'match' ? `${F.plural(blocks.length, 'bloco', 'blocos')} · não relacionados` : badgeSubParts.join(' · ')),
     blocks,
     pillarsPresent,
     groupsAll,
+    assessment: type === 'assessment' ? { types: P.rotulosAvaliacao(session), text: P.textoAvaliacao(session) } : null,
     game: type === 'match' ? {
       opponent: session.opponent_name || 'Adversário',
       round: session.match_round || null,
@@ -527,7 +574,7 @@ function buildDaySheet({ sessions, team, weekNumber = null, gamesById = null, ph
     const vm = buildSessionSheet({ session: only, team, weekNumber, game: gamesById?.get(only?.id) || null, photos });
     // o título diz o período (discreto): só um período de um dia com vários (so_periodo)
     // ou o dia de período único — "Manhã" é o padrão do dia sem nome. Jogo e descanso não.
-    const ef = only && (only.session_type || 'training') === 'training' ? P.periodoEfetivo(only) : null;
+    const ef = only && ['training', 'assessment'].includes(only.session_type || 'training') ? P.periodoEfetivo(only) : null;
     if (ef) vm.title = `${vm.title} · ${P.rotuloPeriodo(ef)}`;
     return vm;
   }
@@ -549,10 +596,11 @@ function buildDaySheet({ sessions, team, weekNumber = null, gamesById = null, ph
   );
   const km = P.distanciaDoDia(list);
   const date = F.toDateStr(list[0].date);
-  const split = periodos.map((p) => p.total).join('+');
+  // "90+60" só quando 2+ períodos têm minutos (avaliação/jogo sem tempo não vira "+0")
+  const split = P.divisaoMinutos(periodos.map((p) => ({ minutes: p.total })));
   const badgeSubParts = [];
   if (km != null) badgeSubParts.push(`${F.dec1(km)} km`);
-  badgeSubParts.push(`${periodos.length} períodos · ${split}`);
+  badgeSubParts.push(`${periodos.length} períodos${split ? ` · ${split}` : ''}`);
   return {
     kind: 'sessao',
     team,
@@ -916,6 +964,8 @@ module.exports = {
   dayFocus,
   buildDays,
   buildWeeks,
+  pillarSegments,
+  dayAssessment,
   buildPillars,
   buildTrainingReport,
   blockIsFilled,

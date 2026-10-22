@@ -16,30 +16,57 @@ function kpis(vm) {
   </div>`;
 }
 
+// Barra fina horizontal empilhada pelos PILARES do dia (cores dos pilares),
+// comprimento proporcional ao maior dia; mesma altura em todos os dias.
+function pillarBar(segs, minutes, max) {
+  if (!(minutes > 0)) return '';
+  const lista = (segs || []).length ? segs : [{ key: 'none', label: 'Sem pilar', minutes }];
+  const fill = Math.max(6, Math.round((minutes / (max || minutes)) * 100));
+  const soma = lista.reduce((t, g) => t + g.minutes, 0) || 1;
+  const parts = lista.map((g) => {
+    const info = C.dimInfo(g.key === 'none' ? 'outros' : g.key);
+    return `<i style="flex:${Math.round((g.minutes / soma) * 1000)};background:${info.color}" title="${esc(`${g.label} ${g.minutes}'`)}"></i>`;
+  }).join('');
+  return `<div class="pbar"><div class="pbar-fill" style="width:${fill}%">${parts}</div></div>`;
+}
+
+function assessmentLine(a) {
+  if (!a) return '';
+  return `<div class="av"><b>Avaliação</b>${a.text ? ` · ${esc(a.text)}` : ''}</div>`;
+}
+
 function weekGrid(vm) {
   const max = vm.dayMax || 1;
   const cells = vm.days.map((d) => {
     const head = `<div><div class="dn">${esc(d.dn)}</div><div class="dd">${esc(d.dd)}</div></div>`;
     if (d.kind === 'jogo') {
       const sc = d.score ? `${esc(d.score)}${d.result ? ` · ${esc(d.result)}` : ''}` : 'Jogo';
-      return `<div class="day game">${head}<div class="tag">Jogo</div><div class="fx">vs ${esc(d.opponent)}</div><div class="col"></div><div class="mn">${sc}</div></div>`;
+      return `<div class="day game">${head}<div class="tag">Jogo</div><div class="fx">vs ${esc(d.opponent)}</div>${assessmentLine(d.assessment)}<div class="col"></div><div class="mn">${sc}</div></div>`;
     }
     if (d.kind === 'descanso') {
       return `<div class="day rest">${head}<div class="tag">Descanso</div><div class="fx"></div><div class="col"></div><div class="mn">—</div></div>`;
     }
+    if (d.kind === 'avaliacao') {
+      return `<div class="day assess">${head}<div class="tag">Avaliação</div><div class="fx av-tipos">${esc(d.assessment.text || 'Tipo não informado')}</div><div class="col"></div><div class="mn">—</div></div>`;
+    }
     if (d.kind === 'vazio') {
       return `<div class="day none">${head}<div class="tag">Sem registro</div><div class="fx"></div><div class="col"></div><div class="mn">—</div></div>`;
     }
-    const h = Math.max(4, Math.round((d.minutes / max) * 100));
-    return `<div class="day">${head}<div class="tag">Treino</div><div class="fx">${esc(d.focus || '')}</div>`
-      + `<div class="col">${d.minutes > 0 ? `<i style="height:${h}%"></i>` : ''}</div><div class="mn">${d.minutes > 0 ? `${d.minutes}'` : '—'}</div>`
+    const tag = d.assessment ? 'Treino + Avaliação' : 'Treino';
+    return `<div class="day">${head}<div class="tag">${tag}</div><div class="fx">${esc(d.focus || '')}</div>${assessmentLine(d.assessment)}`
+      + `<div class="col bar">${pillarBar(d.pillars, d.minutes, max)}</div><div class="mn">${d.minutes > 0 ? `${d.minutes}'` : '—'}</div>`
       + `${d.split && d.minutes > 0 ? `<div class="pd" title="${esc(d.periods.map((p) => `${p.label} ${p.minutes}'`).join(' + '))}">${esc(d.split)}</div>` : ''}</div>`;
   }).join('');
   const notes = vm.dayNotes.map((n) => `<div class="note">${esc(n)}</div>`).join('');
-  return `<div>${C.sec('Microciclo', 'minutos por dia')}<div class="week">${cells}</div>${notes}</div>`;
+  // legenda das cores dos pilares que aparecem na semana
+  const keys = Array.from(new Set(vm.days.flatMap((d) => (d.kind === 'treino' ? d.pillars.map((g) => g.key) : []))));
+  const legend = keys.length
+    ? `<span class="legend" style="display:inline-flex">${keys.map((k) => { const info = C.dimInfo(k === 'none' ? 'outros' : k); return `<span><i class="dot" style="background:${info.color}"></i>${esc(k === 'none' ? 'Sem pilar' : info.label)}</span>`; }).join('')}</span>`
+    : 'minutos por dia';
+  return `<div>${C.sec('Microciclo', legend)}<div class="week">${cells}</div>${notes}</div>`;
 }
 
-// Períodos longos: uma coluna por semana (minutos)
+// Períodos longos: uma coluna por semana (minutos), empilhada pelos pilares
 function weeksChart(vm) {
   const weeks = vm.weeks || [];
   const max = vm.weekMax || 1;
@@ -47,10 +74,13 @@ function weeksChart(vm) {
   const every = weeks.length > 30 ? 4 : (weeks.length > 16 ? 2 : 1);
   const cols = weeks.map((w) => {
     const h = w.minutes > 0 ? Math.max(3, Math.round((w.minutes / max) * 85)) : 0;
-    return `<div class="c">${w.minutes > 0 && !dense ? `<b>${w.minutes}'</b>` : ''}${h ? `<i style="height:${h}%"></i>` : ''}</div>`;
+    const segs = (w.pillars || []).length ? w.pillars : [{ key: 'none', minutes: w.minutes }];
+    const soma = segs.reduce((t, g) => t + g.minutes, 0) || 1;
+    const stack = h ? `<i class="stk" style="height:${h}%">${segs.slice().reverse().map((g) => `<u style="flex:${Math.round((g.minutes / soma) * 1000)};background:${C.dimInfo(g.key === 'none' ? 'outros' : g.key).color}"></u>`).join('')}</i>` : '';
+    return `<div class="c">${w.minutes > 0 && !dense ? `<b>${w.minutes}'</b>` : ''}${stack}</div>`;
   }).join('');
   const labs = weeks.map((w, i) => `<span>${i % every === 0 ? esc(w.label) : ''}</span>`).join('');
-  return `<div class="card">${C.sec('Minutos por semana', `${F.plural(weeks.length, 'semana', 'semanas')} · início de cada semana`)}
+  return `<div class="card">${C.sec('Minutos por semana', `${F.plural(weeks.length, 'semana', 'semanas')} · início de cada semana · cores = pilares`)}
     <div class="colchart${dense ? ' dense' : ''}" style="height:34mm">${cols}</div><div class="collab${dense ? ' dense' : ''}">${labs}</div></div>`;
 }
 

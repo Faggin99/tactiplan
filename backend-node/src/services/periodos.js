@@ -41,6 +41,48 @@ function periodoEfetivo(s) {
 
 function rotuloPeriodo(p) { return ROTULO_PERIODO[p] || null; }
 
+// ---------------------------------------------------------------- AVALIAÇÃO
+// Período de avaliação (session_type 'assessment', migration 059): sem blocos de
+// atividade; a ÚNICA informação é o tipo (lista fixa, seleção múltipla) + "Outra"
+// com texto curto (até 60). Pode ficar ao lado de treino ou jogo, ou sozinho.
+// NÃO entra nas estatísticas (minutos, pilares, sessões): só aparece na Programação,
+// na ficha do dia e na semana (decisão do dono, 22/10).
+const TIPOS_AVALIACAO = ['fisica', 'tecnica', 'tatica', 'fisiologica', 'antropometrica', 'psicologica', 'outra'];
+const ROTULO_AVALIACAO = {
+  fisica: 'Física', tecnica: 'Técnica', tatica: 'Tática', fisiologica: 'Fisiológica/Médica',
+  antropometrica: 'Antropométrica', psicologica: 'Psicológica', outra: 'Outra',
+};
+const MAX_OUTRA = 60;
+const TIPOS_SESSAO = ['training', 'match', 'rest', 'assessment'];
+
+function ehAvaliacao(s) { return !!s && s.session_type === 'assessment'; }
+
+// Normaliza o que veio do cliente: só tipos conhecidos, sem repetir, na ordem da
+// lista; "Outra" só com texto (texto aparado, até 60). Devolve { ok, tipos, outra, erro }.
+function normalizarAvaliacao({ tipos, outra } = {}) {
+  const lista = Array.isArray(tipos) ? tipos.map((t) => String(t || '').trim()) : [];
+  const desconhecido = lista.find((t) => t && !TIPOS_AVALIACAO.includes(t));
+  if (desconhecido) return { ok: false, erro: `Tipo de avaliação inválido: ${desconhecido}` };
+  const texto = String(outra || '').trim().replace(/\s+/g, ' ');
+  if (texto.length > MAX_OUTRA) return { ok: false, erro: `"Outra" aceita até ${MAX_OUTRA} caracteres` };
+  const set = new Set(lista.filter(Boolean));
+  if (texto) set.add('outra');
+  if (set.has('outra') && !texto) return { ok: false, erro: 'Diga qual é a outra avaliação' };
+  const ordenados = TIPOS_AVALIACAO.filter((t) => set.has(t));
+  return { ok: true, tipos: ordenados, outra: texto || null };
+}
+
+// "Física, Técnica, Teste de Yo-Yo" — "Outra" vira o texto digitado.
+function rotulosAvaliacao(s) {
+  const tipos = Array.isArray(s?.assessment_types) ? s.assessment_types : [];
+  return tipos
+    .map((t) => (t === 'outra' ? (String(s?.assessment_other || '').trim() || 'Outra') : ROTULO_AVALIACAO[t]))
+    .filter(Boolean);
+}
+
+function textoAvaliacao(s) { return rotulosAvaliacao(s).join(', '); }
+
+
 function dataStr(d) {
   if (d instanceof Date) return d.toISOString().split('T')[0];
   return String(d || '').split('T')[0];
@@ -126,9 +168,11 @@ function distanciaPorDia(sessions) {
 // Adicionar período. `doDia` = linhas do dia (id, periodo, session_type).
 // `atual` = nome do período que JÁ existe (só quando o dia ainda é único).
 // Devolve { ok, erro, status, renomearAtual: 'manha'|null, novo }.
-function validarNovoPeriodo(doDia, { atual = null, novo } = {}) {
+function validarNovoPeriodo(doDia, { atual = null, novo, tipo = 'training' } = {}) {
   const lista = (doDia || []).slice().sort(compararPeriodos);
   if (!lista.length) return { ok: false, status: 404, erro: 'Dia não encontrado' };
+  // o período novo nasce de treino (padrão) ou de avaliação
+  if (!['training', 'assessment'].includes(tipo || 'training')) return { ok: false, status: 400, erro: 'O novo período é de treino ou de avaliação' };
   if (!periodoValido(novo)) return { ok: false, status: 400, erro: 'Período inválido: use manha, tarde ou noite' };
   if (lista.some((s) => s.session_type === 'rest')) {
     return { ok: false, status: 409, erro: 'Dia de descanso não tem períodos. Mude o tipo do dia antes.' };
@@ -175,6 +219,7 @@ function validarRenomear(doDia, sessionId, periodo) {
 // Trocar o tipo de um período, com as regras do dia.
 function validarTipo(doDia, sessionId, tipo) {
   const lista = doDia || [];
+  if (tipo && !TIPOS_SESSAO.includes(tipo)) return { ok: false, status: 400, erro: 'Tipo inválido' };
   if (lista.length < 2) return { ok: true };
   if (tipo === 'rest') {
     return { ok: false, status: 409, erro: 'Descanso vale para o dia inteiro: remova os outros períodos antes.' };
@@ -185,10 +230,12 @@ function validarTipo(doDia, sessionId, tipo) {
   return { ok: true };
 }
 
-// "90+60" — divisão de minutos por período (só quando há 2+).
+// "90+60" — divisão de minutos por período: só quando 2+ períodos TÊM minutos
+// (Manhã 125 + Tarde de jogo/avaliação sem minutos = só "125", nunca "125+0").
 function divisaoMinutos(periodos) {
   if (!periodos || periodos.length < 2) return null;
-  return periodos.map((p) => Number(p.minutes) || 0).join('+');
+  const com = periodos.map((p) => Number(p.minutes) || 0).filter((m) => m > 0);
+  return com.length >= 2 ? com.join('+') : null;
 }
 
 // Início › "Próximas sessões": 1 linha por DIA (o dia de 2+ períodos aparecia
@@ -220,6 +267,14 @@ function proximasPorDia(rows, limite = 5) {
 }
 
 module.exports = {
+  TIPOS_AVALIACAO,
+  ROTULO_AVALIACAO,
+  MAX_OUTRA,
+  TIPOS_SESSAO,
+  ehAvaliacao,
+  normalizarAvaliacao,
+  rotulosAvaliacao,
+  textoAvaliacao,
   proximasPorDia,
   periodoEfetivo,
   PERIODOS,

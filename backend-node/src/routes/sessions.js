@@ -78,18 +78,28 @@ router.post('/:id/periodos', async (req, res) => {
     if (!r) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Session not found' }); }
     const proibido = podeEscrever(req, r.sessao);
     if (proibido) { await client.query('ROLLBACK'); return res.status(403).json({ error: proibido }); }
-    const v = P.validarNovoPeriodo(r.dia, { atual: req.body?.atual || null, novo: req.body?.novo });
+    const tipoNovo = req.body?.tipo || 'training';
+    const v = P.validarNovoPeriodo(r.dia, { atual: req.body?.atual || null, novo: req.body?.novo, tipo: tipoNovo });
     if (!v.ok) { await client.query('ROLLBACK'); return res.status(v.status).json({ error: v.erro, code: 'PERIODO_INVALIDO' }); }
+    // período de avaliação: a única informação é o tipo de avaliação
+    let av = { tipos: null, outra: null };
+    if (tipoNovo === 'assessment') {
+      const n = P.normalizarAvaliacao({ tipos: req.body?.assessment_types, outra: req.body?.assessment_other });
+      if (!n.ok) { await client.query('ROLLBACK'); return res.status(400).json({ error: n.erro, code: 'AVALIACAO_INVALIDA' }); }
+      av = { tipos: n.tipos, outra: n.outra };
+    }
 
     if (v.renomearAtual) {
       await client.query('UPDATE training_sessions SET periodo = $1, updated_at = NOW() WHERE id = $2', [v.renomearAtual, r.dia[0].id]);
     }
     const ref = r.dia[0];
     const ins = await client.query(
-      `INSERT INTO training_sessions (microcycle_id, date, day_name, day_of_week, workspace_id, club_id, session_type, periodo)
-       VALUES ($1, $2, $3, $4, $5, $6, 'training', $7)
+      `INSERT INTO training_sessions (microcycle_id, date, day_name, day_of_week, workspace_id, club_id, session_type, periodo,
+                                      assessment_types, assessment_other)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING id`,
-      [ref.microcycle_id, ref.date, ref.day_name, ref.day_of_week, ref.workspace_id, ref.club_id, v.novo]
+      [ref.microcycle_id, ref.date, ref.day_name, ref.day_of_week, ref.workspace_id, ref.club_id,
+        tipoNovo === 'assessment' ? 'assessment' : 'training', v.novo, av.tipos, av.outra]
     );
     const novoId = ins.rows[0].id;
     const { BLOCK_NAMES } = require('./microcycles');
@@ -182,6 +192,13 @@ router.put('/:id/type', async (req, res) => {
   try {
     if (!req.user.can('training:edit')) return res.status(403).json({ error: 'Sem permissão pra editar treinos' });
     const { session_type, opponent_name } = req.body;
+    // Avaliação: guarda os tipos (lista fixa + "Outra"); os outros tipos zeram esses campos.
+    let av = { tipos: null, outra: null };
+    if (session_type === 'assessment') {
+      const n = P.normalizarAvaliacao({ tipos: req.body.assessment_types, outra: req.body.assessment_other });
+      if (!n.ok) return res.status(400).json({ error: n.erro, code: 'AVALIACAO_INVALIDA' });
+      av = { tipos: n.tipos, outra: n.outra };
+    }
 
     // Dia com períodos: descanso é do dia inteiro e só 1 período de jogo por dia.
     const r = await linhasDoDia({ query }, req.params.id, req.user.workspaceIds || []);
@@ -191,10 +208,11 @@ router.put('/:id/type', async (req, res) => {
     }
 
     const result = await query(
-      `UPDATE training_sessions SET session_type = $1, opponent_name = $2, updated_at = NOW()
+      `UPDATE training_sessions SET session_type = $1, opponent_name = $2,
+              assessment_types = $5, assessment_other = $6, updated_at = NOW()
        WHERE id = $3 AND workspace_id = ANY($4)
        RETURNING *`,
-      [session_type || null, opponent_name || null, req.params.id, req.user.workspaceIds || []]
+      [session_type || null, session_type === 'assessment' ? null : (opponent_name || null), req.params.id, req.user.workspaceIds || [], av.tipos, av.outra]
     );
 
     if (result.rows.length === 0) {

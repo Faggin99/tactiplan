@@ -55,6 +55,13 @@ function blockCard(b, fotos = null) {
     </div></div>`;
 }
 
+// Período de avaliação: card "Avaliação · Física, Técnica" (sem blocos nem minutos)
+function assessmentCard(vm) {
+  const txt = vm.assessment && vm.assessment.text;
+  return `<div class="gamecard assesscard"><div><div class="k">Avaliação</div><div class="op">Avaliação${txt ? ` · ${esc(txt)}` : ''}</div>`
+    + `<div class="meta2">Período de avaliação · não soma minutos de treino</div></div></div>`;
+}
+
 function gameCard(vm) {
   const g = vm.game;
   const meta = [g.round ? (/^\d+$/.test(String(g.round).trim()) ? `Rodada ${esc(g.round)}` : esc(g.round)) : '', g.location ? esc(g.location) : ''].filter(Boolean).join(' · ');
@@ -108,6 +115,10 @@ function renderSession(vm, { now, onlyPhotos = false }) {
   if (vm.type === 'periodos') {
     // Dia com 2+ períodos: cada um em sequência, com a própria linha do tempo e blocos
     body = vm.periodos.map((p) => {
+      if (p.type === 'assessment') {
+        const cabA = `<div class="per-h"><b>${esc(p.label)}</b><span>Avaliação</span></div>`;
+        return `<div class="per">${cabA}${assessmentCard(p)}</div>`;
+      }
       const cab = `<div class="per-h"><b>${esc(p.label)}</b><span>${esc(p.type === 'match' ? 'Jogo' : 'Treino')} · ${esc(F.plural(p.total, 'minuto', 'minutos'))}${p.focus ? ` · ${esc(p.focus)}` : ''}</span></div>`;
       // o título do período anda junto do 1º elemento (não fica sozinho no pé da página)
       if (p.type === 'match') {
@@ -117,6 +128,8 @@ function renderSession(vm, { now, onlyPhotos = false }) {
       if (!p.blocks.length) return `<div class="per">${cab}<div class="empty"><b>Nenhuma atividade neste período</b></div></div>`;
       return `<div class="per">${cab}${timeline(p, `Linha do tempo · ${p.label}`)}</div>${blocksDe(p.blocks)}`;
     }).join('') + notes(vm);
+  } else if (vm.type === 'assessment') {
+    body = assessmentCard(vm) + notes(vm);
   } else if (vm.type === 'rest') {
     body = `<div class="reststate"><b>Descanso</b>Dia sem treino programado.</div>${notes(vm)}`;
   } else if (vm.type === 'match') {
