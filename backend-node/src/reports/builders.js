@@ -525,8 +525,10 @@ function buildDaySheet({ sessions, team, weekNumber = null, gamesById = null, ph
   if (list.length <= 1) {
     const only = list[0];
     const vm = buildSessionSheet({ session: only, team, weekNumber, game: gamesById?.get(only?.id) || null, photos });
-    // só um período de um dia com vários (so_periodo): o título diz qual
-    if (only?.periodo) vm.title = `${vm.title} · ${P.rotuloPeriodo(only.periodo)}`;
+    // o título diz o período (discreto): só um período de um dia com vários (so_periodo)
+    // ou o dia de período único — "Manhã" é o padrão do dia sem nome. Jogo e descanso não.
+    const ef = only && (only.session_type || 'training') === 'training' ? P.periodoEfetivo(only) : null;
+    if (ef) vm.title = `${vm.title} · ${P.rotuloPeriodo(ef)}`;
     return vm;
   }
   const periodos = list.map((s) => {

@@ -31,6 +31,14 @@ function ordemPeriodo(p) {
 
 function periodoValido(p) { return PERIODOS.includes(p); }
 
+// Período que o dia MOSTRA: o nome gravado ou, no dia de período único sem nome
+// (NULL, todos os dados antigos), Manhã — o padrão. Descanso não tem período.
+// Decisão (22/10): NULL continua no banco (sem migração de dados) e vale como Manhã.
+function periodoEfetivo(s) {
+  if (!s || s.session_type === 'rest') return null;
+  return periodoValido(s.periodo) ? s.periodo : 'manha';
+}
+
 function rotuloPeriodo(p) { return ROTULO_PERIODO[p] || null; }
 
 function dataStr(d) {
@@ -126,11 +134,14 @@ function validarNovoPeriodo(doDia, { atual = null, novo } = {}) {
     return { ok: false, status: 409, erro: 'Dia de descanso não tem períodos. Mude o tipo do dia antes.' };
   }
   if (lista.length >= MAX_PERIODOS) return { ok: false, status: 409, erro: `O dia já tem ${MAX_PERIODOS} períodos (o máximo).` };
-  const unico = lista.length === 1 && !lista[0].periodo;
-  if (unico) {
-    if (!periodoValido(atual)) return { ok: false, status: 400, erro: 'Diga qual é o período do treino que já existe (manha, tarde ou noite)' };
-    if (atual === novo) return { ok: false, status: 400, erro: 'O novo período precisa ser diferente do atual' };
-    return { ok: true, renomearAtual: atual, novo };
+  // Dia de 1 período (com nome ou não): `atual` diz o horário do treino que já existe
+  // (padrão: o nome que ele já tem, ou Manhã). Muda o nome se for diferente.
+  if (lista.length === 1) {
+    const ja = periodoEfetivo(lista[0]) || 'manha';
+    const a = atual == null || atual === '' ? ja : atual;
+    if (!periodoValido(a)) return { ok: false, status: 400, erro: 'Diga qual é o período do treino que já existe (manha, tarde ou noite)' };
+    if (a === novo) return { ok: false, status: 400, erro: 'O novo período precisa ser diferente do atual' };
+    return { ok: true, renomearAtual: lista[0].periodo === a ? null : a, novo };
   }
   if (lista.some((s) => s.periodo === novo)) {
     return { ok: false, status: 409, erro: `O dia já tem o período ${rotuloPeriodo(novo)}.` };
@@ -144,8 +155,8 @@ function validarRemocao(doDia, sessionId) {
   const alvo = lista.find((s) => s.id === sessionId);
   if (!alvo) return { ok: false, status: 404, erro: 'Período não encontrado' };
   if (lista.length < 2 || !alvo.periodo) return { ok: false, status: 409, erro: 'O dia tem um período só: não há o que remover.' };
-  const resto = lista.filter((s) => s.id !== sessionId);
-  return { ok: true, voltaAUnico: resto.length === 1 ? resto[0].id : null };
+  // Sobrando 1, ele continua com o nome que tem (não volta a NULL): o dia segue "Tarde".
+  return { ok: true };
 }
 
 // Renomear (trocar o horário de) um período.
@@ -154,7 +165,7 @@ function validarRenomear(doDia, sessionId, periodo) {
   const alvo = lista.find((s) => s.id === sessionId);
   if (!alvo) return { ok: false, status: 404, erro: 'Período não encontrado' };
   if (!periodoValido(periodo)) return { ok: false, status: 400, erro: 'Período inválido: use manha, tarde ou noite' };
-  if (!alvo.periodo) return { ok: false, status: 409, erro: 'O dia tem um período só: adicione um período antes.' };
+  if (alvo.session_type === 'rest') return { ok: false, status: 409, erro: 'Dia de descanso não tem períodos.' };
   if (lista.some((s) => s.id !== sessionId && s.periodo === periodo)) {
     return { ok: false, status: 409, erro: `O dia já tem o período ${rotuloPeriodo(periodo)}.` };
   }
@@ -210,6 +221,7 @@ function proximasPorDia(rows, limite = 5) {
 
 module.exports = {
   proximasPorDia,
+  periodoEfetivo,
   PERIODOS,
   ROTULO_PERIODO,
   MAX_PERIODOS,

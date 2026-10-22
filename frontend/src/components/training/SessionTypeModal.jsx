@@ -4,7 +4,7 @@ import { Dribbble, Moon, Trophy, Plus, Trash2, Sun, Sunset, MoonStar } from 'luc
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { useTheme } from '../../contexts/ThemeContext';
-import { PERIODOS, MAX_PERIODOS, rotuloPeriodo, periodosDoDia, periodosLivres } from '../../lib/periodos';
+import { PERIODOS, MAX_PERIODOS, rotuloPeriodo, periodoEfetivo, periodosDoDia, periodosLivres } from '../../lib/periodos';
 
 const ICONE_PERIODO = { manha: Sun, tarde: Sunset, noite: MoonStar };
 
@@ -25,6 +25,8 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
   const livres = periodos ? periodosLivres(day) : PERIODOS;
   const outroJogo = !!periodos?.some((p) => p.id !== session?.id && p.session_type === 'match');
   const rotuloAtual = rotuloPeriodo(session?.periodo);
+  // dia de período único (treino): o horário dele (Manhã é o padrão do dia sem nome)
+  const efetivoUnico = !periodos && (session?.session_type || 'training') === 'training' ? periodoEfetivo(session) : null;
 
   useEffect(() => {
     if (session) {
@@ -38,7 +40,10 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
 
   useEffect(() => {
     // sugestão: o treino que existe é Manhã, o novo é Tarde; com períodos, o 1º livre
-    if (!periodos) { setAtual('manha'); setNovo('tarde'); } else { setNovo(livres[0] || 'noite'); }
+    if (!periodos) {
+      const a = efetivoUnico || 'manha';
+      setAtual(a); setNovo(PERIODOS.find((p) => p !== a));
+    } else { setNovo(livres[0] || 'noite'); }
   }, [adicionando]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSave = () => {
@@ -208,9 +213,18 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
               <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginTop: '0.2rem' }}>
                 {periodos
                   ? `${periodos.length} períodos: ${periodos.map((p) => rotuloPeriodo(p.periodo)).join(' · ')}. Cada um tem os seus 6 blocos.`
-                  : 'Treino em um período só. Treina duas vezes no dia? Adicione um período (até 3).'}
+                  : efetivoUnico
+                    ? `Treino em um período só (${rotuloPeriodo(efetivoUnico)}). Treina duas vezes no dia? Adicione um período (até 3).`
+                    : 'Treino em um período só. Treina duas vezes no dia? Adicione um período (até 3).'}
               </div>
             </div>
+
+            {!periodos && efetivoUnico && onRenamePeriod && !adicionando && (
+              <div>
+                <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.35rem' }}>Horário do treino</div>
+                {escolhaPeriodo(efetivoUnico, (p) => { if (p !== efetivoUnico) rodar(() => onRenamePeriod(p)); })}
+              </div>
+            )}
 
             {periodos && onRenamePeriod && (
               <div>

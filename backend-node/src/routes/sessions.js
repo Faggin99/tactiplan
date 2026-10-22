@@ -162,9 +162,6 @@ router.delete('/:id/periodo', async (req, res) => {
     // anexos ligados só pela atividade caem pelo CASCADE da atividade; os do dia, pelo da sessão
     await client.query('DELETE FROM training_activities WHERE block_id IN (SELECT id FROM training_activity_blocks WHERE session_id = $1)', [req.params.id]);
     await client.query('DELETE FROM training_sessions WHERE id = $1', [req.params.id]);
-    if (v.voltaAUnico) {
-      await client.query('UPDATE training_sessions SET periodo = NULL, updated_at = NOW() WHERE id = $1', [v.voltaAUnico]);
-    }
     await client.query('COMMIT');
     for (const fp of arquivos) removeStoredFile(fp);
 

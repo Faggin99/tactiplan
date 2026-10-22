@@ -101,13 +101,14 @@ test('ensure: 7 dias, todos de período único (igual a antes)', async () => {
 });
 
 test('adicionar período: o treino que existia vira Manhã, o novo é Tarde', async () => {
-  // 1º período exige o nome do atual
-  let r = await request(app).post(`/api/sessions/${ctx.terca.id}/periodos`).send({ novo: 'tarde' });
+  // dia de período único sem nome = Manhã (padrão): o novo não pode ser Manhã sem dizer o atual
+  let r = await request(app).post(`/api/sessions/${ctx.terca.id}/periodos`).send({ novo: 'manha' });
   assert.equal(r.status, 400);
   r = await request(app).post(`/api/sessions/${ctx.terca.id}/periodos`).send({ atual: 'tarde', novo: 'tarde' });
   assert.equal(r.status, 400);
 
-  r = await request(app).post(`/api/sessions/${ctx.terca.id}/periodos`).send({ atual: 'manha', novo: 'tarde' });
+  // sem `atual`, o treino que existe vira Manhã
+  r = await request(app).post(`/api/sessions/${ctx.terca.id}/periodos`).send({ novo: 'tarde' });
   assert.equal(r.status, 201, JSON.stringify(r.body));
   assert.deepEqual(r.body.periodos.map((p) => p.periodo), ['manha', 'tarde']);
   assert.equal(r.body.periodos[0].id, ctx.terca.id, 'os dados que existiam continuam no 1º período');
@@ -167,8 +168,14 @@ test('regras: período repetido, máximo 3, descanso do dia, 1 jogo por dia', as
 test('trocar o horário de um período', async () => {
   let r = await request(app).put(`/api/sessions/${ctx.noite}/periodo`).send({ periodo: 'tarde' });
   assert.equal(r.status, 409);
+  // dia de período único também troca o horário (e volta)
   r = await request(app).put(`/api/sessions/${ctx.antes[0].id}/periodo`).send({ periodo: 'tarde' });
-  assert.equal(r.status, 409, 'dia de período único não troca horário');
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.deepEqual(r.body.periodos.map((p) => p.periodo), ['tarde']);
+  const seg = (await microciclo()).sessions[0];
+  assert.equal(seg.periodo, 'tarde');
+  assert.equal(seg.periodos, undefined, 'dia de 1 período continua sem `periodos`');
+  await query('UPDATE training_sessions SET periodo = NULL WHERE id = $1', [ctx.antes[0].id]);
   r = await request(app).put(`/api/sessions/${ctx.noite}/periodo`).send({ periodo: 'xx' });
   assert.equal(r.status, 400);
 });
@@ -224,7 +231,7 @@ test('relatórios: ficha com os períodos em sequência, só um período, semana
   assert.equal(manha.periodo, 'manha');
 });
 
-test('remover período apaga atividades e anexos; sobrando 1, o dia volta a ser único', async () => {
+test('remover período apaga atividades e anexos; sobrando 1, ele fica com o nome dele', async () => {
   // anexo da atividade da Tarde (registro + arquivo no disco)
   const dir = path.join(TMP, 'session-files');
   fs.mkdirSync(dir, { recursive: true });
@@ -250,11 +257,11 @@ test('remover período apaga atividades e anexos; sobrando 1, o dia volta a ser 
   r = await request(app).delete(`/api/sessions/${ctx.noite}/periodo`);
   assert.equal(r.status, 200);
   assert.equal(r.body.periodos.length, 1);
-  assert.equal(r.body.periodos[0].periodo, null, 'volta a período único');
+  assert.equal(r.body.periodos[0].periodo, 'manha', 'o que sobra mantém o nome (não volta a NULL)');
 
   const m = await microciclo();
   assert.equal(m.sessions[1].id, ctx.terca.id);
-  assert.equal(m.sessions[1].periodo, null);
+  assert.equal(m.sessions[1].periodo, 'manha');
   assert.equal(m.sessions[1].periodos, undefined);
   assert.equal(m.sessions[1].blocks[0].activity.duration_minutes, 90, 'Manhã (o treino original) ficou intacto');
 });

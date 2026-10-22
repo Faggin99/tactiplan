@@ -8,6 +8,13 @@ export const MAX_PERIODOS = 3;
 
 export const rotuloPeriodo = (p) => ROTULO_PERIODO[p] || null;
 
+// Período que o dia MOSTRA (espelha backend periodoEfetivo): o nome gravado ou, no dia de
+// período único sem nome (NULL, dados antigos), Manhã — o padrão. Descanso não tem período.
+export function periodoEfetivo(s) {
+  if (!s || s.session_type === 'rest') return null;
+  return PERIODOS.includes(s.periodo) ? s.periodo : 'manha';
+}
+
 // Lista de períodos do dia (null = dia de período único, igual a antes).
 export function periodosDoDia(day) {
   return Array.isArray(day?.periodos) && day.periodos.length > 1 ? day.periodos : null;

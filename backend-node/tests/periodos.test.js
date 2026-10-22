@@ -48,7 +48,13 @@ test('mapaDoDia e distância: o dia soma os períodos de treino', () => {
 });
 
 test('validarNovoPeriodo: nome do atual, repetido, máximo, descanso', () => {
-  assert.equal(P.validarNovoPeriodo([linha('a', null)], { novo: 'tarde' }).status, 400);
+  // dia único sem nome: o atual é Manhã por padrão (NULL = Manhã)
+  assert.deepEqual(P.validarNovoPeriodo([linha('a', null)], { novo: 'tarde' }), { ok: true, renomearAtual: 'manha', novo: 'tarde' });
+  assert.equal(P.validarNovoPeriodo([linha('a', null)], { novo: 'manha' }).status, 400);
+  // dia único com nome (Tarde): o novo não pode repetir; o atual só muda se pedirem
+  assert.deepEqual(P.validarNovoPeriodo([linha('a', 'tarde')], { novo: 'manha' }), { ok: true, renomearAtual: null, novo: 'manha' });
+  assert.deepEqual(P.validarNovoPeriodo([linha('a', 'tarde')], { atual: 'noite', novo: 'manha' }), { ok: true, renomearAtual: 'noite', novo: 'manha' });
+  assert.equal(P.validarNovoPeriodo([linha('a', 'tarde')], { novo: 'tarde' }).status, 400);
   assert.deepEqual(P.validarNovoPeriodo([linha('a', null)], { atual: 'manha', novo: 'tarde' }), { ok: true, renomearAtual: 'manha', novo: 'tarde' });
   assert.equal(P.validarNovoPeriodo([linha('a', null)], { atual: 'tarde', novo: 'tarde' }).ok, false);
   assert.equal(P.validarNovoPeriodo([linha('a', 'manha'), linha('b', 'tarde')], { novo: 'tarde' }).status, 409);
@@ -58,9 +64,9 @@ test('validarNovoPeriodo: nome do atual, repetido, máximo, descanso', () => {
   assert.equal(P.validarNovoPeriodo([linha('a', null)], { atual: 'manha', novo: 'madrugada' }).status, 400);
 });
 
-test('remoção e tipo: volta a único, descanso só no dia de 1 período, 1 jogo por dia', () => {
+test('remoção e tipo: sobra 1 com o nome dele, descanso só no dia de 1 período, 1 jogo por dia', () => {
   const dia = [linha('a', 'manha'), linha('b', 'tarde', { session_type: 'match' })];
-  assert.deepEqual(P.validarRemocao(dia, 'b'), { ok: true, voltaAUnico: 'a' });
+  assert.deepEqual(P.validarRemocao(dia, 'b'), { ok: true });
   assert.equal(P.validarRemocao([linha('a', null)], 'a').status, 409);
   assert.equal(P.validarRemocao(dia, 'zz').status, 404);
   assert.equal(P.validarTipo(dia, 'a', 'rest').ok, false);
@@ -133,4 +139,26 @@ test('proximasPorDia (Início): dia com 2 períodos vira 1 linha, jogo prevalece
   assert.equal(dias[1].periodos, undefined);
   assert.deepEqual(dias[2].periodos.map((p) => p.id), ['c1', 'c2']);
   assert.equal(P.proximasPorDia(rows, 2).length, 2);
+});
+
+test('período único: NULL vale Manhã; trocar horário vale no dia de 1 período (não no descanso)', () => {
+  assert.equal(P.periodoEfetivo(linha('a', null)), 'manha');
+  assert.equal(P.periodoEfetivo(linha('a', 'noite')), 'noite');
+  assert.equal(P.periodoEfetivo(linha('a', null, { session_type: 'rest' })), null);
+  assert.deepEqual(P.validarRenomear([linha('a', null)], 'a', 'tarde'), { ok: true });
+  assert.deepEqual(P.validarRenomear([linha('a', 'tarde')], 'a', 'noite'), { ok: true });
+  assert.equal(P.validarRenomear([linha('a', null, { session_type: 'rest' })], 'a', 'tarde').status, 409);
+  assert.equal(P.validarRenomear([linha('a', 'manha'), linha('b', 'tarde')], 'a', 'tarde').status, 409);
+});
+
+test('ficha do dia de período único: título com o período discreto (Manhã padrão); jogo não', () => {
+  const team = { name: 'X', short: 'X', palette: teamPalette(null), modality: 'football_11' };
+  const s = { id: 's1', date: '2031-03-11', day_name: 'Terça', session_type: 'training', periodo: null, blocks: [] };
+  const vm = B.buildDaySheet({ sessions: [s], team });
+  assert.notEqual(vm.type, 'periodos');
+  assert.match(vm.title, / · Manhã$/);
+  const vt = B.buildDaySheet({ sessions: [{ ...s, periodo: 'tarde' }], team });
+  assert.match(vt.title, / · Tarde$/);
+  const vj = B.buildDaySheet({ sessions: [{ ...s, session_type: 'match', opponent_name: 'Y' }], team });
+  assert.doesNotMatch(vj.title, /Manhã/);
 });

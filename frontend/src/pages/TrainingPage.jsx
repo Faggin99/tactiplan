@@ -26,7 +26,7 @@ import { formatKm, toKm } from '../utils/distancia';
 import { ExportMenu } from '../components/common/ExportMenu';
 import { safeFileName } from '../services/reportsService';
 import { useReportPhotosExport } from '../components/reports/useReportPhotosExport';
-import { periodosDoDia, rotuloPeriodo, minutosDaSessao, distanciaDoDia } from '../lib/periodos';
+import { periodosDoDia, rotuloPeriodo, periodoEfetivo, minutosDaSessao, distanciaDoDia } from '../lib/periodos';
 
 export function TrainingPage() {
   const { colors } = useTheme();
@@ -872,7 +872,16 @@ export function TrainingPage() {
                     }}
                   >
                     {(() => {
+                      // período único: o período também aparece ("Manhã · Tático"; Manhã é o
+                      // padrão do dia sem nome), sem setas nem pontinhos. Jogo e descanso: como antes.
                       const pilares = getDayPillarSummary(shown);
+                      const tipo = shown.session_type || 'training';
+                      const per = tipo === 'training' ? rotuloPeriodo(periodoEfetivo(shown)) : null;
+                      // uma linha só (não mexe na altura da grade); o texto inteiro fica no title
+                      if (per) {
+                        const t = `${per}${pilares.length ? ` · ${pilares.join(' | ')}` : ''}`;
+                        return <span title={t} style={{ display: 'block', minWidth: 0, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t}</span>;
+                      }
                       return pilares.length ? pilares.join(' | ') : '\u00A0';
                     })()}
                   </div>
