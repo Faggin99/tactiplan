@@ -1,0 +1,7048 @@
+{
+ "gerado_de": "frontend/src/lib (formation, posicaoEmCampo, minutagem) + EventModal/GameModal + backend utils/minutagem",
+ "formacoes": {
+  "football_11": {
+   "padrao": "4-4-2",
+   "opcoes": [
+    "4-4-2",
+    "4-3-3",
+    "4-2-3-1",
+    "3-5-2",
+    "3-4-3",
+    "5-3-2",
+    "4-1-4-1",
+    "4-5-1"
+   ]
+  },
+  "football_7": {
+   "padrao": "2-3-1",
+   "opcoes": [
+    "2-3-1",
+    "3-2-1",
+    "3-1-2",
+    "2-2-2"
+   ]
+  },
+  "futsal": {
+   "padrao": "2-2",
+   "opcoes": [
+    "2-2",
+    "3-1",
+    "1-2-1",
+    "4-0"
+   ]
+  }
+ },
+ "vagas": [
+  {
+   "modalidade": "football_11",
+   "formacao": "4-4-2",
+   "total": 11,
+   "vagas": [
+    {
+     "indice": 0,
+     "papel": "GOL",
+     "linha": 0,
+     "x": 50,
+     "y": 90,
+     "espaco": 40
+    },
+    {
+     "indice": 1,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 18.5,
+     "y": 72,
+     "espaco": 21
+    },
+    {
+     "indice": 2,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 39.5,
+     "y": 72,
+     "espaco": 21
+    },
+    {
+     "indice": 3,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 60.5,
+     "y": 72,
+     "espaco": 21
+    },
+    {
+     "indice": 4,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 81.5,
+     "y": 72,
+     "espaco": 21
+    },
+    {
+     "indice": 5,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 18.5,
+     "y": 45,
+     "espaco": 21
+    },
+    {
+     "indice": 6,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 39.5,
+     "y": 45,
+     "espaco": 21
+    },
+    {
+     "indice": 7,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 60.5,
+     "y": 45,
+     "espaco": 21
+    },
+    {
+     "indice": 8,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 81.5,
+     "y": 45,
+     "espaco": 21
+    },
+    {
+     "indice": 9,
+     "papel": "ATA",
+     "linha": 3,
+     "x": 29,
+     "y": 18,
+     "espaco": 40
+    },
+    {
+     "indice": 10,
+     "papel": "ATA",
+     "linha": 3,
+     "x": 71,
+     "y": 18,
+     "espaco": 40
+    }
+   ],
+   "posicoes": [
+    "GOL",
+    "LE",
+    "ZAG",
+    "ZAG",
+    "LD",
+    "MEI",
+    "MEI",
+    "MEI",
+    "MEI",
+    "CA",
+    "CA"
+   ]
+  },
+  {
+   "modalidade": "football_11",
+   "formacao": "4-3-3",
+   "total": 11,
+   "vagas": [
+    {
+     "indice": 0,
+     "papel": "GOL",
+     "linha": 0,
+     "x": 50,
+     "y": 90,
+     "espaco": 40
+    },
+    {
+     "indice": 1,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 18.5,
+     "y": 72,
+     "espaco": 21
+    },
+    {
+     "indice": 2,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 39.5,
+     "y": 72,
+     "espaco": 21
+    },
+    {
+     "indice": 3,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 60.5,
+     "y": 72,
+     "espaco": 21
+    },
+    {
+     "indice": 4,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 81.5,
+     "y": 72,
+     "espaco": 21
+    },
+    {
+     "indice": 5,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 22,
+     "y": 45,
+     "espaco": 28
+    },
+    {
+     "indice": 6,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 50,
+     "y": 45,
+     "espaco": 28
+    },
+    {
+     "indice": 7,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 78,
+     "y": 45,
+     "espaco": 28
+    },
+    {
+     "indice": 8,
+     "papel": "ATA",
+     "linha": 3,
+     "x": 22,
+     "y": 18,
+     "espaco": 28
+    },
+    {
+     "indice": 9,
+     "papel": "ATA",
+     "linha": 3,
+     "x": 50,
+     "y": 18,
+     "espaco": 28
+    },
+    {
+     "indice": 10,
+     "papel": "ATA",
+     "linha": 3,
+     "x": 78,
+     "y": 18,
+     "espaco": 28
+    }
+   ],
+   "posicoes": [
+    "GOL",
+    "LE",
+    "ZAG",
+    "ZAG",
+    "LD",
+    "MEI",
+    "MEI",
+    "MEI",
+    "EE",
+    "CA",
+    "ED"
+   ]
+  },
+  {
+   "modalidade": "football_11",
+   "formacao": "4-2-3-1",
+   "total": 11,
+   "vagas": [
+    {
+     "indice": 0,
+     "papel": "GOL",
+     "linha": 0,
+     "x": 50,
+     "y": 90,
+     "espaco": 40
+    },
+    {
+     "indice": 1,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 18.5,
+     "y": 72,
+     "espaco": 21
+    },
+    {
+     "indice": 2,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 39.5,
+     "y": 72,
+     "espaco": 21
+    },
+    {
+     "indice": 3,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 60.5,
+     "y": 72,
+     "espaco": 21
+    },
+    {
+     "indice": 4,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 81.5,
+     "y": 72,
+     "espaco": 21
+    },
+    {
+     "indice": 5,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 29,
+     "y": 54,
+     "espaco": 40
+    },
+    {
+     "indice": 6,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 71,
+     "y": 54,
+     "espaco": 40
+    },
+    {
+     "indice": 7,
+     "papel": "MEI",
+     "linha": 3,
+     "x": 22,
+     "y": 36,
+     "espaco": 28
+    },
+    {
+     "indice": 8,
+     "papel": "MEI",
+     "linha": 3,
+     "x": 50,
+     "y": 36,
+     "espaco": 28
+    },
+    {
+     "indice": 9,
+     "papel": "MEI",
+     "linha": 3,
+     "x": 78,
+     "y": 36,
+     "espaco": 28
+    },
+    {
+     "indice": 10,
+     "papel": "ATA",
+     "linha": 4,
+     "x": 50,
+     "y": 18,
+     "espaco": 40
+    }
+   ],
+   "posicoes": [
+    "GOL",
+    "LE",
+    "ZAG",
+    "ZAG",
+    "LD",
+    "VOL",
+    "VOL",
+    "MEI",
+    "MEI",
+    "MEI",
+    "CA"
+   ]
+  },
+  {
+   "modalidade": "football_11",
+   "formacao": "3-5-2",
+   "total": 11,
+   "vagas": [
+    {
+     "indice": 0,
+     "papel": "GOL",
+     "linha": 0,
+     "x": 50,
+     "y": 90,
+     "espaco": 40
+    },
+    {
+     "indice": 1,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 22,
+     "y": 72,
+     "espaco": 28
+    },
+    {
+     "indice": 2,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 50,
+     "y": 72,
+     "espaco": 28
+    },
+    {
+     "indice": 3,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 78,
+     "y": 72,
+     "espaco": 28
+    },
+    {
+     "indice": 4,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 16.4,
+     "y": 45,
+     "espaco": 16.8
+    },
+    {
+     "indice": 5,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 33.2,
+     "y": 45,
+     "espaco": 16.8
+    },
+    {
+     "indice": 6,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 50,
+     "y": 45,
+     "espaco": 16.8
+    },
+    {
+     "indice": 7,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 66.80000000000001,
+     "y": 45,
+     "espaco": 16.8
+    },
+    {
+     "indice": 8,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 83.60000000000001,
+     "y": 45,
+     "espaco": 16.8
+    },
+    {
+     "indice": 9,
+     "papel": "ATA",
+     "linha": 3,
+     "x": 29,
+     "y": 18,
+     "espaco": 40
+    },
+    {
+     "indice": 10,
+     "papel": "ATA",
+     "linha": 3,
+     "x": 71,
+     "y": 18,
+     "espaco": 40
+    }
+   ],
+   "posicoes": [
+    "GOL",
+    "ZAG",
+    "ZAG",
+    "ZAG",
+    "MEI",
+    "MEI",
+    "MEI",
+    "MEI",
+    "MEI",
+    "CA",
+    "CA"
+   ]
+  },
+  {
+   "modalidade": "football_11",
+   "formacao": "3-4-3",
+   "total": 11,
+   "vagas": [
+    {
+     "indice": 0,
+     "papel": "GOL",
+     "linha": 0,
+     "x": 50,
+     "y": 90,
+     "espaco": 40
+    },
+    {
+     "indice": 1,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 22,
+     "y": 72,
+     "espaco": 28
+    },
+    {
+     "indice": 2,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 50,
+     "y": 72,
+     "espaco": 28
+    },
+    {
+     "indice": 3,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 78,
+     "y": 72,
+     "espaco": 28
+    },
+    {
+     "indice": 4,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 18.5,
+     "y": 45,
+     "espaco": 21
+    },
+    {
+     "indice": 5,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 39.5,
+     "y": 45,
+     "espaco": 21
+    },
+    {
+     "indice": 6,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 60.5,
+     "y": 45,
+     "espaco": 21
+    },
+    {
+     "indice": 7,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 81.5,
+     "y": 45,
+     "espaco": 21
+    },
+    {
+     "indice": 8,
+     "papel": "ATA",
+     "linha": 3,
+     "x": 22,
+     "y": 18,
+     "espaco": 28
+    },
+    {
+     "indice": 9,
+     "papel": "ATA",
+     "linha": 3,
+     "x": 50,
+     "y": 18,
+     "espaco": 28
+    },
+    {
+     "indice": 10,
+     "papel": "ATA",
+     "linha": 3,
+     "x": 78,
+     "y": 18,
+     "espaco": 28
+    }
+   ],
+   "posicoes": [
+    "GOL",
+    "ZAG",
+    "ZAG",
+    "ZAG",
+    "MEI",
+    "MEI",
+    "MEI",
+    "MEI",
+    "EE",
+    "CA",
+    "ED"
+   ]
+  },
+  {
+   "modalidade": "football_11",
+   "formacao": "5-3-2",
+   "total": 11,
+   "vagas": [
+    {
+     "indice": 0,
+     "papel": "GOL",
+     "linha": 0,
+     "x": 50,
+     "y": 90,
+     "espaco": 40
+    },
+    {
+     "indice": 1,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 16.4,
+     "y": 72,
+     "espaco": 16.8
+    },
+    {
+     "indice": 2,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 33.2,
+     "y": 72,
+     "espaco": 16.8
+    },
+    {
+     "indice": 3,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 50,
+     "y": 72,
+     "espaco": 16.8
+    },
+    {
+     "indice": 4,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 66.80000000000001,
+     "y": 72,
+     "espaco": 16.8
+    },
+    {
+     "indice": 5,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 83.60000000000001,
+     "y": 72,
+     "espaco": 16.8
+    },
+    {
+     "indice": 6,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 22,
+     "y": 45,
+     "espaco": 28
+    },
+    {
+     "indice": 7,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 50,
+     "y": 45,
+     "espaco": 28
+    },
+    {
+     "indice": 8,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 78,
+     "y": 45,
+     "espaco": 28
+    },
+    {
+     "indice": 9,
+     "papel": "ATA",
+     "linha": 3,
+     "x": 29,
+     "y": 18,
+     "espaco": 40
+    },
+    {
+     "indice": 10,
+     "papel": "ATA",
+     "linha": 3,
+     "x": 71,
+     "y": 18,
+     "espaco": 40
+    }
+   ],
+   "posicoes": [
+    "GOL",
+    "LE",
+    "ZAG",
+    "ZAG",
+    "ZAG",
+    "LD",
+    "MEI",
+    "MEI",
+    "MEI",
+    "CA",
+    "CA"
+   ]
+  },
+  {
+   "modalidade": "football_11",
+   "formacao": "4-1-4-1",
+   "total": 11,
+   "vagas": [
+    {
+     "indice": 0,
+     "papel": "GOL",
+     "linha": 0,
+     "x": 50,
+     "y": 90,
+     "espaco": 40
+    },
+    {
+     "indice": 1,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 18.5,
+     "y": 72,
+     "espaco": 21
+    },
+    {
+     "indice": 2,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 39.5,
+     "y": 72,
+     "espaco": 21
+    },
+    {
+     "indice": 3,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 60.5,
+     "y": 72,
+     "espaco": 21
+    },
+    {
+     "indice": 4,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 81.5,
+     "y": 72,
+     "espaco": 21
+    },
+    {
+     "indice": 5,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 50,
+     "y": 54,
+     "espaco": 40
+    },
+    {
+     "indice": 6,
+     "papel": "MEI",
+     "linha": 3,
+     "x": 18.5,
+     "y": 36,
+     "espaco": 21
+    },
+    {
+     "indice": 7,
+     "papel": "MEI",
+     "linha": 3,
+     "x": 39.5,
+     "y": 36,
+     "espaco": 21
+    },
+    {
+     "indice": 8,
+     "papel": "MEI",
+     "linha": 3,
+     "x": 60.5,
+     "y": 36,
+     "espaco": 21
+    },
+    {
+     "indice": 9,
+     "papel": "MEI",
+     "linha": 3,
+     "x": 81.5,
+     "y": 36,
+     "espaco": 21
+    },
+    {
+     "indice": 10,
+     "papel": "ATA",
+     "linha": 4,
+     "x": 50,
+     "y": 18,
+     "espaco": 40
+    }
+   ],
+   "posicoes": [
+    "GOL",
+    "LE",
+    "ZAG",
+    "ZAG",
+    "LD",
+    "VOL",
+    "MEI",
+    "MEI",
+    "MEI",
+    "MEI",
+    "CA"
+   ]
+  },
+  {
+   "modalidade": "football_11",
+   "formacao": "4-5-1",
+   "total": 11,
+   "vagas": [
+    {
+     "indice": 0,
+     "papel": "GOL",
+     "linha": 0,
+     "x": 50,
+     "y": 90,
+     "espaco": 40
+    },
+    {
+     "indice": 1,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 18.5,
+     "y": 72,
+     "espaco": 21
+    },
+    {
+     "indice": 2,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 39.5,
+     "y": 72,
+     "espaco": 21
+    },
+    {
+     "indice": 3,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 60.5,
+     "y": 72,
+     "espaco": 21
+    },
+    {
+     "indice": 4,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 81.5,
+     "y": 72,
+     "espaco": 21
+    },
+    {
+     "indice": 5,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 16.4,
+     "y": 45,
+     "espaco": 16.8
+    },
+    {
+     "indice": 6,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 33.2,
+     "y": 45,
+     "espaco": 16.8
+    },
+    {
+     "indice": 7,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 50,
+     "y": 45,
+     "espaco": 16.8
+    },
+    {
+     "indice": 8,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 66.80000000000001,
+     "y": 45,
+     "espaco": 16.8
+    },
+    {
+     "indice": 9,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 83.60000000000001,
+     "y": 45,
+     "espaco": 16.8
+    },
+    {
+     "indice": 10,
+     "papel": "ATA",
+     "linha": 3,
+     "x": 50,
+     "y": 18,
+     "espaco": 40
+    }
+   ],
+   "posicoes": [
+    "GOL",
+    "LE",
+    "ZAG",
+    "ZAG",
+    "LD",
+    "MEI",
+    "MEI",
+    "MEI",
+    "MEI",
+    "MEI",
+    "CA"
+   ]
+  },
+  {
+   "modalidade": "football_7",
+   "formacao": "2-3-1",
+   "total": 7,
+   "vagas": [
+    {
+     "indice": 0,
+     "papel": "GOL",
+     "linha": 0,
+     "x": 50,
+     "y": 90,
+     "espaco": 40
+    },
+    {
+     "indice": 1,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 29,
+     "y": 72,
+     "espaco": 40
+    },
+    {
+     "indice": 2,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 71,
+     "y": 72,
+     "espaco": 40
+    },
+    {
+     "indice": 3,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 22,
+     "y": 45,
+     "espaco": 28
+    },
+    {
+     "indice": 4,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 50,
+     "y": 45,
+     "espaco": 28
+    },
+    {
+     "indice": 5,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 78,
+     "y": 45,
+     "espaco": 28
+    },
+    {
+     "indice": 6,
+     "papel": "ATA",
+     "linha": 3,
+     "x": 50,
+     "y": 18,
+     "espaco": 40
+    }
+   ],
+   "posicoes": [
+    "GOL",
+    "ZAG",
+    "ZAG",
+    "MEI",
+    "MEI",
+    "MEI",
+    "CA"
+   ]
+  },
+  {
+   "modalidade": "football_7",
+   "formacao": "3-2-1",
+   "total": 7,
+   "vagas": [
+    {
+     "indice": 0,
+     "papel": "GOL",
+     "linha": 0,
+     "x": 50,
+     "y": 90,
+     "espaco": 40
+    },
+    {
+     "indice": 1,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 22,
+     "y": 72,
+     "espaco": 28
+    },
+    {
+     "indice": 2,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 50,
+     "y": 72,
+     "espaco": 28
+    },
+    {
+     "indice": 3,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 78,
+     "y": 72,
+     "espaco": 28
+    },
+    {
+     "indice": 4,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 29,
+     "y": 45,
+     "espaco": 40
+    },
+    {
+     "indice": 5,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 71,
+     "y": 45,
+     "espaco": 40
+    },
+    {
+     "indice": 6,
+     "papel": "ATA",
+     "linha": 3,
+     "x": 50,
+     "y": 18,
+     "espaco": 40
+    }
+   ],
+   "posicoes": [
+    "GOL",
+    "ZAG",
+    "ZAG",
+    "ZAG",
+    "MEI",
+    "MEI",
+    "CA"
+   ]
+  },
+  {
+   "modalidade": "football_7",
+   "formacao": "3-1-2",
+   "total": 7,
+   "vagas": [
+    {
+     "indice": 0,
+     "papel": "GOL",
+     "linha": 0,
+     "x": 50,
+     "y": 90,
+     "espaco": 40
+    },
+    {
+     "indice": 1,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 22,
+     "y": 72,
+     "espaco": 28
+    },
+    {
+     "indice": 2,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 50,
+     "y": 72,
+     "espaco": 28
+    },
+    {
+     "indice": 3,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 78,
+     "y": 72,
+     "espaco": 28
+    },
+    {
+     "indice": 4,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 50,
+     "y": 45,
+     "espaco": 40
+    },
+    {
+     "indice": 5,
+     "papel": "ATA",
+     "linha": 3,
+     "x": 29,
+     "y": 18,
+     "espaco": 40
+    },
+    {
+     "indice": 6,
+     "papel": "ATA",
+     "linha": 3,
+     "x": 71,
+     "y": 18,
+     "espaco": 40
+    }
+   ],
+   "posicoes": [
+    "GOL",
+    "ZAG",
+    "ZAG",
+    "ZAG",
+    "MEI",
+    "CA",
+    "CA"
+   ]
+  },
+  {
+   "modalidade": "football_7",
+   "formacao": "2-2-2",
+   "total": 7,
+   "vagas": [
+    {
+     "indice": 0,
+     "papel": "GOL",
+     "linha": 0,
+     "x": 50,
+     "y": 90,
+     "espaco": 40
+    },
+    {
+     "indice": 1,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 29,
+     "y": 72,
+     "espaco": 40
+    },
+    {
+     "indice": 2,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 71,
+     "y": 72,
+     "espaco": 40
+    },
+    {
+     "indice": 3,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 29,
+     "y": 45,
+     "espaco": 40
+    },
+    {
+     "indice": 4,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 71,
+     "y": 45,
+     "espaco": 40
+    },
+    {
+     "indice": 5,
+     "papel": "ATA",
+     "linha": 3,
+     "x": 29,
+     "y": 18,
+     "espaco": 40
+    },
+    {
+     "indice": 6,
+     "papel": "ATA",
+     "linha": 3,
+     "x": 71,
+     "y": 18,
+     "espaco": 40
+    }
+   ],
+   "posicoes": [
+    "GOL",
+    "ZAG",
+    "ZAG",
+    "MEI",
+    "MEI",
+    "CA",
+    "CA"
+   ]
+  },
+  {
+   "modalidade": "futsal",
+   "formacao": "2-2",
+   "total": 5,
+   "vagas": [
+    {
+     "indice": 0,
+     "papel": "GOL",
+     "linha": 0,
+     "x": 50,
+     "y": 90,
+     "espaco": 40
+    },
+    {
+     "indice": 1,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 29,
+     "y": 72,
+     "espaco": 40
+    },
+    {
+     "indice": 2,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 71,
+     "y": 72,
+     "espaco": 40
+    },
+    {
+     "indice": 3,
+     "papel": "ATA",
+     "linha": 2,
+     "x": 29,
+     "y": 18,
+     "espaco": 40
+    },
+    {
+     "indice": 4,
+     "papel": "ATA",
+     "linha": 2,
+     "x": 71,
+     "y": 18,
+     "espaco": 40
+    }
+   ],
+   "posicoes": [
+    "GOL",
+    "FIX",
+    "FIX",
+    "PIV",
+    "PIV"
+   ]
+  },
+  {
+   "modalidade": "futsal",
+   "formacao": "3-1",
+   "total": 5,
+   "vagas": [
+    {
+     "indice": 0,
+     "papel": "GOL",
+     "linha": 0,
+     "x": 50,
+     "y": 90,
+     "espaco": 40
+    },
+    {
+     "indice": 1,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 22,
+     "y": 72,
+     "espaco": 28
+    },
+    {
+     "indice": 2,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 50,
+     "y": 72,
+     "espaco": 28
+    },
+    {
+     "indice": 3,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 78,
+     "y": 72,
+     "espaco": 28
+    },
+    {
+     "indice": 4,
+     "papel": "ATA",
+     "linha": 2,
+     "x": 50,
+     "y": 18,
+     "espaco": 40
+    }
+   ],
+   "posicoes": [
+    "GOL",
+    "ALA-E",
+    "FIX",
+    "ALA-D",
+    "PIV"
+   ]
+  },
+  {
+   "modalidade": "futsal",
+   "formacao": "1-2-1",
+   "total": 5,
+   "vagas": [
+    {
+     "indice": 0,
+     "papel": "GOL",
+     "linha": 0,
+     "x": 50,
+     "y": 90,
+     "espaco": 40
+    },
+    {
+     "indice": 1,
+     "papel": "DEF",
+     "linha": 1,
+     "x": 50,
+     "y": 72,
+     "espaco": 40
+    },
+    {
+     "indice": 2,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 29,
+     "y": 45,
+     "espaco": 40
+    },
+    {
+     "indice": 3,
+     "papel": "MEI",
+     "linha": 2,
+     "x": 71,
+     "y": 45,
+     "espaco": 40
+    },
+    {
+     "indice": 4,
+     "papel": "ATA",
+     "linha": 3,
+     "x": 50,
+     "y": 18,
+     "espaco": 40
+    }
+   ],
+   "posicoes": [
+    "GOL",
+    "FIX",
+    "ALA-E",
+    "ALA-D",
+    "PIV"
+   ]
+  },
+  {
+   "modalidade": "futsal",
+   "formacao": "4-0",
+   "total": 5,
+   "vagas": [
+    {
+     "indice": 0,
+     "papel": "GOL",
+     "linha": 0,
+     "x": 50,
+     "y": 90,
+     "espaco": 40
+    },
+    {
+     "indice": 1,
+     "papel": "LIN",
+     "linha": 1,
+     "x": 18.5,
+     "y": 50,
+     "espaco": 21
+    },
+    {
+     "indice": 2,
+     "papel": "LIN",
+     "linha": 1,
+     "x": 39.5,
+     "y": 50,
+     "espaco": 21
+    },
+    {
+     "indice": 3,
+     "papel": "LIN",
+     "linha": 1,
+     "x": 60.5,
+     "y": 50,
+     "espaco": 21
+    },
+    {
+     "indice": 4,
+     "papel": "LIN",
+     "linha": 1,
+     "x": 81.5,
+     "y": 50,
+     "espaco": 21
+    }
+   ],
+   "posicoes": [
+    "GOL",
+    null,
+    null,
+    null,
+    null
+   ]
+  }
+ ],
+ "posicao_extra": [
+  {
+   "formacao": "4-4-2",
+   "vaga": null,
+   "modalidade": "football_11",
+   "posicao": null
+  },
+  {
+   "formacao": "4-4-2",
+   "vaga": -1,
+   "modalidade": "football_11",
+   "posicao": null
+  },
+  {
+   "formacao": "4-4-2",
+   "vaga": 11,
+   "modalidade": "football_11",
+   "posicao": null
+  },
+  {
+   "formacao": "4-4-2",
+   "vaga": 0,
+   "modalidade": "futsal",
+   "posicao": "GOL"
+  },
+  {
+   "formacao": "",
+   "vaga": 1,
+   "modalidade": "football_11",
+   "posicao": null
+  },
+  {
+   "formacao": "9",
+   "vaga": 1,
+   "modalidade": "football_11",
+   "posicao": null
+  },
+  {
+   "formacao": "4-0",
+   "vaga": 2,
+   "modalidade": "futsal",
+   "posicao": null
+  },
+  {
+   "formacao": "3-1",
+   "vaga": 4,
+   "modalidade": "futsal",
+   "posicao": "PIV"
+  }
+ ],
+ "resolver": [
+  {
+   "modalidade": "football_11",
+   "formacao": "4-3-3",
+   "resultado": "4-3-3"
+  },
+  {
+   "modalidade": "football_11",
+   "formacao": null,
+   "resultado": "4-4-2"
+  },
+  {
+   "modalidade": "football_11",
+   "formacao": "2-2",
+   "resultado": "4-4-2"
+  },
+  {
+   "modalidade": "futsal",
+   "formacao": "4-0",
+   "resultado": "4-0"
+  },
+  {
+   "modalidade": "futsal",
+   "formacao": "4-4-2",
+   "resultado": "2-2"
+  },
+  {
+   "modalidade": "football_7",
+   "formacao": "",
+   "resultado": "2-3-1"
+  },
+  {
+   "modalidade": "xyz",
+   "formacao": "4-3-3",
+   "resultado": "4-3-3"
+  },
+  {
+   "modalidade": null,
+   "formacao": null,
+   "resultado": "4-4-2"
+  }
+ ],
+ "remapear": [
+  {
+   "de": "4-4-2",
+   "para": "4-3-3",
+   "entrada": [
+    {
+     "athlete_id": "g",
+     "status": "starter",
+     "slot": 0,
+     "posicao": "GOL"
+    },
+    {
+     "athlete_id": "d1",
+     "status": "starter",
+     "slot": 1,
+     "posicao": "LE"
+    },
+    {
+     "athlete_id": "d2",
+     "status": "starter",
+     "slot": 2,
+     "posicao": "ZAG"
+    },
+    {
+     "athlete_id": "d3",
+     "status": "starter",
+     "slot": 3,
+     "posicao": "ZAG"
+    },
+    {
+     "athlete_id": "d4",
+     "status": "starter",
+     "slot": 4,
+     "posicao": "LD"
+    },
+    {
+     "athlete_id": "m1",
+     "status": "starter",
+     "slot": 5,
+     "posicao": "MEI"
+    },
+    {
+     "athlete_id": "m2",
+     "status": "starter",
+     "slot": 6,
+     "posicao": "VOL"
+    },
+    {
+     "athlete_id": "m3",
+     "status": "starter",
+     "slot": 7,
+     "posicao": "MEI"
+    },
+    {
+     "athlete_id": "m4",
+     "status": "starter",
+     "slot": 8,
+     "posicao": "MEI"
+    },
+    {
+     "athlete_id": "a1",
+     "status": "starter",
+     "slot": 9,
+     "posicao": "CA"
+    },
+    {
+     "athlete_id": "a2",
+     "status": "starter",
+     "slot": 10,
+     "posicao": "CA"
+    },
+    {
+     "athlete_id": "r1",
+     "status": "substitute",
+     "slot": null,
+     "posicao": "MEI"
+    },
+    {
+     "athlete_id": "s1",
+     "status": "starter",
+     "slot": null,
+     "posicao": "CA"
+    }
+   ],
+   "saida": [
+    {
+     "athlete_id": "g",
+     "status": "starter",
+     "slot": 0
+    },
+    {
+     "athlete_id": "d1",
+     "status": "starter",
+     "slot": 1
+    },
+    {
+     "athlete_id": "d2",
+     "status": "starter",
+     "slot": 2
+    },
+    {
+     "athlete_id": "d3",
+     "status": "starter",
+     "slot": 3
+    },
+    {
+     "athlete_id": "d4",
+     "status": "starter",
+     "slot": 4
+    },
+    {
+     "athlete_id": "m1",
+     "status": "starter",
+     "slot": 5
+    },
+    {
+     "athlete_id": "m2",
+     "status": "starter",
+     "slot": 6
+    },
+    {
+     "athlete_id": "m3",
+     "status": "starter",
+     "slot": 7
+    },
+    {
+     "athlete_id": "m4",
+     "status": "starter",
+     "slot": null
+    },
+    {
+     "athlete_id": "a1",
+     "status": "starter",
+     "slot": 8
+    },
+    {
+     "athlete_id": "a2",
+     "status": "starter",
+     "slot": 9
+    },
+    {
+     "athlete_id": "r1",
+     "status": "substitute",
+     "slot": null
+    },
+    {
+     "athlete_id": "s1",
+     "status": "starter",
+     "slot": null
+    }
+   ],
+   "deslocados": [
+    "m4"
+   ]
+  },
+  {
+   "de": "4-4-2",
+   "para": "3-5-2",
+   "entrada": [
+    {
+     "athlete_id": "g",
+     "status": "starter",
+     "slot": 0,
+     "posicao": "GOL"
+    },
+    {
+     "athlete_id": "d1",
+     "status": "starter",
+     "slot": 1,
+     "posicao": "LE"
+    },
+    {
+     "athlete_id": "d2",
+     "status": "starter",
+     "slot": 2,
+     "posicao": "ZAG"
+    },
+    {
+     "athlete_id": "d3",
+     "status": "starter",
+     "slot": 3,
+     "posicao": "ZAG"
+    },
+    {
+     "athlete_id": "d4",
+     "status": "starter",
+     "slot": 4,
+     "posicao": "LD"
+    },
+    {
+     "athlete_id": "m1",
+     "status": "starter",
+     "slot": 5,
+     "posicao": "MEI"
+    },
+    {
+     "athlete_id": "m2",
+     "status": "starter",
+     "slot": 6,
+     "posicao": "VOL"
+    },
+    {
+     "athlete_id": "m3",
+     "status": "starter",
+     "slot": 7,
+     "posicao": "MEI"
+    },
+    {
+     "athlete_id": "m4",
+     "status": "starter",
+     "slot": 8,
+     "posicao": "MEI"
+    },
+    {
+     "athlete_id": "a1",
+     "status": "starter",
+     "slot": 9,
+     "posicao": "CA"
+    },
+    {
+     "athlete_id": "a2",
+     "status": "starter",
+     "slot": 10,
+     "posicao": "CA"
+    },
+    {
+     "athlete_id": "r1",
+     "status": "substitute",
+     "slot": null,
+     "posicao": "MEI"
+    },
+    {
+     "athlete_id": "s1",
+     "status": "starter",
+     "slot": null,
+     "posicao": "CA"
+    }
+   ],
+   "saida": [
+    {
+     "athlete_id": "g",
+     "status": "starter",
+     "slot": 0
+    },
+    {
+     "athlete_id": "d1",
+     "status": "starter",
+     "slot": 1
+    },
+    {
+     "athlete_id": "d2",
+     "status": "starter",
+     "slot": 2
+    },
+    {
+     "athlete_id": "d3",
+     "status": "starter",
+     "slot": 3
+    },
+    {
+     "athlete_id": "d4",
+     "status": "starter",
+     "slot": null
+    },
+    {
+     "athlete_id": "m1",
+     "status": "starter",
+     "slot": 4
+    },
+    {
+     "athlete_id": "m2",
+     "status": "starter",
+     "slot": 5
+    },
+    {
+     "athlete_id": "m3",
+     "status": "starter",
+     "slot": 6
+    },
+    {
+     "athlete_id": "m4",
+     "status": "starter",
+     "slot": 7
+    },
+    {
+     "athlete_id": "a1",
+     "status": "starter",
+     "slot": 9
+    },
+    {
+     "athlete_id": "a2",
+     "status": "starter",
+     "slot": 10
+    },
+    {
+     "athlete_id": "r1",
+     "status": "substitute",
+     "slot": null
+    },
+    {
+     "athlete_id": "s1",
+     "status": "starter",
+     "slot": null
+    }
+   ],
+   "deslocados": [
+    "d4"
+   ]
+  },
+  {
+   "de": "4-4-2",
+   "para": "5-3-2",
+   "entrada": [
+    {
+     "athlete_id": "g",
+     "status": "starter",
+     "slot": 0,
+     "posicao": "GOL"
+    },
+    {
+     "athlete_id": "d1",
+     "status": "starter",
+     "slot": 1,
+     "posicao": "LE"
+    },
+    {
+     "athlete_id": "d2",
+     "status": "starter",
+     "slot": 2,
+     "posicao": "ZAG"
+    },
+    {
+     "athlete_id": "d3",
+     "status": "starter",
+     "slot": 3,
+     "posicao": "ZAG"
+    },
+    {
+     "athlete_id": "d4",
+     "status": "starter",
+     "slot": 4,
+     "posicao": "LD"
+    },
+    {
+     "athlete_id": "m1",
+     "status": "starter",
+     "slot": 5,
+     "posicao": "MEI"
+    },
+    {
+     "athlete_id": "m2",
+     "status": "starter",
+     "slot": 6,
+     "posicao": "VOL"
+    },
+    {
+     "athlete_id": "m3",
+     "status": "starter",
+     "slot": 7,
+     "posicao": "MEI"
+    },
+    {
+     "athlete_id": "m4",
+     "status": "starter",
+     "slot": 8,
+     "posicao": "MEI"
+    },
+    {
+     "athlete_id": "a1",
+     "status": "starter",
+     "slot": 9,
+     "posicao": "CA"
+    },
+    {
+     "athlete_id": "a2",
+     "status": "starter",
+     "slot": 10,
+     "posicao": "CA"
+    },
+    {
+     "athlete_id": "r1",
+     "status": "substitute",
+     "slot": null,
+     "posicao": "MEI"
+    },
+    {
+     "athlete_id": "s1",
+     "status": "starter",
+     "slot": null,
+     "posicao": "CA"
+    }
+   ],
+   "saida": [
+    {
+     "athlete_id": "g",
+     "status": "starter",
+     "slot": 0
+    },
+    {
+     "athlete_id": "d1",
+     "status": "starter",
+     "slot": 1
+    },
+    {
+     "athlete_id": "d2",
+     "status": "starter",
+     "slot": 2
+    },
+    {
+     "athlete_id": "d3",
+     "status": "starter",
+     "slot": 3
+    },
+    {
+     "athlete_id": "d4",
+     "status": "starter",
+     "slot": 4
+    },
+    {
+     "athlete_id": "m1",
+     "status": "starter",
+     "slot": 6
+    },
+    {
+     "athlete_id": "m2",
+     "status": "starter",
+     "slot": 7
+    },
+    {
+     "athlete_id": "m3",
+     "status": "starter",
+     "slot": 8
+    },
+    {
+     "athlete_id": "m4",
+     "status": "starter",
+     "slot": null
+    },
+    {
+     "athlete_id": "a1",
+     "status": "starter",
+     "slot": 9
+    },
+    {
+     "athlete_id": "a2",
+     "status": "starter",
+     "slot": 10
+    },
+    {
+     "athlete_id": "r1",
+     "status": "substitute",
+     "slot": null
+    },
+    {
+     "athlete_id": "s1",
+     "status": "starter",
+     "slot": null
+    }
+   ],
+   "deslocados": [
+    "m4"
+   ]
+  },
+  {
+   "de": "4-3-3",
+   "para": "4-4-2",
+   "entrada": [
+    {
+     "athlete_id": "g",
+     "status": "starter",
+     "slot": 0,
+     "posicao": "GOL"
+    },
+    {
+     "athlete_id": "d1",
+     "status": "starter",
+     "slot": 1,
+     "posicao": "LE"
+    },
+    {
+     "athlete_id": "d2",
+     "status": "starter",
+     "slot": 2,
+     "posicao": "ZAG"
+    },
+    {
+     "athlete_id": "d3",
+     "status": "starter",
+     "slot": 3,
+     "posicao": "ZAG"
+    },
+    {
+     "athlete_id": "d4",
+     "status": "starter",
+     "slot": 4,
+     "posicao": "LD"
+    },
+    {
+     "athlete_id": "m1",
+     "status": "starter",
+     "slot": 5,
+     "posicao": "MEI"
+    },
+    {
+     "athlete_id": "m2",
+     "status": "starter",
+     "slot": 6,
+     "posicao": "VOL"
+    },
+    {
+     "athlete_id": "m3",
+     "status": "starter",
+     "slot": 7,
+     "posicao": "MEI"
+    },
+    {
+     "athlete_id": "m4",
+     "status": "starter",
+     "slot": 8,
+     "posicao": "MEI"
+    },
+    {
+     "athlete_id": "a1",
+     "status": "starter",
+     "slot": 9,
+     "posicao": "CA"
+    },
+    {
+     "athlete_id": "a2",
+     "status": "starter",
+     "slot": 10,
+     "posicao": "CA"
+    },
+    {
+     "athlete_id": "r1",
+     "status": "substitute",
+     "slot": null,
+     "posicao": "MEI"
+    },
+    {
+     "athlete_id": "s1",
+     "status": "starter",
+     "slot": null,
+     "posicao": "CA"
+    }
+   ],
+   "saida": [
+    {
+     "athlete_id": "g",
+     "status": "starter",
+     "slot": 0
+    },
+    {
+     "athlete_id": "d1",
+     "status": "starter",
+     "slot": 1
+    },
+    {
+     "athlete_id": "d2",
+     "status": "starter",
+     "slot": 2
+    },
+    {
+     "athlete_id": "d3",
+     "status": "starter",
+     "slot": 3
+    },
+    {
+     "athlete_id": "d4",
+     "status": "starter",
+     "slot": 4
+    },
+    {
+     "athlete_id": "m1",
+     "status": "starter",
+     "slot": 5
+    },
+    {
+     "athlete_id": "m2",
+     "status": "starter",
+     "slot": 6
+    },
+    {
+     "athlete_id": "m3",
+     "status": "starter",
+     "slot": 7
+    },
+    {
+     "athlete_id": "m4",
+     "status": "starter",
+     "slot": 9
+    },
+    {
+     "athlete_id": "a1",
+     "status": "starter",
+     "slot": 10
+    },
+    {
+     "athlete_id": "a2",
+     "status": "starter",
+     "slot": null
+    },
+    {
+     "athlete_id": "r1",
+     "status": "substitute",
+     "slot": null
+    },
+    {
+     "athlete_id": "s1",
+     "status": "starter",
+     "slot": null
+    }
+   ],
+   "deslocados": [
+    "a2"
+   ]
+  },
+  {
+   "de": "2-2",
+   "para": "4-0",
+   "entrada": [
+    {
+     "athlete_id": "g",
+     "status": "starter",
+     "slot": 0,
+     "posicao": null
+    },
+    {
+     "athlete_id": "f1",
+     "status": "starter",
+     "slot": 1,
+     "posicao": null
+    },
+    {
+     "athlete_id": "f2",
+     "status": "starter",
+     "slot": 2,
+     "posicao": null
+    },
+    {
+     "athlete_id": "p1",
+     "status": "starter",
+     "slot": 3,
+     "posicao": null
+    },
+    {
+     "athlete_id": "p2",
+     "status": "starter",
+     "slot": 4,
+     "posicao": null
+    }
+   ],
+   "saida": [
+    {
+     "athlete_id": "g",
+     "status": "starter",
+     "slot": 0
+    },
+    {
+     "athlete_id": "f1",
+     "status": "starter",
+     "slot": 1
+    },
+    {
+     "athlete_id": "f2",
+     "status": "starter",
+     "slot": 2
+    },
+    {
+     "athlete_id": "p1",
+     "status": "starter",
+     "slot": 3
+    },
+    {
+     "athlete_id": "p2",
+     "status": "starter",
+     "slot": 4
+    }
+   ],
+   "deslocados": []
+  },
+  {
+   "de": "4-0",
+   "para": "3-1",
+   "entrada": [
+    {
+     "athlete_id": "g",
+     "status": "starter",
+     "slot": 0,
+     "posicao": null
+    },
+    {
+     "athlete_id": "f1",
+     "status": "starter",
+     "slot": 1,
+     "posicao": null
+    },
+    {
+     "athlete_id": "f2",
+     "status": "starter",
+     "slot": 2,
+     "posicao": null
+    },
+    {
+     "athlete_id": "p1",
+     "status": "starter",
+     "slot": 3,
+     "posicao": null
+    },
+    {
+     "athlete_id": "p2",
+     "status": "starter",
+     "slot": 4,
+     "posicao": null
+    }
+   ],
+   "saida": [
+    {
+     "athlete_id": "g",
+     "status": "starter",
+     "slot": 0
+    },
+    {
+     "athlete_id": "f1",
+     "status": "starter",
+     "slot": 1
+    },
+    {
+     "athlete_id": "f2",
+     "status": "starter",
+     "slot": 2
+    },
+    {
+     "athlete_id": "p1",
+     "status": "starter",
+     "slot": 3
+    },
+    {
+     "athlete_id": "p2",
+     "status": "starter",
+     "slot": 4
+    }
+   ],
+   "deslocados": []
+  },
+  {
+   "de": "2-3-1",
+   "para": "3-2-1",
+   "entrada": [
+    {
+     "athlete_id": "g",
+     "status": "starter",
+     "slot": 0,
+     "posicao": null
+    },
+    {
+     "athlete_id": "z1",
+     "status": "starter",
+     "slot": 1,
+     "posicao": null
+    },
+    {
+     "athlete_id": "z2",
+     "status": "starter",
+     "slot": 2,
+     "posicao": null
+    },
+    {
+     "athlete_id": "m1",
+     "status": "starter",
+     "slot": 3,
+     "posicao": null
+    },
+    {
+     "athlete_id": "m2",
+     "status": "starter",
+     "slot": 4,
+     "posicao": null
+    },
+    {
+     "athlete_id": "m3",
+     "status": "starter",
+     "slot": 5,
+     "posicao": null
+    },
+    {
+     "athlete_id": "c",
+     "status": "starter",
+     "slot": 6,
+     "posicao": null
+    },
+    {
+     "athlete_id": "x",
+     "status": "starter",
+     "slot": 9,
+     "posicao": null
+    }
+   ],
+   "saida": [
+    {
+     "athlete_id": "g",
+     "status": "starter",
+     "slot": 0
+    },
+    {
+     "athlete_id": "z1",
+     "status": "starter",
+     "slot": 1
+    },
+    {
+     "athlete_id": "z2",
+     "status": "starter",
+     "slot": 2
+    },
+    {
+     "athlete_id": "m1",
+     "status": "starter",
+     "slot": 4
+    },
+    {
+     "athlete_id": "m2",
+     "status": "starter",
+     "slot": 5
+    },
+    {
+     "athlete_id": "m3",
+     "status": "starter",
+     "slot": null
+    },
+    {
+     "athlete_id": "c",
+     "status": "starter",
+     "slot": 6
+    },
+    {
+     "athlete_id": "x",
+     "status": "starter",
+     "slot": null
+    }
+   ],
+   "deslocados": [
+    "m3",
+    "x"
+   ]
+  }
+ ],
+ "sugerir": [
+  {
+   "formacao": "4-4-2",
+   "entrada": [
+    {
+     "athlete_id": "x1",
+     "status": "starter",
+     "slot": null,
+     "posicao": "GOL"
+    },
+    {
+     "athlete_id": "x2",
+     "status": "starter",
+     "slot": null,
+     "posicao": "ZAG"
+    },
+    {
+     "athlete_id": "x3",
+     "status": "starter",
+     "slot": null,
+     "posicao": "CA"
+    },
+    {
+     "athlete_id": "x4",
+     "status": "starter",
+     "slot": null,
+     "posicao": "MOF"
+    },
+    {
+     "athlete_id": "x5",
+     "status": "starter",
+     "slot": null,
+     "posicao": null
+    },
+    {
+     "athlete_id": "x6",
+     "status": "substitute",
+     "slot": null,
+     "posicao": "GOL"
+    }
+   ],
+   "saida": [
+    {
+     "athlete_id": "x1",
+     "status": "starter",
+     "slot": 0
+    },
+    {
+     "athlete_id": "x2",
+     "status": "starter",
+     "slot": 1
+    },
+    {
+     "athlete_id": "x3",
+     "status": "starter",
+     "slot": 9
+    },
+    {
+     "athlete_id": "x4",
+     "status": "starter",
+     "slot": 5
+    },
+    {
+     "athlete_id": "x5",
+     "status": "starter",
+     "slot": 2
+    },
+    {
+     "athlete_id": "x6",
+     "status": "substitute",
+     "slot": null
+    }
+   ]
+  },
+  {
+   "formacao": "4-4-2",
+   "entrada": [
+    {
+     "athlete_id": "g",
+     "status": "starter",
+     "slot": 0,
+     "posicao": "GOL"
+    },
+    {
+     "athlete_id": "x1",
+     "status": "starter",
+     "slot": null,
+     "posicao": "GOL"
+    },
+    {
+     "athlete_id": "x2",
+     "status": "starter",
+     "slot": null,
+     "posicao": "LD"
+    },
+    {
+     "athlete_id": "x3",
+     "status": "starter",
+     "slot": null,
+     "posicao": null
+    }
+   ],
+   "saida": [
+    {
+     "athlete_id": "g",
+     "status": "starter",
+     "slot": 0
+    },
+    {
+     "athlete_id": "x1",
+     "status": "starter",
+     "slot": 2
+    },
+    {
+     "athlete_id": "x2",
+     "status": "starter",
+     "slot": 1
+    },
+    {
+     "athlete_id": "x3",
+     "status": "starter",
+     "slot": 3
+    }
+   ]
+  },
+  {
+   "formacao": "2-2",
+   "entrada": [
+    {
+     "athlete_id": "y1",
+     "status": "starter",
+     "slot": null,
+     "posicao": "PIV"
+    },
+    {
+     "athlete_id": "y2",
+     "status": "starter",
+     "slot": null,
+     "posicao": "FIX"
+    },
+    {
+     "athlete_id": "y3",
+     "status": "starter",
+     "slot": null,
+     "posicao": "ALA-D"
+    },
+    {
+     "athlete_id": "y4",
+     "status": "starter",
+     "slot": null,
+     "posicao": "ALA-E"
+    },
+    {
+     "athlete_id": "y5",
+     "status": "starter",
+     "slot": null,
+     "posicao": "XX"
+    },
+    {
+     "athlete_id": "y6",
+     "status": "starter",
+     "slot": null,
+     "posicao": "GOL"
+    }
+   ],
+   "saida": [
+    {
+     "athlete_id": "y1",
+     "status": "starter",
+     "slot": 3
+    },
+    {
+     "athlete_id": "y2",
+     "status": "starter",
+     "slot": 1
+    },
+    {
+     "athlete_id": "y3",
+     "status": "starter",
+     "slot": 2
+    },
+    {
+     "athlete_id": "y4",
+     "status": "starter",
+     "slot": 4
+    },
+    {
+     "athlete_id": "y5",
+     "status": "starter",
+     "slot": null
+    },
+    {
+     "athlete_id": "y6",
+     "status": "starter",
+     "slot": 0
+    }
+   ]
+  },
+  {
+   "formacao": "4-3-3",
+   "entrada": [
+    {
+     "athlete_id": "a",
+     "status": "starter",
+     "slot": null,
+     "posicao": null
+    },
+    {
+     "athlete_id": "b",
+     "status": "starter",
+     "slot": null,
+     "posicao": null
+    },
+    {
+     "athlete_id": "c",
+     "status": "starter",
+     "slot": null,
+     "posicao": null
+    },
+    {
+     "athlete_id": "d",
+     "status": "starter",
+     "slot": null,
+     "posicao": null
+    },
+    {
+     "athlete_id": "e",
+     "status": "starter",
+     "slot": null,
+     "posicao": null
+    },
+    {
+     "athlete_id": "f",
+     "status": "starter",
+     "slot": null,
+     "posicao": null
+    },
+    {
+     "athlete_id": "g2",
+     "status": "starter",
+     "slot": null,
+     "posicao": null
+    },
+    {
+     "athlete_id": "h",
+     "status": "starter",
+     "slot": null,
+     "posicao": null
+    },
+    {
+     "athlete_id": "i",
+     "status": "starter",
+     "slot": null,
+     "posicao": null
+    },
+    {
+     "athlete_id": "j",
+     "status": "starter",
+     "slot": null,
+     "posicao": null
+    },
+    {
+     "athlete_id": "k",
+     "status": "starter",
+     "slot": null,
+     "posicao": null
+    },
+    {
+     "athlete_id": "l",
+     "status": "starter",
+     "slot": null,
+     "posicao": null
+    }
+   ],
+   "saida": [
+    {
+     "athlete_id": "a",
+     "status": "starter",
+     "slot": 1
+    },
+    {
+     "athlete_id": "b",
+     "status": "starter",
+     "slot": 2
+    },
+    {
+     "athlete_id": "c",
+     "status": "starter",
+     "slot": 3
+    },
+    {
+     "athlete_id": "d",
+     "status": "starter",
+     "slot": 4
+    },
+    {
+     "athlete_id": "e",
+     "status": "starter",
+     "slot": 5
+    },
+    {
+     "athlete_id": "f",
+     "status": "starter",
+     "slot": 6
+    },
+    {
+     "athlete_id": "g2",
+     "status": "starter",
+     "slot": 7
+    },
+    {
+     "athlete_id": "h",
+     "status": "starter",
+     "slot": 8
+    },
+    {
+     "athlete_id": "i",
+     "status": "starter",
+     "slot": 9
+    },
+    {
+     "athlete_id": "j",
+     "status": "starter",
+     "slot": 10
+    },
+    {
+     "athlete_id": "k",
+     "status": "starter",
+     "slot": null
+    },
+    {
+     "athlete_id": "l",
+     "status": "starter",
+     "slot": null
+    }
+   ]
+  }
+ ],
+ "nomes": [
+  {
+   "nome": "Lucas Martins",
+   "iniciais": "LM",
+   "curto": "Martins"
+  },
+  {
+   "nome": "Pelé",
+   "iniciais": "PE",
+   "curto": "Pelé"
+  },
+  {
+   "nome": "  Ana  Maria  Souza ",
+   "iniciais": "AS",
+   "curto": "Souza"
+  },
+  {
+   "nome": "",
+   "iniciais": "?",
+   "curto": ""
+  },
+  {
+   "nome": "joão",
+   "iniciais": "JO",
+   "curto": "joão"
+  }
+ ],
+ "minutagem": [
+  {
+   "nome": "sem eventos",
+   "players": [
+    {
+     "athlete_id": "a",
+     "name": "Titular A",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "b",
+     "name": "Titular B",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "c",
+     "name": "Titular C",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "r1",
+     "name": "Reserva 1",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r2",
+     "name": "Reserva 2",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r3",
+     "name": "Reserva 3",
+     "status": "substitute"
+    }
+   ],
+   "events": [],
+   "duration": 93,
+   "resultado": {
+    "a": {
+     "minutes": 93,
+     "auto": 93,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "b": {
+     "minutes": 93,
+     "auto": 93,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "c": {
+     "minutes": 93,
+     "auto": 93,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "r1": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": false
+    },
+    "r2": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": false
+    },
+    "r3": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": false
+    }
+   },
+   "em_campo": [
+    {
+     "minuto": 0,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 1,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 10,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 31,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 32,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 40,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 45,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 55,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 60,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 70,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 80,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 95,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    }
+   ],
+   "em_campo_ignorando": null,
+   "reservas": [
+    "r1",
+    "r2",
+    "r3"
+   ],
+   "reservas_ignorando": null,
+   "checar": {
+    "ok": true
+   }
+  },
+  {
+   "nome": "titular sai aos 32",
+   "players": [
+    {
+     "athlete_id": "a",
+     "name": "Titular A",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "b",
+     "name": "Titular B",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "c",
+     "name": "Titular C",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "r1",
+     "name": "Reserva 1",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r2",
+     "name": "Reserva 2",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r3",
+     "name": "Reserva 3",
+     "status": "substitute"
+    }
+   ],
+   "events": [
+    {
+     "id": "e1",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": 32,
+     "player_id": "r1",
+     "secondary_player_id": "a"
+    }
+   ],
+   "duration": 93,
+   "resultado": {
+    "a": {
+     "minutes": 32,
+     "auto": 32,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": 32,
+     "sentOffAt": null,
+     "played": true
+    },
+    "b": {
+     "minutes": 93,
+     "auto": 93,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "c": {
+     "minutes": 93,
+     "auto": 93,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "r1": {
+     "minutes": 61,
+     "auto": 61,
+     "manual": false,
+     "started": false,
+     "entered": true,
+     "enteredAt": 32,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "r2": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": false
+    },
+    "r3": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": false
+    }
+   },
+   "em_campo": [
+    {
+     "minuto": 0,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 1,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 10,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 31,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 32,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 40,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 45,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 55,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 60,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 70,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 80,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 95,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    }
+   ],
+   "em_campo_ignorando": {
+    "ignorar": "e1",
+    "minuto": 40,
+    "ids": [
+     "a",
+     "b",
+     "c"
+    ]
+   },
+   "reservas": [
+    "r2",
+    "r3"
+   ],
+   "reservas_ignorando": {
+    "ignorar": "e1",
+    "ids": [
+     "r1",
+     "r2",
+     "r3"
+    ]
+   },
+   "checar": {
+    "ok": true
+   }
+  },
+  {
+   "nome": "reserva entra e sai (fora de ordem)",
+   "players": [
+    {
+     "athlete_id": "a",
+     "name": "Titular A",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "b",
+     "name": "Titular B",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "c",
+     "name": "Titular C",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "r1",
+     "name": "Reserva 1",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r2",
+     "name": "Reserva 2",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r3",
+     "name": "Reserva 3",
+     "status": "substitute"
+    }
+   ],
+   "events": [
+    {
+     "id": "e1",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": 70,
+     "player_id": "r2",
+     "secondary_player_id": "r1"
+    },
+    {
+     "id": "e2",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": 30,
+     "player_id": "r1",
+     "secondary_player_id": "b"
+    }
+   ],
+   "duration": 90,
+   "resultado": {
+    "a": {
+     "minutes": 90,
+     "auto": 90,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "b": {
+     "minutes": 30,
+     "auto": 30,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": 30,
+     "sentOffAt": null,
+     "played": true
+    },
+    "c": {
+     "minutes": 90,
+     "auto": 90,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "r1": {
+     "minutes": 40,
+     "auto": 40,
+     "manual": false,
+     "started": false,
+     "entered": true,
+     "enteredAt": 30,
+     "leftAt": 70,
+     "sentOffAt": null,
+     "played": true
+    },
+    "r2": {
+     "minutes": 20,
+     "auto": 20,
+     "manual": false,
+     "started": false,
+     "entered": true,
+     "enteredAt": 70,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "r3": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": false
+    }
+   },
+   "em_campo": [
+    {
+     "minuto": 0,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 1,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 10,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 31,
+     "ids": [
+      "a",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 32,
+     "ids": [
+      "a",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 40,
+     "ids": [
+      "a",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 45,
+     "ids": [
+      "a",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 55,
+     "ids": [
+      "a",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 60,
+     "ids": [
+      "a",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 70,
+     "ids": [
+      "a",
+      "c",
+      "r2"
+     ]
+    },
+    {
+     "minuto": 80,
+     "ids": [
+      "a",
+      "c",
+      "r2"
+     ]
+    },
+    {
+     "minuto": 95,
+     "ids": [
+      "a",
+      "c",
+      "r2"
+     ]
+    }
+   ],
+   "em_campo_ignorando": {
+    "ignorar": "e1",
+    "minuto": 40,
+    "ids": [
+     "a",
+     "c",
+     "r1"
+    ]
+   },
+   "reservas": [
+    "r3"
+   ],
+   "reservas_ignorando": {
+    "ignorar": "e1",
+    "ids": [
+     "r2",
+     "r3"
+    ]
+   },
+   "checar": {
+    "ok": true
+   }
+  },
+  {
+   "nome": "expulsões",
+   "players": [
+    {
+     "athlete_id": "a",
+     "name": "Titular A",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "b",
+     "name": "Titular B",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "c",
+     "name": "Titular C",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "r1",
+     "name": "Reserva 1",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r2",
+     "name": "Reserva 2",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r3",
+     "name": "Reserva 3",
+     "status": "substitute"
+    }
+   ],
+   "events": [
+    {
+     "id": "e1",
+     "event_type": "red_card",
+     "team": "own",
+     "minute": 55,
+     "player_id": "c"
+    },
+    {
+     "id": "e2",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": 60,
+     "player_id": "r1",
+     "secondary_player_id": "a"
+    },
+    {
+     "id": "e3",
+     "event_type": "red_card",
+     "team": "own",
+     "minute": 80,
+     "player_id": "r1"
+    },
+    {
+     "id": "e4",
+     "event_type": "red_card",
+     "team": "opponent",
+     "minute": 10,
+     "player_id": null
+    }
+   ],
+   "duration": 90,
+   "resultado": {
+    "a": {
+     "minutes": 60,
+     "auto": 60,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": 60,
+     "sentOffAt": null,
+     "played": true
+    },
+    "b": {
+     "minutes": 90,
+     "auto": 90,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "c": {
+     "minutes": 55,
+     "auto": 55,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": 55,
+     "sentOffAt": 55,
+     "played": true
+    },
+    "r1": {
+     "minutes": 20,
+     "auto": 20,
+     "manual": false,
+     "started": false,
+     "entered": true,
+     "enteredAt": 60,
+     "leftAt": 80,
+     "sentOffAt": 80,
+     "played": true
+    },
+    "r2": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": false
+    },
+    "r3": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": false
+    }
+   },
+   "em_campo": [
+    {
+     "minuto": 0,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 1,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 10,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 31,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 32,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 40,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 45,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 55,
+     "ids": [
+      "a",
+      "b"
+     ]
+    },
+    {
+     "minuto": 60,
+     "ids": [
+      "b",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 70,
+     "ids": [
+      "b",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 80,
+     "ids": [
+      "b"
+     ]
+    },
+    {
+     "minuto": 95,
+     "ids": [
+      "b"
+     ]
+    }
+   ],
+   "em_campo_ignorando": {
+    "ignorar": "e1",
+    "minuto": 40,
+    "ids": [
+     "a",
+     "b",
+     "c"
+    ]
+   },
+   "reservas": [
+    "r2",
+    "r3"
+   ],
+   "reservas_ignorando": {
+    "ignorar": "e1",
+    "ids": [
+     "r2",
+     "r3"
+    ]
+   },
+   "checar": {
+    "ok": true
+   }
+  },
+  {
+   "nome": "manual e acréscimo",
+   "players": [
+    {
+     "athlete_id": "a",
+     "name": "Titular A",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "b",
+     "name": "Titular B",
+     "status": "starter",
+     "minutes_manual": true,
+     "minutes_played": 70
+    },
+    {
+     "athlete_id": "c",
+     "name": "Titular C",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "r1",
+     "name": "Reserva 1",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r2",
+     "name": "Reserva 2",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r3",
+     "name": "Reserva 3",
+     "status": "substitute"
+    }
+   ],
+   "events": [
+    {
+     "id": "e1",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": 95,
+     "player_id": "r1",
+     "secondary_player_id": "a"
+    }
+   ],
+   "duration": 90,
+   "resultado": {
+    "a": {
+     "minutes": 90,
+     "auto": 90,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": 90,
+     "sentOffAt": null,
+     "played": true
+    },
+    "b": {
+     "minutes": 70,
+     "auto": 90,
+     "manual": true,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "c": {
+     "minutes": 90,
+     "auto": 90,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "r1": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": true,
+     "enteredAt": 90,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "r2": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": false
+    },
+    "r3": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": false
+    }
+   },
+   "em_campo": [
+    {
+     "minuto": 0,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 1,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 10,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 31,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 32,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 40,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 45,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 55,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 60,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 70,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 80,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 95,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    }
+   ],
+   "em_campo_ignorando": {
+    "ignorar": "e1",
+    "minuto": 40,
+    "ids": [
+     "a",
+     "b",
+     "c"
+    ]
+   },
+   "reservas": [
+    "r2",
+    "r3"
+   ],
+   "reservas_ignorando": {
+    "ignorar": "e1",
+    "ids": [
+     "r1",
+     "r2",
+     "r3"
+    ]
+   },
+   "checar": {
+    "ok": true
+   }
+  },
+  {
+   "nome": "sem time e adversário",
+   "players": [
+    {
+     "athlete_id": "a",
+     "name": "Titular A",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "b",
+     "name": "Titular B",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "c",
+     "name": "Titular C",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "r1",
+     "name": "Reserva 1",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r2",
+     "name": "Reserva 2",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r3",
+     "name": "Reserva 3",
+     "status": "substitute"
+    }
+   ],
+   "events": [
+    {
+     "id": "e1",
+     "event_type": "substitution",
+     "team": null,
+     "minute": 40,
+     "player_id": "r1",
+     "secondary_player_id": "a"
+    },
+    {
+     "id": "e2",
+     "event_type": "substitution",
+     "team": "opponent",
+     "minute": 50,
+     "player_id": "r2",
+     "secondary_player_id": "b"
+    }
+   ],
+   "duration": 90,
+   "resultado": {
+    "a": {
+     "minutes": 40,
+     "auto": 40,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": 40,
+     "sentOffAt": null,
+     "played": true
+    },
+    "b": {
+     "minutes": 90,
+     "auto": 90,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "c": {
+     "minutes": 90,
+     "auto": 90,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "r1": {
+     "minutes": 50,
+     "auto": 50,
+     "manual": false,
+     "started": false,
+     "entered": true,
+     "enteredAt": 40,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "r2": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": false
+    },
+    "r3": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": false
+    }
+   },
+   "em_campo": [
+    {
+     "minuto": 0,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 1,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 10,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 31,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 32,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 40,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 45,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 55,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 60,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 70,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 80,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 95,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    }
+   ],
+   "em_campo_ignorando": {
+    "ignorar": "e1",
+    "minuto": 40,
+    "ids": [
+     "a",
+     "b",
+     "c"
+    ]
+   },
+   "reservas": [
+    "r2",
+    "r3"
+   ],
+   "reservas_ignorando": {
+    "ignorar": "e1",
+    "ids": [
+     "r1",
+     "r2",
+     "r3"
+    ]
+   },
+   "checar": {
+    "ok": true
+   }
+  },
+  {
+   "nome": "incompletas",
+   "players": [
+    {
+     "athlete_id": "a",
+     "name": "Titular A",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "b",
+     "name": "Titular B",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "c",
+     "name": "Titular C",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "r1",
+     "name": "Reserva 1",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r2",
+     "name": "Reserva 2",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r3",
+     "name": "Reserva 3",
+     "status": "substitute"
+    }
+   ],
+   "events": [
+    {
+     "id": "e1",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": 32,
+     "player_id": "r1",
+     "secondary_player_id": null
+    },
+    {
+     "id": "e2",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": 50,
+     "player_id": null,
+     "secondary_player_id": "a"
+    }
+   ],
+   "duration": 90,
+   "resultado": {
+    "a": {
+     "minutes": 90,
+     "auto": 90,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "b": {
+     "minutes": 90,
+     "auto": 90,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "c": {
+     "minutes": 90,
+     "auto": 90,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "r1": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": false
+    },
+    "r2": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": false
+    },
+    "r3": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": false
+    }
+   },
+   "em_campo": [
+    {
+     "minuto": 0,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 1,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 10,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 31,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 32,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 40,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 45,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 55,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 60,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 70,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 80,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 95,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    }
+   ],
+   "em_campo_ignorando": {
+    "ignorar": "e1",
+    "minuto": 40,
+    "ids": [
+     "a",
+     "b",
+     "c"
+    ]
+   },
+   "reservas": [
+    "r2",
+    "r3"
+   ],
+   "reservas_ignorando": {
+    "ignorar": "e1",
+    "ids": [
+     "r1",
+     "r2",
+     "r3"
+    ]
+   },
+   "checar": {
+    "ok": true
+   }
+  },
+  {
+   "nome": "titular como quem entra",
+   "players": [
+    {
+     "athlete_id": "a",
+     "name": "Titular A",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "b",
+     "name": "Titular B",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "c",
+     "name": "Titular C",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "r1",
+     "name": "Reserva 1",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r2",
+     "name": "Reserva 2",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r3",
+     "name": "Reserva 3",
+     "status": "substitute"
+    }
+   ],
+   "events": [
+    {
+     "id": "e1",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": 20,
+     "player_id": "b",
+     "secondary_player_id": "a"
+    }
+   ],
+   "duration": 90,
+   "resultado": {
+    "a": {
+     "minutes": 20,
+     "auto": 20,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": 20,
+     "sentOffAt": null,
+     "played": true
+    },
+    "b": {
+     "minutes": 90,
+     "auto": 90,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "c": {
+     "minutes": 90,
+     "auto": 90,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "r1": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": false
+    },
+    "r2": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": false
+    },
+    "r3": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": false
+    }
+   },
+   "em_campo": [
+    {
+     "minuto": 0,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 1,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 10,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 31,
+     "ids": [
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 32,
+     "ids": [
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 40,
+     "ids": [
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 45,
+     "ids": [
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 55,
+     "ids": [
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 60,
+     "ids": [
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 70,
+     "ids": [
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 80,
+     "ids": [
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 95,
+     "ids": [
+      "b",
+      "c"
+     ]
+    }
+   ],
+   "em_campo_ignorando": {
+    "ignorar": "e1",
+    "minuto": 40,
+    "ids": [
+     "a",
+     "b",
+     "c"
+    ]
+   },
+   "reservas": [
+    "r1",
+    "r2",
+    "r3"
+   ],
+   "reservas_ignorando": {
+    "ignorar": "e1",
+    "ids": [
+     "r1",
+     "r2",
+     "r3"
+    ]
+   },
+   "checar": {
+    "ok": false,
+    "error": "Substituição (20'): Titular B é titular. Quem entra numa substituição precisa ser reserva."
+   }
+  },
+  {
+   "nome": "mesmo minuto",
+   "players": [
+    {
+     "athlete_id": "a",
+     "name": "Titular A",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "b",
+     "name": "Titular B",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "c",
+     "name": "Titular C",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "r1",
+     "name": "Reserva 1",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r2",
+     "name": "Reserva 2",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r3",
+     "name": "Reserva 3",
+     "status": "substitute"
+    }
+   ],
+   "events": [
+    {
+     "id": "e1",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": 45,
+     "player_id": "r1",
+     "secondary_player_id": "a"
+    },
+    {
+     "id": "e2",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": 45,
+     "player_id": "r2",
+     "secondary_player_id": "r1"
+    }
+   ],
+   "duration": 90,
+   "resultado": {
+    "a": {
+     "minutes": 45,
+     "auto": 45,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": 45,
+     "sentOffAt": null,
+     "played": true
+    },
+    "b": {
+     "minutes": 90,
+     "auto": 90,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "c": {
+     "minutes": 90,
+     "auto": 90,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "r1": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": true,
+     "enteredAt": 45,
+     "leftAt": 45,
+     "sentOffAt": null,
+     "played": true
+    },
+    "r2": {
+     "minutes": 45,
+     "auto": 45,
+     "manual": false,
+     "started": false,
+     "entered": true,
+     "enteredAt": 45,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "r3": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": false
+    }
+   },
+   "em_campo": [
+    {
+     "minuto": 0,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 1,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 10,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 31,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 32,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 40,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 45,
+     "ids": [
+      "b",
+      "c",
+      "r2"
+     ]
+    },
+    {
+     "minuto": 55,
+     "ids": [
+      "b",
+      "c",
+      "r2"
+     ]
+    },
+    {
+     "minuto": 60,
+     "ids": [
+      "b",
+      "c",
+      "r2"
+     ]
+    },
+    {
+     "minuto": 70,
+     "ids": [
+      "b",
+      "c",
+      "r2"
+     ]
+    },
+    {
+     "minuto": 80,
+     "ids": [
+      "b",
+      "c",
+      "r2"
+     ]
+    },
+    {
+     "minuto": 95,
+     "ids": [
+      "b",
+      "c",
+      "r2"
+     ]
+    }
+   ],
+   "em_campo_ignorando": {
+    "ignorar": "e1",
+    "minuto": 40,
+    "ids": [
+     "a",
+     "b",
+     "c"
+    ]
+   },
+   "reservas": [
+    "r3"
+   ],
+   "reservas_ignorando": {
+    "ignorar": "e1",
+    "ids": [
+     "r1",
+     "r3"
+    ]
+   },
+   "checar": {
+    "ok": true
+   }
+  },
+  {
+   "nome": "minuto nulo",
+   "players": [
+    {
+     "athlete_id": "a",
+     "name": "Titular A",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "b",
+     "name": "Titular B",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "c",
+     "name": "Titular C",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "r1",
+     "name": "Reserva 1",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r2",
+     "name": "Reserva 2",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r3",
+     "name": "Reserva 3",
+     "status": "substitute"
+    }
+   ],
+   "events": [
+    {
+     "id": "e1",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": null,
+     "player_id": "r1",
+     "secondary_player_id": "a"
+    }
+   ],
+   "duration": 90,
+   "resultado": {
+    "a": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": 0,
+     "sentOffAt": null,
+     "played": true
+    },
+    "b": {
+     "minutes": 90,
+     "auto": 90,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "c": {
+     "minutes": 90,
+     "auto": 90,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "r1": {
+     "minutes": 90,
+     "auto": 90,
+     "manual": false,
+     "started": false,
+     "entered": true,
+     "enteredAt": 0,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "r2": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": false
+    },
+    "r3": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": false
+    }
+   },
+   "em_campo": [
+    {
+     "minuto": 0,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 1,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 10,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 31,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 32,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 40,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 45,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 55,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 60,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 70,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 80,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 95,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    }
+   ],
+   "em_campo_ignorando": {
+    "ignorar": "e1",
+    "minuto": 40,
+    "ids": [
+     "a",
+     "b",
+     "c"
+    ]
+   },
+   "reservas": [
+    "r2",
+    "r3"
+   ],
+   "reservas_ignorando": {
+    "ignorar": "e1",
+    "ids": [
+     "r1",
+     "r2",
+     "r3"
+    ]
+   },
+   "checar": {
+    "ok": true
+   }
+  },
+  {
+   "nome": "vermelho antes de entrar",
+   "players": [
+    {
+     "athlete_id": "a",
+     "name": "Titular A",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "b",
+     "name": "Titular B",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "c",
+     "name": "Titular C",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "r1",
+     "name": "Reserva 1",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r2",
+     "name": "Reserva 2",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r3",
+     "name": "Reserva 3",
+     "status": "substitute"
+    }
+   ],
+   "events": [
+    {
+     "id": "e1",
+     "event_type": "red_card",
+     "team": "own",
+     "minute": 10,
+     "player_id": "r1"
+    },
+    {
+     "id": "e2",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": 30,
+     "player_id": "r1",
+     "secondary_player_id": "a"
+    }
+   ],
+   "duration": 90,
+   "resultado": {
+    "a": {
+     "minutes": 30,
+     "auto": 30,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": 30,
+     "sentOffAt": null,
+     "played": true
+    },
+    "b": {
+     "minutes": 90,
+     "auto": 90,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "c": {
+     "minutes": 90,
+     "auto": 90,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "r1": {
+     "minutes": 60,
+     "auto": 60,
+     "manual": false,
+     "started": false,
+     "entered": true,
+     "enteredAt": 30,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "r2": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": false
+    },
+    "r3": {
+     "minutes": 0,
+     "auto": 0,
+     "manual": false,
+     "started": false,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": false
+    }
+   },
+   "em_campo": [
+    {
+     "minuto": 0,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 1,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 10,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 31,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 32,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 40,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 45,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 55,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 60,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 70,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 80,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 95,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    }
+   ],
+   "em_campo_ignorando": {
+    "ignorar": "e1",
+    "minuto": 40,
+    "ids": [
+     "b",
+     "c",
+     "r1"
+    ]
+   },
+   "reservas": [
+    "r2",
+    "r3"
+   ],
+   "reservas_ignorando": {
+    "ignorar": "e1",
+    "ids": [
+     "r2",
+     "r3"
+    ]
+   },
+   "checar": {
+    "ok": true
+   }
+  },
+  {
+   "nome": "futebol 7",
+   "players": [
+    {
+     "athlete_id": "a",
+     "name": "Titular A",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "b",
+     "name": "Titular B",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "c",
+     "name": "Titular C",
+     "status": "starter"
+    },
+    {
+     "athlete_id": "r1",
+     "name": "Reserva 1",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r2",
+     "name": "Reserva 2",
+     "status": "substitute"
+    },
+    {
+     "athlete_id": "r3",
+     "name": "Reserva 3",
+     "status": "substitute"
+    }
+   ],
+   "events": [
+    {
+     "id": "e1",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": 25,
+     "player_id": "r1",
+     "secondary_player_id": "a"
+    },
+    {
+     "id": "e2",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": 40,
+     "player_id": "r2",
+     "secondary_player_id": "b"
+    },
+    {
+     "id": "e3",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": 45,
+     "player_id": "r3",
+     "secondary_player_id": "r1"
+    }
+   ],
+   "duration": 50,
+   "resultado": {
+    "a": {
+     "minutes": 25,
+     "auto": 25,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": 25,
+     "sentOffAt": null,
+     "played": true
+    },
+    "b": {
+     "minutes": 40,
+     "auto": 40,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": 40,
+     "sentOffAt": null,
+     "played": true
+    },
+    "c": {
+     "minutes": 50,
+     "auto": 50,
+     "manual": false,
+     "started": true,
+     "entered": false,
+     "enteredAt": null,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "r1": {
+     "minutes": 20,
+     "auto": 20,
+     "manual": false,
+     "started": false,
+     "entered": true,
+     "enteredAt": 25,
+     "leftAt": 45,
+     "sentOffAt": null,
+     "played": true
+    },
+    "r2": {
+     "minutes": 10,
+     "auto": 10,
+     "manual": false,
+     "started": false,
+     "entered": true,
+     "enteredAt": 40,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    },
+    "r3": {
+     "minutes": 5,
+     "auto": 5,
+     "manual": false,
+     "started": false,
+     "entered": true,
+     "enteredAt": 45,
+     "leftAt": null,
+     "sentOffAt": null,
+     "played": true
+    }
+   },
+   "em_campo": [
+    {
+     "minuto": 0,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 1,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 10,
+     "ids": [
+      "a",
+      "b",
+      "c"
+     ]
+    },
+    {
+     "minuto": 31,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 32,
+     "ids": [
+      "b",
+      "c",
+      "r1"
+     ]
+    },
+    {
+     "minuto": 40,
+     "ids": [
+      "c",
+      "r1",
+      "r2"
+     ]
+    },
+    {
+     "minuto": 45,
+     "ids": [
+      "c",
+      "r2",
+      "r3"
+     ]
+    },
+    {
+     "minuto": 55,
+     "ids": [
+      "c",
+      "r2",
+      "r3"
+     ]
+    },
+    {
+     "minuto": 60,
+     "ids": [
+      "c",
+      "r2",
+      "r3"
+     ]
+    },
+    {
+     "minuto": 70,
+     "ids": [
+      "c",
+      "r2",
+      "r3"
+     ]
+    },
+    {
+     "minuto": 80,
+     "ids": [
+      "c",
+      "r2",
+      "r3"
+     ]
+    },
+    {
+     "minuto": 95,
+     "ids": [
+      "c",
+      "r2",
+      "r3"
+     ]
+    }
+   ],
+   "em_campo_ignorando": {
+    "ignorar": "e1",
+    "minuto": 40,
+    "ids": [
+     "a",
+     "c",
+     "r2"
+    ]
+   },
+   "reservas": [],
+   "reservas_ignorando": {
+    "ignorar": "e1",
+    "ids": [
+     "r1"
+    ]
+   },
+   "checar": {
+    "ok": true
+   }
+  }
+ ],
+ "validar": [
+  {
+   "minuto": 60,
+   "entra": "r2",
+   "sai": "b",
+   "ignorar": null,
+   "erro": null
+  },
+  {
+   "minuto": 60,
+   "entra": "r2",
+   "sai": "a",
+   "ignorar": null,
+   "erro": "Titular A já saiu do jogo."
+  },
+  {
+   "minuto": 60,
+   "entra": "r1",
+   "sai": "b",
+   "ignorar": null,
+   "erro": "Reserva 1 já entrou no jogo."
+  },
+  {
+   "minuto": 60,
+   "entra": "b",
+   "sai": "r1",
+   "ignorar": null,
+   "erro": "Titular B é titular: quem entra precisa ser reserva."
+  },
+  {
+   "minuto": 60,
+   "entra": "r2",
+   "sai": "c",
+   "ignorar": null,
+   "erro": "Titular C foi expulso aos 50'."
+  },
+  {
+   "minuto": 20,
+   "entra": "r2",
+   "sai": "r1",
+   "ignorar": null,
+   "erro": "Reserva 1 só entra aos 32'."
+  },
+  {
+   "minuto": 60,
+   "entra": "r3",
+   "sai": "r2",
+   "ignorar": null,
+   "erro": "Reserva 2 não está em campo aos 60'."
+  },
+  {
+   "minuto": 60,
+   "entra": "r2",
+   "sai": "r2",
+   "ignorar": null,
+   "erro": "Quem sai e quem entra precisam ser atletas diferentes."
+  },
+  {
+   "minuto": 60,
+   "entra": "",
+   "sai": "b",
+   "ignorar": null,
+   "erro": "Escolha quem entra."
+  },
+  {
+   "minuto": 60,
+   "entra": "r2",
+   "sai": "",
+   "ignorar": null,
+   "erro": "Escolha quem sai."
+  },
+  {
+   "minuto": 60,
+   "entra": "x",
+   "sai": "b",
+   "ignorar": null,
+   "erro": "O atleta não está relacionado para o jogo."
+  },
+  {
+   "minuto": 60,
+   "entra": "r2",
+   "sai": "x",
+   "ignorar": null,
+   "erro": "O atleta não está relacionado para o jogo."
+  },
+  {
+   "minuto": 70,
+   "entra": "r2",
+   "sai": "r1",
+   "ignorar": null,
+   "erro": null
+  },
+  {
+   "minuto": 35,
+   "entra": "r1",
+   "sai": "a",
+   "ignorar": "e1",
+   "erro": null
+  },
+  {
+   "minuto": 0,
+   "entra": "r2",
+   "sai": "b",
+   "ignorar": null,
+   "erro": "Informe o minuto da substituição."
+  },
+  {
+   "minuto": null,
+   "entra": "r2",
+   "sai": "b",
+   "ignorar": null,
+   "erro": "Informe o minuto da substituição."
+  },
+  {
+   "minuto": 50,
+   "entra": "r2",
+   "sai": "c",
+   "ignorar": null,
+   "erro": "Titular C foi expulso aos 50'."
+  },
+  {
+   "minuto": 49,
+   "entra": "r2",
+   "sai": "c",
+   "ignorar": null,
+   "erro": null
+  },
+  {
+   "minuto": 32,
+   "entra": "r2",
+   "sai": "r1",
+   "ignorar": null,
+   "erro": null
+  },
+  {
+   "minuto": 32,
+   "entra": "r2",
+   "sai": "a",
+   "ignorar": "e1",
+   "erro": null
+  }
+ ],
+ "validar_eventos": [
+  {
+   "id": "e1",
+   "event_type": "substitution",
+   "team": "own",
+   "minute": 32,
+   "player_id": "r1",
+   "secondary_player_id": "a"
+  },
+  {
+   "id": "e2",
+   "event_type": "red_card",
+   "team": "own",
+   "minute": 50,
+   "player_id": "c"
+  }
+ ],
+ "validar_jogadores": [
+  {
+   "athlete_id": "a",
+   "name": "Titular A",
+   "status": "starter"
+  },
+  {
+   "athlete_id": "b",
+   "name": "Titular B",
+   "status": "starter"
+  },
+  {
+   "athlete_id": "c",
+   "name": "Titular C",
+   "status": "starter"
+  },
+  {
+   "athlete_id": "r1",
+   "name": "Reserva 1",
+   "status": "substitute"
+  },
+  {
+   "athlete_id": "r2",
+   "name": "Reserva 2",
+   "status": "substitute"
+  },
+  {
+   "athlete_id": "r3",
+   "name": "Reserva 3",
+   "status": "substitute"
+  }
+ ],
+ "checar": [
+  {
+   "events": [
+    {
+     "id": "e1",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": 32,
+     "player_id": "r1",
+     "secondary_player_id": "a"
+    },
+    {
+     "id": "e2",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": 70,
+     "player_id": "r2",
+     "secondary_player_id": "r1"
+    }
+   ],
+   "erro": null
+  },
+  {
+   "events": [
+    {
+     "id": "e1",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": 32,
+     "player_id": "b",
+     "secondary_player_id": "a"
+    }
+   ],
+   "erro": "Substituição (32'): Titular B é titular. Quem entra numa substituição precisa ser reserva."
+  },
+  {
+   "events": [
+    {
+     "id": "e1",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": 32,
+     "player_id": "r1",
+     "secondary_player_id": "a"
+    },
+    {
+     "id": "e2",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": 50,
+     "player_id": "r1",
+     "secondary_player_id": "b"
+    }
+   ],
+   "erro": "Substituição (50'): Reserva 1 já entrou em outra substituição."
+  },
+  {
+   "events": [
+    {
+     "id": "e1",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": 32,
+     "player_id": "r1",
+     "secondary_player_id": "r1"
+    }
+   ],
+   "erro": "Substituição (32'): quem saiu e quem entrou são o mesmo atleta."
+  },
+  {
+   "events": [
+    {
+     "id": "e1",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": 32,
+     "player_id": "zz",
+     "secondary_player_id": "a"
+    }
+   ],
+   "erro": "Substituição (32'): quem entrou não está relacionado para o jogo."
+  },
+  {
+   "events": [
+    {
+     "id": "e1",
+     "event_type": "substitution",
+     "team": "opponent",
+     "minute": 32,
+     "player_id": "b",
+     "secondary_player_id": "a"
+    }
+   ],
+   "erro": null
+  },
+  {
+   "events": [
+    {
+     "id": "e1",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": 32,
+     "player_id": "b",
+     "secondary_player_id": null
+    },
+    {
+     "id": "e2",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": 88,
+     "player_id": null,
+     "secondary_player_id": "a"
+    }
+   ],
+   "erro": null
+  },
+  {
+   "events": [
+    {
+     "id": "e1",
+     "event_type": "substitution",
+     "team": "own",
+     "minute": null,
+     "player_id": "b",
+     "secondary_player_id": "a"
+    }
+   ],
+   "erro": "Substituição: Titular B é titular. Quem entra numa substituição precisa ser reserva."
+  }
+ ],
+ "tipo_gol": [
+  {
+   "valor": null,
+   "lido": {
+    "moment": "org",
+    "bpSubtype": "falta"
+   },
+   "rotulo": ""
+  },
+  {
+   "valor": "",
+   "lido": {
+    "moment": "org",
+    "bpSubtype": "falta"
+   },
+   "rotulo": ""
+  },
+  {
+   "valor": "org_off",
+   "lido": {
+    "moment": "org",
+    "bpSubtype": "falta"
+   },
+   "rotulo": "Org. ofensiva"
+  },
+  {
+   "valor": "trans_def",
+   "lido": {
+    "moment": "trans",
+    "bpSubtype": "falta"
+   },
+   "rotulo": "Transição def."
+  },
+  {
+   "valor": "bp_off_corner",
+   "lido": {
+    "moment": "bp",
+    "bpSubtype": "corner"
+   },
+   "rotulo": "Bola parada · Escanteio"
+  },
+  {
+   "valor": "bp_def_falta_frontal",
+   "lido": {
+    "moment": "bp",
+    "bpSubtype": "falta_frontal"
+   },
+   "rotulo": "Bola parada · Falta frontal"
+  },
+  {
+   "valor": "bp_off",
+   "lido": {
+    "moment": "bp",
+    "bpSubtype": "falta"
+   },
+   "rotulo": "Bola parada"
+  },
+  {
+   "valor": "bp_off_",
+   "lido": {
+    "moment": "bp",
+    "bpSubtype": "falta"
+   },
+   "rotulo": ""
+  },
+  {
+   "valor": "offensive_org",
+   "lido": {
+    "moment": "org",
+    "bpSubtype": "falta"
+   },
+   "rotulo": "Org. ofensiva"
+  },
+  {
+   "valor": "offensive_transition",
+   "lido": {
+    "moment": "trans",
+    "bpSubtype": "falta"
+   },
+   "rotulo": "Transição of."
+  },
+  {
+   "valor": "free_kick",
+   "lido": {
+    "moment": "bp",
+    "bpSubtype": "falta"
+   },
+   "rotulo": "Falta"
+  },
+  {
+   "valor": "corner",
+   "lido": {
+    "moment": "bp",
+    "bpSubtype": "corner"
+   },
+   "rotulo": "Escanteio"
+  },
+  {
+   "valor": "penalty",
+   "lido": {
+    "moment": "bp",
+    "bpSubtype": "penalty"
+   },
+   "rotulo": "Pênalti"
+  },
+  {
+   "valor": "org_offx",
+   "lido": {
+    "moment": "org",
+    "bpSubtype": "falta"
+   },
+   "rotulo": ""
+  },
+  {
+   "valor": "xyz",
+   "lido": {
+    "moment": "org",
+    "bpSubtype": "falta"
+   },
+   "rotulo": ""
+  },
+  {
+   "valor": "bp_off_penalty",
+   "lido": {
+    "moment": "bp",
+    "bpSubtype": "penalty"
+   },
+   "rotulo": "Bola parada · Pênalti"
+  },
+  {
+   "valor": "bp_def_tiro_livre",
+   "lido": {
+    "moment": "bp",
+    "bpSubtype": "tiro_livre"
+   },
+   "rotulo": "Bola parada · Tiro livre"
+  },
+  {
+   "valor": "bp_off_inexistente",
+   "lido": {
+    "moment": "bp",
+    "bpSubtype": "inexistente"
+   },
+   "rotulo": "Bola parada"
+  },
+  {
+   "valor": "org_def_extra",
+   "lido": {
+    "moment": "org",
+    "bpSubtype": "falta"
+   },
+   "rotulo": "Org. defensiva"
+  }
+ ],
+ "gravar_tipo_gol": [
+  {
+   "evento": "goal_scored",
+   "momento": "org",
+   "subtipo": "falta",
+   "resultado": "org_off"
+  },
+  {
+   "evento": "goal_scored",
+   "momento": "trans",
+   "subtipo": "falta",
+   "resultado": "trans_off"
+  },
+  {
+   "evento": "goal_scored",
+   "momento": "bp",
+   "subtipo": "corner",
+   "resultado": "bp_off_corner"
+  },
+  {
+   "evento": "goal_scored",
+   "momento": "bp",
+   "subtipo": "",
+   "resultado": "bp_off_falta"
+  },
+  {
+   "evento": "goal_scored",
+   "momento": "bp",
+   "subtipo": "falta_lateral",
+   "resultado": "bp_off_falta_lateral"
+  },
+  {
+   "evento": "goal_scored",
+   "momento": "xx",
+   "subtipo": "falta",
+   "resultado": "org_off"
+  },
+  {
+   "evento": "goal_conceded",
+   "momento": "org",
+   "subtipo": "falta",
+   "resultado": "org_def"
+  },
+  {
+   "evento": "goal_conceded",
+   "momento": "trans",
+   "subtipo": "falta",
+   "resultado": "trans_def"
+  },
+  {
+   "evento": "goal_conceded",
+   "momento": "bp",
+   "subtipo": "corner",
+   "resultado": "bp_def_corner"
+  },
+  {
+   "evento": "goal_conceded",
+   "momento": "bp",
+   "subtipo": "",
+   "resultado": "bp_def_falta"
+  },
+  {
+   "evento": "goal_conceded",
+   "momento": "bp",
+   "subtipo": "falta_lateral",
+   "resultado": "bp_def_falta_lateral"
+  },
+  {
+   "evento": "goal_conceded",
+   "momento": "xx",
+   "subtipo": "falta",
+   "resultado": "org_def"
+  }
+ ],
+ "minutos": [
+  {
+   "duracao": 90,
+   "total": 0,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 0,
+    "stoppageTime": 0
+   },
+   "de_volta": 0,
+   "texto": "0'"
+  },
+  {
+   "duracao": 90,
+   "total": 1,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 1,
+    "stoppageTime": 0
+   },
+   "de_volta": 1,
+   "texto": "1'"
+  },
+  {
+   "duracao": 90,
+   "total": 20,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 20,
+    "stoppageTime": 0
+   },
+   "de_volta": 20,
+   "texto": "20'"
+  },
+  {
+   "duracao": 90,
+   "total": 25,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 25,
+    "stoppageTime": 0
+   },
+   "de_volta": 25,
+   "texto": "25'"
+  },
+  {
+   "duracao": 90,
+   "total": 45,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 45,
+    "stoppageTime": 0
+   },
+   "de_volta": 45,
+   "texto": "45'"
+  },
+  {
+   "duracao": 90,
+   "total": 46,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 45,
+    "stoppageTime": 1
+   },
+   "de_volta": 46,
+   "texto": "45+1'"
+  },
+  {
+   "duracao": 90,
+   "total": 47,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 45,
+    "stoppageTime": 2
+   },
+   "de_volta": 47,
+   "texto": "45+2'"
+  },
+  {
+   "duracao": 90,
+   "total": 52,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 45,
+    "stoppageTime": 7
+   },
+   "de_volta": 52,
+   "texto": "45+7'"
+  },
+  {
+   "duracao": 90,
+   "total": 53,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 8,
+    "stoppageTime": 0
+   },
+   "de_volta": 53,
+   "texto": "53'"
+  },
+  {
+   "duracao": 90,
+   "total": 60,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 15,
+    "stoppageTime": 0
+   },
+   "de_volta": 60,
+   "texto": "60'"
+  },
+  {
+   "duracao": 90,
+   "total": 90,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 45,
+    "stoppageTime": 0
+   },
+   "de_volta": 90,
+   "texto": "90'"
+  },
+  {
+   "duracao": 90,
+   "total": 91,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 45,
+    "stoppageTime": 1
+   },
+   "de_volta": 91,
+   "texto": "90+1'"
+  },
+  {
+   "duracao": 90,
+   "total": 95,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 45,
+    "stoppageTime": 5
+   },
+   "de_volta": 95,
+   "texto": "90+5'"
+  },
+  {
+   "duracao": 90,
+   "total": 105,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 45,
+    "stoppageTime": 15
+   },
+   "de_volta": 105,
+   "texto": "90+15'"
+  },
+  {
+   "duracao": 50,
+   "total": 0,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 0,
+    "stoppageTime": 0
+   },
+   "de_volta": 0,
+   "texto": "0'"
+  },
+  {
+   "duracao": 50,
+   "total": 1,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 1,
+    "stoppageTime": 0
+   },
+   "de_volta": 1,
+   "texto": "1'"
+  },
+  {
+   "duracao": 50,
+   "total": 20,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 20,
+    "stoppageTime": 0
+   },
+   "de_volta": 20,
+   "texto": "20'"
+  },
+  {
+   "duracao": 50,
+   "total": 25,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 25,
+    "stoppageTime": 0
+   },
+   "de_volta": 25,
+   "texto": "25'"
+  },
+  {
+   "duracao": 50,
+   "total": 45,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 20,
+    "stoppageTime": 0
+   },
+   "de_volta": 45,
+   "texto": "45'"
+  },
+  {
+   "duracao": 50,
+   "total": 46,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 21,
+    "stoppageTime": 0
+   },
+   "de_volta": 46,
+   "texto": "46'"
+  },
+  {
+   "duracao": 50,
+   "total": 47,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 22,
+    "stoppageTime": 0
+   },
+   "de_volta": 47,
+   "texto": "47'"
+  },
+  {
+   "duracao": 50,
+   "total": 52,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 25,
+    "stoppageTime": 2
+   },
+   "de_volta": 52,
+   "texto": "50+2'"
+  },
+  {
+   "duracao": 50,
+   "total": 53,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 25,
+    "stoppageTime": 3
+   },
+   "de_volta": 53,
+   "texto": "50+3'"
+  },
+  {
+   "duracao": 50,
+   "total": 60,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 25,
+    "stoppageTime": 10
+   },
+   "de_volta": 60,
+   "texto": "50+10'"
+  },
+  {
+   "duracao": 50,
+   "total": 90,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 25,
+    "stoppageTime": 40
+   },
+   "de_volta": 90,
+   "texto": "50+40'"
+  },
+  {
+   "duracao": 50,
+   "total": 91,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 25,
+    "stoppageTime": 41
+   },
+   "de_volta": 91,
+   "texto": "50+41'"
+  },
+  {
+   "duracao": 50,
+   "total": 95,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 25,
+    "stoppageTime": 45
+   },
+   "de_volta": 95,
+   "texto": "50+45'"
+  },
+  {
+   "duracao": 50,
+   "total": 105,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 25,
+    "stoppageTime": 55
+   },
+   "de_volta": 105,
+   "texto": "50+55'"
+  },
+  {
+   "duracao": 40,
+   "total": 0,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 0,
+    "stoppageTime": 0
+   },
+   "de_volta": 0,
+   "texto": "0'"
+  },
+  {
+   "duracao": 40,
+   "total": 1,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 1,
+    "stoppageTime": 0
+   },
+   "de_volta": 1,
+   "texto": "1'"
+  },
+  {
+   "duracao": 40,
+   "total": 20,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 20,
+    "stoppageTime": 0
+   },
+   "de_volta": 20,
+   "texto": "20'"
+  },
+  {
+   "duracao": 40,
+   "total": 25,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 20,
+    "stoppageTime": 5
+   },
+   "de_volta": 25,
+   "texto": "20+5'"
+  },
+  {
+   "duracao": 40,
+   "total": 45,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 20,
+    "stoppageTime": 5
+   },
+   "de_volta": 45,
+   "texto": "40+5'"
+  },
+  {
+   "duracao": 40,
+   "total": 46,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 20,
+    "stoppageTime": 6
+   },
+   "de_volta": 46,
+   "texto": "40+6'"
+  },
+  {
+   "duracao": 40,
+   "total": 47,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 20,
+    "stoppageTime": 7
+   },
+   "de_volta": 47,
+   "texto": "40+7'"
+  },
+  {
+   "duracao": 40,
+   "total": 52,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 20,
+    "stoppageTime": 12
+   },
+   "de_volta": 52,
+   "texto": "40+12'"
+  },
+  {
+   "duracao": 40,
+   "total": 53,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 20,
+    "stoppageTime": 13
+   },
+   "de_volta": 53,
+   "texto": "40+13'"
+  },
+  {
+   "duracao": 40,
+   "total": 60,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 20,
+    "stoppageTime": 20
+   },
+   "de_volta": 60,
+   "texto": "40+20'"
+  },
+  {
+   "duracao": 40,
+   "total": 90,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 20,
+    "stoppageTime": 50
+   },
+   "de_volta": 90,
+   "texto": "40+50'"
+  },
+  {
+   "duracao": 40,
+   "total": 91,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 20,
+    "stoppageTime": 51
+   },
+   "de_volta": 91,
+   "texto": "40+51'"
+  },
+  {
+   "duracao": 40,
+   "total": 95,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 20,
+    "stoppageTime": 55
+   },
+   "de_volta": 95,
+   "texto": "40+55'"
+  },
+  {
+   "duracao": 40,
+   "total": 105,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 20,
+    "stoppageTime": 65
+   },
+   "de_volta": 105,
+   "texto": "40+65'"
+  },
+  {
+   "duracao": 25,
+   "total": 0,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 0,
+    "stoppageTime": 0
+   },
+   "de_volta": 0,
+   "texto": "0'"
+  },
+  {
+   "duracao": 25,
+   "total": 1,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 1,
+    "stoppageTime": 0
+   },
+   "de_volta": 1,
+   "texto": "1'"
+  },
+  {
+   "duracao": 25,
+   "total": 20,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 8,
+    "stoppageTime": 0
+   },
+   "de_volta": 20,
+   "texto": "20'"
+  },
+  {
+   "duracao": 25,
+   "total": 25,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 13,
+    "stoppageTime": 0
+   },
+   "de_volta": 25,
+   "texto": "25'"
+  },
+  {
+   "duracao": 25,
+   "total": 45,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 13,
+    "stoppageTime": 20
+   },
+   "de_volta": 45,
+   "texto": "25+20'"
+  },
+  {
+   "duracao": 25,
+   "total": 46,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 13,
+    "stoppageTime": 21
+   },
+   "de_volta": 46,
+   "texto": "25+21'"
+  },
+  {
+   "duracao": 25,
+   "total": 47,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 13,
+    "stoppageTime": 22
+   },
+   "de_volta": 47,
+   "texto": "25+22'"
+  },
+  {
+   "duracao": 25,
+   "total": 52,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 13,
+    "stoppageTime": 27
+   },
+   "de_volta": 52,
+   "texto": "25+27'"
+  },
+  {
+   "duracao": 25,
+   "total": 53,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 13,
+    "stoppageTime": 28
+   },
+   "de_volta": 53,
+   "texto": "25+28'"
+  },
+  {
+   "duracao": 25,
+   "total": 60,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 13,
+    "stoppageTime": 35
+   },
+   "de_volta": 60,
+   "texto": "25+35'"
+  },
+  {
+   "duracao": 25,
+   "total": 90,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 13,
+    "stoppageTime": 65
+   },
+   "de_volta": 90,
+   "texto": "25+65'"
+  },
+  {
+   "duracao": 25,
+   "total": 91,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 13,
+    "stoppageTime": 66
+   },
+   "de_volta": 91,
+   "texto": "25+66'"
+  },
+  {
+   "duracao": 25,
+   "total": 95,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 13,
+    "stoppageTime": 70
+   },
+   "de_volta": 95,
+   "texto": "25+70'"
+  },
+  {
+   "duracao": 25,
+   "total": 105,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 13,
+    "stoppageTime": 80
+   },
+   "de_volta": 105,
+   "texto": "25+80'"
+  },
+  {
+   "duracao": 93,
+   "total": 0,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 0,
+    "stoppageTime": 0
+   },
+   "de_volta": 0,
+   "texto": "0'"
+  },
+  {
+   "duracao": 93,
+   "total": 1,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 1,
+    "stoppageTime": 0
+   },
+   "de_volta": 1,
+   "texto": "1'"
+  },
+  {
+   "duracao": 93,
+   "total": 20,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 20,
+    "stoppageTime": 0
+   },
+   "de_volta": 20,
+   "texto": "20'"
+  },
+  {
+   "duracao": 93,
+   "total": 25,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 25,
+    "stoppageTime": 0
+   },
+   "de_volta": 25,
+   "texto": "25'"
+  },
+  {
+   "duracao": 93,
+   "total": 45,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 45,
+    "stoppageTime": 0
+   },
+   "de_volta": 45,
+   "texto": "45'"
+  },
+  {
+   "duracao": 93,
+   "total": 46,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 46,
+    "stoppageTime": 0
+   },
+   "de_volta": 46,
+   "texto": "46'"
+  },
+  {
+   "duracao": 93,
+   "total": 47,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 46,
+    "stoppageTime": 1
+   },
+   "de_volta": 47,
+   "texto": "46+1'"
+  },
+  {
+   "duracao": 93,
+   "total": 52,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 46,
+    "stoppageTime": 6
+   },
+   "de_volta": 52,
+   "texto": "46+6'"
+  },
+  {
+   "duracao": 93,
+   "total": 53,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 46,
+    "stoppageTime": 7
+   },
+   "de_volta": 53,
+   "texto": "46+7'"
+  },
+  {
+   "duracao": 93,
+   "total": 60,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 14,
+    "stoppageTime": 0
+   },
+   "de_volta": 60,
+   "texto": "60'"
+  },
+  {
+   "duracao": 93,
+   "total": 90,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 44,
+    "stoppageTime": 0
+   },
+   "de_volta": 90,
+   "texto": "90'"
+  },
+  {
+   "duracao": 93,
+   "total": 91,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 45,
+    "stoppageTime": 0
+   },
+   "de_volta": 91,
+   "texto": "91'"
+  },
+  {
+   "duracao": 93,
+   "total": 95,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 47,
+    "stoppageTime": 2
+   },
+   "de_volta": 95,
+   "texto": "93+2'"
+  },
+  {
+   "duracao": 93,
+   "total": 105,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 47,
+    "stoppageTime": 12
+   },
+   "de_volta": 105,
+   "texto": "93+12'"
+  },
+  {
+   "duracao": 1,
+   "total": 0,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 0,
+    "stoppageTime": 0
+   },
+   "de_volta": 0,
+   "texto": "0'"
+  },
+  {
+   "duracao": 1,
+   "total": 1,
+   "lido": {
+    "half": 1,
+    "minuteInHalf": 0,
+    "stoppageTime": 1
+   },
+   "de_volta": 1,
+   "texto": "0+1'"
+  },
+  {
+   "duracao": 1,
+   "total": 20,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 1,
+    "stoppageTime": 19
+   },
+   "de_volta": 20,
+   "texto": "1+19'"
+  },
+  {
+   "duracao": 1,
+   "total": 25,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 1,
+    "stoppageTime": 24
+   },
+   "de_volta": 25,
+   "texto": "1+24'"
+  },
+  {
+   "duracao": 1,
+   "total": 45,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 1,
+    "stoppageTime": 44
+   },
+   "de_volta": 45,
+   "texto": "1+44'"
+  },
+  {
+   "duracao": 1,
+   "total": 46,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 1,
+    "stoppageTime": 45
+   },
+   "de_volta": 46,
+   "texto": "1+45'"
+  },
+  {
+   "duracao": 1,
+   "total": 47,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 1,
+    "stoppageTime": 46
+   },
+   "de_volta": 47,
+   "texto": "1+46'"
+  },
+  {
+   "duracao": 1,
+   "total": 52,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 1,
+    "stoppageTime": 51
+   },
+   "de_volta": 52,
+   "texto": "1+51'"
+  },
+  {
+   "duracao": 1,
+   "total": 53,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 1,
+    "stoppageTime": 52
+   },
+   "de_volta": 53,
+   "texto": "1+52'"
+  },
+  {
+   "duracao": 1,
+   "total": 60,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 1,
+    "stoppageTime": 59
+   },
+   "de_volta": 60,
+   "texto": "1+59'"
+  },
+  {
+   "duracao": 1,
+   "total": 90,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 1,
+    "stoppageTime": 89
+   },
+   "de_volta": 90,
+   "texto": "1+89'"
+  },
+  {
+   "duracao": 1,
+   "total": 91,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 1,
+    "stoppageTime": 90
+   },
+   "de_volta": 91,
+   "texto": "1+90'"
+  },
+  {
+   "duracao": 1,
+   "total": 95,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 1,
+    "stoppageTime": 94
+   },
+   "de_volta": 95,
+   "texto": "1+94'"
+  },
+  {
+   "duracao": 1,
+   "total": 105,
+   "lido": {
+    "half": 2,
+    "minuteInHalf": 1,
+    "stoppageTime": 104
+   },
+   "de_volta": 105,
+   "texto": "1+104'"
+  }
+ ]
+}
