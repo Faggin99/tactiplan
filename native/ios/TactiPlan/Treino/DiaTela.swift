@@ -48,7 +48,29 @@ struct DiaTela: View {
             case .descanso:
                 Cartao { EstadoVazio(icone: "moon.zzz", titulo: "Descanso", texto: TEXTO_DIA_DESCANSO) }
             case .jogo:
-                FaixaTom(icone: "trophy", texto: TEXTO_JOGO_NO_APP, tom: .info)
+                if let id = d.id, contexto.pode("games:view") {
+                    NavigationLink {
+                        JogoTela(sessaoId: id, sessao: sessao, contexto: contexto,
+                                 servico: app.servicoJogo(sessao, contexto), treino: modelo.servico,
+                                 fila: app.filaJogos(sessao.me.usuario.id), aoSessaoAcabar: modelo.aoSessaoAcabar)
+                    } label: {
+                        Cartao {
+                            HStack(spacing: 12) {
+                                IconeLinha(icone: "trophy.fill")
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Abrir jogo").font(Tipos.corpo15.comPeso(.seminegrito).font)
+                                        .foregroundColor(tema.cores.tinta.color)
+                                    Text("Escalação, eventos, minutagem e convocação").tipo(Tipos.corpo13)
+                                        .foregroundColor(tema.cores.tinta2.color)
+                                }
+                                Spacer(minLength: 0)
+                                Seta()
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Abre a escalação e os eventos do jogo")
+                }
                 if let b = d.blocos.first { cartaoDoBloco(b, rotulo: ROTULO_NAO_RELACIONADOS, nao: true) }
             case .treino:
                 if r.atividades == 0 {

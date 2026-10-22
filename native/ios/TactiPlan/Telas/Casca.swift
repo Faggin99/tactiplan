@@ -36,6 +36,10 @@ struct Casca: View {
         } else if def.id == ABA_SEMANA.id {
             SemanaTela(sessao: sessao, contexto: contexto, servico: app.servicoTreino(sessao, contexto),
                        aoSessaoAcabar: { [token = sessao.token] e in app.controle.tratarErro(e, token: token) })
+        } else if def.id == ABA_JOGOS.id {
+            JogosTela(sessao: sessao, contexto: contexto, servico: app.servicoJogo(sessao, contexto),
+                      treino: app.servicoTreino(sessao, contexto), fila: app.filaJogos(sessao.me.usuario.id),
+                      aoSessaoAcabar: { [token = sessao.token] e in app.controle.tratarErro(e, token: token) })
         } else {
             EmBreveTela(aba: def, contexto: contexto)
         }
