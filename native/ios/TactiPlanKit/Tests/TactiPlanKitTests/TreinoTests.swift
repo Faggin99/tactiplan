@@ -315,6 +315,10 @@ final class ApiTreinoFalsa: ApiTreino, @unchecked Sendable {
     func apagarAtividadeDoBloco(_ blocoId: String) async throws { anotar("apagar:\(blocoId)") }
     func mudarTipo(_ diaId: String, tipo: TipoDia, adversario: String?) async throws { anotar("tipo:\(diaId):\(tipo.rawValue):\(adversario ?? "")") }
     func mudarDistancia(_ diaId: String, km: Double?) async throws { anotar("km:\(diaId):\(km.map { String($0) } ?? "nil")") }
+    func adicionarPeriodo(_ diaId: String, novo: Periodo, atual: Periodo?) async throws -> String {
+        anotar("periodo+:\(diaId):\(novo.rawValue):\(atual?.rawValue ?? "")"); return "p-novo"
+    }
+    func removerPeriodo(_ periodoId: String) async throws -> Int { anotar("periodo-:\(periodoId)"); return 2 }
     func enviarAnexo(atividadeId: String, arquivo: ArquivoUpload, titulo: String,
                      progresso: @escaping @Sendable (Double) -> Void) async throws -> Anexo {
         anotar("anexo:\(atividadeId):\(titulo)")

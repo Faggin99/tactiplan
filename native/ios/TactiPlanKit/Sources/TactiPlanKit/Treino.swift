@@ -159,16 +159,24 @@ public struct Dia: Codable, Equatable, Sendable {
     public var adversario: String?
     public var distanciaKm: Double?
     public var blocos: [Bloco]
+    /// Período desta sessão: "manha" | "tarde" | "noite"; nil = dia de período único (o normal).
+    public var periodo: String?
+    /// Dia com 2+ períodos: TODOS eles (o 1º é este mesmo), ordem Manhã → Noite. nil no dia de 1 período.
+    /// `sessions` do microciclo segue com 1 por dia (o app T1/T2 só lê o 1º período).
+    public var periodos: [Dia]?
 
     public init(id: String? = nil, data: String, nomeDia: String? = nil, diaDaSemana: Int, tipoBruto: String? = nil,
-                adversario: String? = nil, distanciaKm: Double? = nil, blocos: [Bloco] = []) {
+                adversario: String? = nil, distanciaKm: Double? = nil, blocos: [Bloco] = [],
+                periodo: String? = nil, periodos: [Dia]? = nil) {
         self.id = id; self.data = data; self.nomeDia = nomeDia; self.diaDaSemana = diaDaSemana; self.tipoBruto = tipoBruto
         self.adversario = adversario; self.distanciaKm = distanciaKm; self.blocos = blocos
+        self.periodo = periodo; self.periodos = periodos
     }
 
     enum CodingKeys: String, CodingKey {
         case id, data = "date", nomeDia = "day_name", diaDaSemana = "day_of_week", tipoBruto = "session_type"
         case adversario = "opponent_name", distanciaKm = "avg_distance_km", blocos = "blocks"
+        case periodo, periodos
     }
 
     public init(from decoder: Decoder) throws {
@@ -182,6 +190,10 @@ public struct Dia: Codable, Equatable, Sendable {
         adversario = try? c.decodeIfPresent(String.self, forKey: .adversario)
         distanciaKm = c.numeroFlex(.distanciaKm)
         blocos = ((try? c.decodeIfPresent([Bloco].self, forKey: .blocos)) ?? []).sorted { $0.ordem < $1.ordem }
+        periodo = (try? c.decodeIfPresent(String.self, forKey: .periodo)).flatMap { Periodo(rawValue: $0) }?.rawValue
+        let ps = ((try? c.decodeIfPresent([Dia].self, forKey: .periodos)) ?? [])
+            .sorted { ordemDoPeriodo($0.periodo) < ordemDoPeriodo($1.periodo) }
+        periodos = ps.count > 1 ? ps : nil
     }
 
     public var tipo: TipoDia { TipoDia.de(tipoBruto) }

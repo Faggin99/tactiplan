@@ -92,17 +92,32 @@ public struct EscolhaFotos: Equatable, Sendable {
     private func foto(_ id: String) -> FotoRelatorio? { fotos.first { $0.id == id } }
     private var agrupada: Bool { semana && agrupar }
 
-    /// Grupos exibidos: por dia (semana agrupada, dias em ordem) ou um só.
+    /// Algum dia com 2+ períodos nas fotos?
+    private var comPeriodos: Bool { fotos.contains { $0.periodo != nil } }
+
+    /// Grupos exibidos: por dia (semana agrupada, dias em ordem; com períodos, dia · período),
+    /// por período (ficha de um dia com 2+ períodos) ou um só.
     public var grupos: [GrupoFotos] {
-        guard agrupada else { return [GrupoFotos(id: "all", rotulo: nil, ids: ordem)] }
-        var mapa: [String: (rotulo: String, ids: [String])] = [:]
-        for id in ordem {
-            let f = foto(id)
-            let k = f?.data ?? "sem-data"
-            let rotulo = f?.dia.map { "\($0) · \(f?.dd ?? "")" } ?? "Sem data"
-            mapa[k, default: (rotulo, [])].ids.append(id)
+        if agrupada {
+            var mapa: [String: (rotulo: String, ids: [String])] = [:]
+            for id in ordem {
+                let f = foto(id)
+                let k = chaveGrupo(id)
+                var rotulo = f?.dia.map { "\($0) · \(f?.dd ?? "")" } ?? "Sem data"
+                if let p = f?.periodoRotulo ?? rotuloDoPeriodo(f?.periodo) { rotulo += " · \(p)" }
+                mapa[k, default: (rotulo, [])].ids.append(id)
+            }
+            return mapa.keys.sorted().map { GrupoFotos(id: $0, rotulo: mapa[$0]!.rotulo, ids: mapa[$0]!.ids) }
         }
-        return mapa.keys.sorted().map { GrupoFotos(id: $0, rotulo: mapa[$0]!.rotulo, ids: mapa[$0]!.ids) }
+        if !semana && comPeriodos {
+            var mapa: [String: (rotulo: String, ids: [String])] = [:]
+            for id in ordem {
+                let f = foto(id)
+                mapa[chaveGrupo(id), default: (f?.periodoRotulo ?? rotuloDoPeriodo(f?.periodo) ?? "Dia", [])].ids.append(id)
+            }
+            return mapa.keys.sorted().map { GrupoFotos(id: $0, rotulo: mapa[$0]!.rotulo, ids: mapa[$0]!.ids) }
+        }
+        return [GrupoFotos(id: "all", rotulo: nil, ids: ordem)]
     }
 
     /// A ordem como aparece (e como vai pro relatório).
@@ -128,7 +143,15 @@ public struct EscolhaFotos: Equatable, Sendable {
 
     public mutating func nenhuma() { selecionadas = [] }
 
-    private func grupoDe(_ id: String) -> String { agrupada ? (foto(id)?.data ?? "sem-data") : "all" }
+    /// Chave do grupo: "data|ordem do período" (a ordem das chaves = a ordem dos grupos).
+    private func chaveGrupo(_ id: String) -> String {
+        let f = foto(id)
+        let p = ordemDoPeriodo(f?.periodo)
+        if agrupada { return "\(f?.data ?? "sem-data")|\(p)" }
+        return "periodo|\(p)"
+    }
+
+    private func grupoDe(_ id: String) -> String { (agrupada || (!semana && comPeriodos)) ? chaveGrupo(id) : "all" }
 
     /// Dá para subir/descer? (dentro do mesmo dia quando agrupado)
     public func podeMover(_ id: String, _ direcao: Int) -> Bool {

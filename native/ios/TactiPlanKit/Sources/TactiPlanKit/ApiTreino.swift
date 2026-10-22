@@ -25,6 +25,8 @@ public enum CaminhosTreino {
     public static func atividadeDoBloco(_ blocoId: String) -> String { "/activities/block/\(codificarComponente(blocoId))" }
     public static func tipoDoDia(_ id: String) -> String { "/sessions/\(codificarComponente(id))/type" }
     public static func distancia(_ id: String) -> String { "/sessions/\(codificarComponente(id))/distance" }
+    public static func periodos(_ id: String) -> String { "/sessions/\(codificarComponente(id))/periodos" }
+    public static func periodo(_ id: String) -> String { "/sessions/\(codificarComponente(id))/periodo" }
     public static func anexosDoDia(_ id: String) -> String { "/files/session/\(codificarComponente(id))" }
     public static let enviarAnexo = "/files/upload"
     public static func anexo(_ id: String) -> String { "/files/\(codificarComponente(id))" }
@@ -88,13 +90,17 @@ public struct FotoRelatorio: Codable, Equatable, Sendable, Identifiable {
     public var origem: String?
     /// Miniatura em data URI (JPEG base64).
     public var thumb: String?
+    /// Período da foto no dia com 2+ períodos ("manha"…; nil = período único).
+    public var periodo: String?
+    public var periodoRotulo: String?
 
     public init(id: String, data: String? = nil, dia: String? = nil, dd: String? = nil, titulo: String? = nil,
-                origem: String? = nil, thumb: String? = nil) {
+                origem: String? = nil, thumb: String? = nil, periodo: String? = nil, periodoRotulo: String? = nil) {
         self.id = id; self.data = data; self.dia = dia; self.dd = dd; self.titulo = titulo; self.origem = origem; self.thumb = thumb
+        self.periodo = periodo; self.periodoRotulo = periodoRotulo
     }
 
-    enum CodingKeys: String, CodingKey { case id, data = "date", dia, dd, titulo, origem, thumb }
+    enum CodingKeys: String, CodingKey { case id, data = "date", dia, dd, titulo, origem, thumb, periodo, periodoRotulo }
 }
 
 public struct ListaFotosRelatorio: Codable, Equatable, Sendable {
@@ -140,6 +146,10 @@ public protocol ApiTreino: Sendable {
     func apagarAtividadeDoBloco(_ blocoId: String) async throws
     func mudarTipo(_ diaId: String, tipo: TipoDia, adversario: String?) async throws
     func mudarDistancia(_ diaId: String, km: Double?) async throws
+    /// POST /api/sessions/:id/periodos — `atual` só no dia de 1 período. Devolve o id do novo.
+    func adicionarPeriodo(_ diaId: String, novo: Periodo, atual: Periodo?) async throws -> String
+    /// DELETE /api/sessions/:id/periodo — devolve quantos anexos foram apagados.
+    func removerPeriodo(_ periodoId: String) async throws -> Int
     func enviarAnexo(atividadeId: String, arquivo: ArquivoUpload, titulo: String,
                      progresso: @escaping @Sendable (Double) -> Void) async throws -> Anexo
     func renomearAnexo(_ id: String, titulo: String) async throws -> Anexo
@@ -234,6 +244,20 @@ public final class ApiTreinoHttp: ApiTreino {
 
     public func mudarDistancia(_ diaId: String, km: Double?) async throws {
         _ = try await json(CaminhosTreino.distancia(diaId), "PUT", ["avg_distance_km": km.map { .numero($0) } ?? .nulo])
+    }
+
+    public func adicionarPeriodo(_ diaId: String, novo: Periodo, atual: Periodo?) async throws -> String {
+        var corpo: [String: Json] = ["novo": .texto(novo.rawValue)]
+        if let atual { corpo["atual"] = .texto(atual.rawValue) }
+        let j = try await json(CaminhosTreino.periodos(diaId), "POST", .objeto(corpo))
+        guard let id = j["id"]?.texto else { throw ErroApi(status: 0, codigo: nil, mensagem: ErroApi.MSG_FALHA) }
+        return id
+    }
+
+    public func removerPeriodo(_ periodoId: String) async throws -> Int {
+        let j = try await json(CaminhosTreino.periodo(periodoId), "DELETE")
+        if case .numero(let n)? = j["anexos_apagados"] { return Int(n) }
+        return 0
     }
 
     public func enviarAnexo(atividadeId: String, arquivo: ArquivoUpload, titulo: String,

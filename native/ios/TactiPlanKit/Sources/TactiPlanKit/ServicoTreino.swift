@@ -123,6 +123,23 @@ public struct ServicoTreino: Sendable {
         return id
     }
 
+    /// Adiciona um período ao dia (cria o dia antes, se preciso). Devolve o id do período novo.
+    public func adicionarPeriodo(_ dia: Dia, novo: Periodo, atual: Periodo?, semana: SemanaISO, clubeId: String) async throws -> String {
+        if let erro = erroNovoPeriodo(dia, atual: atual, novo: novo) { throw ErroApi(status: 0, codigo: "PERIODO_INVALIDO", mensagem: erro) }
+        let real = try await diaReal(dia, semana: semana, clubeId: clubeId)
+        guard let id = real.id else { throw ErroApi(status: 0, codigo: nil, mensagem: ErroApi.MSG_FALHA) }
+        return try await api.adicionarPeriodo(id, novo: novo, atual: dia.temPeriodos ? nil : atual)
+    }
+
+    /// Remove um período (só no dia com 2+). Devolve os anexos apagados.
+    @discardableResult
+    public func removerPeriodo(_ periodo: Dia) async throws -> Int {
+        guard let id = periodo.id, periodo.periodo != nil else {
+            throw ErroApi(status: 0, codigo: "PERIODO_INVALIDO", mensagem: "O dia tem um período só: não há o que remover.")
+        }
+        return try await api.removerPeriodo(id)
+    }
+
     /// Só a distância ideal (o lápis do topo do Dia).
     @discardableResult
     public func mudarDistancia(_ dia: Dia, km: Double?, semana: SemanaISO, clubeId: String) async throws -> String {
@@ -153,8 +170,13 @@ public func mensagemErroTreino(_ e: Error, permissao: String = MSG_SEM_PERMISSAO
 
 // MARK: relatórios do dia e da semana
 
-/// Corpo da ficha do dia (POST /api/reports/sessao).
-public func corpoFichaDoDia(_ diaId: String) -> [String: Json] { ["session_id": .texto(diaId)] }
+/// Corpo da ficha do dia (POST /api/reports/sessao). Dia com 2+ períodos: sai o dia inteiro, com
+/// os períodos em sequência; `soPeriodo` = só o período de `diaId`.
+public func corpoFichaDoDia(_ diaId: String, soPeriodo: Bool = false) -> [String: Json] {
+    var c: [String: Json] = ["session_id": .texto(diaId)]
+    if soPeriodo { c["so_periodo"] = .booleano(true) }
+    return c
+}
 
 /// Corpo do relatório da semana (o "Exportar semana" do web: treino com filtro 1 microciclo).
 public func corpoRelatorioSemana(_ s: SemanaISO, clubeId: String) -> [String: Json] {
@@ -162,9 +184,11 @@ public func corpoRelatorioSemana(_ s: SemanaISO, clubeId: String) -> [String: Js
 }
 
 /// Nome do PDF da ficha do dia (o do web: "treino-Quarta-21-10-2026.pdf").
-public func nomePdfDoDia(_ d: Dia) -> String {
+/// Só um período: "treino-Quarta-21-10-2026-Tarde.pdf".
+public func nomePdfDoDia(_ d: Dia, periodo: String? = nil) -> String {
     let nome = d.nomeDia ?? NOMES_DIAS[max(0, min(6, d.diaDaSemana - 1))]
-    return nomeArquivoSeguro("treino-\(nome)-\(dataBR(d.data).replacingOccurrences(of: "/", with: "-"))") + ".pdf"
+    let sufixo = rotuloDoPeriodo(periodo).map { "-\($0)" } ?? ""
+    return nomeArquivoSeguro("treino-\(nome)-\(dataBR(d.data).replacingOccurrences(of: "/", with: "-"))\(sufixo)") + ".pdf"
 }
 
 /// Nome do PDF da semana (o do web: "Estatisticas_Treino_<clube>_Semana_43_2026.pdf").
