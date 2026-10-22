@@ -117,6 +117,11 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
 - `POST /api/app/convites/:token/recusar` (BFF): só o dono do e-mail, só pendente; apaga o convite.
 - Testes: `tests/app-token-web.test.js` (revogado/vencido 401, workspace alheia, 402 READ_ONLY, 409 CLUB_ARCHIVED).
 
+## App nativo T3 (22/10/2026): Elenco, Staff, Estatísticas, Cadastros
+- Usa as rotas do web com o token do app. Novidades no servidor: `POST /api/reports/plantel {club_id}` (athletes:view,
+  PDF por grupo), `GET /api/clubs/:id/members` com `permissions` e `limite_convidados`, `POST …/members/:id/resend`.
+- Paridade: `native/paridade/t3.json` gerado do web por `native/paridade/gerar-t3.mjs` (teste `paridade-app-t3`).
+
 ## Períodos do dia (22/10/2026): Manhã · Tarde · Noite
 - Cada período = 1 linha de `training_sessions` (mesma data/clube/workspace) com `periodo` ('manha'|'tarde'|'noite');
   dia de período único = `periodo` NULL (todos os dados antigos). Migrations 057 (coluna + único
@@ -132,3 +137,8 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   Relatórios: ficha com os períodos em sequência (`so_periodo: true` = só o de session_id), semana com "90+60".
 - Testes: `tests/periodos.test.js` e `tests/periodos-db.test.js` (Postgres descartável via `PERIODOS_TEST_DB`;
   banco `sports_periodos_test` = schema de prod + 057/058).
+- Desde 22/10 (noite): TODO dia de treino mostra o período. `periodo` NULL continua no banco (SEM migração de dados)
+  e vale **Manhã** (`periodoEfetivo` no back, `lib/periodos.js` no front, Kit/Kotlin no app). `PUT …/periodo` vale
+  também no dia de 1 período (não descanso); `POST …/periodos` sem `atual` usa o nome do dia (ou Manhã); remover
+  período NÃO volta a NULL (o que sobra mantém o nome). Programação: "Manhã · Tático" numa linha (reticências).
+  Jogo e descanso de período único: sem período (só "Jogo"/"Descanso"). Ficha de 1 período: "· Manhã" no título.
