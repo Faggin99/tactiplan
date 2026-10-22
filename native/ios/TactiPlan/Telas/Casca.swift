@@ -45,6 +45,9 @@ struct Casca: View {
             ElencoTela(sessao: sessao, contexto: contexto, servico: app.servicoElenco(sessao, contexto),
                        treino: app.servicoTreino(sessao, contexto),
                        aoSessaoAcabar: { [token = sessao.token] e in app.controle.tratarErro(e, token: token) })
+        } else if def.id == ABA_QUADRO.id {
+            QuadroTela(sessao: sessao, contexto: contexto, api: app.apiQuadro(sessao, contexto),
+                       aoSessaoAcabar: { [token = sessao.token] e in app.controle.tratarErro(e, token: token) })
         } else {
             EmBreveTela(aba: def, contexto: contexto)
         }

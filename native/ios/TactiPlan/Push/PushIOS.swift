@@ -42,4 +42,9 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     }
 
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {}
+
+    /// Em pé no app todo; deitado só no editor do quadro tático (T5, `forcarOrientacao`).
+    func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+        OrientacaoApp.mascara
+    }
 }

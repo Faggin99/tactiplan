@@ -67,10 +67,13 @@
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<false/>
 	</dict>
-	<!-- Só iPhone no lançamento, em pé (o quadro tático deitado chega na T5). -->
+	<!-- Só iPhone, em pé. O editor do quadro tático (T5) gira para deitado: o AppDelegate devolve
+	     só "em pé" no resto do app (OrientacaoApp.mascara) e "deitado" enquanto o editor está aberto. -->
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>
