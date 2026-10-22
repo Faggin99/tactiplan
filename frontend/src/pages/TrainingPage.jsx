@@ -1158,7 +1158,10 @@ export function TrainingPage() {
                     ...(distanciaDoDia(periodos) !== null ? [`Distância ideal do dia: ${formatKm(distanciaDoDia(periodos), 1)} km`] : []),
                   ].join(' · ')}
                 >
-                  <span style={{ flexShrink: 0 }}>⏱{periodos.reduce((t, p) => t + minutosDaSessao(p), 0)}′</span>
+                  {/* forma curta (150′) só quando há divisão/distância disputando espaço; senão igual aos outros dias */}
+                  <span style={{ flexShrink: 0 }}>{(divisaoMinutos(periodos) || distanciaDoDia(periodos) !== null)
+                    ? `⏱${periodos.reduce((t, p) => t + minutosDaSessao(p), 0)}′`
+                    : `⏱ ${periodos.reduce((t, p) => t + minutosDaSessao(p), 0)} min`}</span>
                   {/* "90+60" só quando 2+ períodos têm minutos (nunca "125+0") */}
                   {divisaoMinutos(periodos) && (
                     <span style={{ color: colors.textSecondary, fontWeight: 500, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>· {divisaoMinutos(periodos)}</span>
