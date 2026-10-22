@@ -189,7 +189,8 @@ export function EventModal({ isOpen, onClose, onAdd, matchDuration = 90, editing
 
   const handleAdd = async () => {
     // Validações simples por tipo
-    if (isCard && !playerId) { notify.error('Selecione o atleta que recebeu o cartão.'); return; }
+    // Cartão do adversário não tem atleta nosso (o seletor nem aparece): só exige atleta no nosso time
+    if (isCard && team === 'own' && !playerId) { notify.error('Selecione o atleta que recebeu o cartão.'); return; }
     if (isSub) {
       const v = validarSubstituicao({
         players: selectedPlayers, events, duration: matchDuration, ignore: editingEvent,
