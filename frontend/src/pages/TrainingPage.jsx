@@ -1103,16 +1103,19 @@ export function TrainingPage() {
                 // dia inteiro em forma curta para caber SEMPRE numa linha (grade intacta):
                 // "⏱150′ · 90+60 · 📍8,5". O texto completo fica no title.
                 <div
-                  style={{ ...durationBadgeStyle, flexWrap: 'nowrap', whiteSpace: 'nowrap', overflow: 'hidden', gap: '0.25rem' }}
+                  // containerType: a largura não vem do texto (a coluna não alarga). Se ainda
+                  // faltar espaço, só a divisão (90+60) encolhe com reticências; total e
+                  // distância nunca somem.
+                  style={{ ...durationBadgeStyle, flexWrap: 'nowrap', whiteSpace: 'nowrap', overflow: 'hidden', gap: '0.15rem', containerType: 'inline-size', paddingLeft: '0.25rem', paddingRight: '0.25rem', fontSize: isMobile ? '0.68rem' : '0.76rem' }}
                   title={[
                     ...periodos.map((p) => `${rotuloPeriodo(p.periodo)}: ${minutosDaSessao(p)} min`),
                     ...(distanciaDoDia(periodos) !== null ? [`Distância ideal do dia: ${formatKm(distanciaDoDia(periodos), 1)} km`] : []),
                   ].join(' · ')}
                 >
-                  <span>⏱{periodos.reduce((t, p) => t + minutosDaSessao(p), 0)}′</span>
-                  <span style={{ color: colors.textSecondary, fontWeight: 500 }}>· {periodos.map((p) => minutosDaSessao(p)).join('+')}</span>
+                  <span style={{ flexShrink: 0 }}>⏱{periodos.reduce((t, p) => t + minutosDaSessao(p), 0)}′</span>
+                  <span style={{ color: colors.textSecondary, fontWeight: 500, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>· {periodos.map((p) => minutosDaSessao(p)).join('+')}</span>
                   {distanciaDoDia(periodos) !== null && (
-                    <span style={{ color: colors.textSecondary, fontWeight: 500 }}>· <span style={{ color: colors.text, fontWeight: 600 }}>📍{formatKm(distanciaDoDia(periodos), 1)}</span></span>
+                    <span style={{ flexShrink: 0 }}><span style={{ color: colors.textSecondary, fontWeight: 500 }}>· </span>📍{formatKm(distanciaDoDia(periodos), 1)}</span>
                   )}
                 </div>
               ) : (
