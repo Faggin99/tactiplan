@@ -1,0 +1,632 @@
+{
+ "id": "jogada-demo",
+ "name": "Pressão pós-perda (5 segundos)",
+ "description": "Reação imediata à perda no meio-campo ofensivo: fechar linhas de passe e cercar o portador.",
+ "field_type": "football_11",
+ "field_view": "full",
+ "team_a_color": "#15803d",
+ "team_b_color": "#dc2626",
+ "keyframes": [
+  {
+   "index": 0,
+   "drawings": [
+    {
+     "id": "draw-1",
+     "x1": 66,
+     "x2": 72,
+     "y1": 36,
+     "y2": 41,
+     "dash": [
+      8,
+      6
+     ],
+     "color": "#facc15",
+     "drawType": "arrow_straight",
+     "strokeWidth": 2.5
+    },
+    {
+     "id": "draw-2",
+     "x1": 68,
+     "x2": 74,
+     "y1": 62,
+     "y2": 52,
+     "dash": [
+      8,
+      6
+     ],
+     "color": "#facc15",
+     "drawType": "arrow_straight",
+     "strokeWidth": 2.5
+    },
+    {
+     "id": "draw-3",
+     "x1": 84,
+     "x2": 79,
+     "y1": 48,
+     "y2": 45,
+     "dash": [
+      8,
+      6
+     ],
+     "color": "#facc15",
+     "drawType": "arrow_straight",
+     "strokeWidth": 2.5
+    },
+    {
+     "cx": 74,
+     "cy": 46,
+     "id": "draw-4",
+     "dash": [],
+     "color": "rgba(250, 204, 21, 0.15)",
+     "radius": 12,
+     "drawType": "zone_circle",
+     "strokeColor": "rgba(250, 204, 21, 0.6)",
+     "strokeWidth": 2
+    }
+   ],
+   "elements": [
+    {
+     "x": 10,
+     "y": 50,
+     "id": "a1",
+     "name": "Gabriel",
+     "team": "A",
+     "type": "player",
+     "athleteId": "126ddd0d-56bc-4b30-9499-aee422da43f0",
+     "isGoalkeeper": true,
+     "jerseyNumber": 1
+    },
+    {
+     "x": 58,
+     "y": 12,
+     "id": "a2",
+     "name": "Matheus",
+     "team": "A",
+     "type": "player",
+     "athleteId": "89737221-7770-45ed-a48e-5b2478c16788",
+     "isGoalkeeper": false,
+     "jerseyNumber": 2
+    },
+    {
+     "x": 40,
+     "y": 34,
+     "id": "a3",
+     "name": "Pedro H.",
+     "team": "A",
+     "type": "player",
+     "athleteId": "e3fcfb62-7aa1-4df7-9122-7e3edade90a6",
+     "isGoalkeeper": false,
+     "jerseyNumber": 3
+    },
+    {
+     "x": 40,
+     "y": 66,
+     "id": "a4",
+     "name": "João Vitor",
+     "team": "A",
+     "type": "player",
+     "athleteId": "d3e306ac-321b-4d3b-8c29-c869280fcb08",
+     "isGoalkeeper": false,
+     "jerseyNumber": 4
+    },
+    {
+     "x": 58,
+     "y": 88,
+     "id": "a6",
+     "name": "Guilherme",
+     "team": "A",
+     "type": "player",
+     "athleteId": "69517f98-bc97-41b9-9aa9-d3b826d3b686",
+     "isGoalkeeper": false,
+     "jerseyNumber": 6
+    },
+    {
+     "x": 52,
+     "y": 50,
+     "id": "a5",
+     "name": "Thiago",
+     "team": "A",
+     "type": "player",
+     "athleteId": "a11f6684-b934-4e0c-ac28-2391f710dc01",
+     "isGoalkeeper": false,
+     "jerseyNumber": 5
+    },
+    {
+     "x": 66,
+     "y": 36,
+     "id": "a8",
+     "name": "Felipe",
+     "team": "A",
+     "type": "player",
+     "athleteId": "34d08055-40d0-4991-b894-17323df8d84f",
+     "isGoalkeeper": false,
+     "jerseyNumber": 8
+    },
+    {
+     "x": 68,
+     "y": 62,
+     "id": "a10",
+     "name": "Bruno",
+     "team": "A",
+     "type": "player",
+     "athleteId": "3202ad24-a5b3-49cb-b241-cc5ae22cfeb0",
+     "isGoalkeeper": false,
+     "jerseyNumber": 10
+    },
+    {
+     "x": 80,
+     "y": 14,
+     "id": "a7",
+     "name": "Caio",
+     "team": "A",
+     "type": "player",
+     "athleteId": "1df6e9bb-a9cb-42ea-975e-d719c49932c0",
+     "isGoalkeeper": false,
+     "jerseyNumber": 7
+    },
+    {
+     "x": 80,
+     "y": 86,
+     "id": "a11",
+     "name": "Leonardo",
+     "team": "A",
+     "type": "player",
+     "athleteId": "dd434a14-9761-441c-b44b-c760e6c0376b",
+     "isGoalkeeper": false,
+     "jerseyNumber": 11
+    },
+    {
+     "x": 84,
+     "y": 48,
+     "id": "a9",
+     "name": "Gustavo",
+     "team": "A",
+     "type": "player",
+     "athleteId": "d9b89db6-64a5-4f06-b1dc-3f0f1df0a7b4",
+     "isGoalkeeper": false,
+     "jerseyNumber": 9
+    },
+    {
+     "x": 95,
+     "y": 50,
+     "id": "b0",
+     "name": "",
+     "team": "B",
+     "type": "player",
+     "athleteId": null,
+     "isGoalkeeper": true,
+     "jerseyNumber": 1
+    },
+    {
+     "x": 86,
+     "y": 30,
+     "id": "b1",
+     "name": "",
+     "team": "B",
+     "type": "player",
+     "athleteId": null,
+     "isGoalkeeper": false,
+     "jerseyNumber": 2
+    },
+    {
+     "x": 88,
+     "y": 46,
+     "id": "b2",
+     "name": "",
+     "team": "B",
+     "type": "player",
+     "athleteId": null,
+     "isGoalkeeper": false,
+     "jerseyNumber": 4
+    },
+    {
+     "x": 88,
+     "y": 60,
+     "id": "b3",
+     "name": "",
+     "team": "B",
+     "type": "player",
+     "athleteId": null,
+     "isGoalkeeper": false,
+     "jerseyNumber": 3
+    },
+    {
+     "x": 84,
+     "y": 74,
+     "id": "b4",
+     "name": "",
+     "team": "B",
+     "type": "player",
+     "athleteId": null,
+     "isGoalkeeper": false,
+     "jerseyNumber": 6
+    },
+    {
+     "x": 74,
+     "y": 22,
+     "id": "b5",
+     "name": "",
+     "team": "B",
+     "type": "player",
+     "athleteId": null,
+     "isGoalkeeper": false,
+     "jerseyNumber": 7
+    },
+    {
+     "x": 74,
+     "y": 42,
+     "id": "b6",
+     "name": "",
+     "team": "B",
+     "type": "player",
+     "athleteId": null,
+     "isGoalkeeper": false,
+     "jerseyNumber": 8
+    },
+    {
+     "x": 74,
+     "y": 60,
+     "id": "b7",
+     "name": "",
+     "team": "B",
+     "type": "player",
+     "athleteId": null,
+     "isGoalkeeper": false,
+     "jerseyNumber": 5
+    },
+    {
+     "x": 72,
+     "y": 80,
+     "id": "b8",
+     "name": "",
+     "team": "B",
+     "type": "player",
+     "athleteId": null,
+     "isGoalkeeper": false,
+     "jerseyNumber": 11
+    },
+    {
+     "x": 60,
+     "y": 40,
+     "id": "b9",
+     "name": "",
+     "team": "B",
+     "type": "player",
+     "athleteId": null,
+     "isGoalkeeper": false,
+     "jerseyNumber": 9
+    },
+    {
+     "x": 60,
+     "y": 60,
+     "id": "b10",
+     "name": "",
+     "team": "B",
+     "type": "player",
+     "athleteId": null,
+     "isGoalkeeper": false,
+     "jerseyNumber": 10
+    },
+    {
+     "x": 75,
+     "y": 45,
+     "id": "ball",
+     "team": null,
+     "type": "ball"
+    }
+   ]
+  },
+  {
+   "index": 1,
+   "drawings": [
+    {
+     "id": "draw-1",
+     "x1": 66,
+     "x2": 72,
+     "y1": 36,
+     "y2": 41,
+     "dash": [
+      8,
+      6
+     ],
+     "color": "#facc15",
+     "drawType": "arrow_straight",
+     "strokeWidth": 2.5
+    },
+    {
+     "id": "draw-2",
+     "x1": 68,
+     "x2": 74,
+     "y1": 62,
+     "y2": 52,
+     "dash": [
+      8,
+      6
+     ],
+     "color": "#facc15",
+     "drawType": "arrow_straight",
+     "strokeWidth": 2.5
+    },
+    {
+     "id": "draw-3",
+     "x1": 84,
+     "x2": 79,
+     "y1": 48,
+     "y2": 45,
+     "dash": [
+      8,
+      6
+     ],
+     "color": "#facc15",
+     "drawType": "arrow_straight",
+     "strokeWidth": 2.5
+    },
+    {
+     "cx": 74,
+     "cy": 46,
+     "id": "draw-4",
+     "dash": [],
+     "color": "rgba(250, 204, 21, 0.15)",
+     "radius": 12,
+     "drawType": "zone_circle",
+     "strokeColor": "rgba(250, 204, 21, 0.6)",
+     "strokeWidth": 2
+    }
+   ],
+   "elements": [
+    {
+     "x": 10,
+     "y": 50,
+     "id": "a1",
+     "name": "Gabriel",
+     "team": "A",
+     "type": "player",
+     "athleteId": "126ddd0d-56bc-4b30-9499-aee422da43f0",
+     "isGoalkeeper": true,
+     "jerseyNumber": 1
+    },
+    {
+     "x": 58,
+     "y": 12,
+     "id": "a2",
+     "name": "Matheus",
+     "team": "A",
+     "type": "player",
+     "athleteId": "89737221-7770-45ed-a48e-5b2478c16788",
+     "isGoalkeeper": false,
+     "jerseyNumber": 2
+    },
+    {
+     "x": 40,
+     "y": 34,
+     "id": "a3",
+     "name": "Pedro H.",
+     "team": "A",
+     "type": "player",
+     "athleteId": "e3fcfb62-7aa1-4df7-9122-7e3edade90a6",
+     "isGoalkeeper": false,
+     "jerseyNumber": 3
+    },
+    {
+     "x": 40,
+     "y": 66,
+     "id": "a4",
+     "name": "João Vitor",
+     "team": "A",
+     "type": "player",
+     "athleteId": "d3e306ac-321b-4d3b-8c29-c869280fcb08",
+     "isGoalkeeper": false,
+     "jerseyNumber": 4
+    },
+    {
+     "x": 58,
+     "y": 88,
+     "id": "a6",
+     "name": "Guilherme",
+     "team": "A",
+     "type": "player",
+     "athleteId": "69517f98-bc97-41b9-9aa9-d3b826d3b686",
+     "isGoalkeeper": false,
+     "jerseyNumber": 6
+    },
+    {
+     "x": 62,
+     "y": 48,
+     "id": "a5",
+     "name": "Thiago",
+     "team": "A",
+     "type": "player",
+     "athleteId": "a11f6684-b934-4e0c-ac28-2391f710dc01",
+     "isGoalkeeper": false,
+     "jerseyNumber": 5
+    },
+    {
+     "x": 72,
+     "y": 40,
+     "id": "a8",
+     "name": "Felipe",
+     "team": "A",
+     "type": "player",
+     "athleteId": "34d08055-40d0-4991-b894-17323df8d84f",
+     "isGoalkeeper": false,
+     "jerseyNumber": 8
+    },
+    {
+     "x": 74,
+     "y": 54,
+     "id": "a10",
+     "name": "Bruno",
+     "team": "A",
+     "type": "player",
+     "athleteId": "3202ad24-a5b3-49cb-b241-cc5ae22cfeb0",
+     "isGoalkeeper": false,
+     "jerseyNumber": 10
+    },
+    {
+     "x": 80,
+     "y": 14,
+     "id": "a7",
+     "name": "Caio",
+     "team": "A",
+     "type": "player",
+     "athleteId": "1df6e9bb-a9cb-42ea-975e-d719c49932c0",
+     "isGoalkeeper": false,
+     "jerseyNumber": 7
+    },
+    {
+     "x": 80,
+     "y": 86,
+     "id": "a11",
+     "name": "Leonardo",
+     "team": "A",
+     "type": "player",
+     "athleteId": "dd434a14-9761-441c-b44b-c760e6c0376b",
+     "isGoalkeeper": false,
+     "jerseyNumber": 11
+    },
+    {
+     "x": 80,
+     "y": 44,
+     "id": "a9",
+     "name": "Gustavo",
+     "team": "A",
+     "type": "player",
+     "athleteId": "d9b89db6-64a5-4f06-b1dc-3f0f1df0a7b4",
+     "isGoalkeeper": false,
+     "jerseyNumber": 9
+    },
+    {
+     "x": 95,
+     "y": 50,
+     "id": "b0",
+     "name": "",
+     "team": "B",
+     "type": "player",
+     "athleteId": null,
+     "isGoalkeeper": true,
+     "jerseyNumber": 1
+    },
+    {
+     "x": 86,
+     "y": 30,
+     "id": "b1",
+     "name": "",
+     "team": "B",
+     "type": "player",
+     "athleteId": null,
+     "isGoalkeeper": false,
+     "jerseyNumber": 2
+    },
+    {
+     "x": 88,
+     "y": 46,
+     "id": "b2",
+     "name": "",
+     "team": "B",
+     "type": "player",
+     "athleteId": null,
+     "isGoalkeeper": false,
+     "jerseyNumber": 4
+    },
+    {
+     "x": 88,
+     "y": 60,
+     "id": "b3",
+     "name": "",
+     "team": "B",
+     "type": "player",
+     "athleteId": null,
+     "isGoalkeeper": false,
+     "jerseyNumber": 3
+    },
+    {
+     "x": 84,
+     "y": 74,
+     "id": "b4",
+     "name": "",
+     "team": "B",
+     "type": "player",
+     "athleteId": null,
+     "isGoalkeeper": false,
+     "jerseyNumber": 6
+    },
+    {
+     "x": 74,
+     "y": 22,
+     "id": "b5",
+     "name": "",
+     "team": "B",
+     "type": "player",
+     "athleteId": null,
+     "isGoalkeeper": false,
+     "jerseyNumber": 7
+    },
+    {
+     "x": 74,
+     "y": 46,
+     "id": "b6",
+     "name": "",
+     "team": "B",
+     "type": "player",
+     "athleteId": null,
+     "isGoalkeeper": false,
+     "jerseyNumber": 8
+    },
+    {
+     "x": 74,
+     "y": 60,
+     "id": "b7",
+     "name": "",
+     "team": "B",
+     "type": "player",
+     "athleteId": null,
+     "isGoalkeeper": false,
+     "jerseyNumber": 5
+    },
+    {
+     "x": 72,
+     "y": 80,
+     "id": "b8",
+     "name": "",
+     "team": "B",
+     "type": "player",
+     "athleteId": null,
+     "isGoalkeeper": false,
+     "jerseyNumber": 11
+    },
+    {
+     "x": 60,
+     "y": 40,
+     "id": "b9",
+     "name": "",
+     "team": "B",
+     "type": "player",
+     "athleteId": null,
+     "isGoalkeeper": false,
+     "jerseyNumber": 9
+    },
+    {
+     "x": 60,
+     "y": 60,
+     "id": "b10",
+     "name": "",
+     "team": "B",
+     "type": "player",
+     "athleteId": null,
+     "isGoalkeeper": false,
+     "jerseyNumber": 10
+    },
+    {
+     "x": 74.5,
+     "y": 46.5,
+     "id": "ball",
+     "team": null,
+     "type": "ball"
+    }
+   ]
+  }
+ ],
+ "animation_speed": 1,
+ "club_id": "clube-demo",
+ "club_name": "Demo FC"
+}
