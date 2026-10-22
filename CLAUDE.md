@@ -142,3 +142,25 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   também no dia de 1 período (não descanso); `POST …/periodos` sem `atual` usa o nome do dia (ou Manhã); remover
   período NÃO volta a NULL (o que sobra mantém o nome). Programação: "Manhã · Tático" numa linha (reticências).
   Jogo e descanso de período único: sem período (só "Jogo"/"Descanso"). Ficha de 1 período: "· Manhã" no título.
+
+## Período de AVALIAÇÃO (22/10/2026)
+- `session_type = 'assessment'` ("Avaliação"), por período como os outros tipos. Migration 059 (só ADD):
+  `training_sessions.assessment_types TEXT[]` (lista fixa: fisica, tecnica, tatica, fisiologica, antropometrica,
+  psicologica, outra) + `assessment_other VARCHAR(60)` (texto de "Outra"; texto implica 'outra'; 'outra' exige texto).
+- Regras (`src/services/periodos.js`: `normalizarAvaliacao`, `rotulosAvaliacao`, `ehAvaliacao`): fica ao lado de treino
+  ou jogo, ou sozinha; descanso segue do dia inteiro; 1 jogo por dia. SEM blocos (os 6 blocos continuam no banco,
+  só não aparecem). Mostra o período como o treino ("Manhã · Avaliação").
+- API: `PUT /api/sessions/:id/type {session_type:'assessment', assessment_types, assessment_other}` (outros tipos zeram
+  os campos); `POST /api/sessions/:id/periodos {novo, atual?, tipo:'training'|'assessment', assessment_types?, assessment_other?}`.
+  400 `AVALIACAO_INVALIDA`.
+- Decisão do dono: avaliação NÃO aparece nas estatísticas (nem minutos, pilares, sessões, nem contagem própria).
+  `getTrainingStats` ignora os períodos de avaliação (e atividades antigas deles); `getPeriodSessions` devolve 0 minutos.
+- Aparece: Programação (estado AVALIAÇÃO + tipos na coluna, 1ª linha e carrossel), ficha do dia (card
+  "Avaliação · tipos"), PDF da semana (dia com etiqueta AVALIAÇÃO e os tipos; dia misto "Treino + Avaliação"), app (Semana/Dia).
+- Paridade do app: `native/paridade/avaliacao.json` gerado de `frontend/src/lib/periodos.js` por
+  `native/paridade/gerar-avaliacao.mjs` (`--check`). Mexeu no lib → regere e comite o JSON.
+- Divisão "90+60" (web, PDF, app) só quando 2+ períodos TÊM minutos — nunca "125+0" (`divisaoMinutos`).
+- PDF de treino, MICROCICLO: barra fina horizontal empilhada pelos pilares do dia (`sessionsByDate[].pillarMinutes`,
+  cada atividade no pilar do 1º conteúdo), comprimento proporcional ao maior dia, total em destaque; dia sem minutos "—".
+  Períodos longos: coluna por semana empilhada pelos pilares.
+- Testes: `tests/avaliacao.test.js` (puro) e `tests/avaliacao-db.test.js` (banco descartável `PERIODOS_TEST_DB`, com 059).
