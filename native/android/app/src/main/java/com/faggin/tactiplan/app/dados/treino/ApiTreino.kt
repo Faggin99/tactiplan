@@ -57,6 +57,8 @@ object CaminhosTreino {
     fun atividadeDoBloco(blocoId: String) = "/activities/block/${codificarComponente(blocoId)}"
     fun tipoDoDia(id: String) = "/sessions/${codificarComponente(id)}/type"
     fun distancia(id: String) = "/sessions/${codificarComponente(id)}/distance"
+    fun periodos(id: String) = "/sessions/${codificarComponente(id)}/periodos"
+    fun periodo(id: String) = "/sessions/${codificarComponente(id)}/periodo"
     fun anexosDoDia(id: String) = "/files/session/${codificarComponente(id)}"
     const val enviarAnexo = "/files/upload"
     fun anexo(id: String) = "/files/${codificarComponente(id)}"
@@ -112,6 +114,9 @@ data class FotoRelatorio(
     val titulo: String? = null,
     val origem: String? = null,
     val thumb: String? = null,
+    /** Período da foto no dia com 2+ períodos ("manha"…; null = período único). */
+    val periodo: String? = null,
+    val periodoRotulo: String? = null,
 )
 
 @Serializable
@@ -137,6 +142,10 @@ interface ApiTreino {
     suspend fun apagarAtividadeDoBloco(blocoId: String)
     suspend fun mudarTipo(diaId: String, tipo: TipoDia, adversario: String?)
     suspend fun mudarDistancia(diaId: String, km: Double?)
+    /** POST /api/sessions/:id/periodos — `atual` só no dia de 1 período. Devolve o id do novo. */
+    suspend fun adicionarPeriodo(diaId: String, novo: Periodo, atual: Periodo?): String
+    /** DELETE /api/sessions/:id/periodo — devolve quantos anexos foram apagados. */
+    suspend fun removerPeriodo(periodoId: String): Int
     suspend fun enviarAnexo(atividadeId: String, arquivo: ArquivoUpload, titulo: String, progresso: (Double) -> Unit): Anexo
     suspend fun renomearAnexo(id: String, titulo: String): Anexo
     suspend fun apagarAnexo(id: String)
@@ -232,6 +241,20 @@ class ApiTreinoHttp(
 
     override suspend fun mudarDistancia(diaId: String, km: Double?) {
         j(CaminhosTreino.distancia(diaId), "PUT", JsonObject(mapOf("avg_distance_km" to (km?.let { JsonPrimitive(it) } ?: JsonNull))))
+    }
+
+    override suspend fun adicionarPeriodo(diaId: String, novo: Periodo, atual: Periodo?): String {
+        val r = j(CaminhosTreino.periodos(diaId), "POST", buildJsonObject {
+            put("novo", novo.bruto)
+            if (atual != null) put("atual", atual.bruto)
+        })
+        return ((r as? JsonObject)?.get("id") as? JsonPrimitive)?.contentOrNull
+            ?: throw ErroApi(0, null, ErroApi.MSG_FALHA)
+    }
+
+    override suspend fun removerPeriodo(periodoId: String): Int {
+        val r = j(CaminhosTreino.periodo(periodoId), "DELETE")
+        return ((r as? JsonObject)?.get("anexos_apagados") as? JsonPrimitive)?.contentOrNull?.toDoubleOrNull()?.toInt() ?: 0
     }
 
     /** O multipart: activity_id e title ANTES do arquivo (o multer lê na ordem). */

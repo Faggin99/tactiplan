@@ -105,6 +105,20 @@ class ServicoTreino(val api: ApiTreino) {
         return id
     }
 
+    /** Adiciona um período ao dia (cria o dia antes, se preciso). Devolve o id do período novo. */
+    suspend fun adicionarPeriodo(dia: Dia, novo: Periodo, atual: Periodo?, semana: SemanaISO, clubeId: String): String {
+        erroNovoPeriodo(dia, atual, novo)?.let { throw ErroApi(0, "PERIODO_INVALIDO", it) }
+        val id = diaReal(dia, semana, clubeId).id ?: throw ErroApi(0, null, ErroApi.MSG_FALHA)
+        return api.adicionarPeriodo(id, novo, if (dia.temPeriodos) null else atual)
+    }
+
+    /** Remove um período (só no dia com 2+). Devolve os anexos apagados. */
+    suspend fun removerPeriodo(periodo: Dia): Int {
+        val id = periodo.id
+        if (id == null || periodo.periodo == null) throw ErroApi(0, "PERIODO_INVALIDO", "O dia tem um período só: não há o que remover.")
+        return api.removerPeriodo(id)
+    }
+
     suspend fun mudarDistancia(dia: Dia, km: Double?, semana: SemanaISO, clubeId: String): String {
         val id = diaReal(dia, semana, clubeId).id ?: throw ErroApi(0, null, ErroApi.MSG_FALHA)
         api.mudarDistancia(id, km)
@@ -130,16 +144,21 @@ fun mensagemErroTreino(e: Throwable, permissao: String = MSG_SEM_PERMISSAO_TREIN
 
 // ---------- relatórios ----------
 
-fun corpoFichaDoDia(diaId: String): Map<String, JsonElement> = mapOf("session_id" to JsonPrimitive(diaId))
+/** Dia com 2+ períodos: sai o dia inteiro; `soPeriodo` = só o período de `diaId`. */
+fun corpoFichaDoDia(diaId: String, soPeriodo: Boolean = false): Map<String, JsonElement> =
+    if (soPeriodo) mapOf("session_id" to JsonPrimitive(diaId), "so_periodo" to JsonPrimitive(true))
+    else mapOf("session_id" to JsonPrimitive(diaId))
 
 fun corpoRelatorioSemana(s: SemanaISO, clubeId: String): Map<String, JsonElement> = mapOf(
     "club_id" to JsonPrimitive(clubeId), "start_date" to JsonPrimitive(s.segunda),
     "end_date" to JsonPrimitive(s.domingo), "filter_type" to JsonPrimitive("1-micro"),
 )
 
-fun nomePdfDoDia(d: Dia): String {
+/** Só um período: "treino-Quarta-21-10-2026-Tarde.pdf". */
+fun nomePdfDoDia(d: Dia, periodo: String? = null): String {
     val nome = d.nomeDia ?: NOMES_DIAS[(d.diaDaSemana - 1).coerceIn(0, 6)]
-    return nomeArquivoSeguro("treino-$nome-${dataBR(d.data).replace("/", "-")}") + ".pdf"
+    val sufixo = rotuloDoPeriodo(periodo)?.let { "-$it" } ?: ""
+    return nomeArquivoSeguro("treino-$nome-${dataBR(d.data).replace("/", "-")}$sufixo") + ".pdf"
 }
 
 fun nomePdfDaSemana(s: SemanaISO, clube: String): String =

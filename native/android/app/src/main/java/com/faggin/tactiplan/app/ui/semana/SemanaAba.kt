@@ -22,6 +22,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -87,6 +89,19 @@ import com.faggin.tactiplan.app.dados.treino.nomePdfDaSemana
 import com.faggin.tactiplan.app.dados.treino.nomePdfDoDia
 import com.faggin.tactiplan.app.dados.treino.pilarDe
 import com.faggin.tactiplan.app.dados.treino.resumoDoDia
+import com.faggin.tactiplan.app.dados.treino.resumoDoDiaInteiro
+import com.faggin.tactiplan.app.dados.treino.Periodo
+import com.faggin.tactiplan.app.dados.treino.MSG_SEM_PERMISSAO_APAGAR
+import com.faggin.tactiplan.app.dados.treino.divisaoMinutos
+import com.faggin.tactiplan.app.dados.treino.erroNovoPeriodo
+import com.faggin.tactiplan.app.dados.treino.listaPeriodos
+import com.faggin.tactiplan.app.dados.treino.periodosDisponiveis
+import com.faggin.tactiplan.app.dados.treino.rotuloDoPeriodo
+import com.faggin.tactiplan.app.dados.treino.seloPeriodos
+import com.faggin.tactiplan.app.dados.treino.sugestaoNovoPeriodo
+import com.faggin.tactiplan.app.dados.treino.temPeriodos
+import com.faggin.tactiplan.app.dados.treino.textoRemoverPeriodo
+import com.faggin.tactiplan.app.ui.comum.Pastilha
 import com.faggin.tactiplan.app.dados.treino.rotuloDiaCurto
 import com.faggin.tactiplan.app.dados.treino.rotuloDiaMinusculo
 import com.faggin.tactiplan.app.dados.treino.rotuloPeriodo
@@ -197,11 +212,12 @@ fun SemanaAba(amb: AmbienteClube, treino: ServicoTreino) {
             } else {
                 BackHandler { tela = TelaSemana.Lista; aviso = null }
                 DiaTela(
-                    amb = amb, treino = treino, semana = semana, clubeId = clubeId, dia = dia,
+                    amb = amb, treino = treino, semana = semana, clubeId = clubeId, diaInteiro = dia,
                     aviso = aviso, exportando = exportando, avisar = { aviso = it },
                     voltar = { tela = TelaSemana.Lista; aviso = null }, mudou = recarregar,
                     verFicha = { id -> tela = TelaSemana.Ficha(id, dia.data) },
                     exportarDia = { id -> exportar("sessao", corpoFichaDoDia(id), nomePdfDoDia(dia)) },
+                    exportarPeriodo = { p -> p.id?.let { id -> exportar("sessao", corpoFichaDoDia(id, soPeriodo = true), nomePdfDoDia(dia, p.periodo)) } },
                     abrirJogo = amb.jogo?.let { { id: String -> tela = TelaSemana.Jogo(id, dia.data) } },
                 )
             }
@@ -271,11 +287,11 @@ fun SemanaTela(
                 erro != null -> EstadoVazio(Icones.nuvem, TITULO_ERRO_SEMANA, erro, "Tentar de novo" to atualizar)
                 else -> {
                     dias.firstOrNull { it.data == hoje }?.let { d ->
-                        val r = resumoDoDia(d)
+                        val r = resumoDoDiaInteiro(d)
                         CartaoHeroi(
                             rotulo = "Hoje · ${rotuloDiaMinusculo(d.data)}",
                             valor = if (r.minutos > 0) "${r.minutos} min" else r.tipo.rotulo,
-                            frase = fraseDoHeroi(r), selo = r.tipo.rotulo,
+                            frase = fraseDoHeroi(r) + (seloPeriodos(d)?.let { "\n$it · ${divisaoMinutos(d)}" } ?: ""), selo = r.tipo.rotulo,
                             modifier = Modifier.clickable(role = Role.Button) { abrirDia(d) }.testTag("semana:hoje"),
                             rodape = tema?.frase?.let { f -> { Text(f, style = TactiPlan.tipos.corpo13, color = c.sobreHeroi2) } },
                         )
@@ -329,7 +345,8 @@ private fun Esqueleto() {
 @Composable
 private fun LinhaDia(d: Dia, hoje: Boolean, aoTocar: () -> Unit) {
     val c = TactiPlan.cores
-    val r = resumoDoDia(d)
+    val r = resumoDoDiaInteiro(d)
+    val selo = seloPeriodos(d)
     val (sigla, num) = siglaEDia(d.data)
     val titulo = com.faggin.tactiplan.app.dados.treino.tituloDaLinha(r)
     val detalhe = detalheDaLinha(r)
@@ -337,7 +354,8 @@ private fun LinhaDia(d: Dia, hoje: Boolean, aoTocar: () -> Unit) {
         Modifier.fillMaxWidth().heightIn(min = 60.dp).clickable(role = Role.Button, onClick = aoTocar)
             .padding(vertical = 8.dp).testTag(TAG_DIA + d.data)
             .semantics(mergeDescendants = true) {
-                contentDescription = "${rotuloDiaCurto(d.data)}${if (hoje) ", hoje" else ""}. $titulo. $detalhe" +
+                contentDescription = "${rotuloDiaCurto(d.data)}${if (hoje) ", hoje" else ""}. $titulo. " +
+                    (selo?.let { "$it: ${divisaoMinutos(d)} minutos. " } ?: "") + detalhe +
                     if (r.anexos > 0) ". ${r.anexos} anexos" else ""
             },
         verticalAlignment = Alignment.CenterVertically,
@@ -354,7 +372,8 @@ private fun LinhaDia(d: Dia, hoje: Boolean, aoTocar: () -> Unit) {
                     else -> {}
                 }
                 Text(titulo, style = TactiPlan.tipos.corpo15, fontWeight = FontWeight.SemiBold, color = c.tinta,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                if (selo != null) Box(Modifier.padding(start = 6.dp).testTag("dia:selo-periodos")) { Pastilha(selo, Tom.NEUTRO) }
             }
             if (r.minutosPorPilar.isNotEmpty()) BarraPilares(r.minutosPorPilar)
             if (detalhe.isNotEmpty() || r.anexos > 0) {
@@ -393,7 +412,7 @@ fun DiaTela(
     treino: ServicoTreino,
     semana: SemanaISO,
     clubeId: String,
-    dia: Dia,
+    diaInteiro: Dia,
     aviso: String?,
     exportando: Boolean,
     avisar: (String?) -> Unit,
@@ -401,13 +420,28 @@ fun DiaTela(
     mudou: () -> Unit,
     verFicha: (String) -> Unit,
     exportarDia: (String) -> Unit,
+    exportarPeriodo: (Dia) -> Unit = {},
     abrirJogo: ((String) -> Unit)? = null,
 ) {
     val ctx = amb.contexto
     val c = TactiPlan.cores
     val escopo = rememberCoroutineScope()
     val podeEditar = ctx.podeEditar("training:edit")
+    // Dia com 2+ períodos: tipo, blocos, distância e edição são do período escolhido.
+    val periodosDoDia = diaInteiro.listaPeriodos
+    var periodoSel by remember(diaInteiro.data) { mutableIntStateOf(0) }
+    var irParaPeriodo by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(periodosDoDia.map { it.periodo }) {
+        irParaPeriodo?.let { alvo ->
+            val i = periodosDoDia.indexOfFirst { it.periodo == alvo }
+            if (i >= 0) { periodoSel = i; irParaPeriodo = null }
+        }
+    }
+    val dia = periodosDoDia[periodoSel.coerceIn(0, periodosDoDia.lastIndex)]
     val r = resumoDoDia(dia)
+    var menuAberto by remember { mutableStateOf(false) }
+    var adicionando by remember { mutableStateOf(false) }
+    var confirmarRemover by remember { mutableStateOf(false) }
     var mudandoTipo by remember { mutableStateOf(false) }
     var pedirAdversario by remember { mutableStateOf(false) }
     var pedirKm by remember { mutableStateOf(false) }
@@ -427,21 +461,56 @@ fun DiaTela(
         }
     }
 
+    val podeAdicionar = podeEditar && periodosDisponiveis(diaInteiro).isNotEmpty()
+    val podeRemover = diaInteiro.temPeriodos && ctx.podeEditar("training:delete")
+    val podeExportarPeriodo = diaInteiro.temPeriodos && ctx.conta.somenteLeitura != true && dia.id != null
     TelaRaiz(rotuloDiaCurto(dia.data), aoVoltar = voltar, pequena = true, acoes = {
-        if (dia.id != null && ctx.pode("training:view")) {
-            IconButton(onClick = { verFicha(dia.id) }, modifier = Modifier.testTag("dia:ficha")) {
+        val idDia = diaInteiro.id
+        if (idDia != null && ctx.pode("training:view")) {
+            IconButton(onClick = { verFicha(idDia) }, modifier = Modifier.testTag("dia:ficha")) {
                 Icon(Icones.documento, contentDescription = "Ver a ficha do dia")
             }
             if (ctx.conta.somenteLeitura != true) {
-                IconButton(onClick = { exportarDia(dia.id) }, enabled = !exportando, modifier = Modifier.testTag("dia:exportar")) {
+                IconButton(onClick = { exportarDia(idDia) }, enabled = !exportando, modifier = Modifier.testTag("dia:exportar")) {
                     if (exportando) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = c.acaoTinta)
                     else Icon(Icones.compartilhar, contentDescription = "Exportar a ficha do dia em PDF")
+                }
+            }
+        }
+        if (podeAdicionar || podeRemover || podeExportarPeriodo) {
+            Box {
+                IconButton(onClick = { menuAberto = true }, modifier = Modifier.testTag("dia:menu-periodos")) {
+                    Icon(Icones.mais, contentDescription = "Períodos do dia")
+                }
+                DropdownMenu(expanded = menuAberto, onDismissRequest = { menuAberto = false }) {
+                    if (podeAdicionar) DropdownMenuItem(text = { Text("Adicionar período") },
+                        onClick = { menuAberto = false; adicionando = true }, modifier = Modifier.testTag("dia:periodo:adicionar"))
+                    if (podeRemover) DropdownMenuItem(text = { Text("Remover período ${rotuloDoPeriodo(dia.periodo) ?: ""}") },
+                        onClick = { menuAberto = false; confirmarRemover = true }, modifier = Modifier.testTag("dia:periodo:remover"))
+                    if (podeExportarPeriodo) DropdownMenuItem(text = { Text("Exportar só ${rotuloDoPeriodo(dia.periodo) ?: "o período"} (PDF)") },
+                        onClick = { menuAberto = false; exportarPeriodo(dia) }, modifier = Modifier.testTag("dia:periodo:exportar"))
                 }
             }
         }
     }) {
         FaixasDoTopo(amb)
         aviso?.let { FaixaTom(it, Tom.AVISO) }
+        if (diaInteiro.temPeriodos) {
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                periodosDoDia.forEachIndexed { i, p ->
+                    SegmentedButton(
+                        selected = i == periodoSel.coerceIn(0, periodosDoDia.lastIndex),
+                        onClick = { periodoSel = i },
+                        shape = SegmentedButtonDefaults.itemShape(i, periodosDoDia.size),
+                        colors = SegmentedButtonDefaults.colors(activeContainerColor = c.acaoSuave, activeContentColor = c.acaoTinta),
+                        modifier = Modifier.testTag("dia:periodo:${p.periodo}"),
+                    ) { Text(rotuloDoPeriodo(p.periodo) ?: "Período") }
+                }
+            }
+            val total = resumoDoDiaInteiro(diaInteiro)
+            Text("Dia: ${total.minutos} min · ${divisaoMinutos(diaInteiro)}" + (total.distanciaKm?.let { " · ${formatarKm(it)} km" } ?: ""),
+                style = TactiPlan.tipos.corpo13, fontWeight = FontWeight.Medium, color = c.tinta2, modifier = Modifier.testTag("dia:total"))
+        }
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
             TipoDia.entries.forEachIndexed { i, t ->
                 SegmentedButton(
@@ -542,6 +611,84 @@ fun DiaTela(
                 }) { Text("Salvar") }
             },
             dismissButton = { TextButton(onClick = { pedirKm = false }) { Text("Cancelar") } },
+        )
+    }
+    if (adicionando) {
+        val sug = remember { sugestaoNovoPeriodo(diaInteiro) }
+        val unico = !diaInteiro.temPeriodos
+        var atual by remember { mutableStateOf(sug?.first ?: Periodo.MANHA) }
+        var novo by remember { mutableStateOf(sug?.second ?: Periodo.TARDE) }
+        val livres = periodosDisponiveis(diaInteiro)
+        val erroP = erroNovoPeriodo(diaInteiro, if (unico) atual else null, novo)
+        AlertDialog(
+            onDismissRequest = { adicionando = false },
+            title = { Text("Adicionar período") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (unico) {
+                        Text("O treino que já existe é", style = TactiPlan.tipos.corpo13, color = c.tinta2)
+                        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                            Periodo.entries.forEachIndexed { i, p ->
+                                SegmentedButton(selected = atual == p, onClick = { atual = p },
+                                    shape = SegmentedButtonDefaults.itemShape(i, Periodo.entries.size),
+                                    modifier = Modifier.testTag("periodo:atual:${p.bruto}")) { Text(p.rotulo) }
+                            }
+                        }
+                    }
+                    Text("Novo período", style = TactiPlan.tipos.corpo13, color = c.tinta2)
+                    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                        livres.forEachIndexed { i, p ->
+                            SegmentedButton(selected = novo == p, onClick = { novo = p },
+                                shape = SegmentedButtonDefaults.itemShape(i, livres.size),
+                                modifier = Modifier.testTag("periodo:novo:${p.bruto}")) { Text(p.rotulo) }
+                        }
+                    }
+                    Text(erroP ?: "O novo período começa com os 6 blocos vazios. Máximo de 3 por dia.",
+                        style = TactiPlan.tipos.corpo13, color = if (erroP != null) c.erroTinta else c.tinta2)
+                }
+            },
+            confirmButton = {
+                TextButton(enabled = erroP == null, modifier = Modifier.testTag("periodo:confirmar"), onClick = {
+                    adicionando = false
+                    val a = if (unico) atual else null
+                    val n = novo
+                    escopo.launch {
+                        try {
+                            treino.adicionarPeriodo(diaInteiro, n, a, semana, clubeId)
+                            irParaPeriodo = n.bruto
+                            avisar("Período ${n.rotulo} adicionado.")
+                            mudou()
+                        } catch (e: Exception) {
+                            if (!amb.tratarErro(e)) avisar(mensagemErroTreino(e))
+                        }
+                    }
+                }) { Text("Adicionar") }
+            },
+            dismissButton = { TextButton(onClick = { adicionando = false }) { Text("Cancelar") } },
+        )
+    }
+    if (confirmarRemover) {
+        val alvo = dia
+        AlertDialog(
+            onDismissRequest = { confirmarRemover = false },
+            title = { Text("Remover período") },
+            text = { Text(textoRemoverPeriodo(alvo)) },
+            confirmButton = {
+                TextButton(modifier = Modifier.testTag("periodo:remover:confirmar"), onClick = {
+                    confirmarRemover = false
+                    escopo.launch {
+                        try {
+                            treino.removerPeriodo(alvo)
+                            periodoSel = 0
+                            avisar("Período ${rotuloDoPeriodo(alvo.periodo) ?: ""} removido.")
+                            mudou()
+                        } catch (e: Exception) {
+                            if (!amb.tratarErro(e)) avisar(mensagemErroTreino(e, MSG_SEM_PERMISSAO_APAGAR))
+                        }
+                    }
+                }) { Text("Remover", color = c.erroTinta) }
+            },
+            dismissButton = { TextButton(onClick = { confirmarRemover = false }) { Text("Cancelar") } },
         )
     }
     editando?.let { ordem ->

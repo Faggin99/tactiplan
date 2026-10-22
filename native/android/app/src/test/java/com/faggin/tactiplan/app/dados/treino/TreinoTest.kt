@@ -311,6 +311,10 @@ class ApiTreinoFalsa : ApiTreino {
     override suspend fun apagarAtividadeDoBloco(blocoId: String) { chamadas += "apagar:$blocoId" }
     override suspend fun mudarTipo(diaId: String, tipo: TipoDia, adversario: String?) { chamadas += "tipo:$diaId:${tipo.bruto}:${adversario ?: ""}" }
     override suspend fun mudarDistancia(diaId: String, km: Double?) { chamadas += "km:$diaId:${km ?: "nil"}" }
+    override suspend fun adicionarPeriodo(diaId: String, novo: Periodo, atual: Periodo?): String {
+        chamadas += "periodo+:$diaId:${novo.bruto}:${atual?.bruto ?: ""}"; return "p-novo"
+    }
+    override suspend fun removerPeriodo(periodoId: String): Int { chamadas += "periodo-:$periodoId"; return 2 }
     override suspend fun enviarAnexo(atividadeId: String, arquivo: ArquivoUpload, titulo: String, progresso: (Double) -> Unit): Anexo {
         chamadas += "anexo:$atividadeId:$titulo"
         erroAnexo[titulo]?.let { throw it }

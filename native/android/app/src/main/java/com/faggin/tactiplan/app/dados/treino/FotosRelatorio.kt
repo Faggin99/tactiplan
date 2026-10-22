@@ -60,15 +60,28 @@ data class EscolhaFotos(
     private fun foto(id: String) = fotos.firstOrNull { it.id == id }
     private val agrupada get() = semana && agrupar
 
+    /** Algum dia com 2+ períodos nas fotos? */
+    private val comPeriodos get() = fotos.any { it.periodo != null }
+
+    /** Chave do grupo: "data|ordem do período" (a ordem das chaves = a ordem dos grupos). */
+    private fun chaveGrupo(id: String): String {
+        val f = foto(id)
+        val p = ordemDoPeriodo(f?.periodo)
+        return if (agrupada) "${f?.data ?: "sem-data"}|$p" else "periodo|$p"
+    }
+
+    /** Por dia (semana agrupada; com períodos, dia · período), por período (ficha de um dia com 2+) ou um só. */
     val grupos: List<GrupoFotos>
         get() {
-            if (!agrupada) return listOf(GrupoFotos("all", null, ordem))
+            if (!agrupada && (semana || !comPeriodos)) return listOf(GrupoFotos("all", null, ordem))
             val mapa = linkedMapOf<String, Pair<String, MutableList<String>>>()
             for (id in ordem) {
                 val f = foto(id)
-                val k = f?.data ?: "sem-data"
-                val rotulo = f?.dia?.let { "$it · ${f.dd ?: ""}" } ?: "Sem data"
-                mapa.getOrPut(k) { rotulo to mutableListOf() }.second += id
+                val per = f?.periodoRotulo ?: rotuloDoPeriodo(f?.periodo)
+                val rotulo = if (agrupada) {
+                    (f?.dia?.let { "$it · ${f.dd ?: ""}" } ?: "Sem data") + (per?.let { " · $it" } ?: "")
+                } else per ?: "Dia"
+                mapa.getOrPut(chaveGrupo(id)) { rotulo to mutableListOf() }.second += id
             }
             return mapa.keys.sorted().map { GrupoFotos(it, mapa[it]!!.first, mapa[it]!!.second) }
         }
@@ -92,7 +105,7 @@ data class EscolhaFotos(
 
     fun nenhuma() = copy(selecionadas = emptySet())
 
-    private fun grupoDe(id: String) = if (agrupada) (foto(id)?.data ?: "sem-data") else "all"
+    private fun grupoDe(id: String) = if (agrupada || (!semana && comPeriodos)) chaveGrupo(id) else "all"
 
     fun podeMover(id: String, direcao: Int): Boolean {
         val seq = ordemExibida

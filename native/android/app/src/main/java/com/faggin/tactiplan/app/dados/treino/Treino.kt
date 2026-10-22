@@ -119,12 +119,23 @@ data class Dia(
     @SerialName("opponent_name") val adversario: String? = null,
     @Serializable(with = DoubleFlex::class) @SerialName("avg_distance_km") val distanciaKm: Double? = null,
     @SerialName("blocks") val blocos: List<Bloco> = emptyList(),
+    /** "manha" | "tarde" | "noite"; null = dia de período único (o normal). */
+    val periodo: String? = null,
+    /** Dia com 2+ períodos: TODOS (o 1º é este), ordem Manhã → Noite. null no dia de 1 período. */
+    val periodos: List<Dia>? = null,
 ) {
     val diaDaSemana: Int get() = diaDaSemanaBruto ?: 0
     val tipo: TipoDia get() = TipoDia.de(tipoBruto)
 
     /** Data cortada em 10 e blocos em ordem (o pg sem parser de DATE manda "…T00:00:00.000Z"). */
-    fun normalizado(): Dia = copy(data = data.take(10), blocos = blocos.sortedBy { it.ordem })
+    fun normalizado(): Dia {
+        val ps = periodos.orEmpty().map { it.normalizado() }.sortedBy { ordemDoPeriodo(it.periodo) }
+        return copy(
+            data = data.take(10), blocos = blocos.sortedBy { it.ordem },
+            periodo = Periodo.de(periodo)?.bruto,
+            periodos = if (ps.size > 1) ps else null,
+        )
+    }
 
     companion object {
         fun de(id: String?, data: String, nomeDia: String?, diaDaSemana: Int, tipoBruto: String? = null,
