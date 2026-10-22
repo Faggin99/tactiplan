@@ -135,6 +135,8 @@ public enum TipoDia: String, Codable, Equatable, Sendable, CaseIterable {
     case treino = "training"
     case jogo = "match"
     case descanso = "rest"
+    /// Período de avaliação (migration 059): sem blocos; só o tipo de avaliação. Não soma minutos.
+    case avaliacao = "assessment"
 
     public static func de(_ s: String?) -> TipoDia { TipoDia(rawValue: s ?? "") ?? .treino }
 
@@ -143,6 +145,7 @@ public enum TipoDia: String, Codable, Equatable, Sendable, CaseIterable {
         case .treino: return "Treino"
         case .jogo: return "Jogo"
         case .descanso: return "Descanso"
+        case .avaliacao: return "Avaliação"
         }
     }
 }
@@ -164,19 +167,25 @@ public struct Dia: Codable, Equatable, Sendable {
     /// Dia com 2+ períodos: TODOS eles (o 1º é este mesmo), ordem Manhã → Noite. nil no dia de 1 período.
     /// `sessions` do microciclo segue com 1 por dia (o app T1/T2 só lê o 1º período).
     public var periodos: [Dia]?
+    /// Período de avaliação: os tipos (assessment_types: "fisica", "tecnica"…, "outra") e o texto da "Outra".
+    public var tiposAvaliacao: [String]?
+    public var outraAvaliacao: String?
 
     public init(id: String? = nil, data: String, nomeDia: String? = nil, diaDaSemana: Int, tipoBruto: String? = nil,
                 adversario: String? = nil, distanciaKm: Double? = nil, blocos: [Bloco] = [],
-                periodo: String? = nil, periodos: [Dia]? = nil) {
+                periodo: String? = nil, periodos: [Dia]? = nil,
+                tiposAvaliacao: [String]? = nil, outraAvaliacao: String? = nil) {
         self.id = id; self.data = data; self.nomeDia = nomeDia; self.diaDaSemana = diaDaSemana; self.tipoBruto = tipoBruto
         self.adversario = adversario; self.distanciaKm = distanciaKm; self.blocos = blocos
         self.periodo = periodo; self.periodos = periodos
+        self.tiposAvaliacao = tiposAvaliacao; self.outraAvaliacao = outraAvaliacao
     }
 
     enum CodingKeys: String, CodingKey {
         case id, data = "date", nomeDia = "day_name", diaDaSemana = "day_of_week", tipoBruto = "session_type"
         case adversario = "opponent_name", distanciaKm = "avg_distance_km", blocos = "blocks"
         case periodo, periodos
+        case tiposAvaliacao = "assessment_types", outraAvaliacao = "assessment_other"
     }
 
     public init(from decoder: Decoder) throws {
@@ -194,6 +203,8 @@ public struct Dia: Codable, Equatable, Sendable {
         let ps = ((try? c.decodeIfPresent([Dia].self, forKey: .periodos)) ?? [])
             .sorted { ordemDoPeriodo($0.periodo) < ordemDoPeriodo($1.periodo) }
         periodos = ps.count > 1 ? ps : nil
+        tiposAvaliacao = try? c.decodeIfPresent([String].self, forKey: .tiposAvaliacao)
+        outraAvaliacao = try? c.decodeIfPresent(String.self, forKey: .outraAvaliacao)
     }
 
     public var tipo: TipoDia { TipoDia.de(tipoBruto) }

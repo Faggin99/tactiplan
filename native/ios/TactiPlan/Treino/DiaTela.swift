@@ -9,6 +9,8 @@ import TactiPlanKit
 // Dia com 2+ períodos (Manhã · Tarde · Noite): seletor segmentado no topo; tipo, blocos, distância
 // e edição são do período escolhido; o total do dia soma todos ("150 min · 90+60"). O menu do topo
 // adiciona/remove período, troca o horário (Manhã/Tarde/Noite) e exporta a ficha do dia inteiro ou só do período.
+// Período de AVALIAÇÃO: no lugar dos blocos, o estado "AVALIAÇÃO" + os tipos (Física, Técnica…);
+// a escolha dos tipos abre ao trocar o tipo para Avaliação e ao adicionar um período de avaliação.
 
 struct DiaTela: View {
     let data: String
@@ -33,6 +35,12 @@ struct DiaTela: View {
     @State private var novoAtual: Periodo = .manha
     @State private var novoPeriodo: Periodo = .tarde
     @State private var confirmarRemover = false
+    /// Folha dos tipos de avaliação (trocar o tipo do período para Avaliação / editar os tipos).
+    @State private var escolhendoAvaliacao = false
+    @State private var avTipos: Set<String> = []
+    @State private var avOutra = ""
+    /// O período novo é de avaliação?
+    @State private var novoEhAvaliacao = false
 
     init(data: String, modelo: SemanaModelo, sessao: Sessao, contexto: ContextoClube) {
         self.data = data
@@ -60,7 +68,7 @@ struct DiaTela: View {
             FaixasDoTopo(contexto: contexto, sessao: sessao)
             if todo.temPeriodos {
                 seletorDePeriodo(todo)
-            } else if d.tipo == .treino, let p = periodoEfetivo(d) {
+            } else if d.tipo == .treino || d.tipo == .avaliacao, let p = periodoEfetivo(d) {
                 // dia de 1 período: o horário também aparece (Manhã é o padrão); troca pelo menu
                 HStack(spacing: 6) {
                     Image(systemName: "clock")
@@ -68,13 +76,15 @@ struct DiaTela: View {
                 }
                 .foregroundColor(tema.cores.tinta2.color)
                 .accessibilityElement(children: .combine)
-                .accessibilityLabel("Período do treino: \(p.rotulo)")
+                .accessibilityLabel("Período: \(p.rotulo)")
             }
             seletorDeTipo(d)
             if d.tipo == .treino { resumo(r, d) }
             switch d.tipo {
             case .descanso:
                 Cartao { EstadoVazio(icone: "moon.zzz", titulo: "Descanso", texto: TEXTO_DIA_DESCANSO) }
+            case .avaliacao:
+                cartaoAvaliacao(d)
             case .jogo:
                 if let id = d.id, contexto.pode("games:view") {
                     NavigationLink {
@@ -174,6 +184,7 @@ struct DiaTela: View {
             Button("Salvar") { salvarKm() }
         } message: { Text("Opcional · por jogador, no dia") }
         .sheet(isPresented: $adicionandoPeriodo) { folhaAdicionarPeriodo(todo).environment(\.tema, tema) }
+        .sheet(isPresented: $escolhendoAvaliacao) { folhaAvaliacao().environment(\.tema, tema) }
         .confirmationDialog("Remover período", isPresented: $confirmarRemover, titleVisibility: .visible) {
             Button("Remover \(rotuloDoPeriodo(d.periodo) ?? "período")", role: .destructive) { removerPeriodo(d) }
             Button("Cancelar", role: .cancel) {}
@@ -205,7 +216,8 @@ struct DiaTela: View {
             }
             .pickerStyle(.segmented)
             .accessibilityHint("Escolhe o período do dia")
-            Text("Dia: \(total.minutos) min · \(divisaoMinutos(todo) ?? "")\(total.distanciaKm.map { " · \(formatarKm($0)) km" } ?? "")")
+            // "90+60" só quando 2+ períodos têm minutos (nunca "125+0")
+            Text("Dia: \(total.minutos) min\(divisaoMinutos(todo).map { " · \($0)" } ?? "")\(total.distanciaKm.map { " · \(formatarKm($0)) km" } ?? "")")
                 .tipo(Tipos.corpo13.comPeso(.medio))
                 .foregroundColor(tema.cores.tinta2.color)
                 .accessibilityLabel("Total do dia: \(total.minutos) minutos, \(ps.count) períodos")
@@ -216,18 +228,22 @@ struct DiaTela: View {
         guard let s = sugestaoNovoPeriodo(todo) else { return }
         novoAtual = s.atual ?? .manha
         novoPeriodo = s.novo
+        novoEhAvaliacao = false
+        avTipos = []
+        avOutra = ""
         adicionandoPeriodo = true
     }
 
     private func folhaAdicionarPeriodo(_ todo: Dia) -> some View {
         let livres = periodosDisponiveis(todo)
         let unico = !todo.temPeriodos
-        let erro = erroNovoPeriodo(todo, atual: unico ? novoAtual : nil, novo: novoPeriodo)
+        let escolha = normalizarAvaliacao(tipos: Array(avTipos), outra: avOutra)
+        let erro = erroNovoPeriodo(todo, atual: unico ? novoAtual : nil, novo: novoPeriodo) ?? (novoEhAvaliacao && !escolha.ok ? escolha.erro : nil)
         return NavigationStack {
             Form {
                 if unico {
                     Section {
-                        Picker("O treino que já existe é", selection: $novoAtual) {
+                        Picker("O que já existe é de", selection: $novoAtual) {
                             ForEach(Periodo.allCases, id: \.self) { Text($0.rotulo).tag($0) }
                         }
                     } footer: { Text("O que já está planejado neste dia fica neste período.") }
@@ -236,7 +252,16 @@ struct DiaTela: View {
                     Picker("Novo período", selection: $novoPeriodo) {
                         ForEach(livres, id: \.self) { Text($0.rotulo).tag($0) }
                     }
-                } footer: { Text(erro ?? "O novo período começa com os 6 blocos vazios. Máximo de 3 por dia.") }
+                    Picker("Tipo do novo período", selection: $novoEhAvaliacao) {
+                        Text("Treino").tag(false)
+                        Text("Avaliação").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+                } footer: {
+                    Text(erro ?? (novoEhAvaliacao ? "Avaliação não tem blocos: só o tipo. Máximo de 3 períodos por dia."
+                                                 : "O novo período começa com os 6 blocos vazios. Máximo de 3 por dia."))
+                }
+                if novoEhAvaliacao { camposAvaliacao() }
             }
             .navigationTitle("Adicionar período")
             .navigationBarTitleDisplayMode(.inline)
@@ -254,12 +279,13 @@ struct DiaTela: View {
         guard let clube = contexto.clube else { return }
         let novo = novoPeriodo
         let atual: Periodo? = todo.temPeriodos ? nil : novoAtual
+        let av: EscolhaAvaliacao? = novoEhAvaliacao ? normalizarAvaliacao(tipos: Array(avTipos), outra: avOutra) : nil
         adicionandoPeriodo = false
         ocupado = true
         Task {
             defer { ocupado = false }
             do {
-                try await modelo.servico.adicionarPeriodo(todo, novo: novo, atual: atual, semana: modelo.semana, clubeId: clube.id)
+                try await modelo.servico.adicionarPeriodo(todo, novo: novo, atual: atual, avaliacao: av, semana: modelo.semana, clubeId: clube.id)
                 await modelo.invalidar()
                 periodoSel = diaInteiro.listaPeriodos.firstIndex { $0.periodo == novo.rawValue } ?? 0
                 aviso = "Período \(novo.rotulo) adicionado."
@@ -312,6 +338,8 @@ struct DiaTela: View {
             if novo == .jogo {
                 adversario = d.adversario ?? ""
                 pedirAdversario = true
+            } else if novo == .avaliacao {
+                abrirEscolhaAvaliacao(d)
             } else {
                 mudarTipo(novo, adversario: nil)
             }
@@ -323,19 +351,88 @@ struct DiaTela: View {
         .accessibilityHint(podeEditar ? "Muda o tipo do dia" : "Somente leitura")
     }
 
-    private func mudarTipo(_ t: TipoDia, adversario: String?) {
+    private func mudarTipo(_ t: TipoDia, adversario: String?, avaliacao: EscolhaAvaliacao? = nil) {
         guard let clube = contexto.clube else { return }
         ocupado = true
         Task {
             defer { ocupado = false }
             do {
-                try await modelo.servico.mudarTipo(dia, para: t, adversario: adversario, semana: modelo.semana, clubeId: clube.id)
+                try await modelo.servico.mudarTipo(dia, para: t, adversario: adversario, avaliacao: avaliacao,
+                                                   semana: modelo.semana, clubeId: clube.id)
                 await modelo.invalidar()
             } catch {
                 if app.controle.tratarErro(error, token: sessao.token) { return }
                 aviso = mensagemErroTreino(error)
             }
         }
+    }
+
+    // MARK: avaliação
+
+    private func abrirEscolhaAvaliacao(_ d: Dia) {
+        avTipos = Set(d.tiposAvaliacao ?? [])
+        avOutra = d.outraAvaliacao ?? ""
+        escolhendoAvaliacao = true
+    }
+
+    /// Estado do período de avaliação (no lugar dos blocos): ícone + "AVALIAÇÃO" + os tipos.
+    private func cartaoAvaliacao(_ d: Dia) -> some View {
+        let c = tema.cores
+        let txt = textoAvaliacao(d)
+        return Cartao(aoTocar: podeEditar && contexto.clube != nil ? { abrirEscolhaAvaliacao(d) } : nil) {
+            VStack(spacing: 8) {
+                Image(systemName: "checklist").font(.system(size: 34, weight: .regular)).foregroundColor(c.acaoTinta.color)
+                    .accessibilityHidden(true)
+                Text("AVALIAÇÃO").font(Tipos.corpo15.comPeso(.seminegrito).font).tracking(0.8).foregroundColor(c.tinta.color)
+                Text(txt.isEmpty ? "Tipo de avaliação não informado" : txt)
+                    .tipo(Tipos.corpo13).foregroundColor(c.tinta2.color).multilineTextAlignment(.center).linhasAcessiveis(3)
+                if podeEditar {
+                    Text("Tocar para escolher os tipos").tipo(Tipos.legenda11).foregroundColor(c.tinta3.color)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Avaliação: \(txt.isEmpty ? "tipo não informado" : txt)")
+        .accessibilityHint(podeEditar ? "Abre a escolha dos tipos de avaliação" : "")
+    }
+
+    /// Os tipos da lista fixa (seleção múltipla) + "Outra" com texto curto.
+    @ViewBuilder
+    private func camposAvaliacao() -> some View {
+        Section {
+            ForEach(TipoAvaliacao.allCases.filter { $0 != .outra }, id: \.self) { t in
+                Toggle(t.rotulo, isOn: Binding(
+                    get: { avTipos.contains(t.rawValue) },
+                    set: { on in if on { avTipos.insert(t.rawValue) } else { avTipos.remove(t.rawValue) } }))
+            }
+            TextField("Outra (opcional)", text: Binding(get: { avOutra }, set: { avOutra = String($0.prefix(MAX_OUTRA_AVALIACAO)) }))
+                .textInputAutocapitalization(.sentences)
+        } header: { Text("Tipo de avaliação") } footer: { Text("Escolha um ou mais. \"Outra\": até \(MAX_OUTRA_AVALIACAO) caracteres.") }
+    }
+
+    private func folhaAvaliacao() -> some View {
+        let escolha = normalizarAvaliacao(tipos: Array(avTipos), outra: avOutra)
+        return NavigationStack {
+            Form {
+                camposAvaliacao()
+                if let e = escolha.erro { Section { Text(e).foregroundColor(tema.cores.erroTinta.color) } }
+            }
+            .navigationTitle("Avaliação")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancelar") { escolhendoAvaliacao = false } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Salvar") {
+                        escolhendoAvaliacao = false
+                        mudarTipo(.avaliacao, adversario: nil, avaliacao: escolha)
+                    }
+                    .disabled(!escolha.ok || ocupado)
+                }
+            }
+        }
+        .presentationDetents([.large])
     }
 
     // MARK: resumo (pilar, tempo, distância)

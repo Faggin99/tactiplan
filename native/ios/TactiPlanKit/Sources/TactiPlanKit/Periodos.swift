@@ -47,10 +47,11 @@ public func seloPeriodos(_ d: Dia) -> String? {
     return n > 1 ? "\(n) períodos" : nil
 }
 
-/// Divisão dos minutos: "90+60" (nil no dia de 1 período).
+/// Divisão dos minutos: "90+60" — só quando 2+ períodos TÊM minutos (nunca "125+0"; avaliação = 0).
 public func divisaoMinutos(_ d: Dia) -> String? {
     guard d.temPeriodos else { return nil }
-    return d.listaPeriodos.map { String(resumoDoDia($0).minutos) }.joined(separator: "+")
+    let com = d.listaPeriodos.map { resumoDoDia($0).minutos }.filter { $0 > 0 }
+    return com.count >= 2 ? com.map(String.init).joined(separator: "+") : nil
 }
 
 /// Distância do dia = soma dos períodos de TREINO com registro (nil sem nenhum).
@@ -68,12 +69,18 @@ public func resumoDoDiaInteiro(_ d: Dia) -> ResumoDia {
     guard d.temPeriodos else { return resumoDoDia(d) }
     let ps = d.listaPeriodos
     let jogo = ps.first { $0.tipo == .jogo }
+    // avaliação não soma blocos nem minutos
+    let avaliacoes = ps.filter { $0.tipo == .avaliacao }
     let todos = Dia(id: d.id, data: d.data, nomeDia: d.nomeDia, diaDaSemana: d.diaDaSemana, tipoBruto: TipoDia.treino.rawValue,
-                    blocos: ps.flatMap(\.blocos))
+                    blocos: ps.filter { $0.tipo != .avaliacao }.flatMap(\.blocos))
     let r = resumoDoDia(todos)
-    return ResumoDia(tipo: jogo != nil ? .jogo : .treino, pilares: r.pilares, minutosPorPilar: r.minutosPorPilar,
+    let tipo: TipoDia = jogo != nil ? .jogo : (avaliacoes.count == ps.count ? .avaliacao : .treino)
+    var tiposAv: [String] = []
+    for a in avaliacoes { for t in rotulosAvaliacao(a) where !tiposAv.contains(t) { tiposAv.append(t) } }
+    return ResumoDia(tipo: tipo, pilares: r.pilares, minutosPorPilar: r.minutosPorPilar,
                      minutos: r.minutos, blocosComAtividade: r.blocosComAtividade, atividades: r.atividades,
-                     anexos: r.anexos, distanciaKm: distanciaDoDia(d), adversario: jogo?.adversario)
+                     anexos: r.anexos, distanciaKm: distanciaDoDia(d), adversario: jogo?.adversario,
+                     avaliacao: avaliacoes.isEmpty ? nil : tiposAv.joined(separator: ", "))
 }
 
 /// Os nomes que ainda cabem no dia (vazio = não dá para adicionar: descanso ou já tem 3).
@@ -96,8 +103,18 @@ public func periodoEfetivo(_ d: Dia) -> Periodo? {
 /// Título da linha do dia na Semana: dia de treino de 1 período = "Manhã · Tático" (ou "Manhã · Treino");
 /// dia com 2+ períodos, jogo e descanso = como antes (o selo "2 períodos" mostra a divisão).
 public func tituloDaLinhaDoDia(_ d: Dia) -> String {
-    if d.temPeriodos { return tituloDaLinha(resumoDoDiaInteiro(d)) }
+    if d.temPeriodos {
+        // com avaliação: cada período na linha ("Manhã · Avaliação + Tarde · Tático")
+        if d.listaPeriodos.contains(where: { $0.tipo == .avaliacao }) {
+            return d.listaPeriodos.map { p -> String in
+                let r = resumoDoDia(p)
+                return rotuloLinhaPeriodo(p, pilares: p.tipo == .treino ? [r.pilares.isEmpty ? "Treino" : r.rotuloPilares] : [])
+            }.joined(separator: " + ")
+        }
+        return tituloDaLinha(resumoDoDiaInteiro(d))
+    }
     let r = resumoDoDia(d)
+    if r.tipo == .avaliacao { return rotuloLinhaPeriodo(d) }
     guard r.tipo == .treino, let p = periodoEfetivo(d) else { return tituloDaLinha(r) }
     return "\(p.rotulo) · \(r.pilares.isEmpty ? "Treino" : r.rotuloPilares)"
 }
@@ -149,7 +166,7 @@ public func textoRemoverPeriodo(_ p: Dia) -> String {
 public func periodosParaTrocar(_ d: Dia, _ p: Dia) -> [Periodo] {
     // dia de 1 período (treino): troca para qualquer outro horário (Manhã é o padrão do dia sem nome)
     if !d.temPeriodos {
-        guard p.tipo == .treino, let ef = periodoEfetivo(p) else { return [] }
+        guard p.tipo == .treino || p.tipo == .avaliacao, let ef = periodoEfetivo(p) else { return [] }
         return Periodo.allCases.filter { $0 != ef }
     }
     guard p.periodo != nil else { return [] }

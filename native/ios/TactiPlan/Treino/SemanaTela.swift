@@ -221,7 +221,9 @@ struct HeroiDoDia: View {
 
     var body: some View {
         let r = resumoDoDiaInteiro(dia)
-        let frase = [fraseDoHeroi(r), seloPeriodos(dia).map { "\($0) · \(divisaoMinutos(dia) ?? "")" }, tema?.frase].compactMap { $0 }.joined(separator: "\n")
+        // "2 períodos · 90+60" — sem a divisão quando só um período tem minutos (nunca "125+0")
+        let selo = seloPeriodos(dia).map { sl in divisaoMinutos(dia).map { "\(sl) · \($0)" } ?? sl }
+        let frase = [fraseDoHeroi(r), selo, tema?.frase].compactMap { $0 }.joined(separator: "\n")
         CartaoHeroi(rotulo: "Hoje · \(rotuloDiaMinusculo(dia.data))", selo: r.tipo.rotulo,
                     valor: r.tipo == .treino ? (r.minutos > 0 ? "\(r.minutos) min" : "Sem atividades")
                         : tituloDaLinha(r),
@@ -253,6 +255,7 @@ struct LinhaDoDia: View {
                 HStack(spacing: 6) {
                     if r.tipo == .jogo { Image(systemName: "trophy.fill").foregroundColor(c.avisoTinta.color) }
                     if r.tipo == .descanso { Image(systemName: "moon.fill").foregroundColor(c.tinta2.color) }
+                    if r.tipo == .avaliacao || r.avaliacao != nil { Image(systemName: "checklist").foregroundColor(c.acaoTinta.color) }
                     Text(tituloDaLinhaDoDia(dia))
                         .font(Tipos.corpo15.comPeso(.seminegrito).font)
                         .foregroundColor(c.tinta.color)
@@ -285,7 +288,7 @@ struct LinhaDoDia: View {
 
     private func rotuloAcessivel(_ r: ResumoDia) -> String {
         var p = [rotuloDiaCurto(dia.data) + (hoje ? ", hoje" : ""), tituloDaLinhaDoDia(dia)]
-        if let selo = seloPeriodos(dia) { p.append("\(selo): \(divisaoMinutos(dia) ?? "") minutos") }
+        if let selo = seloPeriodos(dia) { p.append(divisaoMinutos(dia).map { "\(selo): \($0) minutos" } ?? selo) }
         let d = detalheDaLinha(r)
         if !d.isEmpty { p.append(d) }
         if r.anexos > 0 { p.append(contagem(r.anexos, "anexo", "anexos")) }

@@ -1,0 +1,567 @@
+{
+  "tipos": [
+    {
+      "tipo": "fisica",
+      "rotulo": "Física"
+    },
+    {
+      "tipo": "tecnica",
+      "rotulo": "Técnica"
+    },
+    {
+      "tipo": "tatica",
+      "rotulo": "Tática"
+    },
+    {
+      "tipo": "fisiologica",
+      "rotulo": "Fisiológica/Médica"
+    },
+    {
+      "tipo": "antropometrica",
+      "rotulo": "Antropométrica"
+    },
+    {
+      "tipo": "psicologica",
+      "rotulo": "Psicológica"
+    },
+    {
+      "tipo": "outra",
+      "rotulo": "Outra"
+    }
+  ],
+  "maxOutra": 60,
+  "normalizar": [
+    {
+      "entrada": {
+        "tipos": [
+          "tecnica",
+          "fisica",
+          "fisica"
+        ]
+      },
+      "saida": {
+        "ok": true,
+        "tipos": [
+          "fisica",
+          "tecnica"
+        ],
+        "outra": null
+      }
+    },
+    {
+      "entrada": {
+        "tipos": [],
+        "outra": "  Yo-Yo   test "
+      },
+      "saida": {
+        "ok": true,
+        "tipos": [
+          "outra"
+        ],
+        "outra": "Yo-Yo test"
+      }
+    },
+    {
+      "entrada": {
+        "tipos": [
+          "outra"
+        ]
+      },
+      "saida": {
+        "ok": false,
+        "erro": "Diga qual é a outra avaliação"
+      }
+    },
+    {
+      "entrada": {
+        "tipos": [
+          "nutricional"
+        ]
+      },
+      "saida": {
+        "ok": false,
+        "erro": "Tipo de avaliação inválido: nutricional"
+      }
+    },
+    {
+      "entrada": {
+        "tipos": [
+          "fisica"
+        ],
+        "outra": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "saida": {
+        "ok": false,
+        "erro": "\"Outra\" aceita até 60 caracteres"
+      }
+    },
+    {
+      "entrada": {
+        "tipos": [
+          "psicologica",
+          "antropometrica",
+          "fisiologica",
+          "tatica"
+        ],
+        "outra": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "saida": {
+        "ok": true,
+        "tipos": [
+          "tatica",
+          "fisiologica",
+          "antropometrica",
+          "psicologica",
+          "outra"
+        ],
+        "outra": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    {
+      "entrada": {
+        "tipos": null,
+        "outra": null
+      },
+      "saida": {
+        "ok": true,
+        "tipos": [],
+        "outra": null
+      }
+    },
+    {
+      "entrada": {},
+      "saida": {
+        "ok": true,
+        "tipos": [],
+        "outra": null
+      }
+    }
+  ],
+  "rotulos": [
+    {
+      "sessao": {
+        "id": "r1",
+        "date": "2026-10-19",
+        "day_name": "Segunda",
+        "day_of_week": 1,
+        "session_type": "assessment",
+        "periodo": "manha",
+        "blocks": [],
+        "assessment_types": [
+          "fisica",
+          "fisiologica",
+          "outra"
+        ],
+        "assessment_other": "Yo-Yo"
+      },
+      "rotulos": [
+        "Física",
+        "Fisiológica/Médica",
+        "Yo-Yo"
+      ],
+      "texto": "Física, Fisiológica/Médica, Yo-Yo"
+    },
+    {
+      "sessao": {
+        "id": "r2",
+        "date": "2026-10-19",
+        "day_name": "Segunda",
+        "day_of_week": 1,
+        "session_type": "assessment",
+        "periodo": null,
+        "blocks": [],
+        "assessment_types": [
+          "outra"
+        ],
+        "assessment_other": ""
+      },
+      "rotulos": [
+        "Outra"
+      ],
+      "texto": "Outra"
+    },
+    {
+      "sessao": {
+        "id": "r3",
+        "date": "2026-10-19",
+        "day_name": "Segunda",
+        "day_of_week": 1,
+        "session_type": "assessment",
+        "periodo": null,
+        "blocks": [],
+        "assessment_types": null
+      },
+      "rotulos": [],
+      "texto": ""
+    },
+    {
+      "sessao": {
+        "id": "r4",
+        "date": "2026-10-19",
+        "day_name": "Segunda",
+        "day_of_week": 1,
+        "session_type": "assessment",
+        "periodo": "tarde",
+        "blocks": [],
+        "assessment_types": [
+          "tatica",
+          "tecnica"
+        ]
+      },
+      "rotulos": [
+        "Tática",
+        "Técnica"
+      ],
+      "texto": "Tática, Técnica"
+    }
+  ],
+  "linha": [
+    {
+      "sessao": {
+        "id": "l1",
+        "date": "2026-10-19",
+        "day_name": "Segunda",
+        "day_of_week": 1,
+        "session_type": "assessment",
+        "periodo": null,
+        "blocks": []
+      },
+      "pilares": [],
+      "texto": "Manhã · Avaliação"
+    },
+    {
+      "sessao": {
+        "id": "l2",
+        "date": "2026-10-19",
+        "day_name": "Segunda",
+        "day_of_week": 1,
+        "session_type": "assessment",
+        "periodo": "tarde",
+        "blocks": [],
+        "assessment_types": [
+          "fisica"
+        ]
+      },
+      "pilares": [
+        "Tático"
+      ],
+      "texto": "Tarde · Avaliação"
+    },
+    {
+      "sessao": {
+        "id": "l3",
+        "date": "2026-10-19",
+        "day_name": "Segunda",
+        "day_of_week": 1,
+        "session_type": "match",
+        "periodo": "tarde",
+        "blocks": []
+      },
+      "pilares": [],
+      "texto": "Tarde · Jogo"
+    },
+    {
+      "sessao": {
+        "id": "l4",
+        "date": "2026-10-19",
+        "day_name": "Segunda",
+        "day_of_week": 1,
+        "session_type": "training",
+        "periodo": null,
+        "blocks": []
+      },
+      "pilares": [
+        "Tático"
+      ],
+      "texto": "Manhã · Tático"
+    },
+    {
+      "sessao": {
+        "id": "l5",
+        "date": "2026-10-19",
+        "day_name": "Segunda",
+        "day_of_week": 1,
+        "session_type": "training",
+        "periodo": "noite",
+        "blocks": []
+      },
+      "pilares": [
+        "Tático",
+        "Físico"
+      ],
+      "texto": "Noite · Tático | Físico"
+    },
+    {
+      "sessao": {
+        "id": "l6",
+        "date": "2026-10-19",
+        "day_name": "Segunda",
+        "day_of_week": 1,
+        "session_type": "training",
+        "periodo": "manha",
+        "blocks": []
+      },
+      "pilares": [],
+      "texto": "Manhã"
+    }
+  ],
+  "divisao": [
+    {
+      "periodos": [
+        {
+          "id": "d1",
+          "date": "2026-10-19",
+          "day_name": "Segunda",
+          "day_of_week": 1,
+          "session_type": "training",
+          "periodo": "manha",
+          "blocks": [
+            {
+              "id": "b1",
+              "name": "Bloco 1",
+              "order": 1,
+              "activity": {
+                "id": "a1",
+                "duration_minutes": 100
+              }
+            },
+            {
+              "id": "b2",
+              "name": "Bloco 2",
+              "order": 2,
+              "activity": {
+                "id": "a2",
+                "duration_minutes": 25
+              }
+            }
+          ]
+        },
+        {
+          "id": "d2",
+          "date": "2026-10-19",
+          "day_name": "Segunda",
+          "day_of_week": 1,
+          "session_type": "assessment",
+          "periodo": "tarde",
+          "blocks": [
+            {
+              "id": "b1",
+              "name": "Bloco 1",
+              "order": 1,
+              "activity": {
+                "id": "a1",
+                "duration_minutes": 40
+              }
+            }
+          ]
+        }
+      ],
+      "divisao": null
+    },
+    {
+      "periodos": [
+        {
+          "id": "d3",
+          "date": "2026-10-19",
+          "day_name": "Segunda",
+          "day_of_week": 1,
+          "session_type": "training",
+          "periodo": "manha",
+          "blocks": [
+            {
+              "id": "b1",
+              "name": "Bloco 1",
+              "order": 1,
+              "activity": {
+                "id": "a1",
+                "duration_minutes": 90
+              }
+            }
+          ]
+        },
+        {
+          "id": "d4",
+          "date": "2026-10-19",
+          "day_name": "Segunda",
+          "day_of_week": 1,
+          "session_type": "training",
+          "periodo": "tarde",
+          "blocks": [
+            {
+              "id": "b1",
+              "name": "Bloco 1",
+              "order": 1,
+              "activity": {
+                "id": "a1",
+                "duration_minutes": 60
+              }
+            }
+          ]
+        }
+      ],
+      "divisao": "90+60"
+    },
+    {
+      "periodos": [
+        {
+          "id": "d5",
+          "date": "2026-10-19",
+          "day_name": "Segunda",
+          "day_of_week": 1,
+          "session_type": "training",
+          "periodo": "manha",
+          "blocks": [
+            {
+              "id": "b1",
+              "name": "Bloco 1",
+              "order": 1,
+              "activity": {
+                "id": "a1",
+                "duration_minutes": 125
+              }
+            }
+          ]
+        },
+        {
+          "id": "d6",
+          "date": "2026-10-19",
+          "day_name": "Segunda",
+          "day_of_week": 1,
+          "session_type": "match",
+          "periodo": "tarde",
+          "blocks": []
+        }
+      ],
+      "divisao": null
+    },
+    {
+      "periodos": [
+        {
+          "id": "d7",
+          "date": "2026-10-19",
+          "day_name": "Segunda",
+          "day_of_week": 1,
+          "session_type": "training",
+          "periodo": "manha",
+          "blocks": [
+            {
+              "id": "b1",
+              "name": "Bloco 1",
+              "order": 1,
+              "activity": {
+                "id": "a1",
+                "duration_minutes": 90
+              }
+            }
+          ]
+        },
+        {
+          "id": "d8",
+          "date": "2026-10-19",
+          "day_name": "Segunda",
+          "day_of_week": 1,
+          "session_type": "assessment",
+          "periodo": "tarde",
+          "blocks": []
+        },
+        {
+          "id": "d9",
+          "date": "2026-10-19",
+          "day_name": "Segunda",
+          "day_of_week": 1,
+          "session_type": "training",
+          "periodo": "noite",
+          "blocks": [
+            {
+              "id": "b1",
+              "name": "Bloco 1",
+              "order": 1,
+              "activity": {
+                "id": "a1",
+                "duration_minutes": 30
+              }
+            }
+          ]
+        }
+      ],
+      "divisao": "90+30"
+    }
+  ],
+  "minutos": [
+    {
+      "sessao": {
+        "id": "m1",
+        "date": "2026-10-19",
+        "day_name": "Segunda",
+        "day_of_week": 1,
+        "session_type": "assessment",
+        "periodo": "manha",
+        "blocks": [
+          {
+            "id": "b1",
+            "name": "Bloco 1",
+            "order": 1,
+            "activity": {
+              "id": "a1",
+              "duration_minutes": 40
+            }
+          }
+        ]
+      },
+      "minutos": 0
+    },
+    {
+      "sessao": {
+        "id": "m2",
+        "date": "2026-10-19",
+        "day_name": "Segunda",
+        "day_of_week": 1,
+        "session_type": "training",
+        "periodo": "manha",
+        "blocks": [
+          {
+            "id": "b1",
+            "name": "Bloco 1",
+            "order": 1,
+            "activity": {
+              "id": "a1",
+              "duration_minutes": 40
+            }
+          },
+          {
+            "id": "b2",
+            "name": "Bloco 2",
+            "order": 2,
+            "activity": {
+              "id": "a2",
+              "duration_minutes": 20
+            }
+          }
+        ]
+      },
+      "minutos": 60
+    },
+    {
+      "sessao": {
+        "id": "m3",
+        "date": "2026-10-19",
+        "day_name": "Segunda",
+        "day_of_week": 1,
+        "session_type": "match",
+        "periodo": null,
+        "blocks": [
+          {
+            "id": "b1",
+            "name": "Bloco 1",
+            "order": 1,
+            "activity": {
+              "id": "a1",
+              "duration_minutes": 15
+            }
+          }
+        ]
+      },
+      "minutos": 15
+    }
+  ]
+}

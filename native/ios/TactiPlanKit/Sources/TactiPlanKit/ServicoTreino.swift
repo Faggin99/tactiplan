@@ -116,20 +116,26 @@ public struct ServicoTreino: Sendable {
 
     /// Trocar o tipo do dia (cria o dia antes, se preciso). Devolve o id real.
     @discardableResult
-    public func mudarTipo(_ dia: Dia, para tipo: TipoDia, adversario: String?, semana: SemanaISO, clubeId: String) async throws -> String {
+    public func mudarTipo(_ dia: Dia, para tipo: TipoDia, adversario: String?, avaliacao: EscolhaAvaliacao? = nil,
+                          semana: SemanaISO, clubeId: String) async throws -> String {
+        if tipo == .avaliacao, let av = avaliacao, !av.ok {
+            throw ErroApi(status: 0, codigo: "AVALIACAO_INVALIDA", mensagem: av.erro ?? ErroApi.MSG_FALHA)
+        }
         let real = try await diaReal(dia, semana: semana, clubeId: clubeId)
         guard let id = real.id else { throw ErroApi(status: 0, codigo: nil, mensagem: ErroApi.MSG_FALHA) }
-        try await api.mudarTipo(id, tipo: tipo, adversario: adversario)
+        try await api.mudarTipo(id, tipo: tipo, adversario: adversario, avaliacao: tipo == .avaliacao ? avaliacao : nil)
         return id
     }
 
     /// Adiciona um período ao dia (cria o dia antes, se preciso). Devolve o id do período novo.
     @discardableResult
-    public func adicionarPeriodo(_ dia: Dia, novo: Periodo, atual: Periodo?, semana: SemanaISO, clubeId: String) async throws -> String {
+    public func adicionarPeriodo(_ dia: Dia, novo: Periodo, atual: Periodo?, avaliacao: EscolhaAvaliacao? = nil,
+                                 semana: SemanaISO, clubeId: String) async throws -> String {
         if let erro = erroNovoPeriodo(dia, atual: atual, novo: novo) { throw ErroApi(status: 0, codigo: "PERIODO_INVALIDO", mensagem: erro) }
+        if let av = avaliacao, !av.ok { throw ErroApi(status: 0, codigo: "AVALIACAO_INVALIDA", mensagem: av.erro ?? ErroApi.MSG_FALHA) }
         let real = try await diaReal(dia, semana: semana, clubeId: clubeId)
         guard let id = real.id else { throw ErroApi(status: 0, codigo: nil, mensagem: ErroApi.MSG_FALHA) }
-        return try await api.adicionarPeriodo(id, novo: novo, atual: dia.temPeriodos ? nil : atual)
+        return try await api.adicionarPeriodo(id, novo: novo, atual: dia.temPeriodos ? nil : atual, avaliacao: avaliacao)
     }
 
     /// Remove um período (só no dia com 2+). Devolve os anexos apagados.

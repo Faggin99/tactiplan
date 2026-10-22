@@ -313,10 +313,12 @@ final class ApiTreinoFalsa: ApiTreino, @unchecked Sendable {
     }
     func atualizarAtividade(_ id: String, _ corpo: Json) async throws { anotar("atualizar:\(id)") }
     func apagarAtividadeDoBloco(_ blocoId: String) async throws { anotar("apagar:\(blocoId)") }
-    func mudarTipo(_ diaId: String, tipo: TipoDia, adversario: String?) async throws { anotar("tipo:\(diaId):\(tipo.rawValue):\(adversario ?? "")") }
+    func mudarTipo(_ diaId: String, tipo: TipoDia, adversario: String?, avaliacao: EscolhaAvaliacao?) async throws {
+        anotar("tipo:\(diaId):\(tipo.rawValue):\(adversario ?? "")" + (avaliacao.map { ":\($0.tipos.joined(separator: ","))" } ?? ""))
+    }
     func mudarDistancia(_ diaId: String, km: Double?) async throws { anotar("km:\(diaId):\(km.map { String($0) } ?? "nil")") }
-    func adicionarPeriodo(_ diaId: String, novo: Periodo, atual: Periodo?) async throws -> String {
-        anotar("periodo+:\(diaId):\(novo.rawValue):\(atual?.rawValue ?? "")"); return "p-novo"
+    func adicionarPeriodo(_ diaId: String, novo: Periodo, atual: Periodo?, avaliacao: EscolhaAvaliacao?) async throws -> String {
+        anotar("periodo+:\(diaId):\(novo.rawValue):\(atual?.rawValue ?? "")" + (avaliacao.map { ":av=\($0.tipos.joined(separator: ","))" } ?? "")); return "p-novo"
     }
     func removerPeriodo(_ periodoId: String) async throws -> Int { anotar("periodo-:\(periodoId)"); return 2 }
     func trocarPeriodo(_ periodoId: String, para: Periodo) async throws { anotar("periodo~:\(periodoId):\(para.rawValue)") }

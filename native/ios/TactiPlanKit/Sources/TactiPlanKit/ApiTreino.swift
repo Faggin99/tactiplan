@@ -134,6 +134,17 @@ public struct ListaFotosRelatorio: Codable, Equatable, Sendable {
     enum CodingKeys: String, CodingKey { case fotos, total, semana, limite, padrao }
 }
 
+extension ApiTreino {
+    /// Tipo sem avaliação (jogo, treino, descanso).
+    public func mudarTipo(_ diaId: String, tipo: TipoDia, adversario: String?) async throws {
+        try await mudarTipo(diaId, tipo: tipo, adversario: adversario, avaliacao: nil)
+    }
+    /// Período novo de treino.
+    public func adicionarPeriodo(_ diaId: String, novo: Periodo, atual: Periodo?) async throws -> String {
+        try await adicionarPeriodo(diaId, novo: novo, atual: atual, avaliacao: nil)
+    }
+}
+
 /// As chamadas de treino (atrás de protocolo: o `ServicoTreino` e os testes só conhecem isto).
 public protocol ApiTreino: Sendable {
     func microciclo(semana: String, clubeId: String) async throws -> Microciclo?
@@ -144,10 +155,12 @@ public protocol ApiTreino: Sendable {
     func criarAtividade(_ corpo: Json) async throws -> String
     func atualizarAtividade(_ id: String, _ corpo: Json) async throws
     func apagarAtividadeDoBloco(_ blocoId: String) async throws
-    func mudarTipo(_ diaId: String, tipo: TipoDia, adversario: String?) async throws
+    /// PUT /api/sessions/:id/type — `avaliacao` só no tipo .avaliacao (os outros tipos limpam os campos).
+    func mudarTipo(_ diaId: String, tipo: TipoDia, adversario: String?, avaliacao: EscolhaAvaliacao?) async throws
     func mudarDistancia(_ diaId: String, km: Double?) async throws
     /// POST /api/sessions/:id/periodos — `atual` só no dia de 1 período. Devolve o id do novo.
-    func adicionarPeriodo(_ diaId: String, novo: Periodo, atual: Periodo?) async throws -> String
+    /// `avaliacao` não-nil = o período novo já nasce de avaliação (tipo 'assessment').
+    func adicionarPeriodo(_ diaId: String, novo: Periodo, atual: Periodo?, avaliacao: EscolhaAvaliacao?) async throws -> String
     /// DELETE /api/sessions/:id/periodo — devolve quantos anexos foram apagados.
     func removerPeriodo(_ periodoId: String) async throws -> Int
     /// PUT /api/sessions/:id/periodo — troca o horário (Manhã/Tarde/Noite) do período.
@@ -236,21 +249,31 @@ public final class ApiTreinoHttp: ApiTreino {
         _ = try await json(CaminhosTreino.atividadeDoBloco(blocoId), "DELETE")
     }
 
-    public func mudarTipo(_ diaId: String, tipo: TipoDia, adversario: String?) async throws {
+    public func mudarTipo(_ diaId: String, tipo: TipoDia, adversario: String?, avaliacao: EscolhaAvaliacao?) async throws {
         let a = (adversario ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        _ = try await json(CaminhosTreino.tipoDoDia(diaId), "PUT", [
+        var corpo: [String: Json] = [
             "session_type": .texto(tipo.rawValue),
             "opponent_name": tipo == .jogo && !a.isEmpty ? .texto(a) : .nulo,
-        ])
+        ]
+        if tipo == .avaliacao {
+            corpo["assessment_types"] = .lista((avaliacao?.tipos ?? []).map { .texto($0) })
+            corpo["assessment_other"] = avaliacao?.outra.map { .texto($0) } ?? .nulo
+        }
+        _ = try await json(CaminhosTreino.tipoDoDia(diaId), "PUT", .objeto(corpo))
     }
 
     public func mudarDistancia(_ diaId: String, km: Double?) async throws {
         _ = try await json(CaminhosTreino.distancia(diaId), "PUT", ["avg_distance_km": km.map { .numero($0) } ?? .nulo])
     }
 
-    public func adicionarPeriodo(_ diaId: String, novo: Periodo, atual: Periodo?) async throws -> String {
+    public func adicionarPeriodo(_ diaId: String, novo: Periodo, atual: Periodo?, avaliacao: EscolhaAvaliacao?) async throws -> String {
         var corpo: [String: Json] = ["novo": .texto(novo.rawValue)]
         if let atual { corpo["atual"] = .texto(atual.rawValue) }
+        if let avaliacao {
+            corpo["tipo"] = .texto(TipoDia.avaliacao.rawValue)
+            corpo["assessment_types"] = .lista(avaliacao.tipos.map { .texto($0) })
+            corpo["assessment_other"] = avaliacao.outra.map { .texto($0) } ?? .nulo
+        }
         let j = try await json(CaminhosTreino.periodos(diaId), "POST", .objeto(corpo))
         guard let id = j["id"]?.texto else { throw ErroApi(status: 0, codigo: nil, mensagem: ErroApi.MSG_FALHA) }
         return id

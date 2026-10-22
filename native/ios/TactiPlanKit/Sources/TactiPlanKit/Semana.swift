@@ -179,11 +179,13 @@ public struct ResumoDia: Equatable, Sendable {
     public let anexos: Int
     public let distanciaKm: Double?
     public let adversario: String?
+    /// Tipos de avaliação do dia ("Física, Técnica"); nil sem período de avaliação.
+    public var avaliacao: String? = nil
 
     public static func == (a: ResumoDia, b: ResumoDia) -> Bool {
         a.tipo == b.tipo && a.pilares == b.pilares && a.minutos == b.minutos && a.atividades == b.atividades
             && a.blocosComAtividade == b.blocosComAtividade && a.anexos == b.anexos && a.distanciaKm == b.distanciaKm
-            && a.adversario == b.adversario
+            && a.adversario == b.adversario && a.avaliacao == b.avaliacao
             && a.minutosPorPilar.map { "\($0.pilar):\($0.minutos)" } == b.minutosPorPilar.map { "\($0.pilar):\($0.minutos)" }
     }
 
@@ -196,6 +198,11 @@ public struct ResumoDia: Equatable, Sendable {
 }
 
 public func resumoDoDia(_ d: Dia) -> ResumoDia {
+    // avaliação: sem blocos, sem minutos (não entra em nada das estatísticas)
+    if d.tipo == .avaliacao {
+        return ResumoDia(tipo: .avaliacao, pilares: [], minutosPorPilar: [], minutos: 0, blocosComAtividade: 0,
+                         atividades: 0, anexos: 0, distanciaKm: nil, adversario: nil, avaliacao: textoAvaliacao(d))
+    }
     var minPorPilar: [String: Int] = [:]
     var cntPorPilar: [String: Int] = [:]
     var total = 0, blocos = 0, anexos = 0
@@ -238,6 +245,7 @@ public func tituloDaLinha(_ r: ResumoDia) -> String {
         let a = (r.adversario ?? "").trimmingCharacters(in: .whitespaces)
         return a.isEmpty ? "Jogo" : "Jogo vs \(a)"
     case .descanso: return "Descanso"
+    case .avaliacao: return "Avaliação"
     case .treino: return r.pilares.isEmpty ? "Treino" : "Treino · \(r.rotuloPilares)"
     }
 }
@@ -248,6 +256,7 @@ public func detalheDaLinha(_ r: ResumoDia) -> String {
     if r.minutos > 0 { p.append("\(r.minutos) min") }
     if let km = r.distanciaKm { p.append("\(formatarKm(km)) km") }
     if r.tipo == .treino && r.atividades == 0 { p.append("Sem atividades") }
+    if let av = r.avaliacao { p.append(av.isEmpty ? "Avaliação" : (r.tipo == .avaliacao ? av : "Avaliação: \(av)")) }
     return p.joined(separator: " · ")
 }
 
@@ -255,6 +264,7 @@ public func detalheDaLinha(_ r: ResumoDia) -> String {
 public func fraseDoHeroi(_ r: ResumoDia) -> String {
     switch r.tipo {
     case .descanso: return "Dia de descanso"
+    case .avaliacao: return "Dia de avaliação"
     case .jogo:
         let a = (r.adversario ?? "").trimmingCharacters(in: .whitespaces)
         return a.isEmpty ? "Dia de jogo" : "Jogo vs \(a)"
