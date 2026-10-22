@@ -7,6 +7,7 @@ const { getSessionDetail } = require('../services/sessionData');
 const B = require('./builders');
 const F = require('./format');
 const { teamPalette, normalizeHex } = require('./theme');
+const { positionSector, sectorInfo } = require('./positionSector');
 const { loadLogo, loadPhotos, loadThumbs, filterImageAttachments } = require('./photos');
 const { renderPdf } = require('./renderer');
 const PC = require('./photoConfig');
@@ -16,6 +17,7 @@ const { renderTraining } = require('./templates/training');
 const { renderSession } = require('./templates/session');
 const { renderConvocacao } = require('./templates/convocacao');
 const { renderClube } = require('./templates/clube');
+const { renderPlantel } = require('./templates/plantel');
 const { formacaoValida, formacaoPadrao } = require('../utils/formacao');
 const P = require('../services/periodos');
 
@@ -393,9 +395,64 @@ async function buildClube(body, user, assets) {
   };
 }
 
-const BUILDERS = { jogos: buildJogos, treino: buildTreino, sessao: buildSessao, convocacao: buildConvocacao, clube: buildClube };
+// Plantel por grupo de treino (ordem do PDF do web: Grupo 1, 2, 3, Transição, DM, Sem grupo;
+// nomes A–Z dentro do grupo). Função pura (testada em tests/reports-plantel.test.js).
+const GRUPOS_PLANTEL = [['1', 'Grupo 1'], ['2', 'Grupo 2'], ['3', 'Grupo 3'], ['Transição', 'Transição'], ['DM', 'DM'], [null, 'Sem grupo']];
+function buildPlantel(athletes) {
+  const conhecidos = new Set(GRUPOS_PLANTEL.map(([k]) => k).filter(Boolean));
+  const groups = [];
+  for (const [key, label] of GRUPOS_PLANTEL) {
+    const players = (athletes || [])
+      .filter((a) => (key === null ? !conhecidos.has(a.group == null ? null : String(a.group)) : String(a.group) === key))
+      .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'pt-BR'))
+      .map((a) => ({
+        id: a.id, name: a.name, pos: a.position || null, posColor: sectorInfo(positionSector(a.position)).color,
+        jersey: a.jersey_number ?? null, foot: a.preferred_foot || null, height: a.height_cm || null,
+        birthdate: a.birthdate || null, photo_url: a.photo_url || null,
+      }));
+    if (players.length) groups.push({ key, label, players });
+  }
+  return { groups, total: (athletes || []).length };
+}
+
+// PDF do plantel (app nativo; o web faz o mesmo PDF no navegador). athletes:view,
+// escopo de categoria do membro. Fotos reduzidas (miniatura) quando existem.
+async function buildPlantelReport(body, user, assets) {
+  const { workspaceIds, allowedCategoryIds } = scope(user);
+  const team = await loadTeam(body.club_id, workspaceIds, assets, body.primary_color);
+  let athletes = [];
+  if (!(Array.isArray(allowedCategoryIds) && allowedCategoryIds.length === 0)) {
+    const params = [team.id, workspaceIds];
+    let sql = `SELECT id, name, position, jersey_number, "group", photo_url, birthdate, height_cm, preferred_foot
+                 FROM athletes WHERE club_id = $1 AND workspace_id = ANY($2)`;
+    if (Array.isArray(allowedCategoryIds)) { params.push(allowedCategoryIds); sql += ` AND category_id = ANY($${params.length})`; }
+    athletes = (await query(`${sql} ORDER BY name ASC`, params)).rows;
+  }
+  const vm = buildPlantel(athletes);
+  const comFoto = vm.groups.flatMap((g) => g.players).filter((p) => p.photo_url).map((p) => ({ id: p.id, file_path: p.photo_url }));
+  if (comFoto.length) {
+    const thumbs = await loadThumbs(comFoto);
+    const porId = new Map(thumbs.map((t) => [t.id, t]));
+    for (const g of vm.groups) {
+      for (const p of g.players) {
+        const t = porId.get(p.id);
+        if (!t) continue;
+        p.photoKey = `img/atleta-${p.id}`;
+        assets.set(p.photoKey, { body: t.buffer, contentType: 'image/jpeg' });
+      }
+    }
+  }
+  const hoje = F.toDateStr(new Date());
+  const [y, m, d] = hoje.split('-');
+  return {
+    html: renderPlantel({ ...vm, team, meta: `${team.modalityLabel} · ${d}/${m}/${y}`, right: `${d}/${m}/${y}` }, { now: new Date() }),
+    filename: `Plantel_${safeName(team.name) || 'Clube'}_${y}-${m}-${d}.pdf`,
+  };
+}
+
+const BUILDERS = { jogos: buildJogos, treino: buildTreino, sessao: buildSessao, convocacao: buildConvocacao, clube: buildClube, plantel: buildPlantelReport };
 // convocacao: a mesma permissão de abrir o jogo (GET /api/games/:id)
-const PERMISSION = { jogos: 'stats:view', treino: 'stats:view', sessao: 'training:view', convocacao: 'games:view', clube: 'stats:view' };
+const PERMISSION = { jogos: 'stats:view', treino: 'stats:view', sessao: 'training:view', convocacao: 'games:view', clube: 'stats:view', plantel: 'athletes:view' };
 
 async function generateReport(tipo, body, user, { isStale } = {}) {
   const build = BUILDERS[tipo];
@@ -431,4 +488,4 @@ async function viewSessionSheet(body, user) {
   return { html: toPreviewHtml(html, assets) };
 }
 
-module.exports = { generateReport, listReportPhotos, previewReportPhotos, viewSessionSheet, ReportError, PERMISSION, BUILDERS };
+module.exports = { buildPlantel, generateReport, listReportPhotos, previewReportPhotos, viewSessionSheet, ReportError, PERMISSION, BUILDERS };

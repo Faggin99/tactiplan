@@ -115,7 +115,7 @@ router.get('/clubs/:clubId/members', authMiddleware, async (req, res) => {
     );
 
     const membersResult = await query(
-      `SELECT m.id, m.user_id, m.invited_email, m.role, m.category_ids, m.invited_at, m.accepted_at,
+      `SELECT m.id, m.user_id, m.invited_email, m.role, m.category_ids, m.permissions, m.invited_at, m.accepted_at,
               u.name AS user_name, u.email AS user_email,
               inv.name AS invited_by_name
          FROM workspace_members m
@@ -126,11 +126,19 @@ router.get('/clubs/:clubId/members', authMiddleware, async (req, res) => {
       [wsId]
     );
 
+    // Limite de convidados (só para o dono, que é quem convida): -1 = sem limite.
+    // O app nativo mostra "X de Y" com isso (o web calcula pelo plano no front).
+    let limiteConvidados = null;
+    if (isOwner) {
+      try { limiteConvidados = (await workspaceMemberLimit(req.user.id, wsId)).limit; } catch (_) { limiteConvidados = null; }
+    }
+
     res.json({
       owner: ownerRow.rows[0] ? { ...ownerRow.rows[0], role: 'owner' } : null,
       members: membersResult.rows,
       is_owner: isOwner,
       workspace_id: wsId,
+      limite_convidados: limiteConvidados,
     });
   } catch (err) {
     console.error('List members error:', err);
@@ -255,6 +263,44 @@ router.post('/clubs/:clubId/invite', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error('Invite error:', err);
     res.status(500).json({ error: 'Failed to invite member' });
+  }
+});
+
+// POST /api/clubs/:clubId/members/:memberId/resend — convite pendente: manda o e-mail de novo
+// e devolve o link (o app compartilha pela folha do sistema). Só o dono, só pendente.
+router.post('/clubs/:clubId/members/:memberId/resend', authMiddleware, async (req, res) => {
+  try {
+    const { clubId, memberId } = req.params;
+    const wsId = await resolveWorkspaceFromClub(clubId);
+    if (!wsId) return res.status(404).json({ error: 'Clube não encontrado' });
+    if (!req.user.can('members:manage') || !req.user.isWorkspaceOwner(wsId)) {
+      return res.status(403).json({ error: 'Apenas o dono pode reenviar convites' });
+    }
+    const r = await query(
+      `SELECT m.id, m.invited_email, m.role, m.invite_token, w.name AS workspace_name
+         FROM workspace_members m JOIN workspaces w ON w.id = m.workspace_id
+        WHERE m.id = $1 AND m.workspace_id = $2 AND m.accepted_at IS NULL`,
+      [memberId, wsId]
+    );
+    const conv = r.rows[0];
+    if (!conv || !conv.invite_token) return res.status(404).json({ error: 'Convite pendente não encontrado' });
+    const baseUrl = process.env.APP_BASE_URL || 'https://app.tactiplan.faggin.com.br';
+    const acceptUrl = `${baseUrl}/#/accept-invite/${conv.invite_token}`;
+    let enviado = true;
+    try {
+      const { subject, html, text } = buildInviteEmail({
+        workspaceName: conv.workspace_name || 'TactiPlan', role: conv.role || 'coach', inviterName: req.user.email, acceptUrl,
+      });
+      await mailer.sendMail({ to: conv.invited_email, subject, html, text });
+    } catch (mailErr) {
+      enviado = false;
+      console.error('Failed to resend invite email:', mailErr.message);
+    }
+    await query('UPDATE workspace_members SET updated_at = NOW() WHERE id = $1', [conv.id]);
+    res.json({ ok: true, id: conv.id, invited_email: conv.invited_email, accept_url: acceptUrl, email_enviado: enviado });
+  } catch (err) {
+    console.error('Resend invite error:', err);
+    res.status(500).json({ error: 'Failed to resend invite' });
   }
 });
 
