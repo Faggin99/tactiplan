@@ -56,6 +56,18 @@ import com.faggin.tactiplan.app.ui.comum.Tom
 import com.faggin.tactiplan.app.ui.comum.VarianteBotao
 import com.faggin.tactiplan.app.ui.comum.rememberAbrirLink
 
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import com.faggin.tactiplan.app.dados.cadastros.corpoRelatorioClube
+import com.faggin.tactiplan.app.dados.cadastros.nomePdfRelatorioClube
+import com.faggin.tactiplan.app.dados.treino.hojeBrasilia
+import com.faggin.tactiplan.app.ui.cadastros.Cadastro
+import com.faggin.tactiplan.app.ui.cadastros.CadastroTela
+import com.faggin.tactiplan.app.ui.semana.InicioExportar
+import com.faggin.tactiplan.app.ui.semana.gerarECompartilhar
+import kotlinx.coroutines.launch
+
 const val TAG_SAIR = "mais:sair"
 const val TAG_CONFIRMAR_SAIR = "mais:confirmar-sair"
 
@@ -72,6 +84,15 @@ fun MaisTela(amb: AmbienteClube) {
         CoresDoClubeTela(amb) { vendoCores = false }
         return
     }
+    var cadastro by rememberSaveable { mutableStateOf<Cadastro?>(null) }
+    val t3 = amb.t3
+    cadastro?.let { qual ->
+        if (t3 != null) { CadastroTela(amb, t3, qual) { cadastro = null }; return }
+    }
+    val context = LocalContext.current
+    val escopo = rememberCoroutineScope()
+    var gerandoRelatorio by remember { mutableStateOf(false) }
+    var avisoRelatorio by remember { mutableStateOf<String?>(null) }
     var confirmarSair by rememberSaveable { mutableStateOf(false) }
     val abrir = rememberAbrirLink()
     val ctx = amb.contexto
@@ -103,6 +124,39 @@ fun MaisTela(amb: AmbienteClube) {
             if (ctx.clube != null) {
                 Divisoria()
                 LinhaAgrupada(Icones.paleta, "Cores e logo do clube", "Ver · a edição fica no TactiPlan web", aoTocar = { vendoCores = true })
+            }
+        }
+
+        if (t3 != null) {
+            ListaAgrupada("Cadastros") {
+                LinhaAgrupada(Icones.trofeu, "Campeonatos", aoTocar = { cadastro = Cadastro.CAMPEONATOS })
+                Divisoria()
+                LinhaAgrupada(Icones.camadas, "Categorias", aoTocar = { cadastro = Cadastro.CATEGORIAS })
+                Divisoria()
+                LinhaAgrupada(Icones.escudo, "Clubes", "Ativos e arquivados", aoTocar = { cadastro = Cadastro.CLUBES })
+                Divisoria()
+                LinhaAgrupada(Icones.prancheta, "Conteúdos e submomentos", aoTocar = { cadastro = Cadastro.CONTEUDOS })
+                Divisoria()
+                LinhaAgrupada(Icones.relogio, "Atividades (biblioteca)", aoTocar = { cadastro = Cadastro.ATIVIDADES })
+            }
+            val clubeId = ctx.clube?.id
+            if (clubeId != null && ctx.pode("stats:view") && ctx.conta.somenteLeitura != true && amb.treino != null) {
+                ListaAgrupada("Relatórios") {
+                    val ano = hojeBrasilia().take(4)
+                    LinhaAgrupada(Icones.documento, if (gerandoRelatorio) "Gerando…" else "Relatório do clube (PDF)",
+                        "Plantel, treinos e jogos de $ano", aoTocar = {
+                            if (!gerandoRelatorio) {
+                                gerandoRelatorio = true; avisoRelatorio = null
+                                escopo.launch {
+                                    val r = gerarECompartilhar(context, amb.treino.api, "clube", corpoRelatorioClube(clubeId, ano),
+                                        nomePdfRelatorioClube(ctx.nome, ano), amb.tratarErro)
+                                    if (r is InicioExportar.Erro) avisoRelatorio = r.mensagem
+                                    gerandoRelatorio = false
+                                }
+                            }
+                        })
+                }
+                avisoRelatorio?.let { com.faggin.tactiplan.app.ui.comum.FaixaTom(it, Tom.AVISO) }
             }
         }
 

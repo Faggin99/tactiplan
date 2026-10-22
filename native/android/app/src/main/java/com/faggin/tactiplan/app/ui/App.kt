@@ -44,6 +44,7 @@ import com.faggin.tactiplan.app.ui.comum.rememberAutenticar
 import com.faggin.tactiplan.app.ui.entrar.EntrarTela
 import com.faggin.tactiplan.app.ui.entrar.LoginGoogle
 import com.faggin.tactiplan.app.ui.entrar.OndeEntrarTela
+import com.faggin.tactiplan.app.ui.t3.ServicosT3
 import kotlinx.coroutines.launch
 
 /**
@@ -63,6 +64,8 @@ fun App(
     fabricaTreino: (token: String, workspaceId: String) -> ApiTreino = { t, w -> ApiTreinoHttp(Api(apiBase), t, w) },
     /** Rotas de jogo do web (T2). */
     fabricaJogo: (token: String, workspaceId: String) -> ApiJogo = { t, w -> ApiJogoHttp(Api(apiBase), t, w) },
+    /** Rotas do web da T3 (elenco, staff, estatísticas, cadastros). */
+    fabricaT3: (token: String, workspaceId: String) -> ServicosT3 = { t, w -> ServicosT3.http(apiBase, t, w) },
 ) {
     val estado by controle.estado.collectAsState()
     val semConexao by controle.semConexao.collectAsState()
@@ -96,6 +99,7 @@ fun App(
                             ServicoTreino(fabricaTreino(token, e.contexto.escolha.workspaceId))
                         }
                         val jogo = remember(token, e.contexto.escolha.workspaceId) { fabricaJogo(token, e.contexto.escolha.workspaceId) }
+                        val t3 = remember(token, e.contexto.escolha.workspaceId) { fabricaT3(token, e.contexto.escolha.workspaceId) }
                         Casca(
                             AmbienteClube(
                                 contexto = e.contexto,
@@ -113,6 +117,8 @@ fun App(
                                 apiBase = apiBase,
                                 treino = treino,
                                 jogo = jogo,
+                                t3 = t3,
+                                atualizarMe = { try { controle.atualizarMe() } catch (_: Exception) {} },
                                 tratarErro = { err -> controle.tratarErro(err, token) },
                             ),
                         )

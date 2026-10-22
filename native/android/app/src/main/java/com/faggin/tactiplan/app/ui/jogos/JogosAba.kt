@@ -184,7 +184,11 @@ fun ListaJogosTela(amb: AmbienteClube, treino: ServicoTreino, api: ApiJogo, vers
     }
 
     PullToRefreshBox(isRefreshing = carregando && jogos != null, onRefresh = { versao++ }, modifier = Modifier.fillMaxSize()) {
+        val abrirStats = com.faggin.tactiplan.app.ui.t3.LocalAbrirEstatisticas.current
         TelaRaiz("Jogos", acoes = {
+            if (abrirStats != null) IconButton(onClick = { abrirStats(false) }, modifier = Modifier.testTag("jogos:estatisticas")) {
+                Icon(Icones.grafico, contentDescription = "Estatísticas de jogos")
+            }
             if (podeExportar && clubeId != null) {
                 IconButton(onClick = ::exportar, enabled = !exportando, modifier = Modifier.testTag("jogos:exportar")) {
                     if (exportando) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = c.acaoTinta)

@@ -34,6 +34,11 @@ import com.faggin.tactiplan.app.dados.treino.ServicoTreino
 import com.faggin.tactiplan.app.ui.semana.SemanaAba
 import com.faggin.tactiplan.app.ui.jogos.JogosAba
 import com.faggin.tactiplan.app.dados.jogo.ApiJogo
+import androidx.compose.runtime.CompositionLocalProvider
+import com.faggin.tactiplan.app.ui.elenco.ElencoAba
+import com.faggin.tactiplan.app.ui.estatisticas.EstatisticasTela
+import com.faggin.tactiplan.app.ui.t3.LocalAbrirEstatisticas
+import com.faggin.tactiplan.app.ui.t3.ServicosT3
 
 /** O que a casca entrega às telas do clube (tudo que vem da sessão + as ações do Mais). */
 class AmbienteClube(
@@ -56,6 +61,10 @@ class AmbienteClube(
     val tratarErro: (Throwable) -> Boolean = { false },
     /** T2: as rotas de jogo do web com o token do app. */
     val jogo: ApiJogo? = null,
+    /** T3: elenco, staff, estatísticas e cadastros (rotas do web). */
+    val t3: ServicosT3? = null,
+    /** Recarrega o /me (clube criado/arquivado em Cadastros › Clubes). */
+    val atualizarMe: suspend () -> Unit = {},
 )
 
 fun iconeDaAba(a: DefAba): ImageVector = when (a.id) {
@@ -79,20 +88,32 @@ fun Casca(amb: AmbienteClube) {
     val c = TactiPlan.cores
     BackHandler(enabled = ativa != abas.first().id) { ativa = abas.first().id }
 
+    // Estatísticas abre por cima da aba (atalho da Semana = Treino, dos Jogos = Jogos).
+    var estatisticas by rememberSaveable { mutableStateOf<Boolean?>(null) }
+    val abrirEstatisticas: ((Boolean) -> Unit)? =
+        if (amb.t3 != null && amb.contexto.pode("stats:view")) { treino -> estatisticas = treino } else null
+
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.weight(1f)) {
-            when (ativa) {
+          CompositionLocalProvider(LocalAbrirEstatisticas provides abrirEstatisticas) {
+            val emStats = estatisticas
+            if (emStats != null && amb.t3 != null) {
+                BackHandler { estatisticas = null }
+                EstatisticasTela(amb, amb.t3, emStats) { estatisticas = null }
+            } else when (ativa) {
                 ABA_MAIS.id -> MaisTela(amb)
+                ABA_ELENCO.id -> if (amb.t3 != null) ElencoAba(amb, amb.t3) else EmBreveTela(abas.first { it.id == ativa }, amb)
                 ABA_SEMANA.id -> if (amb.treino != null) SemanaAba(amb, amb.treino) else EmBreveTela(abas.first { it.id == ativa }, amb)
                 ABA_JOGOS.id -> if (amb.treino != null && amb.jogo != null) JogosAba(amb, amb.treino, amb.jogo) else EmBreveTela(abas.first { it.id == ativa }, amb)
                 else -> EmBreveTela(abas.first { it.id == ativa }, amb)
             }
+          }
         }
         NavigationBar(containerColor = c.superficie, tonalElevation = 0.dp) {
             abas.forEach { a ->
                 NavigationBarItem(
                     selected = a.id == ativa,
-                    onClick = { ativa = a.id },
+                    onClick = { ativa = a.id; estatisticas = null },
                     icon = { Icon(iconeDaAba(a), contentDescription = null, modifier = Modifier.size(22.dp)) },
                     label = { Text(a.rotulo, fontWeight = FontWeight.SemiBold, style = TactiPlan.tipos.legenda11) },
                     modifier = Modifier.testTag("aba:${a.id}"),

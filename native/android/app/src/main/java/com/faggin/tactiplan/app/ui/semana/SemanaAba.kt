@@ -270,7 +270,11 @@ fun SemanaTela(
     val hoje = hojeBrasilia()
     val podeExportar = exportarSemana != null && ctx.pode("stats:view") && ctx.conta.somenteLeitura != true
     PullToRefreshBox(isRefreshing = atualizando, onRefresh = atualizar, modifier = Modifier.fillMaxSize()) {
+        val abrirStats = com.faggin.tactiplan.app.ui.t3.LocalAbrirEstatisticas.current
         TelaRaiz("Semana", acoes = {
+            if (abrirStats != null) IconButton(onClick = { abrirStats(true) }, modifier = Modifier.testTag("semana:estatisticas")) {
+                Icon(Icones.grafico, contentDescription = "Estatísticas de treino")
+            }
             if (podeExportar) {
                 IconButton(onClick = { exportarSemana?.invoke() }, enabled = !exportando, modifier = Modifier.testTag(TAG_EXPORTAR_SEMANA)) {
                     if (exportando) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = c.acaoTinta)
