@@ -39,6 +39,8 @@ import com.faggin.tactiplan.app.ui.elenco.ElencoAba
 import com.faggin.tactiplan.app.ui.estatisticas.EstatisticasTela
 import com.faggin.tactiplan.app.ui.t3.LocalAbrirEstatisticas
 import com.faggin.tactiplan.app.ui.t3.ServicosT3
+import com.faggin.tactiplan.app.dados.quadro.ApiQuadro
+import com.faggin.tactiplan.app.ui.quadro.QuadroAba
 
 /** O que a casca entrega às telas do clube (tudo que vem da sessão + as ações do Mais). */
 class AmbienteClube(
@@ -65,6 +67,8 @@ class AmbienteClube(
     val t3: ServicosT3? = null,
     /** Recarrega o /me (clube criado/arquivado em Cadastros › Clubes). */
     val atualizarMe: suspend () -> Unit = {},
+    /** T5: as jogadas do quadro tático (/api/plays do web). */
+    val quadro: ApiQuadro? = null,
 )
 
 fun iconeDaAba(a: DefAba): ImageVector = when (a.id) {
@@ -105,6 +109,7 @@ fun Casca(amb: AmbienteClube) {
                 ABA_ELENCO.id -> if (amb.t3 != null) ElencoAba(amb, amb.t3) else EmBreveTela(abas.first { it.id == ativa }, amb)
                 ABA_SEMANA.id -> if (amb.treino != null) SemanaAba(amb, amb.treino) else EmBreveTela(abas.first { it.id == ativa }, amb)
                 ABA_JOGOS.id -> if (amb.treino != null && amb.jogo != null) JogosAba(amb, amb.treino, amb.jogo) else EmBreveTela(abas.first { it.id == ativa }, amb)
+                ABA_QUADRO.id -> if (amb.quadro != null) QuadroAba(amb, amb.quadro) else EmBreveTela(abas.first { it.id == ativa }, amb)
                 else -> EmBreveTela(abas.first { it.id == ativa }, amb)
             }
           }

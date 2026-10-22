@@ -45,6 +45,8 @@ import com.faggin.tactiplan.app.ui.entrar.EntrarTela
 import com.faggin.tactiplan.app.ui.entrar.LoginGoogle
 import com.faggin.tactiplan.app.ui.entrar.OndeEntrarTela
 import com.faggin.tactiplan.app.ui.t3.ServicosT3
+import com.faggin.tactiplan.app.dados.quadro.ApiQuadro
+import com.faggin.tactiplan.app.dados.quadro.ApiQuadroHttp
 import kotlinx.coroutines.launch
 
 /**
@@ -66,6 +68,8 @@ fun App(
     fabricaJogo: (token: String, workspaceId: String) -> ApiJogo = { t, w -> ApiJogoHttp(Api(apiBase), t, w) },
     /** Rotas do web da T3 (elenco, staff, estatísticas, cadastros). */
     fabricaT3: (token: String, workspaceId: String) -> ServicosT3 = { t, w -> ServicosT3.http(apiBase, t, w) },
+    /** Jogadas do quadro tático (T5): /api/plays do web. */
+    fabricaQuadro: (token: String, workspaceId: String) -> ApiQuadro = { t, w -> ApiQuadroHttp(Api(apiBase), t, w) },
 ) {
     val estado by controle.estado.collectAsState()
     val semConexao by controle.semConexao.collectAsState()
@@ -100,6 +104,7 @@ fun App(
                         }
                         val jogo = remember(token, e.contexto.escolha.workspaceId) { fabricaJogo(token, e.contexto.escolha.workspaceId) }
                         val t3 = remember(token, e.contexto.escolha.workspaceId) { fabricaT3(token, e.contexto.escolha.workspaceId) }
+                        val quadro = remember(token, e.contexto.escolha.workspaceId) { fabricaQuadro(token, e.contexto.escolha.workspaceId) }
                         Casca(
                             AmbienteClube(
                                 contexto = e.contexto,
@@ -118,6 +123,7 @@ fun App(
                                 treino = treino,
                                 jogo = jogo,
                                 t3 = t3,
+                                quadro = quadro,
                                 atualizarMe = { try { controle.atualizarMe() } catch (_: Exception) {} },
                                 tratarErro = { err -> controle.tratarErro(err, token) },
                             ),

@@ -5,4 +5,6 @@
     <cache-path name="fotos-camera" path="fotos-camera/" />
     <cache-path name="anexos" path="anexos/" />
     <cache-path name="relatorios" path="relatorios/" />
+    <!-- T5: o vídeo MP4 da jogada para a folha de compartilhar (só o último fica). -->
+    <cache-path name="videos" path="videos/" />
 </paths>
