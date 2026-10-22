@@ -1,0 +1,1344 @@
+{
+ "_gerado_por": "node native/paridade/gerar-t3.mjs (não editar à mão)",
+ "elenco": {
+  "formatarNome": [
+   {
+    "entrada": "alcindo de oliveira neto",
+    "saida": "Alcindo de Oliveira Neto"
+   },
+   {
+    "entrada": "JOÃO DA SILVA",
+    "saida": "João da Silva"
+   },
+   {
+    "entrada": "Léo reis",
+    "saida": "Léo Reis"
+   },
+   {
+    "entrada": "ana-maria  souza",
+    "saida": "Ana-Maria Souza"
+   },
+   {
+    "entrada": "d'avila santos",
+    "saida": "D'Avila Santos"
+   },
+   {
+    "entrada": "pedro d'avila",
+    "saida": "Pedro D'Avila"
+   },
+   {
+    "entrada": "o'neil costa",
+    "saida": "O'Neil Costa"
+   },
+   {
+    "entrada": "joão silva ii",
+    "saida": "João Silva II"
+   },
+   {
+    "entrada": "McDonald silva",
+    "saida": "McDonald Silva"
+   },
+   {
+    "entrada": "  maria   das dores  ",
+    "saida": "Maria das Dores"
+   },
+   {
+    "entrada": "josé e silva",
+    "saida": "José e Silva"
+   },
+   {
+    "entrada": "van basten",
+    "saida": "Van Basten"
+   },
+   {
+    "entrada": "gustavo von held",
+    "saida": "Gustavo von Held"
+   },
+   {
+    "entrada": "ÉRICA ÁVILA",
+    "saida": "Érica Ávila"
+   },
+   {
+    "entrada": "kauã dos santos",
+    "saida": "Kauã dos Santos"
+   },
+   {
+    "entrada": "",
+    "saida": ""
+   }
+  ],
+  "posicoes": {
+   "football_11": [
+    {
+     "code": "GOL",
+     "name": "Goleiro"
+    },
+    {
+     "code": "ZAG",
+     "name": "Zagueiro"
+    },
+    {
+     "code": "LD",
+     "name": "Lateral Direito"
+    },
+    {
+     "code": "LE",
+     "name": "Lateral Esquerdo"
+    },
+    {
+     "code": "VOL",
+     "name": "Volante"
+    },
+    {
+     "code": "MEI",
+     "name": "Meia"
+    },
+    {
+     "code": "ED",
+     "name": "Extremo Direito"
+    },
+    {
+     "code": "EE",
+     "name": "Extremo Esquerdo"
+    },
+    {
+     "code": "CA",
+     "name": "Centroavante"
+    }
+   ],
+   "football_7": [
+    {
+     "code": "GOL",
+     "name": "Goleiro"
+    },
+    {
+     "code": "ZAG",
+     "name": "Zagueiro"
+    },
+    {
+     "code": "LD",
+     "name": "Lateral Direito"
+    },
+    {
+     "code": "LE",
+     "name": "Lateral Esquerdo"
+    },
+    {
+     "code": "VOL",
+     "name": "Volante"
+    },
+    {
+     "code": "MEI",
+     "name": "Meia"
+    },
+    {
+     "code": "ED",
+     "name": "Extremo Direito"
+    },
+    {
+     "code": "EE",
+     "name": "Extremo Esquerdo"
+    },
+    {
+     "code": "CA",
+     "name": "Centroavante"
+    }
+   ],
+   "futsal": [
+    {
+     "code": "GOL",
+     "name": "Goleiro"
+    },
+    {
+     "code": "FIX",
+     "name": "Fixo"
+    },
+    {
+     "code": "ALA-D",
+     "name": "Ala Direito"
+    },
+    {
+     "code": "ALA-E",
+     "name": "Ala Esquerdo"
+    },
+    {
+     "code": "PIV",
+     "name": "Pivô"
+    }
+   ]
+  },
+  "modalidades": {
+   "football_11": "Futebol 11",
+   "football_7": "Futebol 7",
+   "futsal": "Futsal"
+  },
+  "ordemPosicao": {
+   "GOL": 1,
+   "GR": 1,
+   "LD": 2,
+   "DD": 2,
+   "ZAG": 3,
+   "DC": 3,
+   "Z": 3,
+   "LE": 4,
+   "DE": 4,
+   "VOL": 5,
+   "MC": 5,
+   "MEI": 6,
+   "MD": 6,
+   "ME": 6,
+   "MOF": 6,
+   "M": 6,
+   "ED": 7,
+   "EE": 8,
+   "CA": 9,
+   "PL": 9,
+   "SA": 9,
+   "A": 9,
+   "FIX": 3,
+   "ALA-D": 5,
+   "ALA-E": 6,
+   "PIV": 9
+  },
+  "atletas": [
+   {
+    "name": "Zeca",
+    "position": "CA"
+   },
+   {
+    "name": "Álvaro",
+    "position": "GOL"
+   },
+   {
+    "name": "Alice",
+    "position": "GOL"
+   },
+   {
+    "name": "Bruno",
+    "position": "LD"
+   },
+   {
+    "name": "Caio",
+    "position": "ZAG"
+   },
+   {
+    "name": "Davi",
+    "position": "LE"
+   },
+   {
+    "name": "Enzo",
+    "position": "VOL"
+   },
+   {
+    "name": "Fábio",
+    "position": "MEI"
+   },
+   {
+    "name": "Gil",
+    "position": "ED"
+   },
+   {
+    "name": "Hugo",
+    "position": "EE"
+   },
+   {
+    "name": "Ivo",
+    "position": null
+   },
+   {
+    "name": "Juca",
+    "position": "XYZ"
+   },
+   {
+    "name": "Kiko",
+    "position": "FIX"
+   },
+   {
+    "name": "Lia",
+    "position": "ALA-D"
+   },
+   {
+    "name": "Mel",
+    "position": "PIV"
+   },
+   {
+    "name": "Nino",
+    "position": "DC"
+   },
+   {
+    "name": "Otto",
+    "position": "GR"
+   }
+  ],
+  "porPosicao": [
+   "Alice",
+   "Álvaro",
+   "Otto",
+   "Bruno",
+   "Caio",
+   "Kiko",
+   "Nino",
+   "Davi",
+   "Enzo",
+   "Lia",
+   "Fábio",
+   "Gil",
+   "Hugo",
+   "Mel",
+   "Zeca",
+   "Ivo",
+   "Juca"
+  ],
+  "porNome": [
+   "Alice",
+   "Álvaro",
+   "Bruno",
+   "Caio",
+   "Davi",
+   "Enzo",
+   "Fábio",
+   "Gil",
+   "Hugo",
+   "Ivo",
+   "Juca",
+   "Kiko",
+   "Lia",
+   "Mel",
+   "Nino",
+   "Otto",
+   "Zeca"
+  ]
+ },
+ "staff": {
+  "permissoes": [
+   "training:view",
+   "training:edit",
+   "training:delete",
+   "games:view",
+   "games:edit",
+   "athletes:view",
+   "athletes:edit",
+   "injuries:manage",
+   "tactical:view",
+   "tactical:edit",
+   "stats:view",
+   "library:edit",
+   "categories:manage",
+   "members:manage",
+   "club_settings:manage",
+   "billing:manage"
+  ],
+  "rotulos": {
+   "training:view": "Ver treinos",
+   "training:edit": "Editar treinos",
+   "training:delete": "Apagar treinos",
+   "games:view": "Ver jogos",
+   "games:edit": "Editar jogos",
+   "athletes:view": "Ver atletas",
+   "athletes:edit": "Editar atletas",
+   "injuries:manage": "Gerenciar lesões",
+   "tactical:view": "Ver quadro tático",
+   "tactical:edit": "Editar quadro tático",
+   "stats:view": "Ver estatísticas",
+   "library:edit": "Editar biblioteca (conteúdos/atividades)",
+   "categories:manage": "Gerenciar categorias",
+   "members:manage": "Gerenciar equipe (convidar/remover)",
+   "club_settings:manage": "Configurações do clube",
+   "billing:manage": "Gerenciar assinatura"
+  },
+  "grupos": [
+   {
+    "label": "Treinos",
+    "items": [
+     "training:view",
+     "training:edit",
+     "training:delete"
+    ]
+   },
+   {
+    "label": "Jogos",
+    "items": [
+     "games:view",
+     "games:edit"
+    ]
+   },
+   {
+    "label": "Atletas",
+    "items": [
+     "athletes:view",
+     "athletes:edit",
+     "injuries:manage"
+    ]
+   },
+   {
+    "label": "Quadro Tático",
+    "items": [
+     "tactical:view",
+     "tactical:edit"
+    ]
+   },
+   {
+    "label": "Estatísticas e Biblioteca",
+    "items": [
+     "stats:view",
+     "library:edit"
+    ]
+   },
+   {
+    "label": "Administração",
+    "items": [
+     "categories:manage",
+     "members:manage",
+     "club_settings:manage",
+     "billing:manage"
+    ]
+   }
+  ],
+  "papeis": [
+   "owner",
+   "head_coach",
+   "assistant_coach",
+   "specialist",
+   "other"
+  ],
+  "rotulosPapel": {
+   "owner": "Proprietário",
+   "manager": "Gerente",
+   "head_coach": "Treinador Principal",
+   "assistant_coach": "Treinador Auxiliar",
+   "specialist": "Especialista (Fisio/PF/Analista)",
+   "viewer": "Somente leitura",
+   "other": "Outros"
+  },
+  "descricoesPapel": {
+   "manager": "Faz quase tudo, menos billing e gestão de membros",
+   "head_coach": "Treinador principal — treinos, jogos, atletas, táticas",
+   "assistant_coach": "Auxiliar — edita treinos, vê jogos/atletas/táticas",
+   "specialist": "Fisio/PF/Analista — gerencia lesões, vê stats, edita biblioteca",
+   "viewer": "Apenas leitura",
+   "other": "Outra função: escolha abaixo o que a pessoa pode ver e editar"
+  },
+  "padroes": {
+   "owner": [
+    "training:view",
+    "training:edit",
+    "training:delete",
+    "games:view",
+    "games:edit",
+    "athletes:view",
+    "athletes:edit",
+    "injuries:manage",
+    "tactical:view",
+    "tactical:edit",
+    "stats:view",
+    "library:edit",
+    "categories:manage",
+    "members:manage",
+    "club_settings:manage",
+    "billing:manage"
+   ],
+   "manager": [
+    "training:view",
+    "training:edit",
+    "training:delete",
+    "games:view",
+    "games:edit",
+    "athletes:view",
+    "athletes:edit",
+    "injuries:manage",
+    "tactical:view",
+    "tactical:edit",
+    "stats:view",
+    "library:edit",
+    "categories:manage"
+   ],
+   "head_coach": [
+    "training:view",
+    "training:edit",
+    "training:delete",
+    "games:view",
+    "games:edit",
+    "athletes:view",
+    "athletes:edit",
+    "tactical:view",
+    "tactical:edit",
+    "stats:view",
+    "library:edit"
+   ],
+   "assistant_coach": [
+    "training:view",
+    "training:edit",
+    "games:view",
+    "athletes:view",
+    "tactical:view",
+    "stats:view"
+   ],
+   "specialist": [
+    "training:view",
+    "games:view",
+    "athletes:view",
+    "athletes:edit",
+    "injuries:manage",
+    "stats:view",
+    "library:edit"
+   ],
+   "viewer": [
+    "training:view",
+    "games:view",
+    "athletes:view",
+    "tactical:view",
+    "stats:view"
+   ],
+   "other": [
+    "training:view",
+    "games:view",
+    "athletes:view",
+    "tactical:view",
+    "stats:view"
+   ]
+  },
+  "efetivas": [
+   {
+    "role": "head_coach",
+    "permissions": null,
+    "efetivas": [
+     "athletes:edit",
+     "athletes:view",
+     "games:edit",
+     "games:view",
+     "library:edit",
+     "stats:view",
+     "tactical:edit",
+     "tactical:view",
+     "training:delete",
+     "training:edit",
+     "training:view"
+    ]
+   },
+   {
+    "role": "assistant_coach",
+    "permissions": null,
+    "efetivas": [
+     "athletes:view",
+     "games:view",
+     "stats:view",
+     "tactical:view",
+     "training:edit",
+     "training:view"
+    ]
+   },
+   {
+    "role": "specialist",
+    "permissions": null,
+    "efetivas": [
+     "athletes:edit",
+     "athletes:view",
+     "games:view",
+     "injuries:manage",
+     "library:edit",
+     "stats:view",
+     "training:view"
+    ]
+   },
+   {
+    "role": "other",
+    "permissions": null,
+    "efetivas": [
+     "athletes:view",
+     "games:view",
+     "stats:view",
+     "tactical:view",
+     "training:view"
+    ]
+   },
+   {
+    "role": "other",
+    "permissions": [
+     "training:view",
+     "games:edit"
+    ],
+    "efetivas": [
+     "games:edit",
+     "training:view"
+    ]
+   },
+   {
+    "role": "owner",
+    "permissions": null,
+    "efetivas": [
+     "athletes:edit",
+     "athletes:view",
+     "billing:manage",
+     "categories:manage",
+     "club_settings:manage",
+     "games:edit",
+     "games:view",
+     "injuries:manage",
+     "library:edit",
+     "members:manage",
+     "stats:view",
+     "tactical:edit",
+     "tactical:view",
+     "training:delete",
+     "training:edit",
+     "training:view"
+    ]
+   },
+   {
+    "role": "manager",
+    "permissions": null,
+    "efetivas": [
+     "athletes:edit",
+     "athletes:view",
+     "categories:manage",
+     "games:edit",
+     "games:view",
+     "injuries:manage",
+     "library:edit",
+     "stats:view",
+     "tactical:edit",
+     "tactical:view",
+     "training:delete",
+     "training:edit",
+     "training:view"
+    ]
+   },
+   {
+    "role": "viewer",
+    "permissions": null,
+    "efetivas": [
+     "athletes:view",
+     "games:view",
+     "stats:view",
+     "tactical:view",
+     "training:view"
+    ]
+   },
+   {
+    "role": "desconhecido",
+    "permissions": null,
+    "efetivas": []
+   }
+  ]
+ },
+ "estatisticas": {
+  "formatMinutes": [
+   {
+    "min": 0,
+    "texto": "0min"
+   },
+   {
+    "min": 5,
+    "texto": "5min"
+   },
+   {
+    "min": 59,
+    "texto": "59min"
+   },
+   {
+    "min": 60,
+    "texto": "1h"
+   },
+   {
+    "min": 61,
+    "texto": "1h 1min"
+   },
+   {
+    "min": 90,
+    "texto": "1h 30min"
+   },
+   {
+    "min": 120,
+    "texto": "2h"
+   },
+   {
+    "min": 125,
+    "texto": "2h 5min"
+   },
+   {
+    "min": 1120,
+    "texto": "18h 40min"
+   }
+  ],
+  "periodos": [
+   {
+    "hoje": "2026-10-22",
+    "filtro": "1-micro",
+    "semana": "2026-43",
+    "inicio": "2026-10-19",
+    "fim": "2026-10-25"
+   },
+   {
+    "hoje": "2026-10-22",
+    "filtro": "4-micros",
+    "semana": "2026-43",
+    "inicio": "2026-10-19",
+    "fim": "2026-11-15"
+   },
+   {
+    "hoje": "2026-10-22",
+    "filtro": "semester",
+    "inicio": "2026-07-01",
+    "fim": "2026-12-31"
+   },
+   {
+    "hoje": "2026-10-22",
+    "filtro": "1-year",
+    "inicio": "2026-01-01",
+    "fim": "2026-12-31"
+   },
+   {
+    "hoje": "2026-01-01",
+    "filtro": "1-micro",
+    "semana": "2026-01",
+    "inicio": "2025-12-29",
+    "fim": "2026-01-04"
+   },
+   {
+    "hoje": "2026-01-01",
+    "filtro": "4-micros",
+    "semana": "2026-01",
+    "inicio": "2025-12-29",
+    "fim": "2026-01-25"
+   },
+   {
+    "hoje": "2026-01-01",
+    "filtro": "semester",
+    "inicio": "2026-01-01",
+    "fim": "2026-06-30"
+   },
+   {
+    "hoje": "2026-01-01",
+    "filtro": "1-year",
+    "inicio": "2026-01-01",
+    "fim": "2026-12-31"
+   },
+   {
+    "hoje": "2026-12-31",
+    "filtro": "1-micro",
+    "semana": "2026-53",
+    "inicio": "2026-12-28",
+    "fim": "2027-01-03"
+   },
+   {
+    "hoje": "2026-12-31",
+    "filtro": "4-micros",
+    "semana": "2026-53",
+    "inicio": "2026-12-28",
+    "fim": "2027-01-24"
+   },
+   {
+    "hoje": "2026-12-31",
+    "filtro": "semester",
+    "inicio": "2026-07-01",
+    "fim": "2026-12-31"
+   },
+   {
+    "hoje": "2026-12-31",
+    "filtro": "1-year",
+    "inicio": "2026-01-01",
+    "fim": "2026-12-31"
+   },
+   {
+    "hoje": "2027-01-03",
+    "filtro": "1-micro",
+    "semana": "2026-53",
+    "inicio": "2026-12-28",
+    "fim": "2027-01-03"
+   },
+   {
+    "hoje": "2027-01-03",
+    "filtro": "4-micros",
+    "semana": "2026-53",
+    "inicio": "2026-12-28",
+    "fim": "2027-01-24"
+   },
+   {
+    "hoje": "2027-01-03",
+    "filtro": "semester",
+    "inicio": "2027-01-01",
+    "fim": "2027-06-30"
+   },
+   {
+    "hoje": "2027-01-03",
+    "filtro": "1-year",
+    "inicio": "2027-01-01",
+    "fim": "2027-12-31"
+   },
+   {
+    "hoje": "2026-06-30",
+    "filtro": "1-micro",
+    "semana": "2026-27",
+    "inicio": "2026-06-29",
+    "fim": "2026-07-05"
+   },
+   {
+    "hoje": "2026-06-30",
+    "filtro": "4-micros",
+    "semana": "2026-27",
+    "inicio": "2026-06-29",
+    "fim": "2026-07-26"
+   },
+   {
+    "hoje": "2026-06-30",
+    "filtro": "semester",
+    "inicio": "2026-01-01",
+    "fim": "2026-06-30"
+   },
+   {
+    "hoje": "2026-06-30",
+    "filtro": "1-year",
+    "inicio": "2026-01-01",
+    "fim": "2026-12-31"
+   },
+   {
+    "hoje": "2026-07-01",
+    "filtro": "1-micro",
+    "semana": "2026-27",
+    "inicio": "2026-06-29",
+    "fim": "2026-07-05"
+   },
+   {
+    "hoje": "2026-07-01",
+    "filtro": "4-micros",
+    "semana": "2026-27",
+    "inicio": "2026-06-29",
+    "fim": "2026-07-26"
+   },
+   {
+    "hoje": "2026-07-01",
+    "filtro": "semester",
+    "inicio": "2026-07-01",
+    "fim": "2026-12-31"
+   },
+   {
+    "hoje": "2026-07-01",
+    "filtro": "1-year",
+    "inicio": "2026-01-01",
+    "fim": "2026-12-31"
+   },
+   {
+    "hoje": "2020-12-31",
+    "filtro": "1-micro",
+    "semana": "2020-53",
+    "inicio": "2020-12-28",
+    "fim": "2021-01-03"
+   },
+   {
+    "hoje": "2020-12-31",
+    "filtro": "4-micros",
+    "semana": "2020-53",
+    "inicio": "2020-12-28",
+    "fim": "2021-01-24"
+   },
+   {
+    "hoje": "2020-12-31",
+    "filtro": "semester",
+    "inicio": "2020-07-01",
+    "fim": "2020-12-31"
+   },
+   {
+    "hoje": "2020-12-31",
+    "filtro": "1-year",
+    "inicio": "2020-01-01",
+    "fim": "2020-12-31"
+   },
+   {
+    "hoje": "2021-01-04",
+    "filtro": "1-micro",
+    "semana": "2021-01",
+    "inicio": "2021-01-04",
+    "fim": "2021-01-10"
+   },
+   {
+    "hoje": "2021-01-04",
+    "filtro": "4-micros",
+    "semana": "2021-01",
+    "inicio": "2021-01-04",
+    "fim": "2021-01-31"
+   },
+   {
+    "hoje": "2021-01-04",
+    "filtro": "semester",
+    "inicio": "2021-01-01",
+    "fim": "2021-06-30"
+   },
+   {
+    "hoje": "2021-01-04",
+    "filtro": "1-year",
+    "inicio": "2021-01-01",
+    "fim": "2021-12-31"
+   }
+  ],
+  "ajustes": [
+   {
+    "inicio": "2026-03-15",
+    "semestre": "2026-06-30",
+    "ano": "2026-12-31"
+   },
+   {
+    "inicio": "2026-08-02",
+    "semestre": "2026-12-31",
+    "ano": "2026-12-31"
+   },
+   {
+    "inicio": "2025-06-30",
+    "semestre": "2025-06-30",
+    "ano": "2025-12-31"
+   }
+  ],
+  "navegacao": [
+   {
+    "segunda": "2026-10-19",
+    "anterior": "2026-42",
+    "seguinte": "2026-44",
+    "semana": "2026-43"
+   },
+   {
+    "segunda": "2026-12-28",
+    "anterior": "2026-52",
+    "seguinte": "2027-01",
+    "semana": "2026-53"
+   },
+   {
+    "segunda": "2027-01-04",
+    "anterior": "2026-53",
+    "seguinte": "2027-02",
+    "semana": "2027-01"
+   }
+  ],
+  "cards": [
+   {
+    "entrada": {
+     "totalMatches": 5,
+     "wins": 3,
+     "draws": 1,
+     "losses": 1,
+     "pointsWon": 10,
+     "pointsPlayed": 15,
+     "winStreak": 2,
+     "unbeatenStreak": 3,
+     "goalDifference": 4,
+     "avgGoalsScored": 1.6,
+     "avgGoalsConceded": 0.8,
+     "biggestWin": {
+      "goals_scored": 3,
+      "goals_conceded": 0,
+      "opponent": "Rival"
+     }
+    },
+    "saida": {
+     "pct": 67,
+     "pts": 10,
+     "ptsMax": 15,
+     "sequencia": "2 vitórias seguidas",
+     "vedText": "3 vitórias · 1 empate · 1 derrota",
+     "saldo": "+4",
+     "media": "1,6 × 0,8",
+     "maiorVitoria": "3×0 vs Rival",
+     "pontosTexto": "pontos · 5 jogos"
+    }
+   },
+   {
+    "entrada": {
+     "totalMatches": 1,
+     "wins": 0,
+     "draws": 1,
+     "losses": 0,
+     "pointsWon": 1,
+     "pointsPlayed": 3,
+     "winStreak": 0,
+     "unbeatenStreak": 1,
+     "goalDifference": 0,
+     "avgGoalsScored": 1,
+     "avgGoalsConceded": 1,
+     "biggestWin": null
+    },
+    "saida": {
+     "pct": 33,
+     "pts": 1,
+     "ptsMax": 3,
+     "sequencia": "Invicto há 1 jogo",
+     "vedText": "0 vitórias · 1 empate · 0 derrotas",
+     "saldo": "0",
+     "media": "1 × 1",
+     "maiorVitoria": "Sem vitórias",
+     "pontosTexto": "pontos · 1 jogo"
+    }
+   },
+   {
+    "entrada": {
+     "totalMatches": 3,
+     "wins": 0,
+     "draws": 0,
+     "losses": 3,
+     "pointsWon": 0,
+     "pointsPlayed": 9,
+     "winStreak": 0,
+     "unbeatenStreak": 0,
+     "goalDifference": -5,
+     "avgGoalsScored": 0.33,
+     "avgGoalsConceded": 2,
+     "biggestWin": null
+    },
+    "saida": {
+     "pct": 0,
+     "pts": 0,
+     "ptsMax": 9,
+     "sequencia": "Sem vencer no último jogo",
+     "vedText": "0 vitórias · 0 empates · 3 derrotas",
+     "saldo": "−5",
+     "media": "0,33 × 2",
+     "maiorVitoria": "Sem vitórias",
+     "pontosTexto": "pontos · 3 jogos"
+    }
+   },
+   {
+    "entrada": {
+     "totalMatches": 2,
+     "wins": 2,
+     "draws": 0,
+     "losses": 0,
+     "pointsWon": 6,
+     "winStreak": 2,
+     "unbeatenStreak": 2,
+     "goalDifference": 3,
+     "avgGoalsScored": 2.5,
+     "avgGoalsConceded": 1,
+     "biggestWin": {
+      "goals_scored": 3,
+      "goals_conceded": 1,
+      "opponent": "B"
+     }
+    },
+    "saida": {
+     "pct": 100,
+     "pts": 6,
+     "ptsMax": 6,
+     "sequencia": "2 vitórias seguidas",
+     "vedText": "2 vitórias · 0 empates · 0 derrotas",
+     "saldo": "+3",
+     "media": "2,5 × 1",
+     "maiorVitoria": "3×1 vs B",
+     "pontosTexto": "pontos · 2 jogos"
+    }
+   }
+  ],
+  "minutagem": {
+   "jogadores": [
+    {
+     "athlete_id": "a",
+     "name": "Bruno",
+     "minutes": 180,
+     "appearances": 2,
+     "called_up": 2,
+     "starts": 2,
+     "sub_entries": 0
+    },
+    {
+     "athlete_id": "b",
+     "name": "Álvaro",
+     "minutes": 90,
+     "appearances": 2,
+     "called_up": 3,
+     "starts": 0,
+     "sub_entries": 2
+    },
+    {
+     "athlete_id": "c",
+     "name": "Caio",
+     "minutes": 90,
+     "appearances": 1,
+     "called_up": 1,
+     "starts": 1,
+     "sub_entries": 0
+    },
+    {
+     "athlete_id": "d",
+     "name": "alice",
+     "minutes": 0,
+     "appearances": 0,
+     "called_up": 2,
+     "starts": 0,
+     "sub_entries": 0
+    },
+    {
+     "athlete_id": "e",
+     "name": "Zé",
+     "minutes": 0,
+     "appearances": 0,
+     "called_up": 0,
+     "starts": 0,
+     "sub_entries": 0
+    }
+   ],
+   "minutesPossible": 270,
+   "ordens": [
+    {
+     "key": "name",
+     "dir": "asc",
+     "ordem": [
+      {
+       "id": "d",
+       "pct": 0
+      },
+      {
+       "id": "b",
+       "pct": 33
+      },
+      {
+       "id": "a",
+       "pct": 67
+      },
+      {
+       "id": "c",
+       "pct": 33
+      }
+     ]
+    },
+    {
+     "key": "name",
+     "dir": "desc",
+     "ordem": [
+      {
+       "id": "c",
+       "pct": 33
+      },
+      {
+       "id": "a",
+       "pct": 67
+      },
+      {
+       "id": "b",
+       "pct": 33
+      },
+      {
+       "id": "d",
+       "pct": 0
+      }
+     ]
+    },
+    {
+     "key": "minutes",
+     "dir": "asc",
+     "ordem": [
+      {
+       "id": "d",
+       "pct": 0
+      },
+      {
+       "id": "b",
+       "pct": 33
+      },
+      {
+       "id": "c",
+       "pct": 33
+      },
+      {
+       "id": "a",
+       "pct": 67
+      }
+     ]
+    },
+    {
+     "key": "minutes",
+     "dir": "desc",
+     "ordem": [
+      {
+       "id": "a",
+       "pct": 67
+      },
+      {
+       "id": "b",
+       "pct": 33
+      },
+      {
+       "id": "c",
+       "pct": 33
+      },
+      {
+       "id": "d",
+       "pct": 0
+      }
+     ]
+    },
+    {
+     "key": "appearances",
+     "dir": "asc",
+     "ordem": [
+      {
+       "id": "d",
+       "pct": 0
+      },
+      {
+       "id": "c",
+       "pct": 33
+      },
+      {
+       "id": "b",
+       "pct": 33
+      },
+      {
+       "id": "a",
+       "pct": 67
+      }
+     ]
+    },
+    {
+     "key": "appearances",
+     "dir": "desc",
+     "ordem": [
+      {
+       "id": "b",
+       "pct": 33
+      },
+      {
+       "id": "a",
+       "pct": 67
+      },
+      {
+       "id": "c",
+       "pct": 33
+      },
+      {
+       "id": "d",
+       "pct": 0
+      }
+     ]
+    },
+    {
+     "key": "pct",
+     "dir": "asc",
+     "ordem": [
+      {
+       "id": "d",
+       "pct": 0
+      },
+      {
+       "id": "b",
+       "pct": 33
+      },
+      {
+       "id": "c",
+       "pct": 33
+      },
+      {
+       "id": "a",
+       "pct": 67
+      }
+     ]
+    },
+    {
+     "key": "pct",
+     "dir": "desc",
+     "ordem": [
+      {
+       "id": "a",
+       "pct": 67
+      },
+      {
+       "id": "b",
+       "pct": 33
+      },
+      {
+       "id": "c",
+       "pct": 33
+      },
+      {
+       "id": "d",
+       "pct": 0
+      }
+     ]
+    },
+    {
+     "key": "starts",
+     "dir": "asc",
+     "ordem": [
+      {
+       "id": "d",
+       "pct": 0
+      },
+      {
+       "id": "b",
+       "pct": 33
+      },
+      {
+       "id": "c",
+       "pct": 33
+      },
+      {
+       "id": "a",
+       "pct": 67
+      }
+     ]
+    },
+    {
+     "key": "starts",
+     "dir": "desc",
+     "ordem": [
+      {
+       "id": "a",
+       "pct": 67
+      },
+      {
+       "id": "c",
+       "pct": 33
+      },
+      {
+       "id": "d",
+       "pct": 0
+      },
+      {
+       "id": "b",
+       "pct": 33
+      }
+     ]
+    },
+    {
+     "key": "sub_entries",
+     "dir": "asc",
+     "ordem": [
+      {
+       "id": "d",
+       "pct": 0
+      },
+      {
+       "id": "a",
+       "pct": 67
+      },
+      {
+       "id": "c",
+       "pct": 33
+      },
+      {
+       "id": "b",
+       "pct": 33
+      }
+     ]
+    },
+    {
+     "key": "sub_entries",
+     "dir": "desc",
+     "ordem": [
+      {
+       "id": "b",
+       "pct": 33
+      },
+      {
+       "id": "d",
+       "pct": 0
+      },
+      {
+       "id": "a",
+       "pct": 67
+      },
+      {
+       "id": "c",
+       "pct": 33
+      }
+     ]
+    }
+   ]
+  }
+ }
+}
