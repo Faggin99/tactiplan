@@ -9,6 +9,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.onAllNodesWithText
 import com.faggin.tactiplan.app.dados.ApiFalsa
+import com.faggin.tactiplan.app.dados.treino.ApiTreinoFalsa
 import com.faggin.tactiplan.app.dados.Aparelho
 import com.faggin.tactiplan.app.dados.ConfigApp
 import com.faggin.tactiplan.app.dados.CofreSessaoMemoria
@@ -35,9 +36,12 @@ class TelasTest {
 
     private val api = ApiFalsa()
     private val controle = ControleSessao(api, CofreSessaoMemoria())
+    private val treino = ApiTreinoFalsa()
 
     private fun montar() = regra.setContent {
-        App(controle, api, Aparelho("android"), google = { "idt" }, trava = null, versaoInstalada = "1.0.0")
+        // Rotas de treino falsas: a aba Semana nunca sai para a rede nos testes.
+        App(controle, api, Aparelho("android"), google = { "idt" }, trava = null, versaoInstalada = "1.0.0",
+            fabricaTreino = { _, _ -> treino })
     }
 
     @Test fun `Entrar - sem Google por padrao, sem criar conta, e entra com e-mail e senha`() {
@@ -79,5 +83,13 @@ class TelasTest {
         montar()
         assertTrue(regra.onAllNodesWithText("Quadro").fetchSemanticsNodes().isEmpty())
         regra.onNodeWithText("Elenco").assertIsDisplayed()
+    }
+
+    @Test fun `Semana - abre na semana atual pelas rotas de treino com o token do app`() {
+        controle.entrou(RespostaLogin("tpa_1", null, me(conta("w1", clubes = listOf(clube("c1", "Demo FC"))))))
+        montar()
+        regra.onNodeWithTag("semana:periodo").assertIsDisplayed()
+        regra.waitUntil(5_000) { treino.chamadas.any { it.startsWith("microciclo:") } }
+        assertTrue(treino.chamadas.first().startsWith("microciclo:"))
     }
 }
