@@ -12,12 +12,16 @@ import { useFeatureGuard } from './PlanGate';
  *  - disabled, size, variant: aspectos do botão
  *  - label: texto do botão (default "Exportar")
  *  - icon: ícone do botão (default Download)
+ *  - pdfLabel: texto do item de PDF (default "Exportar PDF")
+ *  - extraPdfItems: [{ label, onClick }] — outros PDFs, listados depois do principal
  */
 export function ExportMenu({
   onExportPDF, onExportExcel,
   disabled = false, size = 'md',
   label = 'Exportar', icon,
   variant = 'primary',
+  pdfLabel = 'Exportar PDF',
+  extraPdfItems = [],
 }) {
   const { colors, isDark } = useTheme();
   const [open, setOpen] = useState(false);
@@ -104,18 +108,27 @@ export function ExportMenu({
           {onExportPDF && (
             <MenuItem
               icon={<FileText size={15} />}
-              label="Exportar PDF"
+              label={pdfLabel}
               onClick={() => run(onExportPDF)}
               colors={colors} isDark={isDark}
             />
           )}
+          {extraPdfItems.map((it) => (
+            <MenuItem
+              key={it.label}
+              icon={<FileText size={15} />}
+              label={it.label}
+              onClick={() => run(it.onClick)}
+              colors={colors} isDark={isDark}
+            />
+          ))}
           {onExportExcel && (
             <MenuItem
               icon={<FileSpreadsheet size={15} />}
               label="Exportar Excel"
               onClick={() => run(onExportExcel)}
               colors={colors} isDark={isDark}
-              divider={Boolean(onExportPDF)}
+              divider={Boolean(onExportPDF) || extraPdfItems.length > 0}
             />
           )}
         </div>

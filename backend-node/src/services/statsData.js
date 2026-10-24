@@ -479,6 +479,14 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
     }
     if (a.content_id) {
       const sess = sessionDateMap.get(a.session_id);
+      // por período (dia com Manhã/Tarde/Noite): a.session_id é o do dia, periodo_session_id o do período
+      const pid = a.periodo_session_id || a.session_id;
+      if (!sess.porPeriodo) sess.porPeriodo = new Map();
+      if (!sess.porPeriodo.has(pid)) sess.porPeriodo.set(pid, new Map());
+      const pc = sess.porPeriodo.get(pid);
+      if (!pc.has(a.content_id)) pc.set(a.content_id, { content_id: a.content_id, name: a.content_name, dimension: a.dimension, count: 0, minutes: 0 });
+      pc.get(a.content_id).count += 1;
+      pc.get(a.content_id).minutes += a.duration_minutes || 0;
       if (!sess.contents.has(a.content_id)) {
         sess.contents.set(a.content_id, {
           content_id: a.content_id, name: a.content_name, dimension: a.dimension,
@@ -513,6 +521,8 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
       session_id: s.session_id,
       date: s.date,
       contents: Array.from(s.contents.values()),
+      // conteúdos de cada período do dia (session_id do período → lista)
+      contentsByPeriod: Object.fromEntries(Array.from((s.porPeriodo || new Map()).entries()).map(([pid, m]) => [pid, Array.from(m.values())])),
       pillarMinutes: pilaresDoDia.get(s.session_id) || {},
     }))
     .sort((a, b) => a.date.localeCompare(b.date));
@@ -568,7 +578,37 @@ const MINUTE_RANGES_BY_MODALITY = {
 const DEFAULT_DURATION_BY_MODALITY = { football_11: 90, football_7: 50, futsal: 40 };
 
 // Estatísticas de jogos do período.
-async function getGameStats({ workspaceIds, start, end, clubId = null, allowedCategoryIds = null }) {
+// Rótulos dos tipos de gol (novos e legados) — tela, PDF de jogos e relatório do jogo.
+const goalTypeLabels = {
+  // Novos ofensivos
+  'org_off':         'Org. Ofensiva',
+  'trans_off':       'Transição Ofensiva',
+  'bp_off_falta':    'BP Of. — Falta',
+  'bp_off_corner':   'BP Of. — Escanteio',
+  'bp_off_lateral':  'BP Of. — Lateral',
+  'bp_off_penalty':  'BP Of. — Pênalti',
+  // Novos defensivos
+  'org_def':         'Org. Defensiva',
+  'trans_def':       'Transição Defensiva',
+  'bp_def_falta':    'BP Def. — Falta',
+  'bp_def_corner':   'BP Def. — Escanteio',
+  'bp_def_lateral':  'BP Def. — Lateral',
+  'bp_def_penalty':  'BP Def. — Pênalti',
+  // Legacy
+  'offensive_org':        'Org. Ofensiva',
+  'offensive_transition': 'Transição Ofensiva',
+  'free_kick':            'Falta',
+  'corner':               'Escanteio',
+  'penalty':              'Pênalti',
+  'unknown':              'Não definido',
+};
+function goalTypeLabel(type) {
+  const t = type || 'unknown';
+  return goalTypeLabels[t] || goalTypeFallbackLabel(t);
+}
+
+// competitionId: id do campeonato, 'none' = só jogos sem campeonato (amistosos), null = todos.
+async function getGameStats({ workspaceIds, start, end, clubId = null, allowedCategoryIds = null, competitionId = null, sessionId = null }) {
   let modality = 'football_11';
   if (clubId) {
     const r = await query('SELECT modality FROM clubs WHERE id = $1', [clubId]);
@@ -592,6 +632,16 @@ async function getGameStats({ workspaceIds, start, end, clubId = null, allowedCa
   if (clubId) {
     sessionSql += ` AND m.club_id = $${paramIdx++}`;
     sessionParams.push(clubId);
+  }
+  if (sessionId) {
+    sessionSql += ` AND s.id = $${paramIdx++}`;
+    sessionParams.push(sessionId);
+  }
+  if (competitionId === 'none') {
+    sessionSql += ' AND s.competition_id IS NULL';
+  } else if (competitionId) {
+    sessionSql += ` AND s.competition_id = $${paramIdx++}`;
+    sessionParams.push(competitionId);
   }
   sessionSql += categoryFilterSql(sessionParams, allowedCategoryIds);
 
@@ -674,29 +724,6 @@ async function getGameStats({ workspaceIds, start, end, clubId = null, allowedCa
   // Goals by type - labels e cores pros valores novos e os antigos (legacy).
   // Novos: org_off, trans_off, bp_off_*, org_def, trans_def, bp_def_*
   // Antigos: offensive_org, offensive_transition, free_kick, corner, penalty (sem orientação)
-  const goalTypeLabels = {
-    // Novos ofensivos
-    'org_off':         'Org. Ofensiva',
-    'trans_off':       'Transição Ofensiva',
-    'bp_off_falta':    'BP Of. — Falta',
-    'bp_off_corner':   'BP Of. — Escanteio',
-    'bp_off_lateral':  'BP Of. — Lateral',
-    'bp_off_penalty':  'BP Of. — Pênalti',
-    // Novos defensivos
-    'org_def':         'Org. Defensiva',
-    'trans_def':       'Transição Defensiva',
-    'bp_def_falta':    'BP Def. — Falta',
-    'bp_def_corner':   'BP Def. — Escanteio',
-    'bp_def_lateral':  'BP Def. — Lateral',
-    'bp_def_penalty':  'BP Def. — Pênalti',
-    // Legacy
-    'offensive_org':        'Org. Ofensiva',
-    'offensive_transition': 'Transição Ofensiva',
-    'free_kick':            'Falta',
-    'corner':               'Escanteio',
-    'penalty':              'Pênalti',
-    'unknown':              'Não definido',
-  };
   const goalTypeColors = {
     'org_off':         '#22c55e',
     'trans_off':       '#3b82f6',
@@ -1052,6 +1079,7 @@ module.exports = {
   minutosTrabalhados,
   getTrainingStats,
   getGameStats,
+  goalTypeLabel,
   getPeriodSessions,
   buildDistanceStats,
   categoryFilterSql,

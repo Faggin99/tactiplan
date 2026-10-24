@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useClub } from '../contexts/ClubContext';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { trainingService } from '../services/trainingService';
 import { gameStatsService } from '../services/gameStatsService';
+import { competitionService } from '../services/competitionService';
 import { WeekSelector } from '../components/stats/WeekSelector';
 import { TourGuide } from '../components/common/TourGuide';
 import { useTour, useTourReplayListener } from '../hooks/useTour';
@@ -56,6 +57,9 @@ export function TrainingStatsPage() {
     const weekNo = Math.ceil((((thursday - yearStart) / 86400000) + 1) / 7);
     return `${thursday.getFullYear()}-${String(weekNo).padStart(2, '0')}`;
   });
+  // Filtro de campeonato (só aba Jogos): '' = todos, 'none' = sem campeonato, ou o id
+  const [competitionId, setCompetitionId] = useState('');
+  const [competitions, setCompetitions] = useState([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
@@ -134,7 +138,7 @@ export function TrainingStatsPage() {
     try {
       const dr = getDateRangeParams();
       if (!dr) return;
-      const params = { start_date: dr.start_date, end_date: dr.end_date, clubId: selectedClub?.id };
+      const params = { start_date: dr.start_date, end_date: dr.end_date, clubId: selectedClub?.id, competitionId: competitionId || undefined };
       const data = await gameStatsService.getStats(params);
       setGameStats(data);
     } catch (err) {
@@ -161,6 +165,22 @@ export function TrainingStatsPage() {
       activeTab === 'training' ? loadStats() : loadGameStats();
     }
   }, [filterType, selectedWeek, activeTab]);
+
+  useEffect(() => {
+    setCompetitionId('');
+    setCompetitions([]);
+    if (!selectedClub?.id) return;
+    competitionService.list({ clubId: selectedClub.id, includeArchived: true })
+      .then((r) => setCompetitions(Array.isArray(r) ? r : (r?.data || [])))
+      .catch(() => setCompetitions([]));
+  }, [selectedClub?.id]);
+
+  // Trocar o campeonato recarrega os jogos (o período continua o mesmo)
+  const firstCompetitionRun = useRef(true);
+  useEffect(() => {
+    if (firstCompetitionRun.current) { firstCompetitionRun.current = false; return; }
+    if (activeTab === 'game' && selectedClub?.id && getDateRangeParams()) loadGameStats();
+  }, [competitionId]);
 
   // Quando o usuário edita a data inicial manualmente, recalcula a final:
   // - 1 Ano: 1º jan → 31 dez do ano da data inicial
@@ -297,6 +317,7 @@ export function TrainingStatsPage() {
                 end_date: dr.end_date,
                 filter_type: filterType,
                 period_label: exportOpts.periodLabel,
+                ...(tipo === 'jogos' && competitionId ? { competition_id: competitionId } : {}),
               }, `${prefix}_${safeFileName(exportOpts.clubName)}_${safeFileName(exportOpts.periodLabel || 'periodo')}.pdf`);
             } catch (err) {
               notify.error(err.message || 'Não foi possível gerar o PDF.');
@@ -328,6 +349,20 @@ export function TrainingStatsPage() {
         <button style={filterButtonStyle(filterType === 'semester')} onClick={() => pickRangeFilter('semester')}>Semestre</button>
         <button style={filterButtonStyle(filterType === '1-year')} onClick={() => pickRangeFilter('1-year')}>1 Ano</button>
         <button style={filterButtonStyle(filterType === 'custom')} onClick={() => setFilterType('custom')}>Personalizado</button>
+        {activeTab === 'game' && (
+          <select
+            value={competitionId}
+            onChange={(e) => setCompetitionId(e.target.value)}
+            aria-label="Campeonato"
+            style={{ ...inputStyle, maxWidth: isMobile ? '100%' : '16rem', fontWeight: competitionId ? 600 : 400, borderColor: competitionId ? colors.primary : colors.border }}
+          >
+            <option value="">Todos os campeonatos</option>
+            {competitions.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}{c.season ? ` ${c.season}` : ''}{c.is_archived ? ' (arquivado)' : ''}</option>
+            ))}
+            <option value="none">Sem campeonato (amistosos)</option>
+          </select>
+        )}
       </div>
 
       {filterType === '1-micro' || filterType === '4-micros' ? (

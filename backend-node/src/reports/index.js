@@ -18,6 +18,7 @@ const { renderSession } = require('./templates/session');
 const { renderConvocacao } = require('./templates/convocacao');
 const { renderClube } = require('./templates/clube');
 const { renderPlantel } = require('./templates/plantel');
+const { renderJogo } = require('./templates/jogo');
 const { formacaoValida, formacaoPadrao } = require('../utils/formacao');
 const P = require('../services/periodos');
 
@@ -207,13 +208,27 @@ async function buildJogos(body, user, assets) {
   const { workspaceIds, allowedCategoryIds } = scope(user);
   const period = validPeriod(body);
   const team = await loadTeam(body.club_id, workspaceIds, assets, body.primary_color);
-  const data = await stats.getGameStats({ workspaceIds, start: period.start, end: period.end, clubId: team.id, allowedCategoryIds });
+  // Filtro de campeonato (opcional): id do campeonato ou 'none' (só amistosos/sem campeonato)
+  let competitionId = null;
+  let competitionName = null;
+  if (body.competition_id === 'none') {
+    competitionId = 'none';
+    competitionName = 'Sem campeonato';
+  } else if (body.competition_id) {
+    if (!/^[0-9a-f-]{36}$/i.test(String(body.competition_id))) throw new ReportError(400, 'competition_id inválido');
+    const c = await query('SELECT id, name FROM competitions WHERE id = $1 AND workspace_id = ANY($2)', [body.competition_id, workspaceIds]);
+    if (!c.rows[0]) throw new ReportError(404, 'Campeonato não encontrado');
+    competitionId = c.rows[0].id;
+    competitionName = c.rows[0].name;
+  }
+  const data = await stats.getGameStats({ workspaceIds, start: period.start, end: period.end, clubId: team.id, allowedCategoryIds, competitionId });
   const vm = B.buildGamesReport({
     stats: data, team, period, defaultDuration: stats.DEFAULT_DURATION_BY_MODALITY[data.modality || team.modality] || 90,
+    competitionName,
   });
   return {
     html: renderGames(vm, { now: new Date() }),
-    filename: `Desempenho_${safeName(team.name)}_${safeName(body.period_label || period.label)}.pdf`,
+    filename: `Desempenho_${safeName(team.name)}${competitionName ? `_${safeName(competitionName)}` : ''}_${safeName(body.period_label || period.label)}.pdf`,
   };
 }
 
@@ -311,12 +326,13 @@ async function buildSessao(body, user, assets, mode = 'pdf') {
 // Convocação (A4 paisagem): jogo salvo + jogadores do jogo. Mesma regra do
 // editor para a formação: a salva se valer para a modalidade, senão a padrão;
 // vaga fora da formação efetiva = titular sem vaga (fora do campo).
-async function buildConvocacao(body, user, assets) {
+// Jogo salvo + escalação (convocação e relatório do jogo). Mesma permissão de abrir o jogo.
+async function carregarJogo(body, user, assets) {
   const { workspaceIds } = scope(user);
   const sessionId = String(body.session_id || '');
   if (!/^[0-9a-f-]{36}$/i.test(sessionId)) throw new ReportError(400, 'session_id inválido');
   const r = await query(
-    `SELECT s.id, s.date, s.session_type, s.opponent_name, s.match_location, s.match_round, s.formation,
+    `SELECT s.id, s.date, s.session_type, s.opponent_name, s.match_duration, s.match_location, s.match_round, s.formation,
             s.competition_id, s.club_id AS session_club_id, m.club_id, m.category_id
        FROM training_sessions s
        LEFT JOIN training_microcycles m ON m.id = s.microcycle_id
@@ -344,7 +360,12 @@ async function buildConvocacao(body, user, assets) {
       : Promise.resolve({ rows: [] }),
   ]);
   const formation = formacaoValida(team.modality, session.formation) ? session.formation : formacaoPadrao(team.modality);
-  const vm = B.buildCallUp({ session, team, players: players.rows, formation, competitionName: comp.rows[0]?.name || null });
+  const callUp = B.buildCallUp({ session, team, players: players.rows, formation, competitionName: comp.rows[0]?.name || null });
+  return { session, team, callUp, workspaceIds };
+}
+
+async function buildConvocacao(body, user, assets) {
+  const { callUp: vm, session } = await carregarJogo(body, user, assets);
   const date = F.toDateStr(session.date);
   const [y, m, d] = date.split('-');
   return {
@@ -352,6 +373,31 @@ async function buildConvocacao(body, user, assets) {
     // mesmo nome do PDF antigo: Convocacao_<adversario>_<dd-mm-aaaa>.pdf
     filename: `Convocacao_${safeName(vm.opponent) || 'Adversario'}_${d}-${m}-${y}.pdf`,
     landscape: true,
+  };
+}
+
+// Relatório de UM jogo (A4 retrato): placar, lances e atletas com minutos/gols/cartões.
+async function buildJogo(body, user, assets) {
+  const { session, team, callUp, workspaceIds } = await carregarJogo(body, user, assets);
+  const date = F.toDateStr(session.date);
+  const [game, ev] = await Promise.all([
+    stats.getGameStats({ workspaceIds, start: date, end: date, clubId: team.id, sessionId: session.id }),
+    query(
+      `SELECT me.event_type, me.team, me.minute, me.goal_type, me.notes,
+              a.name AS athlete_name, b.name AS secondary_athlete_name
+         FROM match_events me
+         LEFT JOIN athletes a ON a.id = me.player_id
+         LEFT JOIN athletes b ON b.id = me.secondary_player_id
+        WHERE me.session_id = $1 AND me.workspace_id = ANY($2)`,
+      [session.id, workspaceIds],
+    ),
+  ]);
+  const duration = session.match_duration || stats.DEFAULT_DURATION_BY_MODALITY[team.modality] || 90;
+  const vm = B.buildGameSheet({ callUp, game, events: ev.rows, duration, goalTypeLabel: stats.goalTypeLabel });
+  const [y, m, d] = date.split('-');
+  return {
+    html: renderJogo(vm, { now: new Date() }),
+    filename: `Jogo_${safeName(vm.opponent) || 'Adversario'}_${d}-${m}-${y}.pdf`,
   };
 }
 
@@ -408,14 +454,14 @@ function buildPlantel(athletes) {
       .map((a) => ({
         id: a.id, name: a.name, pos: a.position || null, posColor: sectorInfo(positionSector(a.position)).color,
         jersey: a.jersey_number ?? null, foot: a.preferred_foot || null, height: a.height_cm || null,
-        birthdate: a.birthdate || null, photo_url: a.photo_url || null,
+        birthdate: a.birthdate || null, photo_url: a.photo_url || null, prevClub: a.previous_club || null,
       }));
     if (players.length) groups.push({ key, label, players });
   }
   return { groups, total: (athletes || []).length };
 }
 
-// PDF do plantel (app nativo; o web faz o mesmo PDF no navegador). athletes:view,
+// PDF do plantel (web e app nativo). athletes:view,
 // escopo de categoria do membro. Fotos reduzidas (miniatura) quando existem.
 async function buildPlantelReport(body, user, assets) {
   const { workspaceIds, allowedCategoryIds } = scope(user);
@@ -423,9 +469,12 @@ async function buildPlantelReport(body, user, assets) {
   let athletes = [];
   if (!(Array.isArray(allowedCategoryIds) && allowedCategoryIds.length === 0)) {
     const params = [team.id, workspaceIds];
-    let sql = `SELECT id, name, position, jersey_number, "group", photo_url, birthdate, height_cm, preferred_foot
+    let sql = `SELECT id, name, position, jersey_number, "group", photo_url, birthdate, height_cm, preferred_foot, previous_club
                  FROM athletes WHERE club_id = $1 AND workspace_id = ANY($2)`;
     if (Array.isArray(allowedCategoryIds)) { params.push(allowedCategoryIds); sql += ` AND category_id = ANY($${params.length})`; }
+    // Filtro da tela do web (opcional): categoria escolhida ou 'none' (sem categoria)
+    if (body.category_id === 'none') sql += ' AND category_id IS NULL';
+    else if (/^[0-9a-f-]{36}$/i.test(String(body.category_id || ''))) { params.push(body.category_id); sql += ` AND category_id = $${params.length}`; }
     athletes = (await query(`${sql} ORDER BY name ASC`, params)).rows;
   }
   const vm = buildPlantel(athletes);
@@ -450,9 +499,9 @@ async function buildPlantelReport(body, user, assets) {
   };
 }
 
-const BUILDERS = { jogos: buildJogos, treino: buildTreino, sessao: buildSessao, convocacao: buildConvocacao, clube: buildClube, plantel: buildPlantelReport };
+const BUILDERS = { jogos: buildJogos, treino: buildTreino, sessao: buildSessao, convocacao: buildConvocacao, jogo: buildJogo, clube: buildClube, plantel: buildPlantelReport };
 // convocacao: a mesma permissão de abrir o jogo (GET /api/games/:id)
-const PERMISSION = { jogos: 'stats:view', treino: 'stats:view', sessao: 'training:view', convocacao: 'games:view', clube: 'stats:view', plantel: 'athletes:view' };
+const PERMISSION = { jogos: 'stats:view', treino: 'stats:view', sessao: 'training:view', convocacao: 'games:view', jogo: 'games:view', clube: 'stats:view', plantel: 'athletes:view' };
 
 async function generateReport(tipo, body, user, { isStale } = {}) {
   const build = BUILDERS[tipo];

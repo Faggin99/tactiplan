@@ -109,7 +109,7 @@ function roundLabel(r) {
 
 const LOCATION_LABELS = { home: 'Casa', away: 'Fora', neutral: 'Neutro' };
 
-function buildGamesReport({ stats, team, period, defaultDuration = 90 }) {
+function buildGamesReport({ stats, team, period, defaultDuration = 90, competitionName = null }) {
   const s = stats || {};
   const total = Number(s.totalMatches) || 0;
   const games = (s.matchesHistory || [])
@@ -198,8 +198,9 @@ function buildGamesReport({ stats, team, period, defaultDuration = 90 }) {
     kind: 'jogos',
     team,
     period,
-    meta: periodMeta(team, period),
-    right: periodRight(period),
+    meta: competitionName ? `${periodMeta(team, period)} · ${competitionName}` : periodMeta(team, period),
+    competitionName,
+    right: competitionName ? `${competitionName} · ${periodRight(period)}` : periodRight(period),
     badgeTop: period.rangeShort,
     badgeSub: `${period.year} · ${F.plural(total, 'jogo', 'jogos')}`,
     empty: total === 0,
@@ -289,6 +290,7 @@ function dayAssessment(list) {
 function buildDays({ period, sessions, sessionsByDate, gamesById }) {
   const contentsBySession = new Map((sessionsByDate || []).map((s) => [s.session_id, s.contents || []]));
   const pillarsBySession = new Map((sessionsByDate || []).map((s) => [s.session_id, s.pillarMinutes || {}]));
+  const contentsByPeriod = new Map((sessionsByDate || []).flatMap((s) => Object.entries(s.contentsByPeriod || {})));
   const byDate = new Map();
   for (const s of sessions || []) {
     const d = F.toDateStr(s.date);
@@ -318,6 +320,9 @@ function buildDays({ period, sessions, sessionsByDate, gamesById }) {
         label: P.rotuloPeriodo(s.periodo) || 'Período',
         kind: s.session_type === 'match' ? 'jogo' : (P.ehAvaliacao(s) ? 'avaliacao' : 'treino'),
         minutes: P.ehAvaliacao(s) ? 0 : Number(s.minutes) || 0,
+        // o que o período treinou (a célula do dia mostra uma linha por período)
+        focus: s.session_type === 'match' ? ''
+          : (P.ehAvaliacao(s) ? (P.rotulosAvaliacao(s).join(', ') || 'Avaliação') : dayFocus(contentsByPeriod.get(s.id) || [])),
       }));
       // "90+60" só quando 2+ períodos têm minutos (nunca "125+0")
       base.split = P.divisaoMinutos(base.periods);
@@ -349,7 +354,8 @@ function buildDays({ period, sessions, sessionsByDate, gamesById }) {
     } else if (minutes > 0 || contents.length > 0) {
       const km = P.distanciaDoDia(list);
       const comMin = comPeriodos ? base.periods.filter((p) => p.minutes > 0) : [];
-      const note = comMin.length >= 2
+      // dia com períodos: a célula já mostra cada período com o seu tempo (sem nota de rodapé)
+      const note = !comPeriodos && comMin.length >= 2
         ? `${F.weekdayShort(date)} ${F.ddmm(date)}: ${comMin.map((p) => `${p.label} ${p.minutes}'`).join(' + ')} = ${minutes}'.`
         : null;
       days.push({ ...base, kind: 'treino', focus: dayFocus(contents), distanceKm: km != null ? Number(km) : null, note });
@@ -722,7 +728,7 @@ function buildCallUp({ session, team, players = [], formation, competitionName =
   for (const p of players) {
     const name = String(p.name || '').trim() || 'Atleta';
     const pos = normCode(p.position) || null;
-    const base = { name, pos, shirt: shirtOf(p), posSector: positionSector(pos) };
+    const base = { id: p.athlete_id || null, name, pos, shirt: shirtOf(p), posSector: positionSector(pos) };
     if ((p.status || 'starter') === 'starter') starters.push({ ...base, slot: p.slot ?? null });
     else bench.push(base);
   }
@@ -757,10 +763,11 @@ function buildCallUp({ session, team, players = [], formation, competitionName =
 
   const row = (p, groupSector) => {
     if (p.fieldPos) {
-      return { name: p.name, shirt: p.shirt, pos: p.fieldPos, posColor: sectorInfo(positionSector(p.fieldPos)).color, offField: false };
+      return { id: p.id, name: p.name, shirt: p.shirt, pos: p.fieldPos, posColor: sectorInfo(positionSector(p.fieldPos)).color, offField: false };
     }
     const posKey = p.pos ? p.posSector : null;
     return {
+      id: p.id,
       name: p.name,
       shirt: p.shirt,
       pos: p.pos || (p.at ? p.at.role : null),
@@ -777,7 +784,7 @@ function buildCallUp({ session, team, players = [], formation, competitionName =
 
   // Reservas sem agrupamento, na ordem do jogo (a mesma da lista do modal)
   const benchRows = bench
-    .map((p) => ({ name: p.name, shirt: p.shirt, pos: p.pos, posColor: sectorInfo(p.posSector).color }));
+    .map((p) => ({ id: p.id, name: p.name, shirt: p.shirt, pos: p.pos, posColor: sectorInfo(p.posSector).color }));
 
   const meta = [];
   if (competitionName) meta.push(competitionName);
@@ -808,6 +815,70 @@ function buildCallUp({ session, team, players = [], formation, competitionName =
     startersCompact: starters.length + groups.length > 15,
     unplaced: unplaced.map((s) => s.name),
     counts: { total: starters.length + bench.length, starters: starters.length, bench: bench.length },
+  };
+}
+
+// ---------------------------------------------------------------- JOGO (1 jogo só)
+// Relatório de um jogo: placar, lances em ordem de minuto e os atletas do jogo
+// (titulares na ordem da escalação, depois reservas) com minutos, gols, assistências e cartões.
+//   callUp: buildCallUp do jogo · game: getGameStats({ sessionId }) · events: match_events do jogo
+//   goalTypeLabel: rótulo do tipo de gol (statsData.goalTypeLabel)
+const RESULT_LABEL = { win: 'Vitória', draw: 'Empate', loss: 'Derrota' };
+function buildGameSheet({ callUp, game, events = [], duration, goalTypeLabel = (t) => t || '' }) {
+  const m = (game.matchesHistory || [])[0] || { goals_scored: 0, goals_conceded: 0, result: 'draw' };
+  const statsById = new Map((game.playerStats || []).map((p) => [p.athlete_id, p]));
+  const nm = (name) => String(name || '').trim();
+  const lances = [];
+  for (const e of events) {
+    const own = !e.team || e.team === 'own';
+    const min = e.minute ?? null;
+    if (e.event_type === 'goal_scored') {
+      const quem = nm(e.athlete_name) || 'Autor não informado';
+      const extra = [e.secondary_athlete_name ? `assist. ${nm(e.secondary_athlete_name)}` : null, goalTypeLabel(e.goal_type)].filter(Boolean);
+      lances.push({ min, kind: 'gol', label: 'Gol', text: quem, sub: extra.join(' · ') });
+    } else if (e.event_type === 'goal_conceded') {
+      lances.push({ min, kind: 'sofrido', label: 'Gol sofrido', text: goalTypeLabel(e.goal_type), sub: e.notes ? String(e.notes) : '' });
+    } else if (own && (e.event_type === 'yellow_card' || e.event_type === 'red_card')) {
+      lances.push({ min, kind: e.event_type === 'red_card' ? 'vermelho' : 'amarelo', label: e.event_type === 'red_card' ? 'Vermelho' : 'Amarelo', text: nm(e.athlete_name) || 'Atleta', sub: '' });
+    } else if (own && e.event_type === 'substitution') {
+      lances.push({ min, kind: 'troca', label: 'Substituição', text: `Entra ${nm(e.athlete_name) || '—'}`, sub: `Sai ${nm(e.secondary_athlete_name) || '—'}` });
+    }
+  }
+  const ordem = { gol: 0, sofrido: 0, amarelo: 1, vermelho: 1, troca: 2 };
+  lances.sort((a, b) => (a.min ?? 999) - (b.min ?? 999) || ordem[a.kind] - ordem[b.kind]);
+
+  const linha = (r, titular) => {
+    const st = statsById.get(r.id) || {};
+    return {
+      name: r.name, shirt: r.shirt, pos: r.pos, posColor: r.posColor,
+      minutes: st.minutes || 0,
+      played: titular || (st.minutes || 0) > 0,
+      goals: st.goals || 0, assists: st.assists || 0,
+      yellow: st.yellow_cards || 0, red: st.red_cards || 0,
+    };
+  };
+  const titulares = callUp.groups.flatMap((g) => g.rows).map((r) => linha(r, true));
+  const reservas = callUp.bench.map((r) => linha(r, false));
+  const usados = titulares.length + reservas.filter((r) => r.played).length;
+  const subs = (m.substitutions || []).length;
+  const cartoes = titulares.concat(reservas).reduce((acc, r) => ({ y: acc.y + r.yellow, r: acc.r + r.red }), { y: 0, r: 0 });
+
+  const meta = callUp.meta.slice();
+  meta.push(`${F.weekdayLong(callUp.date)}, ${F.ddmmyyyy(callUp.date)}`);
+  return {
+    team: callUp.team,
+    opponent: callUp.opponent,
+    date: callUp.date,
+    meta,
+    score: `${m.goals_scored} × ${m.goals_conceded}`,
+    result: m.result,
+    resultLabel: RESULT_LABEL[m.result] || '',
+    formation: callUp.formation,
+    duration,
+    lances,
+    titulares,
+    reservas,
+    kpis: { usados, convocados: titulares.length + reservas.length, subs, yellow: cartoes.y, red: cartoes.r },
   };
 }
 
@@ -947,6 +1018,7 @@ function buildClubReport({ gameStats, trainingStats, athletes, team, period, squ
 }
 
 module.exports = {
+  buildGameSheet,
   buildClubReport,
   buildSquad,
   buildClubTraining,

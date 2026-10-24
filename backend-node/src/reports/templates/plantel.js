@@ -1,7 +1,7 @@
 // Relatório "Plantel" (A4 retrato): o plantel do clube por grupo de treino, como o
 // PDF do web (jsPDF, PlantelPage): Grupo 1, 2, 3, Transição, DM e Sem grupo, cada
-// grupo com foto, camisa, nome, posição, pé, altura e nascimento. Gerado no servidor
-// para o app nativo (POST /api/reports/plantel { club_id }) — mesmo pipeline dos outros.
+// grupo com foto, camisa, nome, último clube, posição, pé, altura e nascimento. Gerado no
+// servidor para o web e o app (POST /api/reports/plantel { club_id, category_id? }).
 const F = require('../format');
 const C = require('./components');
 
@@ -21,6 +21,7 @@ function linha(p, i) {
   return `<tr><td class="c">${foto}</td><td class="c">${i + 1}</td>`
     + `<td class="c">${p.jersey != null ? `<span class="n">${esc(p.jersey)}</span>` : '<span class="nil">—</span>'}</td>`
     + `<td class="nm"><b>${esc(p.name)}</b></td>`
+    + `<td>${p.prevClub ? esc(p.prevClub) : '<span class="nil">—</span>'}</td>`
     + `<td class="c">${p.pos ? C.positionChip(p.pos, p.posColor) : '<span class="nil">—</span>'}</td>`
     + `<td class="c">${esc(PE[p.foot] || '—')}</td><td class="c" style="white-space:nowrap">${p.height ? `${esc(p.height)} cm` : "—"}</td>`
     + `<td class="c">${esc(dataBR(p.birthdate))}</td></tr>`;
@@ -29,7 +30,7 @@ function linha(p, i) {
 function grupo(g) {
   return `<div class="card" data-split="tbody tr">${C.sec(g.label, esc(F.plural(g.players.length, 'atleta', 'atletas')))}
     <table class="tbl dense"><thead><tr><th class="c" style="width:12mm"></th><th class="c" style="width:8mm">#</th>
-    <th class="c" style="width:14mm">Camisa</th><th>Nome</th><th class="c" style="width:16mm">Posição</th>
+    <th class="c" style="width:14mm">Camisa</th><th>Nome</th><th style="width:32mm;white-space:nowrap">Último clube</th><th class="c" style="width:16mm">Posição</th>
     <th class="c" style="width:16mm">Pé</th><th class="c" style="width:16mm">Altura</th><th class="c" style="width:22mm">Nascimento</th></tr></thead>
     <tbody>${g.players.map(linha).join('')}</tbody></table></div>`;
 }

@@ -87,13 +87,19 @@ test('relatório de treino (semana): soma do dia + divisão; jogo com período d
     { id: 'q1', date: '2031-03-12', session_type: 'training', periodo: 'manha', minutes: 70 },
     { id: 'q2', date: '2031-03-12', session_type: 'match', periodo: 'tarde', minutes: 20, opponent_name: 'Rival' },
   ];
-  const days = B.buildDays({ period, sessions, sessionsByDate: [{ session_id: 't1', contents: [{ name: 'Organização Ofensiva', minutes: 90, count: 1 }] }], gamesById: new Map() });
+  const days = B.buildDays({ period, sessions, sessionsByDate: [{
+    session_id: 't1',
+    contents: [{ name: 'Organização Ofensiva', minutes: 90, count: 1 }, { name: 'Força', minutes: 60, count: 1 }],
+    contentsByPeriod: { t1: [{ name: 'Organização Ofensiva', minutes: 90, count: 1 }], t2: [{ name: 'Força', minutes: 60, count: 1 }] },
+  }], gamesById: new Map() });
   assert.equal(days[0].split, null, 'dia de período único: igual a antes');
   assert.equal(days[0].note, null);
   assert.equal(days[1].minutes, 150);
   assert.equal(days[1].split, '90+60');
   assert.equal(days[1].distanceKm, 8);
-  assert.equal(days[1].note, "Ter 11/03: Manhã 90' + Tarde 60' = 150'.");
+  // a célula mostra cada período com o seu conteúdo e tempo (sem nota de rodapé)
+  assert.equal(days[1].note, null);
+  assert.deepEqual(days[1].periods.map((p) => [p.label, p.focus, p.minutes]), [['Manhã', 'Org Of', 90], ['Tarde', 'Força', 60]]);
   assert.equal(days[2].kind, 'jogo');
   assert.match(days[2].note, /Manhã 70' de treino \+ 20' com os não relacionados \(Tarde\)/);
 });

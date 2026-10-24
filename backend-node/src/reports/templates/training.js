@@ -35,6 +35,12 @@ function assessmentLine(a) {
   return `<div class="av"><b>Avaliação</b>${a.text ? ` · ${esc(a.text)}` : ''}</div>`;
 }
 
+function periodLines(periods) {
+  return `<div class="pps">${periods.map((p) => `<div class="pp"><b>${esc(p.label)}</b>`
+    + `<span class="pf">${esc(p.kind === 'jogo' ? 'Jogo' : (p.kind === 'avaliacao' ? `Aval. · ${p.focus}` : (p.focus || '—')))}</span>`
+    + `${p.minutes > 0 ? `<span class="pm">${p.minutes}'</span>` : ''}</div>`).join('')}</div>`;
+}
+
 function weekGrid(vm) {
   const max = vm.dayMax || 1;
   const cells = vm.days.map((d) => {
@@ -53,7 +59,11 @@ function weekGrid(vm) {
       return `<div class="day none">${head}<div class="tag">Sem registro</div><div class="fx"></div><div class="col"></div><div class="mn">—</div></div>`;
     }
     const tag = d.assessment ? 'Treino + Avaliação' : 'Treino';
-    return `<div class="day">${head}<div class="tag">${tag}</div><div class="fx">${esc(d.focus || '')}</div>${assessmentLine(d.assessment)}`
+    // 2+ períodos: uma linha por período (Manhã · conteúdo · minutos) no lugar do foco do dia
+    const meio = d.periods
+      ? periodLines(d.periods)
+      : `<div class="fx">${esc(d.focus || '')}</div>${assessmentLine(d.assessment)}`;
+    return `<div class="day">${head}<div class="tag">${tag}</div>${meio}`
       + `<div class="col pcol">${pillarBar(d.pillars, d.minutes, max)}</div><div class="mn">${d.minutes > 0 ? `${d.minutes}'` : '—'}</div>`
       + `${d.split && d.minutes > 0 ? `<div class="pd" title="${esc(d.periods.map((p) => `${p.label} ${p.minutes}'`).join(' + '))}">${esc(d.split)}</div>` : ''}</div>`;
   }).join('');

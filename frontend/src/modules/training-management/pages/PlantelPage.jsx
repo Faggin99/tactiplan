@@ -9,7 +9,8 @@ import { categoryService } from '../../../services/categoryService';
 import PlayerModal from '../components/plantel/PlayerModal';
 import PlayersTable from '../components/plantel/PlayersTable';
 import GroupColumn from '../components/plantel/GroupColumn';
-import { generatePlantelPDF, generatePlantelExcel } from '../utils/pdfGenerator';
+import { generatePlantelExcel } from '../utils/pdfGenerator';
+import { downloadReport, safeFileName } from '../../../services/reportsService';
 import { ExportMenu } from '../../../components/common/ExportMenu';
 import { TourGuide } from '../../../components/common/TourGuide';
 import { useTour, useTourReplayListener } from '../../../hooks/useTour';
@@ -175,13 +176,15 @@ export default function PlantelPage() {
 
   const handleGeneratePDF = async () => {
     try {
-      await generatePlantelPDF(athletes, {
-        clubName: selectedClub?.name || '',
-        primaryColor: selectedClub?.primary_color || null,
-      });
+      if (!selectedClub?.id) return;
+      // PDF no servidor (mesmo layout dos outros relatórios); respeita o filtro de categoria da tela
+      await downloadReport('plantel', {
+        club_id: selectedClub.id,
+        ...(categoryFilter !== 'all' ? { category_id: categoryFilter } : {}),
+      }, `Plantel_${safeFileName(selectedClub.name || 'Clube')}.pdf`);
     } catch (err) {
       console.error('Error generating PDF:', err);
-      notify.error('Erro ao gerar PDF do plantel');
+      notify.error(err.message || 'Erro ao gerar PDF do plantel');
     }
   };
 

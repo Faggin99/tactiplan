@@ -444,6 +444,21 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
     }
   };
 
+  // Relatório de UM jogo (placar, lances, minutos/gols/cartões por atleta), também do jogo SALVO.
+  const exportGameReport = async () => {
+    if (savedSig && savedSig !== lineupSig(selectedPlayers, formation, opponentName, competitionId, matchRound, matchLocation)) {
+      notify.info('Salve o jogo antes de exportar: o relatório usa o jogo salvo.', { duration: 5000 });
+      return;
+    }
+    const gameDate = session?.date ? session.date.split('-').reverse().join('-') : '';
+    const opponent = opponentName || 'Adversário';
+    try {
+      await downloadReport('jogo', { session_id: session.id }, `Jogo_${opponent.replace(/\s+/g, '_')}_${gameDate}.pdf`);
+    } catch (err) {
+      notify.error(err.message || 'Não foi possível gerar o PDF.');
+    }
+  };
+
   const exportToExcel = () => {
     if (selectedPlayers.length === 0) {
       notify.error('Selecione jogadores antes de exportar');
@@ -804,7 +819,9 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                           <ExportMenu
                             size="sm"
                             variant="outline"
+                            pdfLabel="Convocação (PDF)"
                             onExportPDF={exportToPdf}
+                            extraPdfItems={[{ label: 'Relatório do jogo (PDF)', onClick: exportGameReport }]}
                             onExportExcel={exportToExcel}
                           />
                         )}
