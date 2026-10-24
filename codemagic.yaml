@@ -86,7 +86,8 @@ workflows:
           xcrun simctl erase "$SIM_ID" 2>/dev/null || true
           xcrun simctl boot "$SIM_ID" 2>/dev/null || true
           xcrun simctl bootstatus "$SIM_ID" -b
-          timeout 420 xcodebuild test-without-building \
+          # macOS não tem `timeout`: o alarm do perl corta o xcodebuild em 7 min se o simulador travar
+          perl -e 'alarm shift; exec @ARGV' 420 xcodebuild test-without-building \
             -project TactiPlan.xcodeproj -scheme TactiPlan -configuration Debug \
             -destination "id=$SIM_ID" -parallel-testing-enabled NO \
             -test-timeouts-enabled YES -default-test-execution-time-allowance 60
