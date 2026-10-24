@@ -236,4 +236,18 @@ class T3Test {
         val r3 = srv.takeRequest()
         assertEquals("/api/clubs/c1/unarchive", r3.path); assertEquals("POST", r3.method)
     }
+
+    @Test fun filtroDeCampeonatoNasEstatisticasDeJogos() {
+        assertEquals("/stats/games?start_date=2026-01-01&end_date=2026-12-31&clubId=c1",
+            com.faggin.tactiplan.app.dados.estatisticas.CaminhosStats.jogos("c1", "2026-01-01", "2026-12-31"))
+        assertEquals("/stats/games?start_date=2026-01-01&end_date=2026-12-31&clubId=c1&competition_id=none",
+            com.faggin.tactiplan.app.dados.estatisticas.CaminhosStats.jogos("c1", "2026-01-01", "2026-12-31", "none"))
+        val p = com.faggin.tactiplan.app.dados.estatisticas.PeriodoStats("2026-01-01", "2026-12-31")
+        assertFalse(com.faggin.tactiplan.app.dados.estatisticas.corpoEstatisticas("c1", p, "1-year").containsKey("competition_id"))
+        assertEquals("k1", com.faggin.tactiplan.app.dados.estatisticas.corpoEstatisticas("c1", p, "1-year", "k1")["competition_id"]?.let { (it as kotlinx.serialization.json.JsonPrimitive).content })
+        val ops = com.faggin.tactiplan.app.dados.estatisticas.opcoesCampeonato(listOf(
+            com.faggin.tactiplan.app.dados.cadastros.CampeonatoCad("k1", "Mineiro", "2026"),
+            com.faggin.tactiplan.app.dados.cadastros.CampeonatoCad("k2", "Copa", null, arquivado = true)))
+        assertEquals(listOf(null to "Todos os campeonatos", "k1" to "Mineiro 2026", "k2" to "Copa (arquivado)", "none" to "Sem campeonato (amistosos)"), ops)
+    }
 }

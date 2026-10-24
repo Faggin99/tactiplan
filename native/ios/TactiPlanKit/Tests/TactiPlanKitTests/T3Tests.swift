@@ -294,6 +294,17 @@ private func ok(_ s: String) -> Resposta { Resposta(status: 200, corpo: Data(s.u
         #expect(corpoPdfEstatisticas(clubeId: "c1", i, filtro: .ano) == ["club_id": "c1", "start_date": "2026-01-01", "end_date": "2026-12-31",
                                                                          "filter_type": "1-year", "period_label": "1 Ano"])
         #expect(nomePdfEstatisticas(jogos: true, clube: "Vila Nova", filtro: .umMicro) == "Desempenho_Vila_Nova_1_Microciclo.pdf")
+    }
+
+    @Test func `filtro de campeonato nas estatisticas de jogos`() async throws {
+        let i = Intervalo(inicio: "2026-01-01", fim: "2026-12-31")
+        #expect(CaminhosStats.jogos(clube: "c1", i, campeonato: "none") ==
+                "/stats/games?start_date=2026-01-01&end_date=2026-12-31&clubId=c1&competition_id=none")
+        #expect(corpoPdfEstatisticas(clubeId: "c1", i, filtro: .ano, campeonato: "k1")["competition_id"] == "k1")
+        let ops = opcoesCampeonato([CampeonatoCadastro(id: "k1", nome: "Mineiro", temporada: "2026"),
+                                    CampeonatoCadastro(id: "k2", nome: "Copa", arquivado: true)])
+        #expect(ops.map(\.rotulo) == ["Todos os campeonatos", "Mineiro 2026", "Copa (arquivado)", "Sem campeonato (amistosos)"])
+        #expect(ops.map(\.valor) == [nil, "k1", "k2", "none"])
         #expect(nomePdfEstatisticas(jogos: false, clube: "Vila", filtro: .semestre) == "Estatisticas_Treino_Vila_Semestre.pdf")
     }
 }

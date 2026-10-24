@@ -61,6 +61,7 @@ class ApiJogoHttp(private val api: Api, private val token: String, private val w
 
 const val MSG_SEM_PERMISSAO_JOGO = "Você não tem permissão para editar jogos. Peça ao responsável pela equipe."
 const val MSG_SALVE_ANTES = "Salve o jogo antes de exportar: o PDF usa a convocação salva."
+const val MSG_SALVE_ANTES_JOGO = "Salve o jogo antes de exportar: o relatório usa o jogo salvo."
 const val MSG_SELECIONE_ANTES = "Selecione jogadores antes de exportar"
 const val MSG_ENVIE_ANTES = "Envie as alterações guardadas no aparelho antes de exportar: o PDF usa a convocação salva."
 const val MSG_CRIAR_SEM_REDE = "Sem conexão. Para criar um jogo é preciso internet."

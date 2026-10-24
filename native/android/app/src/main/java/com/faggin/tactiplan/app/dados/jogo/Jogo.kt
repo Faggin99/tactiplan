@@ -437,6 +437,15 @@ fun nomePdfJogos(clube: String, rotulo: String): String =
 
 fun corpoConvocacao(sessaoId: String): Map<String, JsonElement> = mapOf("session_id" to JsonPrimitive(sessaoId))
 
+/** Relatório de UM jogo (POST /api/reports/jogo): placar, lances e atletas com minutos/gols/cartões. */
+fun corpoRelatorioJogo(sessaoId: String): Map<String, JsonElement> = mapOf("session_id" to JsonPrimitive(sessaoId))
+
+fun nomePdfRelatorioJogo(adversario: String?, data: String): String {
+    val adv = if (adversario.isNullOrBlank()) "Adversário" else adversario
+    val base = "Jogo_${adv.split(Regex("\\s+")).filter { it.isNotEmpty() }.joinToString("_")}_${dataBR(data).replace("/", "-")}"
+    return nomeArquivoSeguro(base) + ".pdf"
+}
+
 fun nomePdfConvocacao(adversario: String?, data: String): String {
     val adv = if (adversario.isNullOrBlank()) "Adversário" else adversario
     val base = "Convocacao_${adv.split(Regex("\\s+")).filter { it.isNotEmpty() }.joinToString("_")}_${dataBR(data).replace("/", "-")}"

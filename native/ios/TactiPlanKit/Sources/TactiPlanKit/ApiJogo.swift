@@ -60,6 +60,7 @@ public final class ApiJogoHttp: ApiJogo {
 // MARK: mensagens
 
 public let MSG_SEM_PERMISSAO_JOGO = "Você não tem permissão para editar jogos. Peça ao responsável pela equipe."
+public let MSG_SALVE_ANTES_JOGO = "Salve o jogo antes de exportar: o relatório usa o jogo salvo."
 public let MSG_SALVE_ANTES = "Salve o jogo antes de exportar: o PDF usa a convocação salva."
 public let MSG_SELECIONE_ANTES = "Selecione jogadores antes de exportar"
 public let MSG_ENVIE_ANTES = "Envie as alterações guardadas no aparelho antes de exportar: o PDF usa a convocação salva."

@@ -76,6 +76,9 @@ import com.faggin.tactiplan.app.dados.jogo.ResultadoEnvio
 import com.faggin.tactiplan.app.dados.jogo.ServicoJogo
 import com.faggin.tactiplan.app.dados.jogo.SincronizadorJogos
 import com.faggin.tactiplan.app.dados.jogo.corpoConvocacao
+import com.faggin.tactiplan.app.dados.jogo.corpoRelatorioJogo
+import com.faggin.tactiplan.app.dados.jogo.nomePdfRelatorioJogo
+import com.faggin.tactiplan.app.dados.jogo.MSG_SALVE_ANTES_JOGO
 import com.faggin.tactiplan.app.dados.jogo.mensagemErroJogo
 import com.faggin.tactiplan.app.dados.jogo.nomePdfConvocacao
 import com.faggin.tactiplan.app.dados.jogo.resultadoDo
@@ -278,6 +281,24 @@ fun JogoTela(amb: AmbienteClube, treino: ServicoTreino, api: ApiJogo, sessaoId: 
         }
     }
 
+    // Relatório de UM jogo (placar, lances, atletas com minutos/gols/cartões), do jogo SALVO.
+    fun exportarRelatorioJogo() {
+        val atual = editor ?: return
+        when {
+            pendencia != null -> { dialogo = MSG_ENVIE_ANTES; return }
+            sujo -> { dialogo = MSG_SALVE_ANTES_JOGO; return }
+        }
+        if (exportando) return
+        exportando = true
+        escopo.launch {
+            val r = gerarECompartilhar(context, treino.api, "jogo", corpoRelatorioJogo(sessaoId),
+                nomePdfRelatorioJogo(atual.dados.adversario, pacote?.dia?.data ?: ""), amb.tratarErro)
+            if (r is InicioExportar.Erro) dialogo = r.mensagem
+            exportando = false
+        }
+    }
+
+    var menuExportar by remember { mutableStateOf(false) }
     val tentarVoltar: () -> Unit = { if (sujo && editavel) sairSemSalvar = true else voltar() }
     BackHandler(onBack = tentarVoltar)
 
@@ -292,9 +313,17 @@ fun JogoTela(amb: AmbienteClube, treino: ServicoTreino, api: ApiJogo, sessaoId: 
                 navigationIcon = { IconButton(onClick = tentarVoltar) { Icon(Icones.esquerda, "Voltar") } },
                 actions = {
                     if (ed != null && ctx.conta.somenteLeitura != true) {
-                        IconButton(onClick = ::exportarConvocacao, enabled = !exportando, modifier = Modifier.testTag("jogo:compartilhar")) {
-                            if (exportando) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = c.acaoTinta)
-                            else Icon(Icones.compartilhar, "Exportar convocação em PDF")
+                        Box {
+                            IconButton(onClick = { menuExportar = true }, enabled = !exportando, modifier = Modifier.testTag("jogo:compartilhar")) {
+                                if (exportando) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = c.acaoTinta)
+                                else Icon(Icones.compartilhar, "Exportar PDF do jogo")
+                            }
+                            DropdownMenu(expanded = menuExportar, onDismissRequest = { menuExportar = false }) {
+                                DropdownMenuItem(text = { Text("Convocação (PDF)") }, onClick = { menuExportar = false; exportarConvocacao() },
+                                    modifier = Modifier.testTag("jogo:exportar:convocacao"))
+                                DropdownMenuItem(text = { Text("Relatório do jogo (PDF)") }, onClick = { menuExportar = false; exportarRelatorioJogo() },
+                                    modifier = Modifier.testTag("jogo:exportar:relatorio"))
+                            }
                         }
                     }
                     if (ed != null && editavel) {

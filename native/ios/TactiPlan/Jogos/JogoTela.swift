@@ -272,10 +272,13 @@ struct JogoTela: View {
             }
             ToolbarItemGroup(placement: .navigationBarTrailing) {
                 if podeExportar && modelo.editor != nil {
-                    Button { exportarConvocacao() } label: {
+                    Menu {
+                        Button { exportarConvocacao() } label: { Label("Convocação (PDF)", systemImage: "person.3") }
+                        Button { exportarRelatorioJogo() } label: { Label("Relatório do jogo (PDF)", systemImage: "doc.text") }
+                    } label: {
                         if exportar.ocupado { ProgressView() } else { Image(systemName: "square.and.arrow.up") }
                     }
-                    .accessibilityLabel("Exportar convocação em PDF")
+                    .accessibilityLabel("Exportar PDF do jogo")
                     .disabled(exportar.ocupado)
                 }
                 if podeEditar && modelo.editor != nil {
@@ -513,6 +516,16 @@ struct JogoTela: View {
     }
 
     // MARK: PDF
+
+    /// Relatório de UM jogo (placar, lances, atletas com minutos/gols/cartões), do jogo SALVO.
+    private func exportarRelatorioJogo() {
+        guard let ed = modelo.editor else { return }
+        if modelo.pendencia != nil { modelo.aviso = MSG_ENVIE_ANTES; return }
+        if modelo.sujo { modelo.aviso = MSG_SALVE_ANTES_JOGO; return }
+        exportar.iniciar(tipo: "jogo", corpo: corpoRelatorioJogo(sessaoId),
+                         nome: nomePdfRelatorioJogo(adversario: ed.dados.adversario, data: modelo.dia?.data ?? ""),
+                         usuarioId: sessao.me.usuario.id)
+    }
 
     private func exportarConvocacao() {
         guard let ed = modelo.editor else { return }

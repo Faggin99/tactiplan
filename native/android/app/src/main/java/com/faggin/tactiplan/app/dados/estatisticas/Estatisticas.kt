@@ -217,10 +217,19 @@ fun km(v: Double?): String = v?.let { String.format(java.util.Locale.forLanguage
 
 // ---------- exportar ----------
 
-fun corpoEstatisticas(clubeId: String, p: PeriodoStats, filtro: String): Map<String, JsonElement> = mapOf(
+/** campeonato (só PDF de jogos): id do campeonato, CAMPEONATO_SEM (amistosos) ou null (todos). */
+fun corpoEstatisticas(clubeId: String, p: PeriodoStats, filtro: String, campeonato: String? = null): Map<String, JsonElement> = mapOf(
     "club_id" to JsonPrimitive(clubeId), "start_date" to JsonPrimitive(p.inicio), "end_date" to JsonPrimitive(p.fim),
     "filter_type" to JsonPrimitive(filtro), "period_label" to JsonPrimitive(rotuloFiltro(filtro)),
-)
+) + (if (campeonato != null) mapOf("competition_id" to JsonPrimitive(campeonato)) else emptyMap())
+
+/** Filtro de campeonato nas estatísticas de jogos (como o web): null = todos, "none" = sem campeonato. */
+const val CAMPEONATO_SEM = "none"
+
+fun opcoesCampeonato(lista: List<com.faggin.tactiplan.app.dados.cadastros.CampeonatoCad>): List<Pair<String?, String>> =
+    listOf<Pair<String?, String>>(null to "Todos os campeonatos") +
+        lista.map { it.id to (it.name + (it.season?.takeIf { s -> s.isNotBlank() }?.let { s -> " $s" } ?: "") + (if (it.arquivado == true) " (arquivado)" else "")) } +
+        listOf(CAMPEONATO_SEM to "Sem campeonato (amistosos)")
 
 fun nomePdfEstatisticas(treino: Boolean, clube: String, filtro: String): String =
     "${if (treino) "Estatisticas_Treino" else "Desempenho"}_${nomeArquivoSeguro(clube)}_${nomeArquivoSeguro(rotuloFiltro(filtro))}.pdf"
@@ -316,21 +325,22 @@ data class StatsJogos(
 object CaminhosStats {
     fun treino(clube: String, ini: String, fim: String) =
         "/stats/training?start_date=${codificarComponente(ini)}&end_date=${codificarComponente(fim)}&clubId=${codificarComponente(clube)}"
-    fun jogos(clube: String, ini: String, fim: String) =
-        "/stats/games?start_date=${codificarComponente(ini)}&end_date=${codificarComponente(fim)}&clubId=${codificarComponente(clube)}"
+    fun jogos(clube: String, ini: String, fim: String, campeonato: String? = null) =
+        "/stats/games?start_date=${codificarComponente(ini)}&end_date=${codificarComponente(fim)}&clubId=${codificarComponente(clube)}" +
+            (campeonato?.let { "&competition_id=${codificarComponente(it)}" } ?: "")
 }
 
 interface ApiStats {
     suspend fun treino(clubeId: String, p: PeriodoStats): StatsTreino
-    suspend fun jogos(clubeId: String, p: PeriodoStats): StatsJogos
+    suspend fun jogos(clubeId: String, p: PeriodoStats, campeonato: String? = null): StatsJogos
 }
 
 class ApiStatsHttp(private val api: Api, private val token: String, private val workspaceId: String) : ApiStats {
     private suspend fun j(c: String) = api.chamarJson(c, "GET", null, token, mapOf("X-Workspace-Id" to workspaceId))
     override suspend fun treino(clubeId: String, p: PeriodoStats) =
         JsonApp.decodeFromJsonElement(StatsTreino.serializer(), j(CaminhosStats.treino(clubeId, p.inicio, p.fim)))
-    override suspend fun jogos(clubeId: String, p: PeriodoStats) =
-        JsonApp.decodeFromJsonElement(StatsJogos.serializer(), j(CaminhosStats.jogos(clubeId, p.inicio, p.fim)))
+    override suspend fun jogos(clubeId: String, p: PeriodoStats, campeonato: String?) =
+        JsonApp.decodeFromJsonElement(StatsJogos.serializer(), j(CaminhosStats.jogos(clubeId, p.inicio, p.fim, campeonato)))
 }
 
 /** Arredonda para o anel/barras sem estourar 0…100. */

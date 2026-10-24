@@ -584,6 +584,16 @@ public func nomePdfJogos(clube: String, rotulo: String) -> String {
 /// Corpo da convocação (POST /api/reports/convocacao).
 public func corpoConvocacao(_ sessaoId: String) -> [String: Json] { ["session_id": .texto(sessaoId)] }
 
+/// Relatório de UM jogo (POST /api/reports/jogo): placar, lances, atletas com minutos/gols/cartões.
+public func corpoRelatorioJogo(_ sessaoId: String) -> [String: Json] { ["session_id": .texto(sessaoId)] }
+
+/// "Jogo_Rival_FC_24-10-2026.pdf" (o nome do web).
+public func nomePdfRelatorioJogo(adversario: String?, data: String) -> String {
+    let adv = (adversario ?? "").trimmingCharacters(in: .whitespaces).isEmpty ? "Adversário" : adversario!
+    let base = "Jogo_\(adv.split(whereSeparator: { $0.isWhitespace }).joined(separator: "_"))_\(dataBR(data).replacingOccurrences(of: "/", with: "-"))"
+    return nomeArquivoSeguro(base) + ".pdf"
+}
+
 /// "Convocacao_Rival_FC_24-10-2026.pdf" (o nome do web).
 public func nomePdfConvocacao(adversario: String?, data: String) -> String {
     let adv = (adversario ?? "").trimmingCharacters(in: .whitespaces).isEmpty ? "Adversário" : adversario!

@@ -69,6 +69,9 @@ import com.faggin.tactiplan.app.dados.estatisticas.formatarMinutos
 import com.faggin.tactiplan.app.dados.estatisticas.km
 import com.faggin.tactiplan.app.dados.estatisticas.maisUsadosPorPilar
 import com.faggin.tactiplan.app.dados.estatisticas.nomePdfEstatisticas
+import com.faggin.tactiplan.app.dados.estatisticas.opcoesCampeonato
+import com.faggin.tactiplan.app.dados.cadastros.CampeonatoCad
+import com.faggin.tactiplan.app.ui.t3.Seletor
 import com.faggin.tactiplan.app.dados.estatisticas.ordenarMinutagem
 import com.faggin.tactiplan.app.dados.estatisticas.periodoDaSemana
 import com.faggin.tactiplan.app.dados.estatisticas.periodoDoFiltro
@@ -137,6 +140,14 @@ fun EstatisticasTela(amb: AmbienteClube, t3: ServicosT3, comecarNoTreino: Boolea
     var exportando by remember { mutableStateOf(false) }
     var verMinutagem by remember { mutableStateOf(false) }
     var fotos by remember { mutableStateOf<PedidoFotos?>(null) }
+    // filtro de campeonato (só Jogos): null = todos, CAMPEONATO_SEM = amistosos
+    var campeonato by rememberSaveable { mutableStateOf<String?>(null) }
+    var campeonatos by remember { mutableStateOf<List<CampeonatoCad>>(emptyList()) }
+
+    LaunchedEffect(clubeId) {
+        campeonatos = emptyList()
+        if (clubeId != null) campeonatos = runCatching { t3.cadastros.campeonatos(clubeId) }.getOrDefault(emptyList())
+    }
 
     fun aplicarFiltro(f: String) {
         filtro = f
@@ -147,11 +158,11 @@ fun EstatisticasTela(amb: AmbienteClube, t3: ServicosT3, comecarNoTreino: Boolea
         }
     }
 
-    LaunchedEffect(clubeId, periodo, aba, versao) {
+    LaunchedEffect(clubeId, periodo, aba, versao, campeonato) {
         if (clubeId == null) return@LaunchedEffect
         carregando = true
         try {
-            if (aba == 0) treino = t3.stats.treino(clubeId, periodo) else jogos = t3.stats.jogos(clubeId, periodo)
+            if (aba == 0) treino = t3.stats.treino(clubeId, periodo) else jogos = t3.stats.jogos(clubeId, periodo, campeonato)
             erro = null
         } catch (e: Exception) {
             if (!amb.tratarErro(e)) erro = if (e is com.faggin.tactiplan.app.dados.ErroApi && e.status == 403)
@@ -178,7 +189,7 @@ fun EstatisticasTela(amb: AmbienteClube, t3: ServicosT3, comecarNoTreino: Boolea
             if (exportando) return@IconButton
             exportando = true; aviso = null
             escopo.launch {
-                val corpo = corpoEstatisticas(clubeId!!, periodo, filtro)
+                val corpo = corpoEstatisticas(clubeId!!, periodo, filtro, if (aba == 1) campeonato else null)
                 val nome = nomePdfEstatisticas(aba == 0, ctx.nome, filtro)
                 val r = if (aba == 0) iniciarExportacao(context, amb.treino!!.api, "treino", corpo, nome, amb.usuarioId, amb.tratarErro)
                 else gerarECompartilhar(context, amb.treino!!.api, "jogos", corpo, nome, amb.tratarErro)
@@ -227,6 +238,9 @@ fun EstatisticasTela(amb: AmbienteClube, t3: ServicosT3, comecarNoTreino: Boolea
                 val ok = inicio != null && fim != null && inicio!! <= fim!!
                 Botao("Buscar", { periodo = PeriodoStats(inicio!!, fim!!); versao++ }, Modifier.testTag("stats:buscar"), VarianteBotao.SECUNDARIO, ok)
             }
+        }
+        if (aba == 1 && clubeId != null) {
+            Seletor("Campeonato", campeonato, opcoesCampeonato(campeonatos), { campeonato = it }, tag = "stats:campeonato")
         }
         aviso?.let { FaixaTom(it, Tom.AVISO) }
         if (clubeId == null) { EstadoVazio(Icones.grafico, "Nenhum clube nesta conta", "As estatísticas aparecem quando houver um clube."); return@TelaRaiz }

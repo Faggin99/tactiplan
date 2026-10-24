@@ -139,7 +139,7 @@ struct SemanaTela: View {
 
     private func exportarSemana() {
         guard let clube = contexto.clube else { return }
-        exportar.iniciar(tipo: "treino", corpo: corpoRelatorioSemana(modelo.semana, clubeId: clube.id),
+        exportar.iniciar(tipo: "semana", corpo: corpoRelatorioSemana(modelo.semana, clubeId: clube.id),
                          nome: nomePdfDaSemana(modelo.semana, clube: clube.nome), usuarioId: sessao.me.usuario.id)
     }
 

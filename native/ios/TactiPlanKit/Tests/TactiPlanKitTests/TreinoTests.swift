@@ -447,10 +447,10 @@ final class Etapas: @unchecked Sendable {
 
     @Test func `corpos e nomes dos relatorios`() {
         #expect(corpoRelatorioSemana(semana, clubeId: "c1") == [
-            "club_id": "c1", "start_date": "2026-10-19", "end_date": "2026-10-25", "filter_type": "1-micro"])
+            "club_id": "c1", "start_date": "2026-10-19", "end_date": "2026-10-25"])
         #expect(corpoFichaDoDia("d1") == ["session_id": "d1"])
         #expect(nomePdfDoDia(Dia(data: "2026-10-20", nomeDia: "Terça", diaDaSemana: 2)) == "treino-Terca-20-10-2026.pdf")
-        #expect(nomePdfDaSemana(semana, clube: "Esporte Clube Vila Nova") == "Estatisticas_Treino_Esporte_Clube_Vila_Nova_Semana_43_2026.pdf")
+        #expect(nomePdfDaSemana(semana, clube: "Esporte Clube Vila Nova") == "Programacao_Esporte_Clube_Vila_Nova_Semana_43_2026.pdf")
         #expect(nomeArquivoSeguro("São  Paulo/FC") == "Sao_PauloFC")
     }
 }

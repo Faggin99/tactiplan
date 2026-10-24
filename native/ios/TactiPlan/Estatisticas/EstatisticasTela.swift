@@ -22,6 +22,9 @@ final class EstatisticasModelo: ObservableObject {
     @Published var modo: ModoPilar = .sessoes
     @Published var pilarSel: String?
     @Published var conteudoSel: String?
+    /// Filtro de campeonato (só Jogos): nil = todos, CAMPEONATO_SEM = amistosos.
+    @Published var campeonato: String?
+    @Published private(set) var campeonatos: [CampeonatoCadastro] = []
 
     let api: ApiEstatisticas
     let clubeId: String
@@ -60,13 +63,18 @@ final class EstatisticasModelo: ObservableObject {
         if fim < inicio { fim = inicio }
     }
 
+    func carregarCampeonatos() async {
+        campeonatos = (try? await api.campeonatos(clubeId: clubeId)) ?? []
+    }
+
     func carregar(jogos ehJogos: Bool) async {
         let i = intervalo
         if ehJogos {
             if jogos == nil { estadoJogos = .carregando }
+            let camp = campeonato
             do {
-                let j = try await api.jogos(clubeId: clubeId, i)
-                guard i == intervalo else { return }
+                let j = try await api.jogos(clubeId: clubeId, i, campeonato: camp)
+                guard i == intervalo, camp == campeonato else { return }
                 jogos = j
                 estadoJogos = .pronto
             } catch is CancellationError { return } catch {
@@ -107,7 +115,7 @@ struct EstatisticasTela: View {
     }
 
     private var podeExportar: Bool { !(contexto.conta.somenteLeitura ?? false) }
-    private var chave: String { "\(aba)|\(modelo.inicio)|\(modelo.fim)" }
+    private var chave: String { "\(aba)|\(modelo.inicio)|\(modelo.fim)|\(modelo.campeonato ?? "")" }
 
     var body: some View {
         TelaGrande("Estatísticas", empilhada: true, aoAtualizar: { await modelo.carregar(jogos: aba == 1) }) {
@@ -117,6 +125,7 @@ struct EstatisticasTela: View {
             }
             .pickerStyle(.segmented)
             FiltrosPeriodo(modelo: modelo)
+            if aba == 1 { filtroCampeonato }
             if aba == 0 { treino } else { jogos }
         }
         .toolbar {
@@ -131,6 +140,7 @@ struct EstatisticasTela: View {
             }
         }
         .task(id: chave) { await modelo.carregar(jogos: aba == 1) }
+        .task { await modelo.carregarCampeonatos() }
         .sheet(isPresented: $verMinutagem) {
             if let j = modelo.jogos {
                 MinutagemCompletaTela(stats: j).environment(\.tema, tema)
@@ -147,9 +157,38 @@ struct EstatisticasTela: View {
         guard let clube = contexto.clube else { return }
         let ehJogos = aba == 1
         exportar.iniciar(tipo: ehJogos ? "jogos" : "treino",
-                         corpo: corpoPdfEstatisticas(clubeId: clube.id, modelo.intervalo, filtro: modelo.filtro),
+                         corpo: corpoPdfEstatisticas(clubeId: clube.id, modelo.intervalo, filtro: modelo.filtro,
+                                                     campeonato: ehJogos ? modelo.campeonato : nil),
                          nome: nomePdfEstatisticas(jogos: ehJogos, clube: clube.nome, filtro: modelo.filtro),
                          usuarioId: sessao.me.usuario.id)
+    }
+
+    // MARK: filtro de campeonato (Jogos)
+
+    private var filtroCampeonato: some View {
+        let c = tema.cores
+        let opcoes = opcoesCampeonato(modelo.campeonatos)
+        let atual = opcoes.first { $0.valor == modelo.campeonato }?.rotulo ?? "Todos os campeonatos"
+        return Menu {
+            ForEach(opcoes) { o in
+                Button { modelo.campeonato = o.valor } label: {
+                    if o.valor == modelo.campeonato { Label(o.rotulo, systemImage: "checkmark") } else { Text(o.rotulo) }
+                }
+            }
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Campeonato").tipo(Tipos.legenda11).foregroundColor(c.tinta2.color)
+                    Text(atual).tipo(Tipos.corpo15).foregroundColor(c.tinta.color).lineLimit(1)
+                }
+                Spacer()
+                Image(systemName: "chevron.down").foregroundColor(c.tinta2.color)
+            }
+            .padding(.horizontal, 16).padding(.vertical, 10)
+            .background(RoundedRectangle(cornerRadius: 12).fill(c.superficie.color))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(c.borda.color, lineWidth: 1))
+        }
+        .accessibilityLabel("Campeonato: \(atual)")
     }
 
     // MARK: treino

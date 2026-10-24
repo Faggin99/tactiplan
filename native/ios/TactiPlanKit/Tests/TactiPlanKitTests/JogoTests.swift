@@ -356,6 +356,8 @@ let PLANTEL = [
                 == ["club_id": "c", "start_date": "2026-09-21", "end_date": "2026-10-22", "filter_type": "custom", "period_label": "Último mês"])
         #expect(nomePdfConvocacao(adversario: "Rival FC", data: "2026-10-24") == "Convocacao_Rival_FC_24-10-2026.pdf")
         #expect(nomePdfConvocacao(adversario: nil, data: "2026-10-24") == "Convocacao_Adversario_24-10-2026.pdf")
+        #expect(nomePdfRelatorioJogo(adversario: "Rival FC", data: "2026-10-24") == "Jogo_Rival_FC_24-10-2026.pdf")
+        #expect(corpoRelatorioJogo("s1") == ["session_id": "s1"])
         #expect(nomePdfJogos(clube: "Demo FC", rotulo: "3 meses") == "Desempenho_Demo_FC_3_meses.pdf")
     }
 }

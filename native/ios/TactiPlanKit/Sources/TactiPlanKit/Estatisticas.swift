@@ -559,14 +559,40 @@ public enum CaminhosStats {
     public static func treino(clube: String, _ i: Intervalo) -> String {
         "/stats/training?start_date=\(codificarComponente(i.inicio))&end_date=\(codificarComponente(i.fim))&clubId=\(codificarComponente(clube))"
     }
-    public static func jogos(clube: String, _ i: Intervalo) -> String {
+    /// campeonato: id, CAMPEONATO_SEM ("none" = só amistosos) ou nil (todos).
+    public static func jogos(clube: String, _ i: Intervalo, campeonato: String? = nil) -> String {
         "/stats/games?start_date=\(codificarComponente(i.inicio))&end_date=\(codificarComponente(i.fim))&clubId=\(codificarComponente(clube))"
+            + (campeonato.map { "&competition_id=\(codificarComponente($0))" } ?? "")
     }
 }
 
 public protocol ApiEstatisticas: Sendable {
     func treino(clubeId: String, _ i: Intervalo) async throws -> StatsTreino
-    func jogos(clubeId: String, _ i: Intervalo) async throws -> StatsJogos
+    func jogos(clubeId: String, _ i: Intervalo, campeonato: String?) async throws -> StatsJogos
+    /// Campeonatos do clube (inclui arquivados) para o filtro da aba Jogos.
+    func campeonatos(clubeId: String) async throws -> [CampeonatoCadastro]
+}
+
+public extension ApiEstatisticas {
+    func jogos(clubeId: String, _ i: Intervalo) async throws -> StatsJogos { try await jogos(clubeId: clubeId, i, campeonato: nil) }
+}
+
+/// Filtro de campeonato nas estatísticas de jogos (como o web): nil = todos, "none" = sem campeonato.
+public let CAMPEONATO_SEM = "none"
+
+public struct OpcaoCampeonato: Equatable, Sendable, Identifiable {
+    public let valor: String?
+    public let rotulo: String
+    public var id: String { valor ?? "" }
+}
+
+public func opcoesCampeonato(_ lista: [CampeonatoCadastro]) -> [OpcaoCampeonato] {
+    [OpcaoCampeonato(valor: nil, rotulo: "Todos os campeonatos")]
+        + lista.map { c in
+            let temporada = (c.temporada ?? "").trimmingCharacters(in: .whitespaces)
+            return OpcaoCampeonato(valor: c.id, rotulo: c.nome + (temporada.isEmpty ? "" : " \(temporada)") + (c.arquivado ? " (arquivado)" : ""))
+        }
+        + [OpcaoCampeonato(valor: CAMPEONATO_SEM, rotulo: "Sem campeonato (amistosos)")]
 }
 
 public struct ApiEstatisticasHttp: ApiEstatisticas {
@@ -575,15 +601,21 @@ public struct ApiEstatisticasHttp: ApiEstatisticas {
     public func treino(clubeId: String, _ i: Intervalo) async throws -> StatsTreino {
         try await web.json(CaminhosStats.treino(clube: clubeId, i)).decodificar(StatsTreino.self)
     }
-    public func jogos(clubeId: String, _ i: Intervalo) async throws -> StatsJogos {
-        try await web.json(CaminhosStats.jogos(clube: clubeId, i)).decodificar(StatsJogos.self)
+    public func jogos(clubeId: String, _ i: Intervalo, campeonato: String?) async throws -> StatsJogos {
+        try await web.json(CaminhosStats.jogos(clube: clubeId, i, campeonato: campeonato)).decodificar(StatsJogos.self)
+    }
+    public func campeonatos(clubeId: String) async throws -> [CampeonatoCadastro] {
+        try listaOuData(try await web.json(CaminhosCadastros.campeonatos(clube: clubeId))).decodificar([CampeonatoCadastro].self)
     }
 }
 
 /// Corpo do PDF de treino/jogos (o mesmo do Exportar do web).
-public func corpoPdfEstatisticas(clubeId: String, _ i: Intervalo, filtro: FiltroPeriodo) -> [String: Json] {
-    ["club_id": .texto(clubeId), "start_date": .texto(i.inicio), "end_date": .texto(i.fim),
-     "filter_type": .texto(filtro.rawValue), "period_label": .texto(filtro.rotulo)]
+/// campeonato (só no PDF de jogos): id, CAMPEONATO_SEM ou nil (todos).
+public func corpoPdfEstatisticas(clubeId: String, _ i: Intervalo, filtro: FiltroPeriodo, campeonato: String? = nil) -> [String: Json] {
+    var c: [String: Json] = ["club_id": .texto(clubeId), "start_date": .texto(i.inicio), "end_date": .texto(i.fim),
+                             "filter_type": .texto(filtro.rawValue), "period_label": .texto(filtro.rotulo)]
+    if let campeonato { c["competition_id"] = .texto(campeonato) }
+    return c
 }
 
 /// Estatisticas_Treino_<clube>_<rótulo>.pdf / Desempenho_<clube>_<rótulo>.pdf.

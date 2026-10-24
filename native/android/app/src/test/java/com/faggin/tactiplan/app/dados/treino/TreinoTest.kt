@@ -418,11 +418,11 @@ class ServicoTreinoTest {
     }
 
     @Test fun `corpos e nomes dos relatorios`() {
-        assertEquals(mapOf("club_id" to s("c1"), "start_date" to s("2026-10-19"), "end_date" to s("2026-10-25"), "filter_type" to s("1-micro")),
+        assertEquals(mapOf("club_id" to s("c1"), "start_date" to s("2026-10-19"), "end_date" to s("2026-10-25")),
             corpoRelatorioSemana(semana, "c1"))
         assertEquals(mapOf("session_id" to s("d1")), corpoFichaDoDia("d1"))
         assertEquals("treino-Terca-20-10-2026.pdf", nomePdfDoDia(Dia(data = "2026-10-20", nomeDia = "Terça", diaDaSemanaBruto = 2)))
-        assertEquals("Estatisticas_Treino_Esporte_Clube_Vila_Nova_Semana_43_2026.pdf", nomePdfDaSemana(semana, "Esporte Clube Vila Nova"))
+        assertEquals("Programacao_Esporte_Clube_Vila_Nova_Semana_43_2026.pdf", nomePdfDaSemana(semana, "Esporte Clube Vila Nova"))
         assertEquals("Sao_PauloFC", nomeArquivoSeguro("São  Paulo/FC"))
     }
 

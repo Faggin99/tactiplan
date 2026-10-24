@@ -162,9 +162,9 @@ fun corpoFichaDoDia(diaId: String, soPeriodo: Boolean = false): Map<String, Json
     if (soPeriodo) mapOf("session_id" to JsonPrimitive(diaId), "so_periodo" to JsonPrimitive(true))
     else mapOf("session_id" to JsonPrimitive(diaId))
 
+/** Programação da semana (POST /api/reports/semana): o resumo da Programação, não as estatísticas. */
 fun corpoRelatorioSemana(s: SemanaISO, clubeId: String): Map<String, JsonElement> = mapOf(
-    "club_id" to JsonPrimitive(clubeId), "start_date" to JsonPrimitive(s.segunda),
-    "end_date" to JsonPrimitive(s.domingo), "filter_type" to JsonPrimitive("1-micro"),
+    "club_id" to JsonPrimitive(clubeId), "start_date" to JsonPrimitive(s.segunda), "end_date" to JsonPrimitive(s.domingo),
 )
 
 /** Só um período: "treino-Quarta-21-10-2026-Tarde.pdf". */
@@ -175,7 +175,7 @@ fun nomePdfDoDia(d: Dia, periodo: String? = null): String {
 }
 
 fun nomePdfDaSemana(s: SemanaISO, clube: String): String =
-    "Estatisticas_Treino_${nomeArquivoSeguro(clube)}_Semana_${s.numero}_${s.ano}.pdf"
+    "Programacao_${nomeArquivoSeguro(clube)}_Semana_${s.numero}_${s.ano}.pdf"
 
 /** O `safeFileName` do web: tira acentos, espaço vira "_", sobra só [A-Za-z0-9_-]. */
 fun nomeArquivoSeguro(s: String): String {

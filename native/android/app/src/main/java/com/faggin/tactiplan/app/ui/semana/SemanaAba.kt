@@ -213,7 +213,7 @@ fun SemanaAba(amb: AmbienteClube, treino: ServicoTreino) {
             mudarSemana = { segunda = semana.somando(it).segunda; carregou = false; microciclo = null },
             irParaHoje = { segunda = SemanaISO.de(hojeBrasilia()).segunda; carregou = false; microciclo = null },
             atualizar = recarregar, abrirDia = { tela = TelaSemana.DoDia(it.data) },
-            exportarSemana = clubeId?.let { id -> { exportar("treino", corpoRelatorioSemana(semana, id), nomePdfDaSemana(semana, ctx.nome)) } },
+            exportarSemana = clubeId?.let { id -> { exportar("semana", corpoRelatorioSemana(semana, id), nomePdfDaSemana(semana, ctx.nome)) } },
         )
         is TelaSemana.DoDia -> {
             val dia = dias.firstOrNull { it.data == t.data }

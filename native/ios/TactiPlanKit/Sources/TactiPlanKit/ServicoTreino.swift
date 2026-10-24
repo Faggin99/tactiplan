@@ -193,8 +193,9 @@ public func corpoFichaDoDia(_ diaId: String, soPeriodo: Bool = false) -> [String
 }
 
 /// Corpo do relatório da semana (o "Exportar semana" do web: treino com filtro 1 microciclo).
+/// Programação da semana (POST /api/reports/semana): o resumo da Programação, não as estatísticas.
 public func corpoRelatorioSemana(_ s: SemanaISO, clubeId: String) -> [String: Json] {
-    ["club_id": .texto(clubeId), "start_date": .texto(s.segunda), "end_date": .texto(s.domingo), "filter_type": "1-micro"]
+    ["club_id": .texto(clubeId), "start_date": .texto(s.segunda), "end_date": .texto(s.domingo)]
 }
 
 /// Nome do PDF da ficha do dia (o do web: "treino-Quarta-21-10-2026.pdf").
@@ -205,9 +206,9 @@ public func nomePdfDoDia(_ d: Dia, periodo: String? = nil) -> String {
     return nomeArquivoSeguro("treino-\(nome)-\(dataBR(d.data).replacingOccurrences(of: "/", with: "-"))\(sufixo)") + ".pdf"
 }
 
-/// Nome do PDF da semana (o do web: "Estatisticas_Treino_<clube>_Semana_43_2026.pdf").
+/// Nome do PDF da semana (o do web: "Programacao_<clube>_Semana_43_2026.pdf").
 public func nomePdfDaSemana(_ s: SemanaISO, clube: String) -> String {
-    "Estatisticas_Treino_\(nomeArquivoSeguro(clube))_Semana_\(s.numero)_\(s.ano).pdf"
+    "Programacao_\(nomeArquivoSeguro(clube))_Semana_\(s.numero)_\(s.ano).pdf"
 }
 
 /// O `safeFileName` do web: tira acentos, espaço vira "_", sobra só [A-Za-z0-9_-].
