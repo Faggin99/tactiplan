@@ -818,6 +818,78 @@ function buildCallUp({ session, team, players = [], formation, competitionName =
   };
 }
 
+// ---------------------------------------------------------------- PROGRAMAÇÃO DA SEMANA
+// Resumo da Programação (o que a tela mostra), não as estatísticas: 7 colunas, cada dia
+// com os períodos (Manhã · Tático) e os blocos (fase, conteúdo, atividade), jogo/descanso/
+// avaliação, e no pé os minutos e a distância.
+//   details: getSessionDetail dos períodos da semana · gamesById: Map session_id → jogo
+function predominancia(blocks) {
+  const m = {};
+  for (const b of blocks) if (b.pillar && b.minutes > 0) m[b.pillar] = (m[b.pillar] || 0) + b.minutes;
+  const best = DIM_ORDER.filter((d) => m[d]).sort((a, b) => m[b] - m[a])[0];
+  if (best) return DIM_LABELS[best];
+  const first = blocks.find((b) => b.pillar);
+  return first ? DIM_LABELS[first.pillar] : null;
+}
+
+function buildWeekProgram({ team, period, details = [], gamesById = null, weekNumber = null, photos = null }) {
+  const byDate = new Map();
+  for (const s of details) {
+    const d = F.toDateStr(s.date);
+    if (!byDate.has(d)) byDate.set(d, []);
+    byDate.get(d).push(s);
+  }
+  let totalMin = 0;
+  let treinos = 0;
+  let jogos = 0;
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const date = F.addDays(period.start, i);
+    const list = (byDate.get(date) || []).slice().sort(P.compararPeriodos);
+    const varios = list.length > 1;
+    const periodos = list.map((s) => {
+      const vm = buildSessionSheet({ session: s, team, game: gamesById?.get(s.id) || null });
+      const ef = vm.type === 'training' || vm.type === 'assessment' ? (P.rotuloPeriodo(P.periodoEfetivo(s)) || null) : (varios ? P.rotuloPeriodo(s.periodo) : null);
+      return {
+        type: vm.type,
+        label: ef,
+        pillar: vm.type === 'training' ? predominancia(vm.blocks) : null,
+        blocks: vm.blocks.map((b) => ({ phase: b.phase, content: b.contents.join(' · '), title: b.title !== b.contents.join(', ') ? b.title : '', minutes: b.minutes, pillar: b.pillar })),
+        total: vm.total,
+        game: vm.game,
+        assessment: vm.assessment,
+      };
+    });
+    const minutes = periodos.reduce((t, p) => t + (p.type === 'assessment' ? 0 : p.total), 0);
+    totalMin += minutes;
+    if (periodos.some((p) => p.type === 'match')) jogos++;
+    else if (periodos.some((p) => p.type === 'training' && p.blocks.length)) treinos++;
+    const km = P.distanciaDoDia(list);
+    const isRest = list.length > 0 && list.every((s) => (s.session_type || 'training') === 'rest');
+    days.push({
+      date, dn: F.weekdayLong(date), dd: F.ddmm(date),
+      kind: !list.length ? 'vazio' : (isRest ? 'descanso' : 'dia'),
+      periodos: isRest ? [] : periodos,
+      minutes,
+      km: km != null ? Number(km) : null,
+      split: P.divisaoMinutos(periodos.map((p) => ({ minutes: p.type === 'assessment' ? 0 : p.total }))),
+    });
+  }
+  const meta = [team.modalityLabel, weekNumber ? `Semana ${weekNumber}` : null, period.rangeLong].filter(Boolean).join(' · ');
+  return {
+    kind: 'semana',
+    team,
+    period,
+    weekNumber,
+    meta,
+    right: weekNumber ? `Semana ${weekNumber} · ${period.rangeShort}` : period.rangeShort,
+    badgeTop: totalMin > 0 ? F.duration(totalMin) : '—',
+    badgeSub: [F.plural(treinos, 'treino', 'treinos'), jogos ? F.plural(jogos, 'jogo', 'jogos') : null].filter(Boolean).join(' · '),
+    days,
+    photos,
+  };
+}
+
 // ---------------------------------------------------------------- JOGO (1 jogo só)
 // Relatório de um jogo: placar, lances em ordem de minuto e os atletas do jogo
 // (titulares na ordem da escalação, depois reservas) com minutos, gols, assistências e cartões.
@@ -1018,6 +1090,7 @@ function buildClubReport({ gameStats, trainingStats, athletes, team, period, squ
 }
 
 module.exports = {
+  buildWeekProgram,
   buildGameSheet,
   buildClubReport,
   buildSquad,

@@ -617,20 +617,19 @@ export function TrainingPage() {
     flexShrink: 0,
   };
 
-  // Relatório de treino da semana visível (o mesmo das Estatísticas, com as
-  // fotos dos anexos do microciclo), gerado no servidor.
+  // Programação da semana visível (resumo da tela: dias, períodos e blocos — não as
+  // estatísticas), com as fotos dos anexos do microciclo, gerada no servidor.
   async function handleExportWeek() {
     const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const monday = new Date(currentWeek.startDate);
     const sunday = new Date(monday);
     sunday.setDate(monday.getDate() + 6);
     try {
-      await photoExport.start('treino', {
+      await photoExport.start('semana', {
         club_id: selectedClub.id,
         start_date: ymd(monday),
         end_date: ymd(sunday),
-        filter_type: '1-micro',
-      }, `Estatisticas_Treino_${safeFileName(selectedClub.name)}_Semana_${currentWeek.week}_${currentWeek.year}.pdf`);
+      }, `Programacao_${safeFileName(selectedClub.name)}_Semana_${currentWeek.week}_${currentWeek.year}.pdf`);
     } catch (err) {
       notify.error(err.message || 'Não foi possível gerar o PDF da semana.');
     }

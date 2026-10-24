@@ -182,6 +182,10 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
 ## Relatórios/estatísticas (24/10/2026)
 - Estatísticas de jogos: filtro `competition_id` (id | 'none' = sem campeonato) em `GET /api/stats/games` e no PDF `jogos`.
 - `POST /api/reports/jogo {session_id}`: relatório de UM jogo (template `templates/jogo.js`, builder `buildGameSheet`);
-  no web, menu Exportar do modal do jogo ("Convocação (PDF)" + "Relatório do jogo (PDF)"). App ainda não tem.
+  web: menu Exportar do modal do jogo ("Convocação (PDF)" + "Relatório do jogo (PDF)"); app: menu do ícone compartilhar do jogo.
+- `POST /api/reports/semana {club_id, start_date, end_date}` (7 dias, training:view): PROGRAMAÇÃO da semana (A4 paisagem,
+  template `templates/semana.js`, builder `buildWeekProgram`) — resumo da tela (dias, períodos "Manhã · Tático", blocos,
+  jogo/descanso/avaliação, minutos/km), com as fotos do modal. É o "Exportar semana" do web e do app (antes era o `treino`).
+- App: filtro de campeonato nas Estatísticas › Jogos (Kotlin `opcoesCampeonato`, Swift `opcoesCampeonato`).
 - Plantel: o web usa o PDF do servidor (`plantel`, aceita `category_id`); jsPDF saiu. Coluna "Último clube".
 - PDF da semana: dia com 2+ períodos lista cada período (conteúdo + minutos) — `sessionsByDate[].contentsByPeriod`.

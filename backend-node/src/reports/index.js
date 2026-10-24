@@ -19,6 +19,7 @@ const { renderConvocacao } = require('./templates/convocacao');
 const { renderClube } = require('./templates/clube');
 const { renderPlantel } = require('./templates/plantel');
 const { renderJogo } = require('./templates/jogo');
+const { renderWeekProgram } = require('./templates/semana');
 const { formacaoValida, formacaoPadrao } = require('../utils/formacao');
 const P = require('../services/periodos');
 
@@ -262,6 +263,43 @@ async function buildTreino(body, user, assets, mode = 'pdf') {
   };
 }
 
+// Programação da semana (A4 paisagem): o resumo da tela Programação — dias, períodos e
+// blocos —, não as estatísticas. Mesmas fotos (modal) do relatório de treino da semana.
+async function buildSemana(body, user, assets, mode = 'pdf') {
+  const { workspaceIds, allowedCategoryIds } = scope(user);
+  const period = validPeriod({ ...body, filter_type: '1-micro' });
+  if (F.daysBetween(period.start, period.end) !== 6) throw new ReportError(400, 'A programação é de uma semana (7 dias)');
+  const team = await loadTeam(body.club_id, workspaceIds, assets, body.primary_color);
+  const q = { workspaceIds, start: period.start, end: period.end, clubId: team.id, allowedCategoryIds };
+  const sessions = await stats.getPeriodSessions(q);
+  const withPhotos = body.include_photos !== false;
+  if (mode !== 'pdf') {
+    if (!withPhotos) return mode === 'fotos' ? { list: emptyList(true) } : { html: null };
+    const r = await preparePhotos({ sessions, workspaceIds, body, mode, assets, week: true });
+    if (mode === 'fotos') return { list: r };
+    if (!r) return { html: null };
+    return { html: renderWeekProgram({ team, right: B.periodRight(period), photos: r, days: [] }, { now: new Date(), onlyPhotos: true }), count: r.items.length };
+  }
+  const details = [];
+  for (const s of sessions) {
+    const d = await getSessionDetail(s.id, workspaceIds);
+    if (d) details.push(d);
+  }
+  const gamesById = new Map();
+  if (details.some((d) => d.session_type === 'match')) {
+    const g = await stats.getGameStats(q);
+    for (const m of g.matchesHistory || []) gamesById.set(m.session_id, m);
+  }
+  const photos = withPhotos ? await preparePhotos({ sessions, workspaceIds, body, mode, assets, week: true }) : null;
+  const weekNumber = F.isoWeek(period.start)?.week || null;
+  const vm = B.buildWeekProgram({ team, period, details, gamesById, weekNumber, photos });
+  return {
+    html: renderWeekProgram(vm, { now: new Date() }),
+    filename: `Programacao_${safeName(team.name)}_Semana_${weekNumber || ''}.pdf`,
+    landscape: true,
+  };
+}
+
 // Períodos do dia da sessão (getSessionDetail de cada um), ordem Manhã → Noite.
 // Dia de período único = [a própria sessão].
 async function periodosDoDia(session, workspaceIds) {
@@ -499,9 +537,9 @@ async function buildPlantelReport(body, user, assets) {
   };
 }
 
-const BUILDERS = { jogos: buildJogos, treino: buildTreino, sessao: buildSessao, convocacao: buildConvocacao, jogo: buildJogo, clube: buildClube, plantel: buildPlantelReport };
+const BUILDERS = { jogos: buildJogos, treino: buildTreino, semana: buildSemana, sessao: buildSessao, convocacao: buildConvocacao, jogo: buildJogo, clube: buildClube, plantel: buildPlantelReport };
 // convocacao: a mesma permissão de abrir o jogo (GET /api/games/:id)
-const PERMISSION = { jogos: 'stats:view', treino: 'stats:view', sessao: 'training:view', convocacao: 'games:view', jogo: 'games:view', clube: 'stats:view', plantel: 'athletes:view' };
+const PERMISSION = { jogos: 'stats:view', treino: 'stats:view', semana: 'training:view', sessao: 'training:view', convocacao: 'games:view', jogo: 'games:view', clube: 'stats:view', plantel: 'athletes:view' };
 
 async function generateReport(tipo, body, user, { isStale } = {}) {
   const build = BUILDERS[tipo];
@@ -514,7 +552,7 @@ async function generateReport(tipo, body, user, { isStale } = {}) {
 
 // Fotos que o modal "Fotos do relatório" lista (só ficha do dia e semana).
 async function listReportPhotos(tipo, body, user) {
-  if (tipo !== 'treino' && tipo !== 'sessao') return emptyList(false);
+  if (tipo !== 'treino' && tipo !== 'sessao' && tipo !== 'semana') return emptyList(false);
   const { list } = await BUILDERS[tipo](body || {}, user, new Map(), 'fotos');
   return list;
 }
@@ -523,7 +561,7 @@ async function listReportPhotos(tipo, body, user) {
 // para o iframe do modal. Não usa o Chromium (a paginação roda no navegador
 // de quem vê, com o MESMO template e o mesmo paginador do PDF).
 async function previewReportPhotos(tipo, body, user) {
-  if (tipo !== 'treino' && tipo !== 'sessao') throw new ReportError(400, 'Este relatório não tem fotos');
+  if (tipo !== 'treino' && tipo !== 'sessao' && tipo !== 'semana') throw new ReportError(400, 'Este relatório não tem fotos');
   const assets = new Map();
   const { html, count } = await BUILDERS[tipo](body || {}, user, assets, 'html');
   return { html: html ? toPreviewHtml(html, assets) : null, fotos: count || 0 };
