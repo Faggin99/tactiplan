@@ -60,6 +60,9 @@ export function TrainingStatsPage() {
   // Filtro de campeonato (só aba Jogos): '' = todos, 'none' = sem campeonato, ou o id
   const [competitionId, setCompetitionId] = useState('');
   const [competitions, setCompetitions] = useState([]);
+  // Filtro de jogo (depois do campeonato): '' = todos; a lista vem dos jogos do período/campeonato
+  const [gameId, setGameId] = useState('');
+  const [gameOptions, setGameOptions] = useState([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
@@ -139,8 +142,13 @@ export function TrainingStatsPage() {
       const dr = getDateRangeParams();
       if (!dr) return;
       const params = { start_date: dr.start_date, end_date: dr.end_date, clubId: selectedClub?.id, competitionId: competitionId || undefined };
-      const data = await gameStatsService.getStats(params);
-      setGameStats(data);
+      const all = await gameStatsService.getStats(params);
+      const lista = (all?.matchesHistory || []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+      setGameOptions(lista);
+      // jogo escolhido que não está mais no período/campeonato volta para "todos"
+      const sel = gameId && lista.some((m) => m.session_id === gameId) ? gameId : '';
+      if (sel !== gameId) setGameId(sel);
+      setGameStats(sel ? await gameStatsService.getStats({ ...params, sessionId: sel }) : all);
     } catch (err) {
       console.error('Error loading game stats:', err);
       setGameStats(null);
@@ -168,6 +176,7 @@ export function TrainingStatsPage() {
 
   useEffect(() => {
     setCompetitionId('');
+    setGameId('');
     setCompetitions([]);
     if (!selectedClub?.id) return;
     competitionService.list({ clubId: selectedClub.id, includeArchived: true })
@@ -175,12 +184,12 @@ export function TrainingStatsPage() {
       .catch(() => setCompetitions([]));
   }, [selectedClub?.id]);
 
-  // Trocar o campeonato recarrega os jogos (o período continua o mesmo)
+  // Trocar o campeonato ou o jogo recarrega os jogos (o período continua o mesmo)
   const firstCompetitionRun = useRef(true);
   useEffect(() => {
     if (firstCompetitionRun.current) { firstCompetitionRun.current = false; return; }
     if (activeTab === 'game' && selectedClub?.id && getDateRangeParams()) loadGameStats();
-  }, [competitionId]);
+  }, [competitionId, gameId]);
 
   // Quando o usuário edita a data inicial manualmente, recalcula a final:
   // - 1 Ano: 1º jan → 31 dez do ano da data inicial
@@ -309,6 +318,17 @@ export function TrainingStatsPage() {
           const exportPdf = async (tipo) => {
             const dr = getDateRangeParams();
             if (!dr || !selectedClub?.id) return;
+            // um jogo escolhido: o relatório daquele jogo (o mesmo do modal do jogo)
+            if (tipo === 'jogos' && gameId) {
+              const m = gameOptions.find((g) => g.session_id === gameId);
+              const data = m?.date ? String(m.date).slice(0, 10).split('-').reverse().join('-') : '';
+              try {
+                await downloadReport('jogo', { session_id: gameId }, `Jogo_${safeFileName(m?.opponent || 'Adversario')}_${data}.pdf`);
+              } catch (err) {
+                notify.error(err.message || 'Não foi possível gerar o PDF.');
+              }
+              return;
+            }
             const prefix = tipo === 'jogos' ? 'Desempenho' : 'Estatisticas_Treino';
             try {
               await (tipo === 'treino' ? photoExport.start : downloadReport)(tipo, {
@@ -334,6 +354,7 @@ export function TrainingStatsPage() {
           if (activeTab === 'game' && gameStats && (gameStats.totalMatches || 0) > 0) {
             return (
               <ExportMenu
+                pdfLabel={gameId ? 'Relatório do jogo (PDF)' : 'Exportar PDF'}
                 onExportPDF={() => exportPdf('jogos')}
                 onExportExcel={null}
               />
@@ -361,6 +382,21 @@ export function TrainingStatsPage() {
               <option key={c.id} value={c.id}>{c.name}{c.season ? ` ${c.season}` : ''}{c.is_archived ? ' (arquivado)' : ''}</option>
             ))}
             <option value="none">Sem campeonato (amistosos)</option>
+          </select>
+        )}
+        {activeTab === 'game' && gameOptions.length > 0 && (
+          <select
+            value={gameId}
+            onChange={(e) => setGameId(e.target.value)}
+            aria-label="Jogo"
+            style={{ ...inputStyle, maxWidth: isMobile ? '100%' : '18rem', fontWeight: gameId ? 600 : 400, borderColor: gameId ? colors.primary : colors.border }}
+          >
+            <option value="">Todos os jogos ({gameOptions.length})</option>
+            {gameOptions.map((m) => (
+              <option key={m.session_id} value={m.session_id}>
+                {String(m.date).slice(0, 10).split('-').reverse().slice(0, 2).join('/')} · vs {m.opponent || 'Adversário'} · {m.goals_scored}×{m.goals_conceded}
+              </option>
+            ))}
           </select>
         )}
       </div>

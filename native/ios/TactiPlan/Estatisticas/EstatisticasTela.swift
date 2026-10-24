@@ -25,6 +25,9 @@ final class EstatisticasModelo: ObservableObject {
     /// Filtro de campeonato (só Jogos): nil = todos, CAMPEONATO_SEM = amistosos.
     @Published var campeonato: String?
     @Published private(set) var campeonatos: [CampeonatoCadastro] = []
+    /// Filtro de jogo (depois do campeonato): nil = todos; a lista vem dos jogos do período/campeonato.
+    @Published var jogo: String?
+    @Published private(set) var listaJogos: [JogoDoPeriodo] = []
 
     let api: ApiEstatisticas
     let clubeId: String
@@ -73,8 +76,14 @@ final class EstatisticasModelo: ObservableObject {
             if jogos == nil { estadoJogos = .carregando }
             let camp = campeonato
             do {
-                let j = try await api.jogos(clubeId: clubeId, i, campeonato: camp)
+                let todos = try await api.jogos(clubeId: clubeId, i, campeonato: camp)
                 guard i == intervalo, camp == campeonato else { return }
+                listaJogos = todos.historico
+                let sel = jogo.flatMap { id in todos.historico.contains { $0.id == id } ? id : nil }
+                if sel != jogo { jogo = sel }
+                var j = todos
+                if let sel { j = try await api.jogos(clubeId: clubeId, i, campeonato: camp, jogo: sel) }
+                guard i == intervalo, camp == campeonato, sel == jogo else { return }
                 jogos = j
                 estadoJogos = .pronto
             } catch is CancellationError { return } catch {
@@ -115,7 +124,7 @@ struct EstatisticasTela: View {
     }
 
     private var podeExportar: Bool { !(contexto.conta.somenteLeitura ?? false) }
-    private var chave: String { "\(aba)|\(modelo.inicio)|\(modelo.fim)|\(modelo.campeonato ?? "")" }
+    private var chave: String { "\(aba)|\(modelo.inicio)|\(modelo.fim)|\(modelo.campeonato ?? "")|\(modelo.jogo ?? "")" }
 
     var body: some View {
         TelaGrande("Estatísticas", empilhada: true, aoAtualizar: { await modelo.carregar(jogos: aba == 1) }) {
@@ -125,7 +134,10 @@ struct EstatisticasTela: View {
             }
             .pickerStyle(.segmented)
             FiltrosPeriodo(modelo: modelo)
-            if aba == 1 { filtroCampeonato }
+            if aba == 1 {
+                filtro("Campeonato", opcoesCampeonato(modelo.campeonatos), $modelo.campeonato)
+                if !modelo.listaJogos.isEmpty { filtro("Jogo", opcoesJogo(modelo.listaJogos), $modelo.jogo) }
+            }
             if aba == 0 { treino } else { jogos }
         }
         .toolbar {
@@ -156,6 +168,13 @@ struct EstatisticasTela: View {
     private func exportarPdf() {
         guard let clube = contexto.clube else { return }
         let ehJogos = aba == 1
+        // um jogo escolhido: o relatório daquele jogo (o mesmo da tela do jogo)
+        if ehJogos, let id = modelo.jogo, let j = modelo.listaJogos.first(where: { $0.id == id }) {
+            exportar.iniciar(tipo: "jogo", corpo: corpoRelatorioJogo(id),
+                             nome: nomePdfRelatorioJogo(adversario: j.adversario, data: String((j.data ?? "").prefix(10))),
+                             usuarioId: sessao.me.usuario.id)
+            return
+        }
         exportar.iniciar(tipo: ehJogos ? "jogos" : "treino",
                          corpo: corpoPdfEstatisticas(clubeId: clube.id, modelo.intervalo, filtro: modelo.filtro,
                                                      campeonato: ehJogos ? modelo.campeonato : nil),
@@ -165,20 +184,19 @@ struct EstatisticasTela: View {
 
     // MARK: filtro de campeonato (Jogos)
 
-    private var filtroCampeonato: some View {
+    private func filtro(_ rotulo: String, _ opcoes: [OpcaoCampeonato], _ valor: Binding<String?>) -> some View {
         let c = tema.cores
-        let opcoes = opcoesCampeonato(modelo.campeonatos)
-        let atual = opcoes.first { $0.valor == modelo.campeonato }?.rotulo ?? "Todos os campeonatos"
+        let atual = opcoes.first { $0.valor == valor.wrappedValue }?.rotulo ?? opcoes.first?.rotulo ?? ""
         return Menu {
             ForEach(opcoes) { o in
-                Button { modelo.campeonato = o.valor } label: {
-                    if o.valor == modelo.campeonato { Label(o.rotulo, systemImage: "checkmark") } else { Text(o.rotulo) }
+                Button { valor.wrappedValue = o.valor } label: {
+                    if o.valor == valor.wrappedValue { Label(o.rotulo, systemImage: "checkmark") } else { Text(o.rotulo) }
                 }
             }
         } label: {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Campeonato").tipo(Tipos.legenda11).foregroundColor(c.tinta2.color)
+                    Text(rotulo).tipo(Tipos.legenda11).foregroundColor(c.tinta2.color)
                     Text(atual).tipo(Tipos.corpo15).foregroundColor(c.tinta.color).lineLimit(1)
                 }
                 Spacer()
@@ -188,7 +206,7 @@ struct EstatisticasTela: View {
             .background(RoundedRectangle(cornerRadius: 12).fill(c.superficie.color))
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(c.borda.color, lineWidth: 1))
         }
-        .accessibilityLabel("Campeonato: \(atual)")
+        .accessibilityLabel("\(rotulo): \(atual)")
     }
 
     // MARK: treino

@@ -7,6 +7,7 @@ export const gameStatsService = {
     if (params.end_date) queryParams.append('end_date', params.end_date);
     if (params.clubId) queryParams.append('clubId', params.clubId);
     if (params.competitionId) queryParams.append('competition_id', params.competitionId);
+    if (params.sessionId) queryParams.append('session_id', params.sessionId);
 
     const query = queryParams.toString();
     return await api.get(`/stats/games${query ? '?' + query : ''}`);

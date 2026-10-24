@@ -70,6 +70,10 @@ import com.faggin.tactiplan.app.dados.estatisticas.km
 import com.faggin.tactiplan.app.dados.estatisticas.maisUsadosPorPilar
 import com.faggin.tactiplan.app.dados.estatisticas.nomePdfEstatisticas
 import com.faggin.tactiplan.app.dados.estatisticas.opcoesCampeonato
+import com.faggin.tactiplan.app.dados.estatisticas.opcoesJogo
+import com.faggin.tactiplan.app.dados.estatisticas.JogoDoPeriodo
+import com.faggin.tactiplan.app.dados.jogo.corpoRelatorioJogo
+import com.faggin.tactiplan.app.dados.jogo.nomePdfRelatorioJogo
 import com.faggin.tactiplan.app.dados.cadastros.CampeonatoCad
 import com.faggin.tactiplan.app.ui.t3.Seletor
 import com.faggin.tactiplan.app.dados.estatisticas.ordenarMinutagem
@@ -143,9 +147,13 @@ fun EstatisticasTela(amb: AmbienteClube, t3: ServicosT3, comecarNoTreino: Boolea
     // filtro de campeonato (só Jogos): null = todos, CAMPEONATO_SEM = amistosos
     var campeonato by rememberSaveable { mutableStateOf<String?>(null) }
     var campeonatos by remember { mutableStateOf<List<CampeonatoCad>>(emptyList()) }
+    // filtro de jogo (depois do campeonato): null = todos; a lista vem dos jogos do período/campeonato
+    var jogoSel by rememberSaveable { mutableStateOf<String?>(null) }
+    var listaJogos by remember { mutableStateOf<List<JogoDoPeriodo>>(emptyList()) }
 
     LaunchedEffect(clubeId) {
         campeonatos = emptyList()
+        jogoSel = null
         if (clubeId != null) campeonatos = runCatching { t3.cadastros.campeonatos(clubeId) }.getOrDefault(emptyList())
     }
 
@@ -158,11 +166,18 @@ fun EstatisticasTela(amb: AmbienteClube, t3: ServicosT3, comecarNoTreino: Boolea
         }
     }
 
-    LaunchedEffect(clubeId, periodo, aba, versao, campeonato) {
+    LaunchedEffect(clubeId, periodo, aba, versao, campeonato, jogoSel) {
         if (clubeId == null) return@LaunchedEffect
         carregando = true
         try {
-            if (aba == 0) treino = t3.stats.treino(clubeId, periodo) else jogos = t3.stats.jogos(clubeId, periodo, campeonato)
+            if (aba == 0) treino = t3.stats.treino(clubeId, periodo)
+            else {
+                val todos = t3.stats.jogos(clubeId, periodo, campeonato)
+                listaJogos = todos.matchesHistory
+                val sel = jogoSel?.takeIf { id -> todos.matchesHistory.any { it.id == id } }
+                if (sel != jogoSel) jogoSel = sel
+                jogos = if (sel != null) t3.stats.jogos(clubeId, periodo, campeonato, sel) else todos
+            }
             erro = null
         } catch (e: Exception) {
             if (!amb.tratarErro(e)) erro = if (e is com.faggin.tactiplan.app.dados.ErroApi && e.status == 403)
@@ -191,7 +206,11 @@ fun EstatisticasTela(amb: AmbienteClube, t3: ServicosT3, comecarNoTreino: Boolea
             escopo.launch {
                 val corpo = corpoEstatisticas(clubeId!!, periodo, filtro, if (aba == 1) campeonato else null)
                 val nome = nomePdfEstatisticas(aba == 0, ctx.nome, filtro)
+                val umJogo = if (aba == 1) jogoSel?.let { id -> listaJogos.firstOrNull { it.id == id } } else null
                 val r = if (aba == 0) iniciarExportacao(context, amb.treino!!.api, "treino", corpo, nome, amb.usuarioId, amb.tratarErro)
+                // um jogo escolhido: o relatório daquele jogo (o mesmo da tela do jogo)
+                else if (umJogo != null) gerarECompartilhar(context, amb.treino!!.api, "jogo", corpoRelatorioJogo(umJogo.id),
+                    nomePdfRelatorioJogo(umJogo.opponent, umJogo.date?.take(10) ?: ""), amb.tratarErro)
                 else gerarECompartilhar(context, amb.treino!!.api, "jogos", corpo, nome, amb.tratarErro)
                 when (r) {
                     is InicioExportar.Erro -> aviso = r.mensagem
@@ -241,6 +260,7 @@ fun EstatisticasTela(amb: AmbienteClube, t3: ServicosT3, comecarNoTreino: Boolea
         }
         if (aba == 1 && clubeId != null) {
             Seletor("Campeonato", campeonato, opcoesCampeonato(campeonatos), { campeonato = it }, tag = "stats:campeonato")
+            if (listaJogos.isNotEmpty()) Seletor("Jogo", jogoSel, opcoesJogo(listaJogos), { jogoSel = it }, tag = "stats:jogo")
         }
         aviso?.let { FaixaTom(it, Tom.AVISO) }
         if (clubeId == null) { EstadoVazio(Icones.grafico, "Nenhum clube nesta conta", "As estatísticas aparecem quando houver um clube."); return@TelaRaiz }

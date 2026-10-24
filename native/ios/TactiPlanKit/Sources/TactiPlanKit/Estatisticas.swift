@@ -322,6 +322,38 @@ public func kmTexto(_ km: Double?, casas: Int = 1) -> String {
 
 // MARK: modelos dos jogos
 
+/// Um jogo do período (matchesHistory): base do seletor "Jogo" das Estatísticas.
+public struct JogoDoPeriodo: Codable, Equatable, Sendable, Identifiable {
+    public var id: String
+    public var data: String?
+    public var adversario: String?
+    public var golsFeitos: Int
+    public var golsSofridos: Int
+    enum CodingKeys: String, CodingKey { case id = "session_id", data = "date", adversario = "opponent", golsFeitos = "goals_scored", golsSofridos = "goals_conceded" }
+    public init(id: String, data: String? = nil, adversario: String? = nil, golsFeitos: Int = 0, golsSofridos: Int = 0) {
+        self.id = id; self.data = data; self.adversario = adversario; self.golsFeitos = golsFeitos; self.golsSofridos = golsSofridos
+    }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = (try? c.decodeIfPresent(String.self, forKey: .id)) ?? ""
+        data = try? c.decodeIfPresent(String.self, forKey: .data)
+        adversario = try? c.decodeIfPresent(String.self, forKey: .adversario)
+        golsFeitos = Int(c.numeroFlex(.golsFeitos) ?? 0)
+        golsSofridos = Int(c.numeroFlex(.golsSofridos) ?? 0)
+    }
+}
+
+/// Seletor "Jogo" (depois do campeonato): nil = todos; "05/09 · vs Rival · 2×1", por data.
+public func opcoesJogo(_ lista: [JogoDoPeriodo]) -> [OpcaoCampeonato] {
+    [OpcaoCampeonato(valor: nil, rotulo: "Todos os jogos (\(lista.count))")]
+        + lista.filter { !$0.id.isEmpty }.sorted { ($0.data ?? "") < ($1.data ?? "") }.map { j in
+            let p = String((j.data ?? "").prefix(10)).split(separator: "-")
+            let d = p.count == 3 ? "\(p[2])/\(p[1])" : ""
+            let adv = (j.adversario ?? "").trimmingCharacters(in: .whitespaces)
+            return OpcaoCampeonato(valor: j.id, rotulo: "\(d) · vs \(adv.isEmpty ? "Adversário" : adv) · \(j.golsFeitos)×\(j.golsSofridos)")
+        }
+}
+
 public struct ResultadoForma: Codable, Equatable, Sendable {
     public var resultado: String
     public var data: String?
@@ -425,6 +457,7 @@ public struct StatsJogos: Decodable, Equatable, Sendable {
     public var banco: [JogadorStats] = []
     public var jogadores: [JogadorStats] = []
     public var minutosPossiveis: Int = 0
+    public var historico: [JogoDoPeriodo] = []
 
     enum CodingKeys: String, CodingKey {
         case jogos = "totalMatches", vitorias = "wins", empates = "draws", derrotas = "losses", golsFeitos = "totalGoalsScored",
@@ -436,7 +469,7 @@ public struct StatsJogos: Decodable, Equatable, Sendable {
              vermelhos = "redCards", assistencias = "assists", faltasAcumuladas = "accumulatedFouls", sextaFalta = "sixthFouls",
              modalidade = "modality", maiorVitoria = "biggestWin", maiorDerrota = "biggestLoss", forma = "form",
              artilheiros = "topScorers", assistentes = "topAssisters", minutagem = "topMinutes", banco = "topSubEntries",
-             jogadores = "playerStats", minutosPossiveis = "minutesPossible"
+             jogadores = "playerStats", minutosPossiveis = "minutesPossible", historico = "matchesHistory"
     }
 
     public init() {}
@@ -460,6 +493,7 @@ public struct StatsJogos: Decodable, Equatable, Sendable {
         forma = (try? c.decodeIfPresent([ResultadoForma].self, forKey: .forma)) ?? []
         artilheiros = l(.artilheiros); assistentes = l(.assistentes); minutagem = l(.minutagem); banco = l(.banco); jogadores = l(.jogadores)
         minutosPossiveis = n(.minutosPossiveis)
+        historico = (try? c.decodeIfPresent([JogoDoPeriodo].self, forKey: .historico)) ?? []
     }
     public var futsal: Bool { modalidade == "futsal" }
 }
@@ -560,21 +594,25 @@ public enum CaminhosStats {
         "/stats/training?start_date=\(codificarComponente(i.inicio))&end_date=\(codificarComponente(i.fim))&clubId=\(codificarComponente(clube))"
     }
     /// campeonato: id, CAMPEONATO_SEM ("none" = só amistosos) ou nil (todos).
-    public static func jogos(clube: String, _ i: Intervalo, campeonato: String? = nil) -> String {
+    public static func jogos(clube: String, _ i: Intervalo, campeonato: String? = nil, jogo: String? = nil) -> String {
         "/stats/games?start_date=\(codificarComponente(i.inicio))&end_date=\(codificarComponente(i.fim))&clubId=\(codificarComponente(clube))"
             + (campeonato.map { "&competition_id=\(codificarComponente($0))" } ?? "")
+            + (jogo.map { "&session_id=\(codificarComponente($0))" } ?? "")
     }
 }
 
 public protocol ApiEstatisticas: Sendable {
     func treino(clubeId: String, _ i: Intervalo) async throws -> StatsTreino
-    func jogos(clubeId: String, _ i: Intervalo, campeonato: String?) async throws -> StatsJogos
+    func jogos(clubeId: String, _ i: Intervalo, campeonato: String?, jogo: String?) async throws -> StatsJogos
     /// Campeonatos do clube (inclui arquivados) para o filtro da aba Jogos.
     func campeonatos(clubeId: String) async throws -> [CampeonatoCadastro]
 }
 
 public extension ApiEstatisticas {
-    func jogos(clubeId: String, _ i: Intervalo) async throws -> StatsJogos { try await jogos(clubeId: clubeId, i, campeonato: nil) }
+    func jogos(clubeId: String, _ i: Intervalo) async throws -> StatsJogos { try await jogos(clubeId: clubeId, i, campeonato: nil, jogo: nil) }
+    func jogos(clubeId: String, _ i: Intervalo, campeonato: String?) async throws -> StatsJogos {
+        try await jogos(clubeId: clubeId, i, campeonato: campeonato, jogo: nil)
+    }
 }
 
 /// Filtro de campeonato nas estatísticas de jogos (como o web): nil = todos, "none" = sem campeonato.
@@ -601,8 +639,8 @@ public struct ApiEstatisticasHttp: ApiEstatisticas {
     public func treino(clubeId: String, _ i: Intervalo) async throws -> StatsTreino {
         try await web.json(CaminhosStats.treino(clube: clubeId, i)).decodificar(StatsTreino.self)
     }
-    public func jogos(clubeId: String, _ i: Intervalo, campeonato: String?) async throws -> StatsJogos {
-        try await web.json(CaminhosStats.jogos(clube: clubeId, i, campeonato: campeonato)).decodificar(StatsJogos.self)
+    public func jogos(clubeId: String, _ i: Intervalo, campeonato: String?, jogo: String?) async throws -> StatsJogos {
+        try await web.json(CaminhosStats.jogos(clube: clubeId, i, campeonato: campeonato, jogo: jogo)).decodificar(StatsJogos.self)
     }
     public func campeonatos(clubeId: String) async throws -> [CampeonatoCadastro] {
         try listaOuData(try await web.json(CaminhosCadastros.campeonatos(clube: clubeId))).decodificar([CampeonatoCadastro].self)

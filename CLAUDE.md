@@ -186,6 +186,7 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
 - `POST /api/reports/semana {club_id, start_date, end_date}` (7 dias, training:view): PROGRAMAÇÃO da semana (A4 paisagem,
   template `templates/semana.js`, builder `buildWeekProgram`) — resumo da tela (dias, períodos "Manhã · Tático", blocos,
   jogo/descanso/avaliação, minutos/km), com as fotos do modal. É o "Exportar semana" do web e do app (antes era o `treino`).
-- App: filtro de campeonato nas Estatísticas › Jogos (Kotlin `opcoesCampeonato`, Swift `opcoesCampeonato`).
+- Estatísticas › Jogos (web e app): filtro de campeonato e de JOGO (`session_id` em `/api/stats/games`); com um jogo
+  escolhido a tela mostra só ele e o Exportar gera o Relatório do jogo (`jogo`). Kotlin/Swift: `opcoesCampeonato`, `opcoesJogo`.
 - Plantel: o web usa o PDF do servidor (`plantel`, aceita `category_id`); jsPDF saiu. Coluna "Último clube".
 - PDF da semana: dia com 2+ períodos lista cada período (conteúdo + minutos) — `sessionsByDate[].contentsByPeriod`.

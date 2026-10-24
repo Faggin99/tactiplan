@@ -85,7 +85,7 @@ class FalsasT3 : ApiElenco, ApiStaff, ApiStats, ApiCadastros {
     override suspend fun reenviar(clubeId: String, membroId: String): String? { chamadas += "reenviar:$membroId"; return null }
     // stats
     override suspend fun treino(clubeId: String, p: PeriodoStats): StatsTreino { chamadas += "stats-treino:${p.inicio}:${p.fim}"; return StatsTreino(TotaisTreino(12, 600, 4)) }
-    override suspend fun jogos(clubeId: String, p: PeriodoStats, campeonato: String?) = StatsJogos(totalMatches = 2, wins = 1, draws = 1, pointsWon = 4, pointsPlayed = 6,
+    override suspend fun jogos(clubeId: String, p: PeriodoStats, campeonato: String?, jogo: String?) = StatsJogos(totalMatches = 2, wins = 1, draws = 1, pointsWon = 4, pointsPlayed = 6,
         playerStats = listOf(JogadorStats("a1", "Gabriel Rocha", minutes = 180, appearances = 2, calledUp = 2)), minutesPossible = 180,
         topMinutes = listOf(JogadorStats("a1", "Gabriel Rocha", minutes = 180, appearances = 2)))
     // cadastros

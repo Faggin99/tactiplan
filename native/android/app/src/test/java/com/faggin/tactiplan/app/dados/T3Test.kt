@@ -249,5 +249,11 @@ class T3Test {
             com.faggin.tactiplan.app.dados.cadastros.CampeonatoCad("k1", "Mineiro", "2026"),
             com.faggin.tactiplan.app.dados.cadastros.CampeonatoCad("k2", "Copa", null, arquivado = true)))
         assertEquals(listOf(null to "Todos os campeonatos", "k1" to "Mineiro 2026", "k2" to "Copa (arquivado)", "none" to "Sem campeonato (amistosos)"), ops)
+        assertEquals("/stats/games?start_date=2026-01-01&end_date=2026-12-31&clubId=c1&competition_id=k1&session_id=s9",
+            com.faggin.tactiplan.app.dados.estatisticas.CaminhosStats.jogos("c1", "2026-01-01", "2026-12-31", "k1", "s9"))
+        val js = com.faggin.tactiplan.app.dados.estatisticas.opcoesJogo(listOf(
+            com.faggin.tactiplan.app.dados.estatisticas.JogoDoPeriodo("s2", "2026-09-12", "Juventude", 1, 1),
+            com.faggin.tactiplan.app.dados.estatisticas.JogoDoPeriodo("s1", "2026-09-05T00:00:00.000Z", null, 2, 1)))
+        assertEquals(listOf(null to "Todos os jogos (2)", "s1" to "05/09 · vs Adversário · 2×1", "s2" to "12/09 · vs Juventude · 1×1"), js)
     }
 }

@@ -68,11 +68,14 @@ router.get('/training', async (req, res) => {
 router.get('/games', async (req, res) => {
   try {
     if (!req.user.can('stats:view')) return res.status(403).json({ error: 'Sem permissão' });
-    const { start_date, end_date, clubId, competition_id } = req.query;
+    const { start_date, end_date, clubId, competition_id, session_id } = req.query;
     const { start, end } = getDateRange('custom', start_date, end_date);
     const competitionId = competition_id === 'none' || /^[0-9a-f-]{36}$/i.test(competition_id || '') ? competition_id : null;
+    // session_id: só aquele jogo (o seletor "Jogo" das Estatísticas)
+    const sessionId = /^[0-9a-f-]{36}$/i.test(session_id || '') ? session_id : null;
     const data = await getGameStats({
       competitionId,
+      sessionId,
       workspaceIds: req.user.workspaceIds || [],
       start,
       end,

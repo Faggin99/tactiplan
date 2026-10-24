@@ -223,6 +223,14 @@ fun corpoEstatisticas(clubeId: String, p: PeriodoStats, filtro: String, campeona
     "filter_type" to JsonPrimitive(filtro), "period_label" to JsonPrimitive(rotuloFiltro(filtro)),
 ) + (if (campeonato != null) mapOf("competition_id" to JsonPrimitive(campeonato)) else emptyMap())
 
+/** Seletor "Jogo" (depois do campeonato): null = todos; "05/09 · vs Rival · 2×1", por data. */
+fun opcoesJogo(lista: List<JogoDoPeriodo>): List<Pair<String?, String>> =
+    listOf<Pair<String?, String>>(null to "Todos os jogos (${lista.size})") +
+        lista.filter { it.id.isNotEmpty() }.sortedBy { it.date ?: "" }.map { j ->
+            val d = (j.date ?: "").take(10).split("-").let { if (it.size == 3) "${it[2]}/${it[1]}" else "" }
+            j.id to "$d · vs ${j.opponent?.takeIf { it.isNotBlank() } ?: "Adversário"} · ${j.feitos}×${j.sofridos}"
+        }
+
 /** Filtro de campeonato nas estatísticas de jogos (como o web): null = todos, "none" = sem campeonato. */
 const val CAMPEONATO_SEM = "none"
 
@@ -284,8 +292,14 @@ data class JogadorStats(
     @SerialName("called_up") val calledUp: Int = 0,
 )
 
+/** Um jogo do período (matchesHistory): base do seletor "Jogo" das Estatísticas. */
+@Serializable
+data class JogoDoPeriodo(@SerialName("session_id") val id: String = "", val date: String? = null, val opponent: String? = null,
+    @SerialName("goals_scored") val feitos: Int = 0, @SerialName("goals_conceded") val sofridos: Int = 0)
+
 @Serializable
 data class StatsJogos(
+    val matchesHistory: List<JogoDoPeriodo> = emptyList(),
     val totalMatches: Int = 0,
     val totalGoalsScored: Int = 0,
     val totalGoalsConceded: Int = 0,
@@ -325,22 +339,23 @@ data class StatsJogos(
 object CaminhosStats {
     fun treino(clube: String, ini: String, fim: String) =
         "/stats/training?start_date=${codificarComponente(ini)}&end_date=${codificarComponente(fim)}&clubId=${codificarComponente(clube)}"
-    fun jogos(clube: String, ini: String, fim: String, campeonato: String? = null) =
+    fun jogos(clube: String, ini: String, fim: String, campeonato: String? = null, jogo: String? = null) =
         "/stats/games?start_date=${codificarComponente(ini)}&end_date=${codificarComponente(fim)}&clubId=${codificarComponente(clube)}" +
-            (campeonato?.let { "&competition_id=${codificarComponente(it)}" } ?: "")
+            (campeonato?.let { "&competition_id=${codificarComponente(it)}" } ?: "") +
+            (jogo?.let { "&session_id=${codificarComponente(it)}" } ?: "")
 }
 
 interface ApiStats {
     suspend fun treino(clubeId: String, p: PeriodoStats): StatsTreino
-    suspend fun jogos(clubeId: String, p: PeriodoStats, campeonato: String? = null): StatsJogos
+    suspend fun jogos(clubeId: String, p: PeriodoStats, campeonato: String? = null, jogo: String? = null): StatsJogos
 }
 
 class ApiStatsHttp(private val api: Api, private val token: String, private val workspaceId: String) : ApiStats {
     private suspend fun j(c: String) = api.chamarJson(c, "GET", null, token, mapOf("X-Workspace-Id" to workspaceId))
     override suspend fun treino(clubeId: String, p: PeriodoStats) =
         JsonApp.decodeFromJsonElement(StatsTreino.serializer(), j(CaminhosStats.treino(clubeId, p.inicio, p.fim)))
-    override suspend fun jogos(clubeId: String, p: PeriodoStats, campeonato: String?) =
-        JsonApp.decodeFromJsonElement(StatsJogos.serializer(), j(CaminhosStats.jogos(clubeId, p.inicio, p.fim, campeonato)))
+    override suspend fun jogos(clubeId: String, p: PeriodoStats, campeonato: String?, jogo: String?) =
+        JsonApp.decodeFromJsonElement(StatsJogos.serializer(), j(CaminhosStats.jogos(clubeId, p.inicio, p.fim, campeonato, jogo)))
 }
 
 /** Arredonda para o anel/barras sem estourar 0…100. */

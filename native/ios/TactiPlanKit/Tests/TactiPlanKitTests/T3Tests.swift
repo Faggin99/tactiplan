@@ -305,6 +305,13 @@ private func ok(_ s: String) -> Resposta { Resposta(status: 200, corpo: Data(s.u
                                     CampeonatoCadastro(id: "k2", nome: "Copa", arquivado: true)])
         #expect(ops.map(\.rotulo) == ["Todos os campeonatos", "Mineiro 2026", "Copa (arquivado)", "Sem campeonato (amistosos)"])
         #expect(ops.map(\.valor) == [nil, "k1", "k2", "none"])
+        #expect(CaminhosStats.jogos(clube: "c1", i, campeonato: "k1", jogo: "s9") ==
+                "/stats/games?start_date=2026-01-01&end_date=2026-12-31&clubId=c1&competition_id=k1&session_id=s9")
+        let js = opcoesJogo([JogoDoPeriodo(id: "s2", data: "2026-09-12", adversario: "Juventude", golsFeitos: 1, golsSofridos: 1),
+                             JogoDoPeriodo(id: "s1", data: "2026-09-05T00:00:00.000Z", golsFeitos: 2, golsSofridos: 1)])
+        #expect(js.map(\.rotulo) == ["Todos os jogos (2)", "05/09 · vs Adversário · 2×1", "12/09 · vs Juventude · 1×1"])
+        let st = try JSONDecoder().decode(StatsJogos.self, from: Data(#"{"matchesHistory":[{"session_id":"s1","opponent":"X","goals_scored":2}]}"#.utf8))
+        #expect(st.historico.map(\.id) == ["s1"])
         #expect(nomePdfEstatisticas(jogos: false, clube: "Vila", filtro: .semestre) == "Estatisticas_Treino_Vila_Semestre.pdf")
     }
 }
