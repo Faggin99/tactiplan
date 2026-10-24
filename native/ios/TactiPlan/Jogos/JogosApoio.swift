@@ -55,8 +55,7 @@ final class MonitorRede: ObservableObject {
     deinit { monitor.cancel() }
 }
 
-/// Toque leve (salvar evento, encaixar atleta).
-func vibrarLeve() { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
+/// Toque leve: `vibrarLeve()` está em Quadro/QuadroApoio.swift.
 func vibrarSucesso() { UINotificationFeedbackGenerator().notificationOccurred(.success) }
 
 // MARK: cores fixas do jogo (as do web: gol verde, sofrido vermelho, amarelo, substituição azul)
