@@ -178,3 +178,10 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   `useTacticalBoard.js` com um React mínimo + fieldDimensions/defaultFormations/interpolation + Konva); teste
   `paridade-app-quadro`. Mexeu no quadro do web → regere e rode Kit/Android.
 - Migration 060: `tactical_plays.field_type` aceita `football_7` (antes o web oferecia F7 e salvar dava 500).
+
+## Relatórios/estatísticas (24/10/2026)
+- Estatísticas de jogos: filtro `competition_id` (id | 'none' = sem campeonato) em `GET /api/stats/games` e no PDF `jogos`.
+- `POST /api/reports/jogo {session_id}`: relatório de UM jogo (template `templates/jogo.js`, builder `buildGameSheet`);
+  no web, menu Exportar do modal do jogo ("Convocação (PDF)" + "Relatório do jogo (PDF)"). App ainda não tem.
+- Plantel: o web usa o PDF do servidor (`plantel`, aceita `category_id`); jsPDF saiu. Coluna "Último clube".
+- PDF da semana: dia com 2+ períodos lista cada período (conteúdo + minutos) — `sessionsByDate[].contentsByPeriod`.
