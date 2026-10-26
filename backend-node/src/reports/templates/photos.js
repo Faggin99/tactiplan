@@ -16,8 +16,10 @@ function photoGrid(items, { layout = 'compacto', proporcao = null, legendas = tr
   const fig = (p, extra = '', unit = true) => {
     const t = legendas && p.caption?.title ? `<b>${esc(p.caption.title)}</b>` : '';
     const c = legendas && showContext && p.caption?.context ? `<span>${esc(p.caption.context)}</span>` : '';
-    return `<figure class="ph-item${extra}"${unit ? ' data-unit' : ''} style="margin:0"><div class="img"><img src="${esc(p.src)}" alt=""></div>`
-      + (t || c ? `<figcaption class="cap">${t}${c}</figcaption>` : '') + '</figure>';
+    // legenda EM CIMA da foto: o título é a atividade
+    return `<figure class="ph-item${extra}"${unit ? ' data-unit' : ''} style="margin:0">`
+      + (t || c ? `<figcaption class="cap">${t}${c}</figcaption>` : '')
+      + `<div class="img"><img src="${esc(p.src)}" alt=""></div></figure>`;
   };
   // Mosaico: o destaque e as 2 fotos ao lado formam UMA unidade (o paginador
   // nunca separa o destaque das vizinhas; as demais quebram uma a uma).

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, Trophy, Users, Plus, Trash2, Goal, Shield, AlertTriangle, Clock, UserPlus, Wand2, ArrowLeftRight, Square, RotateCcw } from 'lucide-react';
+import { X, Trophy, Users, Plus, Trash2, Goal, Shield, AlertTriangle, Clock, UserPlus, Wand2, ArrowLeftRight, Square, RotateCcw, GripVertical } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Button } from '../common/Button';
 import { PlayerSelectionModal } from './PlayerSelectionModal';
@@ -10,6 +10,7 @@ import { useSportConfig } from '../../hooks/useSportConfig';
 import { useClub } from '../../contexts/ClubContext';
 import { competitionService } from '../../services/competitionService';
 import { LineupField } from './LineupField';
+import { startLineupDrag } from '../../lib/lineupDrag';
 import { SlotAthletePicker } from './SlotAthletePicker';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { formationsFor, resolveFormation, buildSlots, slotCount, slotRole, remapFormation, suggestSlots, posicaoEmCampo } from '../../lib/formation';
@@ -20,9 +21,10 @@ import { notify } from '../../lib/notify';
 import { downloadReport } from '../../services/reportsService';
 
 // Assinatura do que sai na convocação, para saber se há alteração não salva.
-function lineupSig(players, formation, opponent, competitionId, matchRound, matchLocation) {
+function lineupSig(players, formation, opponent, competitionId, matchRound, matchLocation, info = []) {
   return JSON.stringify([
     formation, String(opponent || ''), String(competitionId || ''), String(matchRound || ''), String(matchLocation || ''),
+    info.map((v) => String(v || '')),
     players.map((p) => [p.athlete_id, p.status, p.slot ?? null, String(p.jersey_number ?? '')]),
   ]);
 }
@@ -35,6 +37,10 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
   const isMobile = useIsMobile(820);
 
   const [opponentName, setOpponentName] = useState('');
+  // Horário, local do jogo e apresentação (aparecem na Convocação)
+  const [matchKickoff, setMatchKickoff] = useState('');
+  const [matchVenue, setMatchVenue] = useState('');
+  const [matchMeetTime, setMatchMeetTime] = useState('');
   const [matchDuration, setMatchDuration] = useState(sport.defaultDuration);
   const [competitionId, setCompetitionId] = useState('');
   const [matchRound, setMatchRound] = useState('');
@@ -83,6 +89,9 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
     try {
       // Carregar dados existentes
       setOpponentName(session.opponent_name || '');
+      setMatchKickoff(session.match_kickoff || '');
+      setMatchVenue(session.match_venue || '');
+      setMatchMeetTime(session.match_meet_time || '');
       setMatchDuration(session.match_duration || sport.defaultDuration);
       setCompetitionId(session.competition_id || '');
       setMatchRound(session.match_round || '');
@@ -110,7 +119,8 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
         name: p.athlete?.name,
       }));
       setSelectedPlayers(loaded);
-      setSavedSig(lineupSig(loaded, f, session.opponent_name, session.competition_id, session.match_round, session.match_location));
+      setSavedSig(lineupSig(loaded, f, session.opponent_name, session.competition_id, session.match_round, session.match_location,
+        [session.match_kickoff, session.match_venue, session.match_meet_time]));
 
       setEvents(matchData.events.map(e => ({
         id: e.id,
@@ -152,6 +162,9 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
         match_round: matchRound || null,
         match_location: matchLocation || null,
         video_full_url: videoFullUrl || null,
+        match_kickoff: matchKickoff || null,
+        match_venue: matchVenue || null,
+        match_meet_time: matchMeetTime || null,
         subs_check: true,
       });
 
@@ -162,6 +175,9 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
         match_round: matchRound || null,
         match_location: matchLocation || null,
         video_full_url: videoFullUrl || null,
+        match_kickoff: matchKickoff || null,
+        match_venue: matchVenue || null,
+        match_meet_time: matchMeetTime || null,
       });
 
       onClose();
@@ -245,6 +261,39 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
       return p;
     }));
   };
+
+  // Arrastar um atleta (do campo, das reservas ou dos titulares sem vaga) para uma vaga.
+  // Titular troca de vaga com quem estiver lá; reserva entra e quem estava vai para as reservas.
+  const dropOnSlot = (athleteId, slot) => {
+    setMovingId(null);
+    const mover = selectedPlayers.find(p => p.athlete_id === athleteId);
+    if (!mover || (mover.status === 'starter' && mover.slot === slot)) return;
+    const occupant = occupantOf(slot);
+    const eraTitular = mover.status === 'starter';
+    const fromSlot = eraTitular ? mover.slot : null;
+    setSelectedPlayers(selectedPlayers.map(p => {
+      if (p.athlete_id === mover.athlete_id) return { ...p, status: 'starter', slot };
+      if (occupant && p.athlete_id === occupant.athlete_id) {
+        return eraTitular ? { ...p, slot: fromSlot } : { ...p, status: 'substitute', slot: null };
+      }
+      return p;
+    }));
+    if (occupant && !eraTitular) notify.success(`${occupant.name || occupant.athlete?.name} foi para as reservas`);
+  };
+  const arrastar = (player) => (e) => startLineupDrag(e, {
+    athleteId: player.athlete_id, label: player.name || player.athlete?.name || 'Atleta', onDrop: dropOnSlot,
+  });
+  // Alça de arrastar das listas (o dedo arrasta só pela alça; o resto da linha rola a lista)
+  const alca = (player) => (
+    <span
+      onPointerDown={arrastar(player)}
+      title="Arraste para uma vaga do campo"
+      aria-label={`Arrastar ${player.name || player.athlete?.name} para uma vaga`}
+      style={{ display: 'inline-flex', alignItems: 'center', cursor: 'grab', touchAction: 'none', color: colors.textSecondary, padding: '0 0.1rem', flexShrink: 0 }}
+    >
+      <GripVertical size={14} />
+    </span>
+  );
 
   const handleSlotClick = (slot) => {
     if (movingId) { moveTo(slot); return; }
@@ -425,12 +474,13 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
 
   // PDF da convocação gerado no servidor (POST /api/reports/convocacao), a partir
   // do jogo SALVO: com alteração pendente no modal, pede para salvar antes.
-  const exportToPdf = async () => {
+  // tamanho: 'normal' | 'grande' | 'muito_grande' (letra dos nomes no campo e nas listas)
+  const exportToPdf = async (tamanho = 'normal') => {
     if (selectedPlayers.length === 0) {
       notify.error('Selecione jogadores antes de exportar');
       return;
     }
-    if (savedSig && savedSig !== lineupSig(selectedPlayers, formation, opponentName, competitionId, matchRound, matchLocation)) {
+    if (savedSig && savedSig !== lineupSig(selectedPlayers, formation, opponentName, competitionId, matchRound, matchLocation, [matchKickoff, matchVenue, matchMeetTime])) {
       notify.info('Salve o jogo antes de exportar: o PDF usa a convocação salva.', { duration: 5000 });
       return;
     }
@@ -438,7 +488,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
     const opponent = opponentName || 'Adversário';
     const fileName = `Convocacao_${opponent.replace(/\s+/g, '_')}_${gameDate.replace(/\//g, '-')}.pdf`;
     try {
-      await downloadReport('convocacao', { session_id: session.id }, fileName);
+      await downloadReport('convocacao', { session_id: session.id, tamanho_fonte: tamanho }, fileName);
     } catch (err) {
       notify.error(err.message || 'Não foi possível gerar o PDF.');
     }
@@ -446,7 +496,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
 
   // Relatório de UM jogo (placar, lances, minutos/gols/cartões por atleta), também do jogo SALVO.
   const exportGameReport = async () => {
-    if (savedSig && savedSig !== lineupSig(selectedPlayers, formation, opponentName, competitionId, matchRound, matchLocation)) {
+    if (savedSig && savedSig !== lineupSig(selectedPlayers, formation, opponentName, competitionId, matchRound, matchLocation, [matchKickoff, matchVenue, matchMeetTime])) {
       notify.info('Salve o jogo antes de exportar: o relatório usa o jogo salvo.', { duration: 5000 });
       return;
     }
@@ -637,7 +687,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                       display: 'grid',
                       gridTemplateColumns: isMobile
                         ? 'repeat(2, minmax(0, 1fr))'
-                        : 'minmax(160px, 2.2fr) 80px 75px minmax(160px, 1.8fr) 55px minmax(140px, 1.5fr) 110px',
+                        : 'minmax(150px, 2fr) 80px 70px minmax(150px, 1.6fr) 55px 92px 92px minmax(130px, 1.4fr) minmax(110px, 1.2fr) 110px',
                       gap: '0.5rem',
                       alignItems: 'end',
                     }}>
@@ -646,7 +696,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                         <input type="text" value={opponentName} onChange={(e) => setOpponentName(e.target.value)} placeholder="Nome do adversário" style={compactInput} />
                       </div>
                       <div>
-                        <label style={labelStyle}>Local</label>
+                        <label style={labelStyle}>Mando</label>
                         <select value={matchLocation} onChange={(e) => setMatchLocation(e.target.value)} style={compactInput}>
                           <option value="">—</option>
                           <option value="home">Casa</option>
@@ -670,6 +720,18 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                       <div>
                         <label style={labelStyle}>Rodada</label>
                         <input type="text" value={matchRound} onChange={(e) => setMatchRound(e.target.value)} placeholder="Nº" style={compactInput} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Horário</label>
+                        <input type="time" value={matchKickoff} onChange={(e) => setMatchKickoff(e.target.value)} style={compactInput} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Apresentação</label>
+                        <input type="time" value={matchMeetTime} onChange={(e) => setMatchMeetTime(e.target.value)} style={compactInput} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Local do jogo</label>
+                        <input type="text" maxLength={120} value={matchVenue} onChange={(e) => setMatchVenue(e.target.value)} placeholder="Estádio / campo" style={compactInput} />
                       </div>
                       <div>
                         <label style={labelStyle}>Vídeo</label>
@@ -749,6 +811,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                         formation={formation}
                         modality={sport.modality}
                         onSlotClick={handleSlotClick}
+                        onDropAthlete={dropOnSlot}
                         movingAthleteId={movingId}
                         maxWidth={isMobile ? 'min(100%, 300px)' : 'min(100%, 264px, calc((95vh - 250px) * 68 / 105))'}
                       />
@@ -782,13 +845,14 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                                   key={p.athlete_id}
                                   type="button"
                                   onClick={() => setMovingId(ativo ? null : p.athlete_id)}
-                                  title="Toque e depois escolha a vaga no campo"
+                                  onPointerDown={arrastar(p)}
+                                  title="Arraste para a vaga, ou toque e depois escolha a vaga no campo"
                                   style={{
                                     minHeight: 32, padding: '0.25rem 0.55rem', borderRadius: '999px',
                                     border: `1px solid ${ativo ? '#facc15' : '#f59e0b88'}`,
                                     backgroundColor: ativo ? '#facc1533' : colors.background,
-                                    color: colors.text, fontSize: '0.74rem', fontWeight: 600, cursor: 'pointer',
-                                    touchAction: 'manipulation',
+                                    color: colors.text, fontSize: '0.74rem', fontWeight: 600, cursor: 'grab',
+                                    touchAction: 'none',
                                   }}
                                 >
                                   {p.name || p.athlete?.name}
@@ -820,8 +884,12 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                             size="sm"
                             variant="outline"
                             pdfLabel="Convocação (PDF)"
-                            onExportPDF={exportToPdf}
-                            extraPdfItems={[{ label: 'Relatório do jogo (PDF)', onClick: exportGameReport }]}
+                            onExportPDF={() => exportToPdf('normal')}
+                            extraPdfItems={[
+                              { label: 'Convocação · letra grande (PDF)', onClick: () => exportToPdf('grande') },
+                              { label: 'Convocação · letra muito grande (PDF)', onClick: () => exportToPdf('muito_grande') },
+                              { label: 'Relatório do jogo (PDF)', onClick: exportGameReport },
+                            ]}
                             onExportExcel={exportToExcel}
                           />
                         )}
@@ -869,6 +937,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                                 const label = role ? (posicaoEmCampo(formation, player.slot, sport.modality) || role) : null;
                                 return (
                                 <div key={player.athlete_id} style={playerRowStyle}>
+                                  {alca(player)}
                                   <button
                                     type="button"
                                     onClick={() => (role ? setPickerSlot(player.slot) : setMovingId(movingId === player.athlete_id ? null : player.athlete_id))}
@@ -941,6 +1010,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                               </div>
                               {substitutes.map((player) => (
                                 <div key={player.athlete_id} style={playerRowStyle}>
+                                  {alca(player)}
                                   <input
                                     type="number"
                                     min="1"

@@ -140,7 +140,8 @@ test('legenda e seleção das fotos da sessão (ordem de envio, contexto da ativ
   ];
   const sel = B.selectSessionPhotos(files, acts);
   assert.deepStrictEqual(sel.map((f) => f.id), [1, 2]);
-  assert.deepStrictEqual(sel[0].caption, { title: 'Marcação', context: 'Atividade 1 · Escanteios' });
+  // título = a atividade; embaixo o bloco e o título digitado do anexo
+  assert.deepStrictEqual(sel[0].caption, { title: 'Escanteios', context: 'Atividade 1 · Marcação' });
   assert.deepStrictEqual(sel[1].caption, { title: 'Treino', context: '' });
 });
 
@@ -244,7 +245,8 @@ test('relatório de jogos: substituições por jogo e minutagem real de todos', 
   const { renderGames } = require('../src/reports/templates/games');
   const html = renderGames(vm, { now: new Date(2026, 9, 20, 10, 0) });
   assert.match(html, /Substituições/);
-  assert.match(html, /2 substituições · 2,0 por jogo · em média aos 60&#39;/);
+  assert.match(html, /2 substituições · 2,0 por jogo</);
+  assert.ok(!html.includes('em média aos'), 'minuto médio da troca saiu (26/10)');
   assert.match(html, /↓<\/span> Da Silva/);
   assert.match(html, /↑<\/span> Kaike/);
   assert.match(html, /<th class="c">Entrou<\/th>/);

@@ -61,7 +61,7 @@
 .bench.two .row .nm{font-size:8pt}
 .bench.two .row{grid-template-columns:6mm minmax(0,1fr) auto;gap:1.5mm}
 .bench .empty,.starters .empty{padding:3mm;font-size:7.5pt}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:2.5mm}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:2.5mm}
 .st{background:var(--surface);border-radius:2mm;padding:2.2mm 3mm}
 .st .l{font:600 6pt Inter;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 .st .v{font:700 12pt/1.2 Poppins}
@@ -69,3 +69,14 @@
 .right .note b{font-weight:600;color:var(--muted)}
 
 .ftr{margin:0 12mm;padding:2.5mm 0 5mm}
+
+/* tamanho da letra escolhido ao exportar (nomes no campo e nas listas) */
+.cv.f-grande .pl .nm{font-size:8.5pt}
+.cv.f-grande .tok{width:11.5mm;height:11.5mm;font-size:12pt}
+.cv.f-grande .row .nm{font-size:10.5pt}
+.cv.f-grande .row .n{font-size:10pt}
+.cv.f-muito_grande .pl .nm{font-size:10pt}
+.cv.f-muito_grande .tok{width:13mm;height:13mm;font-size:13.5pt}
+.cv.f-muito_grande .row .nm{font-size:12pt}
+.cv.f-muito_grande .row .n{font-size:11.5pt}
+.cv.f-muito_grande .row{padding:2mm 0}

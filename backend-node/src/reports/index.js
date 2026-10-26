@@ -80,14 +80,17 @@ async function activitiesInfo(activityIds) {
   const map = new Map();
   if (!activityIds.length) return map;
   const r = await query(
-    `SELECT a.id, b.name AS block_name, t.title
+    `SELECT a.id, b.name AS block_name, t.title,
+            (SELECT string_agg(c.name, ', ' ORDER BY c.name) FROM training_activity_contents tac
+               JOIN contents c ON c.id = tac.content_id WHERE tac.activity_id = a.id) AS conteudos
        FROM training_activities a
        JOIN training_activity_blocks b ON b.id = a.block_id
        LEFT JOIN activity_titles t ON t.id = a.title_id
       WHERE a.id = ANY($1)`,
     [activityIds],
   );
-  for (const row of r.rows) map.set(row.id, { blockName: row.block_name, title: row.title });
+  // título da foto = a atividade (título; sem título, os conteúdos)
+  for (const row of r.rows) map.set(row.id, { blockName: row.block_name, title: row.title || row.conteudos || null });
   return map;
 }
 
@@ -371,6 +374,7 @@ async function carregarJogo(body, user, assets) {
   if (!/^[0-9a-f-]{36}$/i.test(sessionId)) throw new ReportError(400, 'session_id inválido');
   const r = await query(
     `SELECT s.id, s.date, s.session_type, s.opponent_name, s.match_duration, s.match_location, s.match_round, s.formation,
+            s.match_kickoff, s.match_venue, s.match_meet_time,
             s.competition_id, s.club_id AS session_club_id, m.club_id, m.category_id
        FROM training_sessions s
        LEFT JOIN training_microcycles m ON m.id = s.microcycle_id
@@ -404,6 +408,8 @@ async function carregarJogo(body, user, assets) {
 
 async function buildConvocacao(body, user, assets) {
   const { callUp: vm, session } = await carregarJogo(body, user, assets);
+  // Tamanho da letra escolhido na hora de exportar: normal | grande | muito_grande
+  vm.fonte = ['grande', 'muito_grande'].includes(body.tamanho_fonte) ? body.tamanho_fonte : 'normal';
   const date = F.toDateStr(session.date);
   const [y, m, d] = date.split('-');
   return {

@@ -684,9 +684,6 @@ function GameSummaryCards({ stats, colors }) {
             <SummaryLine label="Substituições" colors={colors}
               value={stats.substitutionsTotal || 0}
               sub={(stats.substitutionsTotal || 0) > 0 ? `· ${dec(stats.avgSubstitutionsPerGame)}/jogo` : null} />
-            {stats.avgSubstitutionMinute != null && (
-              <SummaryLine label="Minuto médio da troca" value={`${stats.avgSubstitutionMinute}'`} colors={colors} />
-            )}
           </>
         )}
         <SummaryLine label="Cartões" colors={colors}

@@ -631,14 +631,20 @@ function buildDaySheet({ sessions, team, weekNumber = null, gamesById = null, ph
 }
 
 // ---------------------------------------------------------------- FOTOS
-// Legenda: título do anexo (sem repetir o nome do arquivo cru) + bloco/atividade.
+// Legenda (em CIMA da foto): título = a ATIVIDADE (pedido do dono, 26/10); embaixo dele o
+// bloco e o título do anexo quando foi digitado (o nome cru do arquivo não aparece).
+// Foto sem atividade (anexo do dia): o título do anexo.
 function captionFor(file, activityInfo) {
   const raw = String(file.title || '').trim();
   const fileName = String(file.file_name || '').trim();
-  let title = raw;
-  if (!title || title === fileName) title = fileName.replace(/\.[a-z0-9]+$/i, '');
-  const act = activityInfo ? [activityInfo.blockName, activityInfo.title].filter(Boolean).join(' · ') : '';
-  return { title: F.truncate(title, 60), context: act };
+  const semExt = fileName.replace(/\.[a-z0-9]+$/i, '');
+  const proprio = raw && raw !== fileName && raw !== semExt ? raw : '';
+  if (activityInfo && (activityInfo.title || activityInfo.blockName)) {
+    const title = activityInfo.title || activityInfo.blockName;
+    const context = [activityInfo.title ? activityInfo.blockName : null, proprio || null].filter(Boolean).join(' · ');
+    return { title: F.truncate(title, 60), context: F.truncate(context, 80) };
+  }
+  return { title: F.truncate(proprio || semExt, 60), context: '' };
 }
 
 // files: linhas de training_activity_files (qualquer tipo); activities: Map
@@ -800,11 +806,11 @@ function buildCallUp({ session, team, players = [], formation, competitionName =
     ddmm: F.ddmm(date),
     titleSizePt: callUpTitleSize(team.name, opponent),
     meta,
-    // Não existem no modelo do jogo hoje: aparecem como "—" (seção 5b, item 1)
+    // Dados do jogo (migration 061); vazio aparece como "—"
     info: [
-      { label: 'Horário', value: session.kickoff || null },
-      { label: 'Local', value: session.venue || null },
-      { label: 'Apresentação', value: session.meet_time || null },
+      { label: 'Horário', value: session.match_kickoff || null },
+      { label: 'Local', value: session.match_venue || null },
+      { label: 'Apresentação', value: session.match_meet_time || null },
     ],
     formation,
     field,
@@ -875,9 +881,19 @@ function buildWeekProgram({ team, period, details = [], gamesById = null, weekNu
       split: P.divisaoMinutos(periodos.map((p) => ({ minutes: p.type === 'assessment' ? 0 : p.total }))),
     });
   }
+  // Faixas (linhas do PDF): os períodos dos dias com 2+ períodos, na ordem Manhã → Noite (sem dia
+  // dividido = 1 faixa só). Cada período vai para a faixa do seu nome — também o do dia de período
+  // único ("Tarde · Tático" fica na faixa Tarde). Ocupam a coluna inteira: descanso, dia vazio e o
+  // período sem nome de faixa (jogo de período único).
+  const ORDEM = ['Manhã', 'Tarde', 'Noite'];
+  const bandas = ORDEM.filter((b) => days.some((d) => d.periodos.length > 1 && d.periodos.some((p) => p.label === b)));
+  for (const d of days) {
+    d.span = bandas.length < 2 || !d.periodos.length || d.periodos.some((p) => !bandas.includes(p.label));
+  }
   const meta = [team.modalityLabel, weekNumber ? `Semana ${weekNumber}` : null, period.rangeLong].filter(Boolean).join(' · ');
   return {
     kind: 'semana',
+    bandas: bandas.length >= 2 ? bandas : [],
     team,
     period,
     weekNumber,

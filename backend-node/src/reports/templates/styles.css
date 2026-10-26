@@ -242,9 +242,9 @@ body{font-family:Inter,sans-serif;color:var(--ink);font-size:8.5pt;line-height:1
 .ph-item{break-inside:avoid;min-width:0}
 .ph-item .img{width:100%;aspect-ratio:4/3;border-radius:2.5mm;overflow:hidden;background:var(--surface);border:1px solid var(--line)}
 .ph-item img{width:100%;height:100%;object-fit:cover;display:block}
-.ph-item .cap{margin-top:1.2mm;font-size:7pt;color:var(--ink-2);line-height:1.35}
+.ph-item .cap{margin:0 0 1.2mm;font-size:7pt;color:var(--ink-2);line-height:1.35}
 .ph-item .cap b,.ph-item .cap span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ph-item .cap b{font-weight:600;color:var(--ink)}
+.ph-item .cap b{font-weight:700;color:var(--ink);font-size:7.6pt}
 .ph-item .cap span{color:var(--muted);font-size:6.5pt}
 .ph-day{break-inside:avoid}
 .ph-day .ph-item .img{aspect-ratio:3/2}

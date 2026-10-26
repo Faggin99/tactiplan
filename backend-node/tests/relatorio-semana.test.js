@@ -39,9 +39,14 @@ test('programação da semana: períodos, pilar predominante, jogo, descanso, av
   assert.equal(sab.kind, 'vazio');
   assert.equal(dom.kind, 'vazio');
   assert.equal(vm.badgeSub, '2 treinos · 1 jogo');
+  // faixas: só a Terça tem 2 períodos → Manhã e Tarde; Seg (Manhã) entra na faixa dela;
+  // jogo de período único, descanso e dia vazio ocupam a coluna inteira
+  assert.deepEqual(vm.bandas, ['Manhã', 'Tarde']);
+  assert.deepEqual(vm.days.map((d) => d.span), [false, false, true, true, false, true, true]);
   const html = renderWeekProgram(vm, { now: new Date('2031-03-17T12:00:00Z') });
   assert.match(html, /Programação da semana/);
-  assert.match(html, /Manhã · Físico/);
+  assert.match(html, /grid-row:2 \/ span 2/);
+  assert.match(html, /class="bd"[^>]*>Tarde</);
   assert.match(html, /vs Rival/);
   assert.match(html, /AVALIAÇÃO/);
 });

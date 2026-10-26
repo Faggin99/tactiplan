@@ -119,8 +119,8 @@ function minutes(vm) {
 function substitutions(vm) {
   const sb = vm.substitutions;
   if (!sb || sb.total === 0) return '';
-  const meta = [F.plural(sb.total, 'substituição', 'substituições'), `${F.dec1(sb.perGame)} por jogo`]
-    .concat(sb.avgMinute != null ? [`em média aos ${sb.avgMinute}'`] : []).join(' · ');
+  // minuto médio da troca saiu a pedido do dono (26/10/2026)
+  const meta = [F.plural(sb.total, 'substituição', 'substituições'), `${F.dec1(sb.perGame)} por jogo`].join(' · ');
   const rows = sb.games.map((g) => g.rows.map((r, i) => `<tr>`
     + `<td>${i === 0 ? esc(g.dateLabel) : ''}</td><td>${i === 0 ? `<b>${esc(g.opponent)}</b>` : ''}</td>`
     + `<td class="c"><b>${esc(r.minute)}</b></td>`

@@ -4,6 +4,7 @@
 
 import { readJersey } from '../../lib/lineupLayout';
 import { buildSlots, initials, shortName } from '../../lib/formation';
+import { startLineupDrag } from '../../lib/lineupDrag';
 
 // ---------- Componentes de campo por modalidade ----------
 function FutsalCourt() {
@@ -100,8 +101,10 @@ function FootballField() {
  * @param {string}   props.modality
  * @param {Function} [props.onSlotClick] (slotIndex) => void — sem isso o campo é só leitura
  * @param {string}   [props.movingAthleteId] atleta sendo movido (destaca as vagas de destino)
+ * @param {Function} [props.onDropAthlete] (athleteId, slot) => void — liga o ARRASTAR: o atleta do
+ *   campo vai para outra vaga (troca); listas de fora usam lib/lineupDrag.js com o mesmo callback
  */
-export function LineupField({ players = [], formation, modality = 'football_11', onSlotClick, movingAthleteId = null, maxWidth = 430 }) {
+export function LineupField({ players = [], formation, modality = 'football_11', onSlotClick, movingAthleteId = null, maxWidth = 430, onDropAthlete = null }) {
   const isFutsal = modality === 'futsal';
   const slots = buildSlots(formation);
   const bySlot = new Map();
@@ -123,6 +126,8 @@ export function LineupField({ players = [], formation, modality = 'football_11',
       containerType: 'inline-size',
     }}>
       {isFutsal ? <FutsalCourt /> : <FootballField />}
+      {/* vaga embaixo do atleta arrastado (lib/lineupDrag.js marca data-drop-over) */}
+      <style>{'[data-slot][data-drop-over] > div:first-child{outline:3px solid #facc15;outline-offset:2px;transform:scale(1.12)}'}</style>
 
       {slots.map((s) => {
         const p = bySlot.get(s.index);
@@ -143,6 +148,9 @@ export function LineupField({ players = [], formation, modality = 'football_11',
             aria-label={label}
             disabled={!interactive}
             onClick={interactive ? () => onSlotClick(s.index) : undefined}
+            onPointerDown={p && onDropAthlete ? (e) => startLineupDrag(e, {
+              athleteId: p.athlete_id, label: shortName(name), onDrop: onDropAthlete,
+            }) : undefined}
             style={{
               position: 'absolute',
               left: `${s.x}%`,
@@ -159,7 +167,8 @@ export function LineupField({ players = [], formation, modality = 'football_11',
               border: 'none',
               cursor: interactive ? 'pointer' : 'default',
               WebkitTapHighlightColor: 'transparent',
-              touchAction: 'manipulation',
+              // atleta arrastável: o dedo arrasta o atleta em vez de rolar a tela
+              touchAction: p && onDropAthlete ? 'none' : 'manipulation',
               font: 'inherit',
             }}
           >

@@ -118,7 +118,10 @@ test('builder: 4-4-2 do protótipo (11 titulares por setor da vaga, 3 reservas)'
   assert.deepStrictEqual(vm.counts, { total: 14, starters: 11, bench: 3 });
   assert.deepStrictEqual([vm.weekday, vm.ddmm], ['Quinta-feira', '22/10']);
   assert.deepStrictEqual(vm.meta, ['Mineiro', 'Rodada 2']);
-  assert.deepStrictEqual(vm.info.map((i) => i.value), [null, null, null], 'horário/local/apresentação não existem no modelo');
+  assert.deepStrictEqual(vm.info.map((i) => i.value), [null, null, null], 'sem horário/local/apresentação → "—"');
+  const comInfo = B.buildCallUp({ session: { ...SESSION, match_kickoff: '16:00', match_venue: 'Parque do Sabiá', match_meet_time: '14:30' },
+    team, players: LAURO, formation: '4-4-2' });
+  assert.deepStrictEqual(comInfo.info.map((i) => [i.label, i.value]), [['Horário', '16:00'], ['Local', 'Parque do Sabiá'], ['Apresentação', '14:30']]);
   assert.deepStrictEqual(vm.groups.map((g) => [g.label, g.rows.length]), [['Goleiro', 1], ['Defesa', 4], ['Meio-campo', 4], ['Ataque', 2]]);
   // Pablo Thomaz (CA cadastrado) escalado no meio: grupo Meio-campo, etiqueta = posição EM CAMPO (MEI)
   const meio = vm.groups.find((g) => g.label === 'Meio-campo').rows;
@@ -180,7 +183,9 @@ test('template: A4 paisagem, 1 página, "—" com opacidade e texto escapado', (
   assert.strictEqual((html.match(/<section class="page" data-subtitle/g) || []).length, 1, 'uma página (fora o modelo de continuação)');
   assert.ok(html.includes('&lt;script&gt;x&lt;/script&gt;') && !html.includes('<script>x</script>'));
   assert.strictEqual((html.match(/<span class="nil">—<\/span>/g) || []).length, 3);
-  assert.ok(html.includes('Ataque ↑') && html.includes('4-4-2'));
+  // a formação (4-4-2) não aparece mais no PDF (26/10/2026); letra grande é uma classe na grade
+  assert.ok(html.includes('Ataque ↑') && !html.includes('4-4-2') && !html.includes('Sistema'));
+  assert.ok(renderConvocacao({ ...vm, fonte: 'muito_grande' }, { now: new Date() }).includes('class="cv f-muito_grande"'));
   assert.ok(!html.includes('Escalação não definida'));
   const empty = renderConvocacao(B.buildCallUp({ session: SESSION, team, players: [], formation: '2-3-1' }), { now: new Date() });
   assert.ok(empty.includes('Escalação não definida') && empty.includes('Sem reservas'));

@@ -33,7 +33,7 @@ function pitch(vm) {
   const overlay = vm.hasLineup ? ''
     : `<div class="ov"><div class="empty"><b>Escalação não definida</b>Escolha as vagas no campo do jogo para ver a escalação aqui.</div></div>`;
   return `<div class="pitchwrap"><div class="pitch">${PITCH_LINES}${players}
-    <div class="fmt">${esc(vm.formation)}</div><div class="dir">Ataque ↑</div>${overlay}</div></div>`;
+    <div class="dir">Ataque ↑</div>${overlay}</div></div>`;
 }
 
 function row(r) {
@@ -45,7 +45,8 @@ function row(r) {
 
 function lists(vm) {
   const stats = [
-    ['Convocados', vm.counts.total], ['Titulares', vm.counts.starters], ['Reservas', vm.counts.bench], ['Sistema', vm.formation],
+    // a formação (ex. 4-4-2) não aparece mais (pedido de 26/10/2026)
+    ['Convocados', vm.counts.total], ['Titulares', vm.counts.starters], ['Reservas', vm.counts.bench],
   ].map(([l, v]) => `<div class="st"><div class="l">${esc(l)}</div><div class="v">${esc(v)}</div></div>`).join('');
   const starters = vm.groups.length
     ? vm.groups.map((g) => `<div class="grp" style="--c:${g.color}"><h4><i></i>${esc(g.label)}</h4>${g.rows.map(row).join('')}</div>`).join('')
@@ -67,7 +68,7 @@ function renderConvocacao(vm, { now }) {
   const html = C.documentHtml({
     title: `Convocação · ${vm.team.name} vs ${vm.opponent}`,
     palette: vm.team.palette,
-    pages: [C.page({ header: header(vm), body: `<div class="cv">${pitch(vm)}${lists(vm)}</div>`, foot })],
+    pages: [C.page({ header: header(vm), body: `<div class="cv f-${esc(vm.fonte || 'normal')}">${pitch(vm)}${lists(vm)}</div>`, foot })],
     contHeader: C.compactHeader({ team: vm.team, reportName: 'Convocação', subtitle: '', right: F.ddmmyyyy(vm.date) }),
     foot,
   });

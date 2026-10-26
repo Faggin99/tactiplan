@@ -75,6 +75,19 @@ router.get('/:sessionId', async (req, res) => {
   }
 });
 
+// "16:00" / "9:30" → "16:00" / "09:30"; outro formato ou vazio → null
+function horaOuNull(v) {
+  const m = String(v ?? '').trim().match(/^(\d{1,2})[:h](\d{2})$/i);
+  if (!m) return null;
+  const h = Number(m[1]); const min = Number(m[2]);
+  if (h > 23 || min > 59) return null;
+  return `${String(h).padStart(2, '0')}:${m[2]}`;
+}
+function textoCurto(v, max) {
+  const t = String(v ?? '').trim();
+  return t ? t.slice(0, max) : null;
+}
+
 // POST /api/games/:sessionId
 router.post('/:sessionId', async (req, res) => {
   if (!req.user.can('games:edit')) return res.status(403).json({ error: 'Sem permissão pra editar jogos' });
@@ -132,13 +145,20 @@ router.post('/:sessionId', async (req, res) => {
               video_highlights_url = $7,
               video_goals_url = $8,
               formation = $11,
+              -- horário/local/apresentação (061): só mexe quando o cliente manda (app antigo não apaga)
+              match_kickoff   = CASE WHEN $12 THEN $13 ELSE match_kickoff END,
+              match_venue     = CASE WHEN $14 THEN $15 ELSE match_venue END,
+              match_meet_time = CASE WHEN $16 THEN $17 ELSE match_meet_time END,
               updated_at = NOW()
         WHERE id = $9 AND workspace_id = $10`,
       [opponent_name || null, match_duration || null,
        competition_id || null, match_round || null,
        (['home','away','neutral'].includes(match_location)) ? match_location : null,
        video_full_url || null, video_highlights_url || null, video_goals_url || null,
-       req.params.sessionId, ownerWs, escalacao.formation]
+       req.params.sessionId, ownerWs, escalacao.formation,
+       'match_kickoff' in req.body, horaOuNull(req.body.match_kickoff),
+       'match_venue' in req.body, textoCurto(req.body.match_venue, 120),
+       'match_meet_time' in req.body, horaOuNull(req.body.match_meet_time)]
     );
 
     // Minutagem: o servidor recalcula a partir das substituições/expulsão (a mesma
@@ -199,3 +219,4 @@ router.post('/:sessionId', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.horaOuNull = horaOuNull;
