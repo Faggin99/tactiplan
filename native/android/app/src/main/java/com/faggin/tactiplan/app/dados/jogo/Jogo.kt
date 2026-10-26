@@ -160,6 +160,9 @@ data class DiaDoJogo(
     @SerialName("match_location") val local: String? = null,
     @SerialName("video_full_url") val video: String? = null,
     @SerialName("formation") val formacao: String? = null,
+    @SerialName("match_kickoff") val horario: String? = null,
+    @SerialName("match_venue") val localDoJogo: String? = null,
+    @SerialName("match_meet_time") val apresentacao: String? = null,
 )
 
 @Serializable
@@ -435,7 +438,19 @@ fun corpoRelatorioJogos(clubeId: String, inicio: String, fim: String, rotulo: St
 fun nomePdfJogos(clube: String, rotulo: String): String =
     "Desempenho_${nomeArquivoSeguro(clube)}_${nomeArquivoSeguro(rotulo.ifEmpty { "periodo" })}.pdf"
 
-fun corpoConvocacao(sessaoId: String): Map<String, JsonElement> = mapOf("session_id" to JsonPrimitive(sessaoId))
+/** tamanho: letra dos nomes no PDF — "normal" | "grande" | "muito_grande". */
+fun corpoConvocacao(sessaoId: String, tamanho: String = "normal"): Map<String, JsonElement> =
+    mapOf("session_id" to JsonPrimitive(sessaoId)) + (if (tamanho != "normal") mapOf("tamanho_fonte" to JsonPrimitive(tamanho)) else emptyMap())
+
+/** Letra do PDF da convocação (menu Exportar do jogo): valor → rótulo. */
+val TAMANHOS_CONVOCACAO = listOf("normal" to "Convocação (PDF)", "grande" to "Convocação · letra grande (PDF)",
+    "muito_grande" to "Convocação · letra muito grande (PDF)")
+
+/** Hora digitada → "HH:MM" enquanto digita ("1630" → "16:30", "9" → "9"). Só dígitos, até 4. */
+fun mascaraHora(s: String): String {
+    val d = s.filter { it.isDigit() }.take(4)
+    return if (d.length <= 2) d else "${d.take(2)}:${d.drop(2)}"
+}
 
 /** Relatório de UM jogo (POST /api/reports/jogo): placar, lances e atletas com minutos/gols/cartões. */
 fun corpoRelatorioJogo(sessaoId: String): Map<String, JsonElement> = mapOf("session_id" to JsonPrimitive(sessaoId))

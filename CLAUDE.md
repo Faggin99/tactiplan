@@ -190,3 +190,17 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   escolhido a tela mostra só ele e o Exportar gera o Relatório do jogo (`jogo`). Kotlin/Swift: `opcoesCampeonato`, `opcoesJogo`.
 - Plantel: o web usa o PDF do servidor (`plantel`, aceita `category_id`); jsPDF saiu. Coluna "Último clube".
 - PDF da semana: dia com 2+ períodos lista cada período (conteúdo + minutos) — `sessionsByDate[].contentsByPeriod`.
+
+## Ajustes de 26/10/2026
+- Fotos dos PDFs (ficha/semana): legenda EM CIMA da foto; título = a ATIVIDADE (título da atividade ou os conteúdos),
+  embaixo o bloco e o título digitado do anexo (`captionFor`). Minuto médio da troca saiu de tudo (tela, PDF, app).
+- Programação da semana (`semana`): FAIXAS por período (Manhã/Tarde/Noite) quando algum dia tem 2+ períodos — cada
+  período vai para a linha do seu nome; descanso, dia vazio e jogo de período único ocupam a coluna (`d.span`, `vm.bandas`).
+- Migration 061: `training_sessions.match_kickoff` / `match_venue` / `match_meet_time` (Horário, Local do jogo,
+  Apresentação). `POST /api/games/:id` só mexe neles quando a chave vem no corpo (app antigo não apaga).
+  "Local" Casa/Fora virou "Mando" na tela.
+- Convocação PDF: horário/local/apresentação no topo, SEM a formação; `tamanho_fonte` normal|grande|muito_grande
+  (menu Exportar do jogo, web e app).
+- Arrastar na escalação: web `lib/lineupDrag.js` (pointer events; campo, reservas pela alça ⋮⋮ e titulares sem vaga);
+  app (iOS/Android) arrasta dentro do campo. Regra única `soltar`/`dropOnSlot`: titular troca de vaga; reserva entra e
+  o ocupante vai para as reservas.

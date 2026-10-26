@@ -40,7 +40,7 @@ struct EscalacaoAba: View {
                     .accessibilityHint(podeEditar ? "Toque para trocar a formação" : "")
                     Spacer()
                     if podeEditar {
-                        Text("Toque numa vaga para escalar").tipo(Tipos.corpo13).foregroundColor(c.tinta2.color)
+                        Text("Toque numa vaga ou arraste o atleta").tipo(Tipos.corpo13).foregroundColor(c.tinta2.color)
                     }
                 }
                 if let m = movendo, let p = ed.jogador(m) {
@@ -54,7 +54,12 @@ struct EscalacaoAba: View {
                     .background(RoundedRectangle(cornerRadius: 10).fill(Color.yellow.opacity(0.18)))
                     .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.yellow.opacity(0.5)))
                 }
-                CampoDoJogo(editor: ed, movendo: movendo, aoTocar: podeEditar ? { tocar($0) } : nil)
+                CampoDoJogo(editor: ed, movendo: movendo, aoTocar: podeEditar ? { tocar($0) } : nil,
+                            aoSoltar: podeEditar ? { id, vaga in
+                                movendo = nil
+                                modelo.mudar { $0.soltar(id, naVaga: vaga) }
+                                vibrarLeve()
+                            } : nil)
                     .frame(maxWidth: 420)
                     .frame(maxWidth: .infinity)
                 if !ed.semVaga.isEmpty { semVaga(ed) }

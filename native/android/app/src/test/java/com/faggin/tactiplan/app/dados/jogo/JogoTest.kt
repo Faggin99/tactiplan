@@ -145,6 +145,23 @@ class EditorJogoTest {
         assertNull(ed.jogador("a3"))
     }
 
+    @Test fun `soltar arrastando titular troca de vaga e reserva manda o ocupante para as reservas`() {
+        var ed = editorReal().mover("a3", 9)
+        ed = ed.soltar("a3", 0).let { (n, aviso) -> assertNull(aviso); n }
+        assertEquals(0, ed.jogador("a3")?.vaga); assertEquals(9, ed.jogador("a1")?.vaga)
+        val reserva = ed.jogadores.first { it.reserva }
+        val (e2, aviso) = ed.soltar(reserva.atletaId, 0)
+        assertTrue(e2.jogador(reserva.atletaId)!!.titular); assertEquals(0, e2.jogador(reserva.atletaId)?.vaga)
+        assertTrue(e2.jogador("a3")!!.reserva); assertTrue(aviso!!.endsWith("foi para as reservas"))
+        assertEquals(e2, e2.soltar(reserva.atletaId, 0).first)
+    }
+
+    @Test fun `mascara de hora e corpo da convocacao com a letra`() {
+        assertEquals("16:30", mascaraHora("1630")); assertEquals("9", mascaraHora("9")); assertEquals("09:3", mascaraHora("09:3x"))
+        assertEquals(mapOf("session_id" to JsonPrimitive("s1")), corpoConvocacao("s1"))
+        assertEquals(JsonPrimitive("grande"), corpoConvocacao("s1", "grande")["tamanho_fonte"])
+    }
+
     @Test fun `trocar formacao avisa quem ficou sem vaga e encaixar sugestao`() {
         var ed = editorReal().colocar(PLANTEL[4], 8).first.colocar(PLANTEL[5], 9).first
         val (e2, aviso) = ed.trocarFormacao("4-5-1"); ed = e2
@@ -195,6 +212,11 @@ class EditorJogoTest {
         assertEquals(JsonPrimitive("away"), c["match_location"])
         assertEquals(JsonNull, c["video_full_url"])
         assertEquals(JsonPrimitive(true), c["subs_check"])
+        // horário/local/apresentação (061): vão sempre (vazio = null), o servidor só mexe quando vêm
+        assertEquals(JsonNull, c["match_kickoff"]); assertEquals(JsonNull, c["match_venue"]); assertEquals(JsonNull, c["match_meet_time"])
+        val c2 = ed.copy(dados = ed.dados.copy(horario = "16:00", localDoJogo = " Parque do Sabiá ", apresentacao = "14:30")).corpoSalvar()
+        assertEquals(JsonPrimitive("16:00"), c2["match_kickoff"]); assertEquals(JsonPrimitive("Parque do Sabiá"), c2["match_venue"])
+        assertEquals(JsonPrimitive("14:30"), c2["match_meet_time"])
         val ps = c["players"] as JsonArray
         val es = c["events"] as JsonArray
         assertEquals(obj("athlete_id" to "a1", "status" to "starter", "slot" to 0, "minutes_played" to 88, "minutes_manual" to true,

@@ -192,19 +192,34 @@ struct CampoDoJogo: View {
     let editor: EditorJogo
     var movendo: String?
     var aoTocar: ((Int) -> Void)?
+    /// Liga o ARRASTAR: o atleta do campo vai para outra vaga (troca). (atletaId, vaga)
+    var aoSoltar: ((String, Int) -> Void)?
+
+    @State private var arrastando: String?
+    @State private var ponto: CGPoint = .zero
 
     var body: some View {
         let d = desenhoDoCampo(editor.modalidade)
         GeometryReader { g in
             let w = g.size.width, h = g.size.height
+            let alvoArrasto = arrastando != nil && w > 0
+                ? vagaMaisPerto(editor.vagas, xPct: ponto.x / w * 100, yPct: ponto.y / h * 100) : nil
             ZStack(alignment: .topLeading) {
                 DesenhoDoCampo(desenho: d)
                 ForEach(editor.vagas) { v in
-                    vaga(v)
+                    vaga(v, realce: alvoArrasto == v.indice)
                         .frame(width: max(52, w * v.espaco / 100))
                         .position(x: w * v.x / 100, y: h * v.y / 100)
+                        .highPriorityGesture(arrasto(v, w: w, h: h))
+                }
+                // o atleta arrastado acompanha o dedo
+                if let id = arrastando, let p = editor.jogador(id) {
+                    AvatarCamisa(camisa: p.camisa, nome: p.nomeExibido, tamanho: 42, destaque: Color.yellow)
+                        .position(x: ponto.x, y: ponto.y - 36)
+                        .allowsHitTesting(false)
                 }
             }
+            .coordinateSpace(name: "campo")
         }
         .aspectRatio(d.largura / d.altura, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -213,11 +228,29 @@ struct CampoDoJogo: View {
         .accessibilityLabel("Campo, formação \(editor.formacao)")
     }
 
-    private func vaga(_ v: Vaga) -> some View {
+    /// Arrastar o atleta da vaga (só vaga ocupada, só com `aoSoltar`): solta na vaga mais perto.
+    private func arrasto(_ v: Vaga, w: CGFloat, h: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 8, coordinateSpace: .named("campo"))
+            .onChanged { g in
+                guard aoSoltar != nil, let p = editor.ocupante(v.indice) else { return }
+                if arrastando == nil { arrastando = p.atletaId; vibrarLeve() }
+                ponto = g.location
+            }
+            .onEnded { g in
+                defer { arrastando = nil }
+                guard let soltar = aoSoltar, let id = arrastando, w > 0, h > 0,
+                      let destino = vagaMaisPerto(editor.vagas, xPct: g.location.x / w * 100, yPct: g.location.y / h * 100)
+                else { return }
+                soltar(id, destino)
+            }
+    }
+
+    private func vaga(_ v: Vaga, realce: Bool = false) -> some View {
         let p = editor.ocupante(v.indice)
         let pos = posicaoEmCampo(editor.formacao, v.indice, editor.modalidade) ?? v.papel
-        let movendoEste = p != nil && p?.atletaId == movendo
-        let alvo = movendo != nil && !movendoEste
+        let quemMove = movendo ?? arrastando
+        let movendoEste = p != nil && p?.atletaId == quemMove
+        let alvo = (quemMove != nil && !movendoEste) || realce
         let rotulo: String = {
             guard let p else { return "Vaga \(pos) vazia" }
             return "\(pos): \(p.nomeExibido ?? "Atleta")\(p.camisa.map { ", camisa \($0)" } ?? "")"

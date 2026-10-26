@@ -273,7 +273,9 @@ struct JogoTela: View {
             ToolbarItemGroup(placement: .navigationBarTrailing) {
                 if podeExportar && modelo.editor != nil {
                     Menu {
-                        Button { exportarConvocacao() } label: { Label("Convocação (PDF)", systemImage: "person.3") }
+                        ForEach(TAMANHOS_CONVOCACAO, id: \.0) { t in
+                            Button { exportarConvocacao(tamanho: t.0) } label: { Label(t.1, systemImage: "person.3") }
+                        }
                         Button { exportarRelatorioJogo() } label: { Label("Relatório do jogo (PDF)", systemImage: "doc.text") }
                     } label: {
                         if exportar.ocupado { ProgressView() } else { Image(systemName: "square.and.arrow.up") }
@@ -527,12 +529,12 @@ struct JogoTela: View {
                          usuarioId: sessao.me.usuario.id)
     }
 
-    private func exportarConvocacao() {
+    private func exportarConvocacao(tamanho: String = "normal") {
         guard let ed = modelo.editor else { return }
         if ed.jogadores.isEmpty { modelo.aviso = MSG_SELECIONE_ANTES; return }
         if modelo.pendencia != nil { modelo.aviso = MSG_ENVIE_ANTES; return }
         if let s = modelo.convocacaoSalva, s != ed.assinaturaConvocacao { modelo.aviso = MSG_SALVE_ANTES; return }
-        exportar.iniciar(tipo: "convocacao", corpo: corpoConvocacao(sessaoId),
+        exportar.iniciar(tipo: "convocacao", corpo: corpoConvocacao(sessaoId, tamanho: tamanho),
                          nome: nomePdfConvocacao(adversario: ed.dados.adversario, data: modelo.dia?.data ?? ""),
                          usuarioId: sessao.me.usuario.id)
     }
@@ -584,13 +586,19 @@ struct DadosJogoAba: View {
                 set: { v in modelo.mudar(conta: false) { ed in if ed.dados[keyPath: k] != v { ed.dados[keyPath: k] = v }; return nil } })
     }
 
+    /// Hora com máscara "HH:MM" enquanto digita.
+    private func hora(_ k: WritableKeyPath<DadosGerais, String>) -> Binding<String> {
+        let b = ligacao(k)
+        return Binding(get: { b.wrappedValue }, set: { b.wrappedValue = mascaraHora($0) })
+    }
+
     var body: some View {
         let c = tema.cores
         if let ed = modelo.editor {
             VStack(alignment: .leading, spacing: 12) {
                 campo("Adversário") { Campo(dica: "Nome do adversário", valor: ligacao(\.adversario), habilitado: podeEditar) }
-                campo("Local") {
-                    Picker("Local", selection: ligacao(\.local)) {
+                campo("Mando") {
+                    Picker("Mando", selection: ligacao(\.local)) {
                         Text("—").tag("")
                         Text("Casa").tag("home")
                         Text("Fora").tag("away")
@@ -629,6 +637,11 @@ struct DadosJogoAba: View {
                     .disabled(!podeEditar)
                 }
                 campo("Rodada") { Campo(dica: "Nº", valor: ligacao(\.rodada), habilitado: podeEditar) }
+                HStack(alignment: .top, spacing: 10) {
+                    campo("Horário") { Campo(dica: "00:00", valor: hora(\.horario), teclado: .numberPad, habilitado: podeEditar) }
+                    campo("Apresentação") { Campo(dica: "00:00", valor: hora(\.apresentacao), teclado: .numberPad, habilitado: podeEditar) }
+                }
+                campo("Local do jogo") { Campo(dica: "Estádio / campo", valor: ligacao(\.localDoJogo), habilitado: podeEditar) }
                 campo("Vídeo") { Campo(dica: "YouTube / Drive", valor: ligacao(\.video), teclado: .URL, habilitado: podeEditar) }
                 if let u = URL(string: ed.dados.video), u.scheme?.hasPrefix("http") == true {
                     Link(destination: u) { Label("Abrir o vídeo", systemImage: "play.rectangle") }

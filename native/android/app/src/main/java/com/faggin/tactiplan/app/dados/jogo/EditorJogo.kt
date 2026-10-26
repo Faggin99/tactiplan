@@ -21,6 +21,10 @@ data class DadosGerais(
     /** "home" | "away" | "neutral" | "" */
     val local: String = "",
     val video: String = "",
+    // Horário, local do jogo e apresentação (migration 061; aparecem na Convocação)
+    val horario: String = "",
+    val localDoJogo: String = "",
+    val apresentacao: String = "",
 )
 
 enum class ProblemaSubstituicao { INCOMPLETA, TITULAR }
@@ -62,6 +66,7 @@ data class EditorJogo(
                 adversario = dia.adversario ?: "",
                 duracao = dia.duracao?.takeIf { it > 0 } ?: cfg.duracaoPadrao,
                 campeonatoId = dia.campeonatoId ?: "", rodada = dia.rodada ?: "", local = dia.local ?: "", video = dia.video ?: "",
+                horario = dia.horario ?: "", localDoJogo = dia.localDoJogo ?: "", apresentacao = dia.apresentacao ?: "",
             )
             val eventos = jogo.eventos.map { e ->
                 e.copy(jogadorId = e.jogadorId ?: e.jogador?.id, jogador2Id = e.jogador2Id ?: e.jogador2?.id)
@@ -162,6 +167,26 @@ data class EditorJogo(
         })
     }
 
+    /** Arrastar e soltar numa vaga (dropOnSlot do web): titular troca de vaga com quem estiver lá;
+     *  reserva entra e quem estava vai para as reservas. Devolve (editor, aviso?). */
+    fun soltar(atletaId: String, vaga: Int): Pair<EditorJogo, String?> {
+        val m = jogador(atletaId) ?: return this to null
+        if (m.titular && m.vaga == vaga) return this to null
+        val ocup = ocupante(vaga)
+        val eraTitular = m.titular
+        val deVaga = if (eraTitular) m.vaga else null
+        val novo = copy(jogadores = jogadores.map { p ->
+            when {
+                p.atletaId == m.atletaId -> p.copy(status = STATUS_TITULAR, vaga = vaga)
+                ocup != null && p.atletaId == ocup.atletaId ->
+                    if (eraTitular) p.copy(vaga = deVaga) else p.copy(status = STATUS_RESERVA, vaga = null)
+                else -> p
+            }
+        })
+        val aviso = if (ocup != null && !eraTitular) "${ocup.nomeExibido ?: "Atleta"} foi para as reservas" else null
+        return novo to aviso
+    }
+
     fun tirarDoCampo(atletaId: String) =
         copy(jogadores = jogadores.map { if (it.atletaId == atletaId) it.copy(status = STATUS_RESERVA, vaga = null) else it })
 
@@ -255,6 +280,9 @@ data class EditorJogo(
             "match_round" to ouNulo(dados.rodada),
             "match_location" to ouNulo(dados.local),
             "video_full_url" to ouNulo(dados.video),
+            "match_kickoff" to ouNulo(dados.horario),
+            "match_venue" to ouNulo(dados.localDoJogo.trim()),
+            "match_meet_time" to ouNulo(dados.apresentacao),
             "subs_check" to JsonPrimitive(true),
         ))
     }
@@ -266,6 +294,7 @@ data class EditorJogo(
         get() = textoCanonico(JsonArray(listOf(
             JsonPrimitive(formacao), JsonPrimitive(dados.adversario), JsonPrimitive(dados.campeonatoId),
             JsonPrimitive(dados.rodada), JsonPrimitive(dados.local),
+            JsonPrimitive(dados.horario), JsonPrimitive(dados.localDoJogo), JsonPrimitive(dados.apresentacao),
             JsonArray(jogadores.map { p ->
                 JsonArray(listOf(JsonPrimitive(p.atletaId), JsonPrimitive(p.status), p.vaga?.let { JsonPrimitive(it) } ?: JsonNull,
                     JsonPrimitive(p.camisa?.toString() ?: "")))

@@ -55,6 +55,14 @@ private func rotulosDasLinhas(_ qtd: Int) -> [String] {
 public let ORDEM_PAPEIS = ["GOL", "DEF", "MEI", "ATA", "LIN"]
 
 /// Uma vaga da formação. `espaco` = largura (%) disponível para a vaga na linha (limita o nome).
+/// Vaga mais perto do ponto (em % do campo), até `raio` %; nil = longe de todas. Arrastar e soltar
+/// no campo da escalação. Paridade: `vagaMaisPerto` em ui/jogos/Escalacao.kt.
+public func vagaMaisPerto(_ vagas: [Vaga], xPct: Double, yPct: Double, raio: Double = 14) -> Int? {
+    vagas.map { ($0.indice, ((($0.x - xPct) * ($0.x - xPct)) + (($0.y - yPct) * 0.75) * (($0.y - yPct) * 0.75)).squareRoot()) }
+        .filter { $0.1 <= raio }
+        .min { $0.1 < $1.1 }?.0
+}
+
 public struct Vaga: Equatable, Sendable, Identifiable {
     public let indice: Int
     public let papel: String

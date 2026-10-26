@@ -670,7 +670,6 @@ struct CardsJogosVista: View {
             Text("Jogo a jogo").tipo(Tipos.corpo13.comPeso(.seminegrito)).foregroundColor(c.tinta2.color)
             if !s.futsal {
                 LinhaInfo(rotulo: "Substituições", valor: s.substituicoes > 0 ? "\(s.substituicoes) · \(decimalWeb(s.substituicoesPorJogo))/jogo" : "0")
-                if let m = s.minutoMedioTroca { LinhaInfo(rotulo: "Minuto médio da troca", valor: "\(m)'") }
             }
             LinhaInfo(rotulo: "Cartões", valor: "\(s.amarelos) amarelo(s) · \(s.vermelhos) vermelho(s)")
             if s.futsal {

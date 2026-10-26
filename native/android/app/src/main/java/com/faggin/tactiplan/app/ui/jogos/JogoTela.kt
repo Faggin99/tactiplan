@@ -264,7 +264,7 @@ fun JogoTela(amb: AmbienteClube, treino: ServicoTreino, api: ApiJogo, sessaoId: 
         }
     }
 
-    fun exportarConvocacao() {
+    fun exportarConvocacao(tamanho: String = "normal") {
         val atual = editor ?: return
         when {
             atual.jogadores.isEmpty() -> { escopo.launch { snack.showSnackbar(MSG_SELECIONE_ANTES) }; return }
@@ -274,7 +274,7 @@ fun JogoTela(amb: AmbienteClube, treino: ServicoTreino, api: ApiJogo, sessaoId: 
         if (exportando) return
         exportando = true
         escopo.launch {
-            val r = gerarECompartilhar(context, treino.api, "convocacao", corpoConvocacao(sessaoId),
+            val r = gerarECompartilhar(context, treino.api, "convocacao", corpoConvocacao(sessaoId, tamanho),
                 nomePdfConvocacao(atual.dados.adversario, pacote?.dia?.data ?: ""), amb.tratarErro)
             if (r is InicioExportar.Erro) dialogo = r.mensagem
             exportando = false
@@ -319,8 +319,10 @@ fun JogoTela(amb: AmbienteClube, treino: ServicoTreino, api: ApiJogo, sessaoId: 
                                 else Icon(Icones.compartilhar, "Exportar PDF do jogo")
                             }
                             DropdownMenu(expanded = menuExportar, onDismissRequest = { menuExportar = false }) {
-                                DropdownMenuItem(text = { Text("Convocação (PDF)") }, onClick = { menuExportar = false; exportarConvocacao() },
-                                    modifier = Modifier.testTag("jogo:exportar:convocacao"))
+                                com.faggin.tactiplan.app.dados.jogo.TAMANHOS_CONVOCACAO.forEach { (t, rotulo) ->
+                                    DropdownMenuItem(text = { Text(rotulo) }, onClick = { menuExportar = false; exportarConvocacao(t) },
+                                        modifier = Modifier.testTag("jogo:exportar:convocacao:$t"))
+                                }
                                 DropdownMenuItem(text = { Text("Relatório do jogo (PDF)") }, onClick = { menuExportar = false; exportarRelatorioJogo() },
                                     modifier = Modifier.testTag("jogo:exportar:relatorio"))
                             }
@@ -380,10 +382,11 @@ fun JogoTela(amb: AmbienteClube, treino: ServicoTreino, api: ApiJogo, sessaoId: 
                                 if (m != null) { movendo = null; mudar(ed.mover(m, v)) } else vagaAberta = v
                             },
                             mover = { movendo = it },
-                            encaixar = { val (n, a) = ed.encaixarSugestao(); mudar(n, a) })
+                            encaixar = { val (n, a) = ed.encaixarSugestao(); mudar(n, a) },
+                            soltar = { id, v -> val (n, a) = ed.soltar(id, v); movendo = null; mudar(n, a) })
                         1 -> AbaEventos(ed, editavel, pacote?.atletas.orEmpty(), abrir = { evento = it; novoEvento = true }, apagar = { apagarEvento = it })
                         2 -> AbaConvocacao(ed, editavel, exportando,
-                            selecionar = { relacionados = true }, exportar = ::exportarConvocacao,
+                            selecionar = { relacionados = true }, exportar = { exportarConvocacao() },
                             tocarEtiqueta = { p -> if (p.vaga != null) vagaAberta = p.vaga else { movendo = p.atletaId; aba = 0 } },
                             editarCamisa = { numero = Numero.Camisa(it) }, editarMinutos = { numero = Numero.Minutos(it) },
                             voltarAuto = { mudar(ed.voltarAoAutomatico(it)) },
@@ -551,7 +554,7 @@ private fun AbaDados(ed: EditorJogo, editavel: Boolean, campeonatos: List<com.fa
     val c = TactiPlan.cores
     val d = ed.dados
     Campo(d.adversario, { mudar(d.copy(adversario = it.take(120))) }, "Adversário", Modifier.testTag("jogo:dados:adversario"), habilitado = editavel)
-    Text("Local", style = TactiPlan.tipos.corpo13, fontWeight = FontWeight.SemiBold, color = c.tinta2)
+    Text("Mando", style = TactiPlan.tipos.corpo13, fontWeight = FontWeight.SemiBold, color = c.tinta2)
     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
         val ops = listOf("" to "—", "home" to "Casa", "away" to "Fora", "neutral" to "Neutro")
         ops.forEachIndexed { i, (v, r) ->
@@ -579,6 +582,14 @@ private fun AbaDados(ed: EditorJogo, editavel: Boolean, campeonatos: List<com.fa
         }
     }
     Campo(d.rodada, { mudar(d.copy(rodada = it.take(20))) }, "Rodada", Modifier.testTag("jogo:dados:rodada"), habilitado = editavel)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Campo(d.horario, { mudar(d.copy(horario = com.faggin.tactiplan.app.dados.jogo.mascaraHora(it))) }, "Horário (00:00)",
+            Modifier.weight(1f).testTag("jogo:dados:horario"), teclado = KeyboardType.Number, habilitado = editavel)
+        Campo(d.apresentacao, { mudar(d.copy(apresentacao = com.faggin.tactiplan.app.dados.jogo.mascaraHora(it))) }, "Apresentação",
+            Modifier.weight(1f).testTag("jogo:dados:apresentacao"), teclado = KeyboardType.Number, habilitado = editavel)
+    }
+    Campo(d.localDoJogo, { mudar(d.copy(localDoJogo = it.take(120))) }, "Local do jogo (estádio / campo)",
+        Modifier.testTag("jogo:dados:local-jogo"), habilitado = editavel)
     Campo(d.video, { mudar(d.copy(video = it.trim().take(500))) }, "Vídeo (YouTube / Drive)", Modifier.testTag("jogo:dados:video"),
         teclado = KeyboardType.Uri, habilitado = editavel)
 }

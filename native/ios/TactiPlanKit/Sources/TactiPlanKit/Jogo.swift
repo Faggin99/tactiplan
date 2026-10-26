@@ -172,19 +172,25 @@ public struct DiaDoJogo: Codable, Equatable, Sendable {
     public var local: String?
     public var video: String?
     public var formacao: String?
+    public var horario: String?
+    public var localDoJogo: String?
+    public var apresentacao: String?
 
     public init(id: String, data: String, nomeDia: String? = nil, tipoBruto: String? = "match", adversario: String? = nil,
                 duracao: Int? = nil, campeonatoId: String? = nil, rodada: String? = nil, local: String? = nil,
-                video: String? = nil, formacao: String? = nil) {
+                video: String? = nil, formacao: String? = nil, horario: String? = nil, localDoJogo: String? = nil,
+                apresentacao: String? = nil) {
         self.id = id; self.data = data; self.nomeDia = nomeDia; self.tipoBruto = tipoBruto; self.adversario = adversario
         self.duracao = duracao; self.campeonatoId = campeonatoId; self.rodada = rodada; self.local = local
         self.video = video; self.formacao = formacao
+        self.horario = horario; self.localDoJogo = localDoJogo; self.apresentacao = apresentacao
     }
 
     enum CodingKeys: String, CodingKey {
         case id, data = "date", nomeDia = "day_name", tipoBruto = "session_type", adversario = "opponent_name"
         case duracao = "match_duration", campeonatoId = "competition_id", rodada = "match_round", local = "match_location"
         case video = "video_full_url", formacao = "formation"
+        case horario = "match_kickoff", localDoJogo = "match_venue", apresentacao = "match_meet_time"
     }
 
     public init(from decoder: Decoder) throws {
@@ -200,6 +206,9 @@ public struct DiaDoJogo: Codable, Equatable, Sendable {
         local = try? c.decodeIfPresent(String.self, forKey: .local)
         video = try? c.decodeIfPresent(String.self, forKey: .video)
         formacao = try? c.decodeIfPresent(String.self, forKey: .formacao)
+        horario = try? c.decodeIfPresent(String.self, forKey: .horario)
+        localDoJogo = try? c.decodeIfPresent(String.self, forKey: .localDoJogo)
+        apresentacao = try? c.decodeIfPresent(String.self, forKey: .apresentacao)
     }
 }
 
@@ -581,8 +590,23 @@ public func nomePdfJogos(clube: String, rotulo: String) -> String {
     "Desempenho_\(nomeArquivoSeguro(clube))_\(nomeArquivoSeguro(rotulo.isEmpty ? "periodo" : rotulo)).pdf"
 }
 
-/// Corpo da convocação (POST /api/reports/convocacao).
-public func corpoConvocacao(_ sessaoId: String) -> [String: Json] { ["session_id": .texto(sessaoId)] }
+/// Corpo da convocação (POST /api/reports/convocacao). tamanho: letra dos nomes —
+/// "normal" | "grande" | "muito_grande".
+public func corpoConvocacao(_ sessaoId: String, tamanho: String = "normal") -> [String: Json] {
+    var c: [String: Json] = ["session_id": .texto(sessaoId)]
+    if tamanho != "normal" { c["tamanho_fonte"] = .texto(tamanho) }
+    return c
+}
+
+/// Letra do PDF da convocação (menu Exportar do jogo): (valor, rótulo).
+public let TAMANHOS_CONVOCACAO: [(String, String)] = [("normal", "Convocação (PDF)"), ("grande", "Convocação · letra grande (PDF)"),
+                                                      ("muito_grande", "Convocação · letra muito grande (PDF)")]
+
+/// Hora digitada → "HH:MM" enquanto digita ("1630" → "16:30", "9" → "9"). Só dígitos, até 4.
+public func mascaraHora(_ s: String) -> String {
+    let d = String(s.filter(\.isNumber).prefix(4))
+    return d.count <= 2 ? d : "\(d.prefix(2)):\(d.dropFirst(2))"
+}
 
 /// Relatório de UM jogo (POST /api/reports/jogo): placar, lances, atletas com minutos/gols/cartões.
 public func corpoRelatorioJogo(_ sessaoId: String) -> [String: Json] { ["session_id": .texto(sessaoId)] }

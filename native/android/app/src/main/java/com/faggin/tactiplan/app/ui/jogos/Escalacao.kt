@@ -1,6 +1,10 @@
 package com.faggin.tactiplan.app.ui.jogos
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -146,18 +150,53 @@ private fun DrawScope.desenhar(d: DesenhoCampo) {
     }
 }
 
-/** Campo/quadra proporcional com as vagas. `aoTocarVaga` null = só leitura. */
+/** Vaga mais perto do ponto (em % do campo), até `raio` %; null = longe de todas. */
+fun vagaMaisPerto(vagas: List<Vaga>, xPct: Double, yPct: Double, raio: Double = 14.0): Int? =
+    vagas.map { it.indice to kotlin.math.hypot(it.x - xPct, (it.y - yPct) * 0.75) }
+        .filter { it.second <= raio }.minByOrNull { it.second }?.first
+
+/** Campo/quadra proporcional com as vagas. `aoTocarVaga` null = só leitura.
+ *  `aoSoltar` liga o ARRASTAR: o atleta do campo vai para outra vaga (troca). */
 @Composable
-fun CampoEscalacao(ed: EditorJogo, movendo: String?, aoTocarVaga: ((Int) -> Unit)?, modifier: Modifier = Modifier) {
+fun CampoEscalacao(ed: EditorJogo, movendo: String?, aoTocarVaga: ((Int) -> Unit)?, modifier: Modifier = Modifier,
+                   aoSoltar: ((String, Int) -> Unit)? = null) {
     val d = desenhoDoCampo(ed.modalidade)
     val vagas = ed.vagas
+    var tamanho by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
+    var arrastando by remember { mutableStateOf<String?>(null) }
+    var ponto by remember { mutableStateOf(Offset.Zero) }
+    val alvoArrasto = if (arrastando != null && tamanho.width > 0)
+        vagaMaisPerto(vagas, ponto.x / tamanho.width * 100.0, ponto.y / tamanho.height * 100.0) else null
     Box(
         modifier.widthIn(max = 420.dp).fillMaxWidth().aspectRatio((d.largura / d.altura).toFloat())
-            .shadow(6.dp, RoundedCornerShape(10.dp)).clip(RoundedCornerShape(10.dp)).testTag("jogo:campo"),
+            .shadow(6.dp, RoundedCornerShape(10.dp)).clip(RoundedCornerShape(10.dp)).testTag("jogo:campo")
+            .onSizeChanged { tamanho = it },
     ) {
         Canvas(Modifier.fillMaxSize()) { desenhar(d) }
         Layout(content = {
-            vagas.forEach { v -> SlotVaga(ed, v, movendo, aoTocarVaga) }
+            vagas.forEach { v ->
+                val ocup = ed.ocupante(v.indice)
+                val arrasto = if (aoSoltar != null && ocup != null) Modifier.pointerInput(ocup.atletaId, v.indice, tamanho) {
+                    detectDragGestures(
+                        onDragStart = { inicio ->
+                            arrastando = ocup.atletaId
+                            // posição do dedo no campo = canto do slot + toque dentro dele
+                            val largura = maxOf(v.espaco / 100 * tamanho.width, 44.dp.toPx().toDouble())
+                            ponto = Offset((v.x / 100 * tamanho.width - largura / 2).toFloat() + inicio.x,
+                                (v.y / 100 * tamanho.height).toFloat() - size.height / 2f + inicio.y)
+                        },
+                        onDrag = { change, delta -> change.consume(); ponto += delta },
+                        onDragEnd = {
+                            val id = arrastando
+                            val destino = vagaMaisPerto(vagas, ponto.x / tamanho.width * 100.0, ponto.y / tamanho.height * 100.0)
+                            arrastando = null
+                            if (id != null && destino != null) aoSoltar(id, destino)
+                        },
+                        onDragCancel = { arrastando = null },
+                    )
+                } else Modifier
+                Box(arrasto) { SlotVaga(ed, v, movendo ?: arrastando, aoTocarVaga, realce = alvoArrasto == v.indice) }
+            }
         }, modifier = Modifier.fillMaxSize()) { med, cons ->
             val w = cons.maxWidth
             val h = cons.maxHeight
@@ -173,16 +212,24 @@ fun CampoEscalacao(ed: EditorJogo, movendo: String?, aoTocarVaga: ((Int) -> Unit
                 }
             }
         }
+        // o atleta arrastado acompanha o dedo
+        arrastando?.let { id ->
+            val p = ed.jogador(id)
+            val dens = androidx.compose.ui.platform.LocalDensity.current
+            Box(Modifier.offset { androidx.compose.ui.unit.IntOffset((ponto.x - with(dens) { 20.dp.toPx() }).toInt(), (ponto.y - with(dens) { 48.dp.toPx() }).toInt()) }) {
+                AvatarCamisa(p?.let { it.camisa ?: it.atleta?.camisa }, p?.nomeExibido ?: "", 40.dp, destaque = true)
+            }
+        }
     }
 }
 
 @Composable
-private fun SlotVaga(ed: EditorJogo, v: Vaga, movendo: String?, aoTocar: ((Int) -> Unit)?) {
+private fun SlotVaga(ed: EditorJogo, v: Vaga, movendo: String?, aoTocar: ((Int) -> Unit)?, realce: Boolean = false) {
     val p = ed.ocupante(v.indice)
     val nome = p?.nomeExibido ?: "Jogador"
     val camisa = p?.let { it.camisa ?: it.atleta?.camisa }
     val estaMovendo = p != null && movendo == p.atletaId
-    val alvo = movendo != null && !estaMovendo
+    val alvo = (movendo != null && !estaMovendo) || realce
     val pos = etiquetaDaVaga(ed.formacao, v.indice, ed.modalidade) ?: v.papel
     val rotulo = if (p != null) "$pos: $nome${camisa?.let { " ($it)" } ?: ""}" else "Vaga ${v.papel} vazia — escolher atleta"
     Column(
@@ -226,6 +273,7 @@ private fun SlotVaga(ed: EditorJogo, v: Vaga, movendo: String?, aoTocar: ((Int) 
 fun AbaEscalacao(
     ed: EditorJogo, editavel: Boolean, movendo: String?,
     trocarFormacao: (String) -> Unit, tocarVaga: (Int) -> Unit, mover: (String?) -> Unit, encaixar: () -> Unit,
+    soltar: ((String, Int) -> Unit)? = null,
 ) {
     val c = TactiPlan.cores
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -257,7 +305,7 @@ fun AbaEscalacao(
         }
     }
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        CampoEscalacao(ed, movendo, if (editavel) tocarVaga else null)
+        CampoEscalacao(ed, movendo, if (editavel) tocarVaga else null, aoSoltar = if (editavel) soltar else null)
     }
     val sem = ed.semVaga
     if (sem.isNotEmpty()) {

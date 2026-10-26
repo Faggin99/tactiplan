@@ -15,11 +15,31 @@ public struct DadosGerais: Codable, Equatable, Sendable {
     /// "home" | "away" | "neutral" | ""
     public var local: String
     public var video: String
+    /// Horário, local do jogo e apresentação (migration 061; aparecem na Convocação).
+    public var horario: String
+    public var localDoJogo: String
+    public var apresentacao: String
 
     public init(adversario: String = "", duracao: Int = 90, campeonatoId: String = "", rodada: String = "",
-                local: String = "", video: String = "") {
+                local: String = "", video: String = "", horario: String = "", localDoJogo: String = "", apresentacao: String = "") {
         self.adversario = adversario; self.duracao = duracao; self.campeonatoId = campeonatoId; self.rodada = rodada
         self.local = local; self.video = video
+        self.horario = horario; self.localDoJogo = localDoJogo; self.apresentacao = apresentacao
+    }
+
+    // Editor guardado no aparelho antes da 061 não tem os campos novos: lê como vazio.
+    enum CodingKeys: String, CodingKey { case adversario, duracao, campeonatoId, rodada, local, video, horario, localDoJogo, apresentacao }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        adversario = try c.decodeIfPresent(String.self, forKey: .adversario) ?? ""
+        duracao = try c.decodeIfPresent(Int.self, forKey: .duracao) ?? 90
+        campeonatoId = try c.decodeIfPresent(String.self, forKey: .campeonatoId) ?? ""
+        rodada = try c.decodeIfPresent(String.self, forKey: .rodada) ?? ""
+        local = try c.decodeIfPresent(String.self, forKey: .local) ?? ""
+        video = try c.decodeIfPresent(String.self, forKey: .video) ?? ""
+        horario = try c.decodeIfPresent(String.self, forKey: .horario) ?? ""
+        localDoJogo = try c.decodeIfPresent(String.self, forKey: .localDoJogo) ?? ""
+        apresentacao = try c.decodeIfPresent(String.self, forKey: .apresentacao) ?? ""
     }
 }
 
@@ -54,7 +74,8 @@ public struct EditorJogo: Codable, Equatable, Sendable {
         }
         let d = DadosGerais(adversario: dia.adversario ?? "", duracao: (dia.duracao ?? 0) > 0 ? dia.duracao! : cfg.duracaoPadrao,
                             campeonatoId: dia.campeonatoId ?? "", rodada: dia.rodada ?? "", local: dia.local ?? "",
-                            video: dia.video ?? "")
+                            video: dia.video ?? "", horario: dia.horario ?? "", localDoJogo: dia.localDoJogo ?? "",
+                            apresentacao: dia.apresentacao ?? "")
         let eventos = jogo.eventos.map { e -> EventoJogo in
             var x = e
             x.jogadorId = e.jogadorId ?? e.jogador?.id
@@ -177,6 +198,27 @@ public struct EditorJogo: Codable, Equatable, Sendable {
             else if let o = ocup, p.atletaId == o.atletaId { q.vaga = deVaga }
             return q
         }
+    }
+
+    /// Arrastar e soltar numa vaga (dropOnSlot do web): titular troca de vaga com quem estiver lá;
+    /// reserva entra e quem estava vai para as reservas. Devolve o aviso, se houver.
+    @discardableResult
+    public mutating func soltar(_ atletaId: String, naVaga vaga: Int) -> String? {
+        guard let m = jogador(atletaId) else { return nil }
+        if m.titular && m.vaga == vaga { return nil }
+        let ocup = ocupante(vaga)
+        let eraTitular = m.titular
+        let deVaga = eraTitular ? m.vaga : nil
+        jogadores = jogadores.map { p in
+            var q = p
+            if p.atletaId == m.atletaId { q.status = STATUS_TITULAR; q.vaga = vaga }
+            else if let o = ocup, p.atletaId == o.atletaId {
+                if eraTitular { q.vaga = deVaga } else { q.status = STATUS_RESERVA; q.vaga = nil }
+            }
+            return q
+        }
+        if let o = ocup, !eraTitular { return "\(o.nomeExibido ?? "Atleta") foi para as reservas" }
+        return nil
     }
 
     /// Tirar do campo: vira reserva.
@@ -303,6 +345,9 @@ public struct EditorJogo: Codable, Equatable, Sendable {
             "match_round": ouNulo(dados.rodada),
             "match_location": ouNulo(dados.local),
             "video_full_url": ouNulo(dados.video),
+            "match_kickoff": ouNulo(dados.horario),
+            "match_venue": ouNulo(dados.localDoJogo.trimmingCharacters(in: .whitespaces)),
+            "match_meet_time": ouNulo(dados.apresentacao),
             "subs_check": true,
         ])
     }
@@ -314,6 +359,7 @@ public struct EditorJogo: Codable, Equatable, Sendable {
     public var assinaturaConvocacao: String {
         Json.lista([
             .texto(formacao), .texto(dados.adversario), .texto(dados.campeonatoId), .texto(dados.rodada), .texto(dados.local),
+            .texto(dados.horario), .texto(dados.localDoJogo), .texto(dados.apresentacao),
             .lista(jogadores.map { p in
                 .lista([.texto(p.atletaId), .texto(p.status), p.vaga.map { .numero(Double($0)) } ?? .nulo,
                         .texto(p.camisa.map(String.init) ?? "")])

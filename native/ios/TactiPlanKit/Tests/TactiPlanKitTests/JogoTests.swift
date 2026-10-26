@@ -126,6 +126,39 @@ let PLANTEL = [
         #expect(ed.jogador("a3") == nil)
     }
 
+    @Test func `soltar arrastando titular troca e reserva manda o ocupante para as reservas`() throws {
+        var ed = try editorReal()
+        ed.mover("a3", paraVaga: 9)
+        #expect(ed.soltar("a3", naVaga: 0) == nil)
+        #expect(ed.jogador("a3")?.vaga == 0 && ed.jogador("a1")?.vaga == 9)
+        let reserva = try #require(ed.jogadores.first { $0.reserva })
+        let aviso = ed.soltar(reserva.atletaId, naVaga: 0)
+        #expect(ed.jogador(reserva.atletaId)?.titular == true && ed.jogador(reserva.atletaId)?.vaga == 0)
+        #expect(ed.jogador("a3")?.reserva == true)
+        #expect(aviso?.hasSuffix("foi para as reservas") == true)
+        let antes = ed
+        #expect(ed.soltar(reserva.atletaId, naVaga: 0) == nil && ed == antes)
+    }
+
+    @Test func `horario local e apresentacao no corpo e editor antigo do aparelho`() throws {
+        var ed = try editorReal()
+        var c = ed.corpoSalvar()
+        #expect(c["match_kickoff"] == .nulo && c["match_venue"] == .nulo && c["match_meet_time"] == .nulo)
+        ed.dados.horario = "16:00"; ed.dados.localDoJogo = " Parque do Sabiá "; ed.dados.apresentacao = "14:30"
+        c = ed.corpoSalvar()
+        #expect(c["match_kickoff"] == "16:00" && c["match_venue"] == "Parque do Sabiá" && c["match_meet_time"] == "14:30")
+        // editor guardado antes da 061 (sem as chaves novas) continua abrindo
+        let velho = try JSONDecoder().decode(DadosGerais.self, from: Data(#"{"adversario":"X","duracao":70,"campeonatoId":"","rodada":"2","local":"home","video":""}"#.utf8))
+        #expect(velho.adversario == "X" && velho.duracao == 70 && velho.horario == "" && velho.localDoJogo == "")
+        #expect(mascaraHora("1630") == "16:30" && mascaraHora("9") == "9" && mascaraHora("09:3x") == "09:3")
+        #expect(corpoConvocacao("s1") == ["session_id": "s1"])
+        #expect(corpoConvocacao("s1", tamanho: "grande") == ["session_id": "s1", "tamanho_fonte": "grande"])
+        let vs = ed.vagas
+        let gol = try #require(vs.first { $0.indice == 0 })
+        #expect(vagaMaisPerto(vs, xPct: gol.x + 2, yPct: gol.y - 2) == 0)
+        #expect(vagaMaisPerto(vs, xPct: -50, yPct: -50) == nil)
+    }
+
     @Test func `trocar formacao avisa quem ficou sem vaga e encaixar sugestao`() throws {
         var ed = try editorReal()
         _ = ed.colocar(PLANTEL[4], naVaga: 8) // EE no 4-3-3 (ATA)

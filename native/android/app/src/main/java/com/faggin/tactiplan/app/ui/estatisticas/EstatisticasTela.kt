@@ -508,7 +508,6 @@ private fun ConteudoJogos(s: StatsJogos, verTodas: () -> Unit) {
         val futsal = s.modality == "futsal"
         if (!futsal) {
             LinhaInfo("Substituições", "${s.substitutionsTotal}" + if (s.substitutionsTotal > 0) " · ${decimalWeb(s.avgSubstitutionsPerGame)}/jogo" else "")
-            s.avgSubstitutionMinute?.let { LinhaInfo("Minuto médio da troca", "${Math.round(it)}'") }
         }
         LinhaInfo("Cartões", "${s.yellowCards} amarelo${if (s.yellowCards == 1) "" else "s"} · ${s.redCards} vermelho${if (s.redCards == 1) "" else "s"}")
         if (futsal) {
