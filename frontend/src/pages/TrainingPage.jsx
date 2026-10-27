@@ -1418,13 +1418,25 @@ export function TrainingPage() {
             notify.error(error.message || 'Não foi possível adicionar o período.');
           }
         }}
-        onRenamePeriod={async (periodo) => {
+        onRenamePeriod={async (periodo, { fechar = true } = {}) => {
           try {
-            await trainingService.renamePeriod(selectedSession.id, periodo);
-            setShowSessionTypeModal(false);
-            await recarregarSemana();
+            let sessionId = selectedSession?.id;
+            if (!sessionId) {
+              // semana ainda não criada no banco: cria a estrutura antes (era o HTTP 404 em /sessions/null/periodo)
+              const response = await trainingService.ensureMicrocycleStructure(currentWeek.identifier, selectedClub.id);
+              sessionId = response.data?.sessions?.find((s) => s.day_of_week === selectedSession?.day_of_week)?.id;
+              if (!sessionId) throw new Error('Falha ao criar sessão no banco de dados');
+              setSelectedSession((s) => (s ? { ...s, id: sessionId } : s));
+            }
+            await trainingService.renamePeriod(sessionId, periodo);
+            if (fechar) {
+              setShowSessionTypeModal(false);
+              await recarregarSemana();
+            }
+            return true;
           } catch (error) {
             notify.error(error.message || 'Não foi possível trocar o horário.');
+            return false;
           }
         }}
         onRemovePeriod={async () => {

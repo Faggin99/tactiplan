@@ -51,6 +51,9 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
   const [novo, setNovo] = useState('tarde');
   const [confirmarRemocao, setConfirmarRemocao] = useState(false);
   const [ocupado, setOcupado] = useState(false);
+  // horário escolhido (Manhã/Tarde/Noite): vale no SALVAR, junto com o tipo (antes era na hora e
+  // fechava o modal, perdendo o tipo/adversário ainda não salvos)
+  const [periodoNovo, setPeriodoNovo] = useState(null);
   // avaliação (tipo do período) e avaliação do período novo
   const [avTipos, setAvTipos] = useState([]);
   const [avOutra, setAvOutra] = useState('');
@@ -73,6 +76,7 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
       setAvOutra(session.assessment_other || '');
     }
     setNovoTipo('training'); setNovoAvTipos([]); setNovoAvOutra('');
+    setPeriodoNovo(null);
     setAdicionando(false);
     setConfirmarRemocao(false);
     setOcupado(false);
@@ -90,14 +94,20 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
   const avaliacaoNova = normalizarAvaliacao({ tipos: novoAvTipos, outra: novoAvTipos.includes('outra') ? novoAvOutra : '' });
   const salvarBloqueado = sessionType === 'assessment' && !avaliacaoAtual.ok;
 
-  const handleSave = () => {
+  const periodoAtual = periodos ? session?.periodo : efetivoUnico;
+  const handleSave = () => rodar(async () => {
     if (salvarBloqueado) return;
-    onSave({
+    const comHorario = periodos || ['training', 'assessment'].includes(sessionType);
+    if (comHorario && periodoNovo && periodoNovo !== periodoAtual && onRenamePeriod) {
+      const ok = await onRenamePeriod(periodoNovo, { fechar: false });
+      if (ok === false) return;
+    }
+    await onSave({
       session_type: sessionType,
       opponent_name: sessionType === 'match' ? opponentName : null,
       ...(sessionType === 'assessment' ? { assessment_types: avaliacaoAtual.tipos, assessment_other: avaliacaoAtual.outra } : {}),
     });
-  };
+  });
 
   async function rodar(fn) {
     if (ocupado) return;
@@ -185,7 +195,7 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
           <Button variant="secondary" onClick={onClose}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={salvarBloqueado} title={salvarBloqueado ? 'Diga qual é a outra avaliação' : undefined}>
+          <Button onClick={handleSave} disabled={salvarBloqueado || ocupado} title={salvarBloqueado ? 'Diga qual é a outra avaliação' : undefined}>
             Salvar
           </Button>
         </>
@@ -279,17 +289,18 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
               </div>
             </div>
 
-            {!periodos && efetivoUnico && onRenamePeriod && !adicionando && (
+            {/* jogo/descanso de período único não têm horário (só "Jogo"/"Descanso") */}
+            {!periodos && efetivoUnico && onRenamePeriod && !adicionando && ['training', 'assessment'].includes(sessionType) && (
               <div>
                 <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.35rem' }}>{session?.session_type === 'assessment' ? 'Horário da avaliação' : 'Horário do treino'}</div>
-                {escolhaPeriodo(efetivoUnico, (p) => { if (p !== efetivoUnico) rodar(() => onRenamePeriod(p)); })}
+                {escolhaPeriodo(periodoNovo || efetivoUnico, (p) => setPeriodoNovo(p))}
               </div>
             )}
 
             {periodos && onRenamePeriod && (
               <div>
                 <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.35rem' }}>Horário deste período</div>
-                {escolhaPeriodo(session?.periodo, (p) => { if (p !== session?.periodo) rodar(() => onRenamePeriod(p)); }, periodos.filter((p) => p.id !== session?.id).map((p) => p.periodo))}
+                {escolhaPeriodo(periodoNovo || session?.periodo, (p) => setPeriodoNovo(p), periodos.filter((p) => p.id !== session?.id).map((p) => p.periodo))}
               </div>
             )}
 
