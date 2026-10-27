@@ -71,3 +71,8 @@ test('paridade: lib/formacaoLivre.js do web = a do servidor', async () => {
     assert.deepEqual(web.vagasLivres(f), vagasLivres(f), f);
   }
 });
+
+test('paridade do app: native/paridade/analise.json atualizado (gerar-analise.js --check)', () => {
+  const r = require('child_process').spawnSync('node', [require('path').join(__dirname, '../../native/paridade/gerar-analise.js'), '--check'], { encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+});

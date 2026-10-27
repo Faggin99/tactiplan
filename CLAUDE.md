@@ -213,7 +213,10 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   seção PREENCHIDA (vazio não aparece; análise individual 2 por página). Formação do rival é texto livre →
   `formacaoLivre.js` (servidor) = `frontend/src/lib/formacaoLivre.js` (teste de paridade).
 - Web: botão "Análise do adversário" no cabeçalho do modal do jogo (`OpponentAnalysisModal.jsx`, 13 seções, campos
-  fora do componente via Context para não perder o foco) + item no Exportar. App: só o PDF (menu do jogo); o
-  preenchimento é no web.
+  fora do componente via Context para não perder o foco) + item no Exportar.
+- App (iOS/Android): menu do jogo › "Preencher análise do adversário" → lista das 13 seções → formulário gerado por
+  um ESQUEMA (Kit `Analise.swift` / `dados/jogo/Analise.kt`, JSON cru por caminho) + "Análise do adversário (PDF)".
+  Paridade: `native/paridade/analise.json` (gerar-analise.js; formato vazio/exemplo + vagas) — mexeu no
+  `normalizar` ou no `formacaoLivre` → regere (o npm test do backend falha se ficar velho).
 - Fix 27/10: escolher o horário (Manhã/Tarde) num dia ainda não criado dava 404 (`/sessions/null/periodo`);
   agora cria a semana antes e o horário vale no Salvar do modal de tipo.

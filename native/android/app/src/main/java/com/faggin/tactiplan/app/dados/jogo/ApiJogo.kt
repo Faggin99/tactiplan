@@ -25,6 +25,7 @@ object CaminhosJogo {
         "/stats/games?clubId=${codificarComponente(clube)}&start_date=${codificarComponente(inicio)}&end_date=${codificarComponente(fim)}"
     fun atletas(clube: String) = "/athletes?status=active&club_id=${codificarComponente(clube)}"
     fun campeonatos(clube: String) = "/competitions?clubId=${codificarComponente(clube)}"
+    fun analise(sessaoId: String) = "/games/${codificarComponente(sessaoId)}/analise"
 }
 
 interface ApiJogo {
@@ -35,6 +36,10 @@ interface ApiJogo {
     suspend fun campeonatos(clubeId: String): List<Campeonato>
     /** POST /api/games/:id com o corpo do editor. */
     suspend fun salvar(sessaoId: String, corpo: JsonObject)
+    /** Análise do adversário: GET devolve { data } (o formato completo, já normalizado). */
+    suspend fun analise(sessaoId: String): JsonObject = throw UnsupportedOperationException("análise do adversário")
+    /** PUT { data } → { data } normalizado pelo servidor. */
+    suspend fun salvarAnalise(sessaoId: String, dados: JsonElement): JsonObject = throw UnsupportedOperationException("análise do adversário")
 }
 
 class ApiJogoHttp(private val api: Api, private val token: String, private val workspaceId: String) : ApiJogo {
@@ -55,6 +60,11 @@ class ApiJogoHttp(private val api: Api, private val token: String, private val w
     override suspend fun campeonatos(clubeId: String): List<Campeonato> =
         json.decodeFromJsonElement(ListSerializer(Campeonato.serializer()), listaOuData(j(CaminhosJogo.campeonatos(clubeId))))
     override suspend fun salvar(sessaoId: String, corpo: JsonObject) { j(CaminhosJogo.jogo(sessaoId), "POST", corpo) }
+    override suspend fun analise(sessaoId: String): JsonObject =
+        ((j(CaminhosJogo.analise(sessaoId)) as? JsonObject)?.get("data") as? JsonObject) ?: JsonObject(emptyMap())
+    override suspend fun salvarAnalise(sessaoId: String, dados: JsonElement): JsonObject =
+        ((j(CaminhosJogo.analise(sessaoId), "PUT", JsonObject(mapOf("data" to dados))) as? JsonObject)?.get("data") as? JsonObject)
+            ?: JsonObject(emptyMap())
 }
 
 // ---------- mensagens ----------

@@ -11,6 +11,7 @@ public enum CaminhosJogo {
     }
     public static func atletas(clube: String) -> String { "/athletes?status=active&club_id=\(codificarComponente(clube))" }
     public static func campeonatos(clube: String) -> String { "/competitions?clubId=\(codificarComponente(clube))" }
+    public static func analise(_ sessaoId: String) -> String { "/games/\(codificarComponente(sessaoId))/analise" }
 }
 
 public protocol ApiJogo: Sendable {
@@ -21,6 +22,15 @@ public protocol ApiJogo: Sendable {
     func campeonatos(clubeId: String) async throws -> [Campeonato]
     /// POST /api/games/:id com o corpo do editor.
     func salvar(_ sessaoId: String, corpo: Json) async throws
+    /// Análise do adversário: GET → o formato completo (já normalizado pelo servidor).
+    func analise(_ sessaoId: String) async throws -> Json
+    /// PUT { data } → o que o servidor gravou (normalizado).
+    func salvarAnalise(_ sessaoId: String, dados: Json) async throws -> Json
+}
+
+public extension ApiJogo {
+    func analise(_ sessaoId: String) async throws -> Json { .objeto([:]) }
+    func salvarAnalise(_ sessaoId: String, dados: Json) async throws -> Json { dados }
 }
 
 public final class ApiJogoHttp: ApiJogo {
@@ -54,6 +64,14 @@ public final class ApiJogoHttp: ApiJogo {
 
     public func salvar(_ sessaoId: String, corpo: Json) async throws {
         _ = try await json(CaminhosJogo.jogo(sessaoId), "POST", corpo)
+    }
+
+    public func analise(_ sessaoId: String) async throws -> Json {
+        try await json(CaminhosJogo.analise(sessaoId))["data"] ?? .objeto([:])
+    }
+
+    public func salvarAnalise(_ sessaoId: String, dados: Json) async throws -> Json {
+        try await json(CaminhosJogo.analise(sessaoId), "PUT", .objeto(["data": dados]))["data"] ?? dados
     }
 }
 

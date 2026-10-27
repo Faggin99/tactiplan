@@ -219,12 +219,17 @@ struct JogoTela: View {
     @State private var evento: EventoAberto?
     @State private var confirmarSaida = false
     @State private var confirmarDescarte = false
+    @State private var abrirAnalise = false
+    private let treino: ServicoTreino
+    private let aoSessaoAcabar: (Error) -> Bool
 
     init(sessaoId: String, sessao: Sessao, contexto: ContextoClube, servico: ServicoJogo, treino: ServicoTreino,
          fila: FilaJogos, aoSessaoAcabar: @escaping (Error) -> Bool) {
         self.sessaoId = sessaoId
         self.sessao = sessao
         self.contexto = contexto
+        self.treino = treino
+        self.aoSessaoAcabar = aoSessaoAcabar
         _modelo = StateObject(wrappedValue: JogoModelo(sessaoId: sessaoId, servico: servico, fila: fila, aoSessaoAcabar: aoSessaoAcabar))
         _exportar = StateObject(wrappedValue: ExportadorRelatorio(servico: treino, aoSessaoAcabar: aoSessaoAcabar))
     }
@@ -278,6 +283,10 @@ struct JogoTela: View {
                         }
                         Button { exportarRelatorioJogo() } label: { Label("Relatório do jogo (PDF)", systemImage: "doc.text") }
                         Button { exportarAnalise() } label: { Label("Análise do adversário (PDF)", systemImage: "list.clipboard") }
+                        Divider()
+                        Button { abrirAnalise = true } label: {
+                            Label(podeEditar ? "Preencher análise do adversário" : "Ver análise do adversário", systemImage: "square.and.pencil")
+                        }
                     } label: {
                         if exportar.ocupado { ProgressView() } else { Image(systemName: "square.and.arrow.up") }
                     }
@@ -330,6 +339,14 @@ struct JogoTela: View {
         } message: { Text(modelo.alerta?.texto ?? "") }
         .avisoTemporario($modelo.aviso)
         .modifier(ApresentacaoRelatorio(exportar: exportar))
+        .navigationDestination(isPresented: $abrirAnalise) {
+            AnaliseTela(sessaoId: sessaoId, adversario: {
+                            let a = modelo.editor?.dados.adversario ?? ""
+                            return a.trimmingCharacters(in: .whitespaces).isEmpty ? "Adversário" : a
+                        }(), data: modelo.dia?.data ?? "", podeEditar: podeEditar, usuarioId: sessao.me.usuario.id,
+                        api: modelo.servico.api, treino: treino, aoSessaoAcabar: aoSessaoAcabar)
+                .environment(\.tema, tema)
+        }
     }
 
     // MARK: conteúdo

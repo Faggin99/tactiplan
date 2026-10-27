@@ -25,6 +25,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
@@ -312,6 +313,13 @@ fun JogoTela(amb: AmbienteClube, treino: ServicoTreino, api: ApiJogo, sessaoId: 
     }
 
     var menuExportar by remember { mutableStateOf(false) }
+    var abrirAnalise by remember { mutableStateOf(false) }
+    if (abrirAnalise) {
+        AnaliseTela(amb, api, sessaoId, ed?.dados?.adversario?.ifBlank { null } ?: "Adversário", pacote?.dia?.data ?: "",
+            editavel = editavel, voltar = { abrirAnalise = false })
+        return
+    }
+
     val tentarVoltar: () -> Unit = { if (sujo && editavel) sairSemSalvar = true else voltar() }
     BackHandler(onBack = tentarVoltar)
 
@@ -340,6 +348,9 @@ fun JogoTela(amb: AmbienteClube, treino: ServicoTreino, api: ApiJogo, sessaoId: 
                                     modifier = Modifier.testTag("jogo:exportar:relatorio"))
                                 DropdownMenuItem(text = { Text("Análise do adversário (PDF)") }, onClick = { menuExportar = false; exportarAnalise() },
                                     modifier = Modifier.testTag("jogo:exportar:analise"))
+                                HorizontalDivider()
+                                DropdownMenuItem(text = { Text(if (editavel) "Preencher análise do adversário" else "Ver análise do adversário") },
+                                    onClick = { menuExportar = false; abrirAnalise = true }, modifier = Modifier.testTag("jogo:analise"))
                             }
                         }
                     }
