@@ -24,6 +24,56 @@ async function contextoDaSessao(client, sessionId) {
   return r.rows[0] || null;
 }
 
+// ---------- Análise do adversário (migration 062) ----------
+const analise = require('../services/analiseAdversario');
+
+// Jogo da workspace do usuário (para a análise): { id, workspace_id } ou null
+async function jogoDoUsuario(sessionId, workspaceIds) {
+  if (!/^[0-9a-f-]{36}$/i.test(String(sessionId || ''))) return null;
+  const r = await query(
+    `SELECT id, workspace_id FROM training_sessions WHERE id = $1 AND workspace_id = ANY($2) AND session_type = 'match'`,
+    [sessionId, workspaceIds],
+  );
+  return r.rows[0] || null;
+}
+
+// GET /api/games/:sessionId/analise → { data, updated_at } (sem análise: o formato vazio)
+router.get('/:sessionId/analise', async (req, res) => {
+  try {
+    if (!req.user.can('games:view')) return res.status(403).json({ error: 'Sem permissão' });
+    const jogo = await jogoDoUsuario(req.params.sessionId, req.user.workspaceIds || []);
+    if (!jogo) return res.status(404).json({ error: 'Jogo não encontrado' });
+    const r = await query('SELECT data, updated_at FROM opponent_analyses WHERE session_id = $1', [jogo.id]);
+    res.json({ data: analise.normalizar(r.rows[0]?.data || {}), updated_at: r.rows[0]?.updated_at || null,
+      secoes: analise.secoesPreenchidas(analise.normalizar(r.rows[0]?.data || {})) });
+  } catch (err) {
+    console.error('Get analise error:', err);
+    res.status(500).json({ error: 'Falha ao carregar a análise' });
+  }
+});
+
+// PUT /api/games/:sessionId/analise { data } — grava a análise inteira (normalizada)
+router.put('/:sessionId/analise', async (req, res) => {
+  try {
+    if (!req.user.can('games:edit')) return res.status(403).json({ error: 'Sem permissão pra editar jogos' });
+    const jogo = await jogoDoUsuario(req.params.sessionId, req.user.workspaceIds || []);
+    if (!jogo) return res.status(404).json({ error: 'Jogo não encontrado' });
+    if (JSON.stringify(req.body?.data || {}).length > 200000) return res.status(413).json({ error: 'Análise grande demais' });
+    const data = analise.normalizar(req.body?.data);
+    const r = await query(
+      `INSERT INTO opponent_analyses (session_id, workspace_id, data, updated_by, updated_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       ON CONFLICT (session_id) DO UPDATE SET data = EXCLUDED.data, updated_by = EXCLUDED.updated_by, updated_at = NOW()
+       RETURNING updated_at`,
+      [jogo.id, jogo.workspace_id, JSON.stringify(data), req.user.id || null],
+    );
+    res.json({ data, updated_at: r.rows[0].updated_at, secoes: analise.secoesPreenchidas(data) });
+  } catch (err) {
+    console.error('Put analise error:', err);
+    res.status(500).json({ error: 'Falha ao salvar a análise' });
+  }
+});
+
 // GET /api/games/:sessionId
 router.get('/:sessionId', async (req, res) => {
   try {

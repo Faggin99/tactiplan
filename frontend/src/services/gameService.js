@@ -1,6 +1,14 @@
 import { api } from './api';
 
 export const gameService = {
+  // Análise do adversário do jogo (migration 062)
+  async getAnalise(sessionId) {
+    return await api.get(`/games/${sessionId}/analise`);
+  },
+  async saveAnalise(sessionId, data) {
+    return await api.put(`/games/${sessionId}/analise`, { data });
+  },
+
   async getMatchData(sessionId) {
     return await api.get(`/games/${sessionId}`);
   },

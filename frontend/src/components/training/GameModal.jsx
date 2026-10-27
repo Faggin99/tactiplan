@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, Trophy, Users, Plus, Trash2, Goal, Shield, AlertTriangle, Clock, UserPlus, Wand2, ArrowLeftRight, Square, RotateCcw, GripVertical } from 'lucide-react';
+import { X, Trophy, Users, Plus, Trash2, Goal, Shield, AlertTriangle, Clock, UserPlus, Wand2, ArrowLeftRight, Square, RotateCcw, GripVertical, ClipboardList } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Button } from '../common/Button';
 import { PlayerSelectionModal } from './PlayerSelectionModal';
@@ -10,6 +10,7 @@ import { useSportConfig } from '../../hooks/useSportConfig';
 import { useClub } from '../../contexts/ClubContext';
 import { competitionService } from '../../services/competitionService';
 import { LineupField } from './LineupField';
+import { OpponentAnalysisModal } from './OpponentAnalysisModal';
 import { startLineupDrag } from '../../lib/lineupDrag';
 import { SlotAthletePicker } from './SlotAthletePicker';
 import { useIsMobile } from '../../hooks/useIsMobile';
@@ -37,6 +38,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
   const isMobile = useIsMobile(820);
 
   const [opponentName, setOpponentName] = useState('');
+  const [showAnalise, setShowAnalise] = useState(false);
   // Horário, local do jogo e apresentação (aparecem na Convocação)
   const [matchKickoff, setMatchKickoff] = useState('');
   const [matchVenue, setMatchVenue] = useState('');
@@ -654,6 +656,21 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
               <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>
                 · {session?.day_name} {session?.date ? session.date.split('-').reverse().join('/') : ''}
               </span>
+              {session?.id && (
+                <button
+                  type="button"
+                  onClick={() => setShowAnalise(true)}
+                  title="Preencher a análise do adversário e gerar o PDF"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.35rem', marginLeft: '0.5rem',
+                    padding: '0.3rem 0.65rem', borderRadius: '0.4rem', cursor: 'pointer',
+                    border: `1px solid ${colors.primary}`, background: `${colors.primary}14`, color: colors.primary,
+                    fontSize: '0.78rem', fontWeight: 600,
+                  }}
+                >
+                  <ClipboardList size={14} /> Análise do adversário
+                </button>
+              )}
             </div>
             <button
               onClick={onClose}
@@ -889,6 +906,8 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                               { label: 'Convocação · letra grande (PDF)', onClick: () => exportToPdf('grande') },
                               { label: 'Convocação · letra muito grande (PDF)', onClick: () => exportToPdf('muito_grande') },
                               { label: 'Relatório do jogo (PDF)', onClick: exportGameReport },
+                              { label: 'Análise do adversário (PDF)', onClick: () => downloadReport('analise', { session_id: session.id },
+                                `Analise_${(opponentName || 'Adversario').replace(/\s+/g, '_')}_${session?.date ? session.date.split('-').reverse().join('-') : ''}.pdf`).catch((e) => notify.error(e.message || 'Não foi possível gerar o PDF.')) },
                             ]}
                             onExportExcel={exportToExcel}
                           />
@@ -1196,6 +1215,13 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
         matchDuration={matchDuration}
         selectedPlayers={selectedPlayers}
         events={events}
+      />
+
+      <OpponentAnalysisModal
+        isOpen={showAnalise}
+        onClose={() => setShowAnalise(false)}
+        session={session}
+        opponentName={opponentName}
       />
     </>
   );

@@ -5,6 +5,7 @@
 //   body sessao:       { session_id, include_photos? }
 //   body convocacao:   { session_id }  (A4 paisagem, games:view)
 //   body jogo:         { session_id }  (relatório de 1 jogo, A4 retrato, games:view)
+//   body analise:      { session_id }  (análise do adversário, A4 paisagem, games:view)
 //   body clube:        { club_id, start_date?, end_date?, period_label?, primary_color? } (padrão: ano corrente)
 //   + fotos?   { ids: [ordem], layout, proporcao, legendas, agrupar, legendasCustom } (modal "Fotos do relatório")
 //   + formato? 'pdf' (padrão) | 'fotos' (JSON: miniaturas p/ o modal) | 'html' (JSON { html }: prévia

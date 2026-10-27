@@ -20,6 +20,8 @@ const { renderClube } = require('./templates/clube');
 const { renderPlantel } = require('./templates/plantel');
 const { renderJogo } = require('./templates/jogo');
 const { renderWeekProgram } = require('./templates/semana');
+const { renderAnalise } = require('./templates/analise');
+const AA = require('../services/analiseAdversario');
 const { formacaoValida, formacaoPadrao } = require('../utils/formacao');
 const P = require('../services/periodos');
 
@@ -445,6 +447,39 @@ async function buildJogo(body, user, assets) {
   };
 }
 
+// Análise do adversário (A4 paisagem): capa com os dados do jogo + uma página por seção PREENCHIDA.
+async function buildAnalise(body, user, assets) {
+  const { session, team, callUp, workspaceIds } = await carregarJogo(body, user, assets);
+  const r = await query('SELECT data FROM opponent_analyses WHERE session_id = $1 AND workspace_id = ANY($2)', [session.id, workspaceIds]);
+  const a = AA.normalizar(r.rows[0]?.data || {});
+  const date = F.toDateStr(session.date);
+  const [y, m, d] = date.split('-');
+  const quando = `${F.ddmmyyyy(date)}${session.match_kickoff ? `, ${session.match_kickoff}` : ''}`;
+  const fatos = [
+    a.capa.fase ? { l: 'Fase', v: a.capa.fase } : null,
+    a.capa.ida ? { l: 'Jogo de ida', v: a.capa.ida } : null,
+    { l: 'Data', v: quando },
+    session.match_venue ? { l: 'Local', v: session.match_venue } : null,
+  ].filter(Boolean);
+  const vm = {
+    team,
+    a,
+    adversario: callUp.opponent,
+    // "Libertadores 2026 · Rodada 6 · Fora" (campeonato/rodada/mando do jogo)
+    subtitulo: callUp.meta.join(' · '),
+    fatos,
+    capaRodape: [a.capa.tecnico ? `Técnico: ${a.capa.tecnico}` : null, a.capa.observacao || null].filter(Boolean).join(' · '),
+    secoes: AA.secoesPreenchidas(a),
+    fontes: a.fontes,
+    right: `vs ${callUp.opponent} · ${F.ddmmyyyy(date)}`,
+  };
+  return {
+    html: renderAnalise(vm, { now: new Date() }),
+    filename: `Analise_${safeName(callUp.opponent) || 'Adversario'}_${d}-${m}-${y}.pdf`,
+    landscape: true,
+  };
+}
+
 // Plantel do clube: mesma consulta/escopo de GET /api/athletes?club_id (categoria do membro).
 async function loadSquad(clubId, workspaceIds, allowedCategoryIds) {
   if (Array.isArray(allowedCategoryIds) && allowedCategoryIds.length === 0) return [];
@@ -543,9 +578,9 @@ async function buildPlantelReport(body, user, assets) {
   };
 }
 
-const BUILDERS = { jogos: buildJogos, treino: buildTreino, semana: buildSemana, sessao: buildSessao, convocacao: buildConvocacao, jogo: buildJogo, clube: buildClube, plantel: buildPlantelReport };
+const BUILDERS = { jogos: buildJogos, treino: buildTreino, semana: buildSemana, sessao: buildSessao, convocacao: buildConvocacao, jogo: buildJogo, analise: buildAnalise, clube: buildClube, plantel: buildPlantelReport };
 // convocacao: a mesma permissão de abrir o jogo (GET /api/games/:id)
-const PERMISSION = { jogos: 'stats:view', treino: 'stats:view', semana: 'training:view', sessao: 'training:view', convocacao: 'games:view', jogo: 'games:view', clube: 'stats:view', plantel: 'athletes:view' };
+const PERMISSION = { jogos: 'stats:view', treino: 'stats:view', semana: 'training:view', sessao: 'training:view', convocacao: 'games:view', jogo: 'games:view', analise: 'games:view', clube: 'stats:view', plantel: 'athletes:view' };
 
 async function generateReport(tipo, body, user, { isStale } = {}) {
   const build = BUILDERS[tipo];
