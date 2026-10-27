@@ -87,10 +87,18 @@ workflows:
           xcrun simctl boot "$SIM_ID" 2>/dev/null || true
           xcrun simctl bootstatus "$SIM_ID" -b
           # macOS não tem `timeout`: o alarm do perl corta o xcodebuild em 7 min se o simulador travar
+          tst=0
           perl -e 'alarm shift; exec @ARGV' 420 xcodebuild test-without-building \
             -project TactiPlan.xcodeproj -scheme TactiPlan -configuration Debug \
             -destination "id=$SIM_ID" -parallel-testing-enabled NO \
-            -test-timeouts-enabled YES -default-test-execution-time-allowance 60
+            -test-timeouts-enabled YES -default-test-execution-time-allowance 60 \
+            -resultBundlePath /tmp/testes-app.xcresult || tst=$?
+          # Falha (crash) de uma tela no teste: o relatório do simulador (com a pilha) vira artefato e
+          # o começo dele sai no log (TelasTests: investigação da aba Mais / ficha do atleta).
+          mkdir -p /tmp/falhas-app
+          find ~/Library/Logs/DiagnosticReports -name 'TactiPlan*' -mmin -60 -exec cp {} /tmp/falhas-app/ \; 2>/dev/null || true
+          for f in /tmp/falhas-app/*; do [ -f "$f" ] || continue; echo "=== $f"; head -c 12000 "$f"; echo; done
+          exit "$tst"
       - name: Número de build
         script: |
           cd native/ios
@@ -107,6 +115,7 @@ workflows:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - /tmp/build-for-testing.log
+      - /tmp/falhas-app/*
     publishing:
       app_store_connect:
         auth: integration
