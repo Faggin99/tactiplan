@@ -277,6 +277,7 @@ struct JogoTela: View {
                             Button { exportarConvocacao(tamanho: t.0) } label: { Label(t.1, systemImage: "person.3") }
                         }
                         Button { exportarRelatorioJogo() } label: { Label("Relatório do jogo (PDF)", systemImage: "doc.text") }
+                        Button { exportarAnalise() } label: { Label("Análise do adversário (PDF)", systemImage: "list.clipboard") }
                     } label: {
                         if exportar.ocupado { ProgressView() } else { Image(systemName: "square.and.arrow.up") }
                     }
@@ -518,6 +519,14 @@ struct JogoTela: View {
     }
 
     // MARK: PDF
+
+    /// Análise do adversário: o PDF do que foi preenchido no web (só o preenchido aparece).
+    private func exportarAnalise() {
+        guard let ed = modelo.editor else { return }
+        exportar.iniciar(tipo: "analise", corpo: corpoRelatorioJogo(sessaoId),
+                         nome: nomePdfAnalise(adversario: ed.dados.adversario, data: modelo.dia?.data ?? ""),
+                         usuarioId: sessao.me.usuario.id)
+    }
 
     /// Relatório de UM jogo (placar, lances, atletas com minutos/gols/cartões), do jogo SALVO.
     private func exportarRelatorioJogo() {

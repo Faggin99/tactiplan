@@ -382,6 +382,7 @@ class ListaJogosTest {
         assertEquals("Convocacao_Rival_FC_24-10-2026.pdf", nomePdfConvocacao("Rival FC", "2026-10-24"))
         assertEquals("Convocacao_Adversario_24-10-2026.pdf", nomePdfConvocacao(null, "2026-10-24"))
         assertEquals("Jogo_Rival_FC_24-10-2026.pdf", nomePdfRelatorioJogo("Rival FC", "2026-10-24"))
+        assertEquals("Analise_Rival_FC_24-10-2026.pdf", nomePdfAnalise("Rival FC", "2026-10-24"))
         assertEquals(mapOf("session_id" to kotlinx.serialization.json.JsonPrimitive("s1")), corpoRelatorioJogo("s1"))
         assertEquals("Desempenho_Demo_FC_3_meses.pdf", nomePdfJogos("Demo FC", "3 meses"))
     }

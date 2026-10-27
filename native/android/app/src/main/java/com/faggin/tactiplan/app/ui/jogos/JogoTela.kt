@@ -298,6 +298,19 @@ fun JogoTela(amb: AmbienteClube, treino: ServicoTreino, api: ApiJogo, sessaoId: 
         }
     }
 
+    // Análise do adversário: o PDF do que foi preenchido no web
+    fun exportarAnalise() {
+        val atual = editor ?: return
+        if (exportando) return
+        exportando = true
+        escopo.launch {
+            val r = gerarECompartilhar(context, treino.api, "analise", corpoRelatorioJogo(sessaoId),
+                com.faggin.tactiplan.app.dados.jogo.nomePdfAnalise(atual.dados.adversario, pacote?.dia?.data ?: ""), amb.tratarErro)
+            if (r is InicioExportar.Erro) dialogo = r.mensagem
+            exportando = false
+        }
+    }
+
     var menuExportar by remember { mutableStateOf(false) }
     val tentarVoltar: () -> Unit = { if (sujo && editavel) sairSemSalvar = true else voltar() }
     BackHandler(onBack = tentarVoltar)
@@ -325,6 +338,8 @@ fun JogoTela(amb: AmbienteClube, treino: ServicoTreino, api: ApiJogo, sessaoId: 
                                 }
                                 DropdownMenuItem(text = { Text("Relatório do jogo (PDF)") }, onClick = { menuExportar = false; exportarRelatorioJogo() },
                                     modifier = Modifier.testTag("jogo:exportar:relatorio"))
+                                DropdownMenuItem(text = { Text("Análise do adversário (PDF)") }, onClick = { menuExportar = false; exportarAnalise() },
+                                    modifier = Modifier.testTag("jogo:exportar:analise"))
                             }
                         }
                     }

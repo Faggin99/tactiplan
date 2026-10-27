@@ -461,6 +461,13 @@ fun nomePdfRelatorioJogo(adversario: String?, data: String): String {
     return nomeArquivoSeguro(base) + ".pdf"
 }
 
+/** Análise do adversário (POST /api/reports/analise; preenchida no web). */
+fun nomePdfAnalise(adversario: String?, data: String): String {
+    val adv = if (adversario.isNullOrBlank()) "Adversário" else adversario
+    val base = "Analise_${adv.split(Regex("\\s+")).filter { it.isNotEmpty() }.joinToString("_")}_${dataBR(data).replace("/", "-")}"
+    return nomeArquivoSeguro(base) + ".pdf"
+}
+
 fun nomePdfConvocacao(adversario: String?, data: String): String {
     val adv = if (adversario.isNullOrBlank()) "Adversário" else adversario
     val base = "Convocacao_${adv.split(Regex("\\s+")).filter { it.isNotEmpty() }.joinToString("_")}_${dataBR(data).replace("/", "-")}"

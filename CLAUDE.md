@@ -204,3 +204,16 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
 - Arrastar na escalação: web `lib/lineupDrag.js` (pointer events; campo, reservas pela alça ⋮⋮ e titulares sem vaga);
   app (iOS/Android) arrasta dentro do campo. Regra única `soltar`/`dropOnSlot`: titular troca de vaga; reserva entra e
   o ocupante vai para as reservas.
+
+## Análise do adversário (27/10/2026)
+- Modelo do dono: Analise_Flamengo_Libertadores_2026.pptx. Migration 062 `opponent_analyses` (1 por jogo, `data` JSONB).
+  `src/services/analiseAdversario.js` → `normalizar` (ÚNICA porta de entrada; corta textos, tira vazios, enums) e
+  `secoesPreenchidas`. `GET/PUT /api/games/:id/analise` (games:view/edit).
+- PDF `POST /api/reports/analise {session_id}` (A4 paisagem): capa (dados do jogo + fase/ida/técnico) + 1 página por
+  seção PREENCHIDA (vazio não aparece; análise individual 2 por página). Formação do rival é texto livre →
+  `formacaoLivre.js` (servidor) = `frontend/src/lib/formacaoLivre.js` (teste de paridade).
+- Web: botão "Análise do adversário" no cabeçalho do modal do jogo (`OpponentAnalysisModal.jsx`, 13 seções, campos
+  fora do componente via Context para não perder o foco) + item no Exportar. App: só o PDF (menu do jogo); o
+  preenchimento é no web.
+- Fix 27/10: escolher o horário (Manhã/Tarde) num dia ainda não criado dava 404 (`/sessions/null/periodo`);
+  agora cria a semana antes e o horário vale no Salvar do modal de tipo.
