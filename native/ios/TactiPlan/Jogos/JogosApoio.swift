@@ -203,7 +203,7 @@ struct CampoDoJogo: View {
         GeometryReader { g in
             let w = g.size.width, h = g.size.height
             let alvoArrasto = arrastando != nil && w > 0
-                ? vagaMaisPerto(editor.vagas, xPct: ponto.x / w * 100, yPct: ponto.y / h * 100) : nil
+                ? vagaMaisPerto(editor.vagas, xPct: Double(ponto.x / w) * 100, yPct: Double(ponto.y / h) * 100) : nil
             ZStack(alignment: .topLeading) {
                 DesenhoDoCampo(desenho: d)
                 ForEach(editor.vagas) { v in
@@ -239,7 +239,7 @@ struct CampoDoJogo: View {
             .onEnded { g in
                 defer { arrastando = nil }
                 guard let soltar = aoSoltar, let id = arrastando, w > 0, h > 0,
-                      let destino = vagaMaisPerto(editor.vagas, xPct: g.location.x / w * 100, yPct: g.location.y / h * 100)
+                      let destino = vagaMaisPerto(editor.vagas, xPct: Double(g.location.x / w) * 100, yPct: Double(g.location.y / h) * 100)
                 else { return }
                 soltar(id, destino)
             }

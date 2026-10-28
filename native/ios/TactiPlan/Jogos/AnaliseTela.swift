@@ -44,7 +44,7 @@ final class AnaliseModelo: ObservableObject {
         do {
             midias = try await treino.enviarMidiaAnalise(sessaoId, tipo: tipo, secao: secao,
                                                          titulo: tipo == "video" ? tituloDoVideo(arquivo.nome) : nil,
-                                                         arquivo: arquivo) { [weak self] p in Task { @MainActor in self?.enviando = p } }
+                                                         arquivo: arquivo) { [modelo = self] p in Task { @MainActor in modelo.enviando = p } }
             aviso = tipo == "escudo" ? "Escudo salvo." : "Vídeo adicionado."
         } catch {
             if !aoSessaoAcabar(error) { aviso = mensagemDeErro(error) }
