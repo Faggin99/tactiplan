@@ -16,6 +16,7 @@ struct Casca: View {
     }
 
     var body: some View {
+        let _ = RegistroDeFalhas.marcar("Casca")
         let abas = abasDoContexto(contexto)
         TabView(selection: selecao(abas)) {
             ForEach(abas) { def in
@@ -71,6 +72,7 @@ struct FaixasDoTopo: View {
     let sessao: Sessao
 
     var body: some View {
+        let _ = RegistroDeFalhas.marcar("FaixasDoTopo")
         if precisaAtualizar(instalada: versaoInstalada, minima: app.config.versaoMinima?.ios) {
             FaixaTom(icone: "arrow.down.app", texto: TEXTO_ATUALIZAR_APP, tom: .info)
         }

@@ -25,6 +25,7 @@ struct Cartao<Conteudo: View>: View {
     }
 
     var body: some View {
+        let _ = RegistroDeFalhas.marcar("Cartao")
         let c = tema.cores
         let forma = RoundedRectangle(cornerRadius: CGFloat(Tokens.raioCard), style: .continuous)
         let corpo = VStack(alignment: .leading, spacing: 0) { conteudo }
@@ -226,6 +227,7 @@ struct Pastilha: View {
     @Environment(\.tema) private var tema
 
     var body: some View {
+        let _ = RegistroDeFalhas.marcar("Pastilha")
         let c = tema.cores
         Text(texto)
             .font(Tipos.legenda11.comPeso(.seminegrito).font)

@@ -11,6 +11,7 @@ struct AvatarIniciais: View {
     @Environment(\.tema) private var tema
 
     var body: some View {
+        let _ = RegistroDeFalhas.marcar("AvatarIniciais")
         let c = tema.cores
         Text(iniciais(nome))
             .font(Tipo.corpo(Double(tamanho) * 0.38, peso: .semibold))
@@ -28,6 +29,7 @@ struct LogoClube: View {
     @Environment(\.colorScheme) private var esquema
 
     var body: some View {
+        let _ = RegistroDeFalhas.marcar("LogoClube")
         let url = logoDoClube(personalizacao, escuro: esquema == .dark).flatMap(URL.init(string:))
         Group {
             if let url {
@@ -70,6 +72,7 @@ struct ListaAgrupada<Linhas: View>: View {
     }
 
     var body: some View {
+        let _ = RegistroDeFalhas.marcar("ListaAgrupada")
         VStack(alignment: .leading, spacing: 6) {
             if let titulo { RotuloSecao(titulo).padding(.horizontal, 4) }
             Cartao(preenchimento: PREENCHIMENTO_LISTA) { linhas }
@@ -115,6 +118,7 @@ struct LinhaAgrupada<Inicio: View>: View {
     }
 
     var body: some View {
+        let _ = RegistroDeFalhas.marcar("LinhaAgrupada")
         if let aoTocar {
             Button(action: aoTocar) { miolo }
                 .buttonStyle(.plain)
@@ -168,6 +172,7 @@ struct LinhaInterruptor: View {
     @Environment(\.tema) private var tema
 
     var body: some View {
+        let _ = RegistroDeFalhas.marcar("LinhaInterruptor")
         let c = tema.cores
         HStack(spacing: 12) {
             IconeLinha(icone: icone)
@@ -196,6 +201,7 @@ struct CabecalhoPerfil: View {
     @Environment(\.tema) private var tema
 
     var body: some View {
+        let _ = RegistroDeFalhas.marcar("CabecalhoPerfil")
         let c = tema.cores
         Cartao {
             HStack(spacing: 14) {
@@ -222,6 +228,7 @@ struct RodapeVersao: View {
     @Environment(\.tema) private var tema
 
     var body: some View {
+        let _ = RegistroDeFalhas.marcar("RodapeVersao")
         let info = Bundle.main.infoDictionary
         VStack(spacing: 4) {
             Text(rotuloVersao(info?["CFBundleShortVersionString"] as? String, info?["CFBundleVersion"] as? String))

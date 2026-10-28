@@ -49,6 +49,7 @@ struct LinhaInfo: View {
     @Environment(\.tema) private var tema
 
     var body: some View {
+        let _ = RegistroDeFalhas.marcar("LinhaInfo")
         let c = tema.cores
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text(rotulo).tipo(Tipos.corpo13).foregroundColor(c.tinta2.color)
@@ -70,6 +71,7 @@ struct FotoAtleta: View {
     @EnvironmentObject private var app: AppEstado
 
     var body: some View {
+        let _ = RegistroDeFalhas.marcar("FotoAtleta")
         Group {
             if let local {
                 Image(uiImage: local).resizable().scaledToFill()

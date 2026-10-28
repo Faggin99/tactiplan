@@ -48,6 +48,7 @@ struct TelaGrande<Acessorio: View, Conteudo: View>: View {
     }
 
     var body: some View {
+        let _ = RegistroDeFalhas.marcar("TelaGrande")
         if empilhada {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) { conteudo }

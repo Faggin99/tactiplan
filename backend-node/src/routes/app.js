@@ -151,6 +151,32 @@ router.post('/push/registrar', appAuth, async (req, res) => {
   }
 });
 
+// Registro de falhas do próprio app (o relatório da Apple não chegava): na abertura seguinte a uma queda,
+// o app manda { plataforma, falha, stderr }. Sem login obrigatório (a queda pode ser antes); limite por IP.
+// Grava uma linha JSON em APP_FALHAS_LOG (padrão /var/log/sports-platform/app-falhas.log).
+const ARQ_FALHAS = process.env.APP_FALHAS_LOG || '/var/log/sports-platform/app-falhas.log';
+const falhasPorIp = new Map();
+router.post('/falhas', async (req, res) => {
+  const agora = Date.now();
+  const ip = req.ip || '';
+  const lista = (falhasPorIp.get(ip) || []).filter((t) => agora - t < 3600e3);
+  if (lista.length >= 20) return res.status(429).json({ error: 'Muitos relatórios.' });
+  lista.push(agora);
+  falhasPorIp.set(ip, lista);
+  const b = req.body || {};
+  const corte = (v, n) => String(v ?? '').slice(0, n);
+  let usuario = null;
+  const tk = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  if (tk) {
+    try { usuario = (await appSessoes.validar(tk))?.usuario?.id || null; } catch { usuario = null; }
+  }
+  const linha = JSON.stringify({ em: new Date().toISOString(), ip, usuario, plataforma: corte(b.plataforma, 20),
+    falha: corte(b.falha, 30000), stderr: corte(b.stderr, 8000) });
+  require('fs').appendFile(ARQ_FALHAS, linha + '\n', (err) => { if (err) console.error('app falhas:', err.message); });
+  console.log(`[app] falha recebida (${corte(b.plataforma, 20)}) ${corte(b.falha, 120).split('\n')[0]}`);
+  res.status(201).json({ ok: true });
+});
+
 router.use((req, res) => res.status(404).json({ error: 'Rota do app não encontrada.', code: 'NAO_ENCONTRADA' }));
 
 module.exports = router;

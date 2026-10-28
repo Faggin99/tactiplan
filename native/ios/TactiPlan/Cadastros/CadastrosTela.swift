@@ -81,6 +81,7 @@ struct SecaoCadastros: View {
     @Environment(\.tema) private var tema
 
     var body: some View {
+        let _ = RegistroDeFalhas.marcar("SecaoCadastros")
         let api = app.apiCadastros(sessao, contexto)
         let fim: (Error) -> Bool = { [token = sessao.token] e in app.controle.tratarErro(e, token: token) }
         ListaAgrupada("Cadastros") {

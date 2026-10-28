@@ -97,6 +97,7 @@ struct SecaoSeguranca: View {
     init() {}
 
     var body: some View {
+        let _ = RegistroDeFalhas.marcar("SecaoSeguranca")
         let disponivel = TravaDoApp.disponivel
         ListaAgrupada("Segurança") {
             LinhaInterruptor(

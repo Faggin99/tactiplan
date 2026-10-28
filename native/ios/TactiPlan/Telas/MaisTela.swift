@@ -19,6 +19,7 @@ struct MaisTela: View {
     }
 
     var body: some View {
+        let _ = RegistroDeFalhas.marcar("MaisTela")
         let me = sessao.me
         let nConvites = me.convites.count
         TelaGrande(ABA_MAIS.rotulo, aoAtualizar: { await app.controle.atualizarMe() }) {
@@ -102,6 +103,7 @@ struct CoresDoClubeTela: View {
     @Environment(\.tema) private var tema
 
     var body: some View {
+        let _ = RegistroDeFalhas.marcar("CoresDoClubeTela")
         let p = contexto.clube?.personalizacao
         TelaGrande("Cores e logo", empilhada: true) {
             Cartao {

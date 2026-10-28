@@ -90,6 +90,7 @@ struct ElencoTela: View {
     }
 
     var body: some View {
+        let _ = RegistroDeFalhas.marcar("ElencoTela")
         TelaGrande(ABA_ELENCO.rotulo, aoAtualizar: { await modelo.carregar() }) {
             HStack(spacing: 4) {
                 if parte == 0 && podeExportar {

@@ -43,6 +43,7 @@ struct AtletaTela: View {
     private var podeLesoes: Bool { contexto.podeEditar("injuries:manage") }
 
     var body: some View {
+        let _ = RegistroDeFalhas.marcar("AtletaTela")
         let c = tema.cores
         let a = atleta
         TelaGrande(a.nome, empilhada: true, aoAtualizar: { await carregarLesoes() }) {

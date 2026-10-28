@@ -67,6 +67,9 @@ struct TactiPlanApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
 
     init() {
+        #if !DEBUG
+        RegistroDeFalhas.instalar() // diagnóstico: a falha vai para o nosso servidor na próxima abertura
+        #endif
         UITabBar.appearance().unselectedItemTintColor = CORES_PADRAO.tinta2.uiColor
         avisarFontesQueFalharam()
         configurarBarraDeNavegacao()
@@ -108,7 +111,10 @@ struct Raiz: View {
         .overlay { if app.estado.sessao != nil { CamadaBloqueio(trava: app.trava) } }
         .environment(\.tema, tema)
         .tint(tema.cores.acaoTinta.color)
-        .task { await app.atualizar(forcar: true) }
+        .task {
+            await RegistroDeFalhas.enviarPendente(base: app.base, token: app.controle.sessao?.token)
+            await app.atualizar(forcar: true)
+        }
         .onChange(of: fase) { f in
             if f == .background { app.trava.foiProFundo() }
             if f == .active {
