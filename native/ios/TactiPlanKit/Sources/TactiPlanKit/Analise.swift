@@ -284,6 +284,8 @@ public struct MidiaAnalise: Codable, Sendable, Equatable, Identifiable {
 }
 
 public let MAX_VIDEOS_ANALISE = 12
+public let MAX_LINKS_ANALISE = 20
+public let MSG_VIDEO_GRANDE = "O vídeo deve ter até 50 MB. Para vídeo grande, cole o link (YouTube, Drive…)."
 public let MAX_BYTES_VIDEO_ANALISE = 50 * 1024 * 1024
 public let MAX_BYTES_ESCUDO = 3 * 1024 * 1024
 
@@ -296,8 +298,18 @@ public func problemaMidiaAnalise(tipo: String, mime: String, tamanho: Int, video
         return nil
     }
     if !["video/mp4", "video/quicktime", "video/webm"].contains(m) { return "Envie um vídeo (MP4, MOV ou WEBM)." }
-    if tamanho > MAX_BYTES_VIDEO_ANALISE { return "O vídeo deve ter até 50 MB." }
+    if tamanho > MAX_BYTES_VIDEO_ANALISE { return MSG_VIDEO_GRANDE }
     if videosNaAnalise >= MAX_VIDEOS_ANALISE { return "Limite de \(MAX_VIDEOS_ANALISE) vídeos por análise." }
+    return nil
+}
+
+/// Link de vídeo (vídeo grande): http(s) completo, até 500 caracteres. nil = ok.
+public func problemaLinkVideo(_ url: String, linksNaAnalise: Int = 0) -> String? {
+    let u = url.trimmingCharacters(in: .whitespacesAndNewlines)
+    if u.count > 500 || u.range(of: #"^https?://[^\s/]+\.[^\s]+$"#, options: [.regularExpression, .caseInsensitive]) == nil {
+        return "Link inválido. Cole o endereço completo (https://…)."
+    }
+    if linksNaAnalise >= MAX_LINKS_ANALISE { return "Limite de \(MAX_LINKS_ANALISE) links por análise." }
     return nil
 }
 

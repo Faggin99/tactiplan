@@ -115,10 +115,18 @@ function cromo(vm, titulo, sub, secao) {
   els.push(text(22.4, 1.5, 8.1, 0.9, vm.adversario, 15, { bold: true, color: C.escuro, align: 'right', valign: 'middle', font: 'titulo' }));
   els.push(...escudo(30.85, 0.85, 1.6, 'adversario', vm.adversario, vm.imagens));
   const xb = 23.6;
+  // aviso de vídeo: arquivo só existe no PowerPoint; link aparece na página "Vídeos (links)" do fim
   const nv = (vm.videosPorSecao[secao] || []).length;
-  if (nv) {
-    els.push(box(xb + 1.9, 2.55, 7.1, 0.65, C.claro, { raio: 0.3, so: 'pdf' }));
-    els.push(text(xb + 1.9, 2.55, 7.1, 0.65, `▶ ${nv} ${nv === 1 ? 'vídeo' : 'vídeos'} na versão PowerPoint`, 9, { color: C.verde, bold: true, align: 'center', valign: 'middle', so: 'pdf' }));
+  const nl = (vm.linksPorSecao[secao] || []).length;
+  const partes = (comArquivo) => [
+    comArquivo && nv ? `${nv} ${nv === 1 ? 'vídeo' : 'vídeos'} na versão PowerPoint` : null,
+    nl ? `${nl} ${nl === 1 ? 'link de vídeo' : 'links de vídeo'} no fim` : null,
+  ].filter(Boolean).join(' · ');
+  for (const [so, txt] of [['pdf', partes(true)], ['pptx', partes(false)]]) {
+    if (!txt) continue;
+    const w = Math.min(10.5, 0.17 * txt.length + 1.2);
+    els.push(box(xb + 9 - w, 2.55, w, 0.65, C.claro, { raio: 0.3, so }));
+    els.push(text(xb + 9 - w, 2.55, w, 0.65, `▶ ${txt}`, 9, { color: C.verde, bold: true, align: 'center', valign: 'middle', so }));
   }
   return els;
 }
@@ -497,14 +505,33 @@ function slideVideo(vm, n, v) {
   return { els: [...els, ...rodape(vm, n, null)], so: 'pptx' };
 }
 
+// Vídeos por LINK (grandes demais para subir): lista clicável no fim, no PDF e no PowerPoint.
+const LINKS_POR_SLIDE = 8;
+function slideLinks(vm, n, parte, rotParte) {
+  const els = cromo(vm, `Vídeos (links)${rotParte}`, 'Toque no endereço para abrir o vídeo', null);
+  const alt = ALT / LINKS_POR_SLIDE;
+  parte.forEach((l, i) => {
+    const y = TOPO + i * alt;
+    els.push(box(M, y + 0.1, LARG, alt - 0.2, C.claro, { raio: 0.2 }));
+    const tag = AA.TITULOS[l.secao] || '';
+    const tw = 6.6;
+    els.push(box(M + 0.4, y + (alt - 0.75) / 2, tw, 0.75, C.verdeClaro, { raio: 0.37 }));
+    els.push(text(M + 0.4, y + (alt - 0.75) / 2, tw, 0.75, tag.toUpperCase(), 8.5, { bold: true, color: C.escuro, align: 'center', valign: 'middle' }));
+    els.push(text(M + tw + 0.8, y + 0.15, LARG - tw - 1.2, (alt - 0.3) / 2, l.titulo || 'Vídeo', 13, { bold: true, color: C.escuro, valign: 'middle' }));
+    els.push(text(M + tw + 0.8, y + alt / 2, LARG - tw - 1.2, (alt - 0.3) / 2, l.url, 10.5, { color: C.azul, valign: 'middle', link: l.url }));
+  });
+  return { els: [...els, ...rodape(vm, n, null)] };
+}
+
 /**
  * vm: { a (normalizada), adversario, nossoNome, subtitulo, fatos[{l,v}], capaRodape, fontes,
- *       imagens {nosso?, adversario?}, videos [{id, secao, titulo}] }
+ *       imagens {nosso?, adversario?}, videos [{id, secao, titulo}], links [{secao, titulo, url}] }
  * Devolve { largura, altura, slides: [{ fundo?, els, so? }] }.
  */
 function montarDeck(vm) {
-  const v = { ...vm, videosPorSecao: {} };
+  const v = { ...vm, videosPorSecao: {}, linksPorSecao: {} };
   for (const vid of vm.videos || []) (v.videosPorSecao[vid.secao] = v.videosPorSecao[vid.secao] || []).push(vid);
+  for (const l of vm.links || []) (v.linksPorSecao[l.secao] = v.linksPorSecao[l.secao] || []).push(l);
   const slides = [capa(v)];
   const n = () => slides.length + 1;
   const comVideos = (secao) => { for (const vid of v.videosPorSecao[secao] || []) slides.push(slideVideo(v, n(), vid)); };
@@ -527,6 +554,12 @@ function montarDeck(vm) {
       slides.push(f(v, n()));
     }
     comVideos(k);
+  }
+  // links na ordem das seções
+  const links = AA.SECOES.flatMap((k) => v.linksPorSecao[k] || []);
+  const totalL = Math.ceil(links.length / LINKS_POR_SLIDE);
+  for (let i = 0; i < links.length; i += LINKS_POR_SLIDE) {
+    slides.push(slideLinks(v, n(), links.slice(i, i + LINKS_POR_SLIDE), totalL > 1 ? ` (${i / LINKS_POR_SLIDE + 1}/${totalL})` : ''));
   }
   for (const s of slides) for (const e of s.els) if (e.t === 'text') e.size = caber(e);
   return { largura: W, altura: H, slides };

@@ -91,6 +91,22 @@ test('vídeos: slide próprio só no PowerPoint; o PDF avisa na seção', () => 
   assert.match(html, /1 vídeo na versão PowerPoint/);
 });
 
+test('vídeo por link: página "Vídeos (links)" no fim, clicável no PDF e no PowerPoint', async () => {
+  const a = AA.normalizar(FLA);
+  const links = [{ secao: 'defesa', titulo: 'Bloco médio', url: 'https://youtu.be/abc' }, { secao: 'ataque', titulo: 'Saída', url: 'https://drive.google.com/x' }];
+  const deck = montarDeck(vmDe(a, { links }));
+  const ult = deck.slides[deck.slides.length - 1];
+  assert.equal(ult.els[0].txt, 'Vídeos (links)');
+  assert.ok(!ult.so, 'nos dois formatos');
+  const urls = ult.els.filter((e) => e.link).map((e) => e.link);
+  assert.deepEqual(urls, ['https://drive.google.com/x', 'https://youtu.be/abc'], 'na ordem das seções');
+  const html = renderAnalise(deck, { titulo: 'x' });
+  assert.match(html, /<a href="https:\/\/youtu.be\/abc"/);
+  assert.match(html, /1 link de vídeo no fim/);
+  const buf = await gerarPptx(deck, { titulo: 'x' });
+  assert.match(buf.toString('latin1'), /youtu\.be\/abc/);
+});
+
 test('vídeo em seção ainda vazia também vai para o PowerPoint', () => {
   const a = AA.normalizar({ sistema: { ofensivo: { formacao: '4-3-3' } } });
   const deck = montarDeck(vmDe(a, { videos: [{ id: 'v1', secao: 'ataque', titulo: 'x' }] }));

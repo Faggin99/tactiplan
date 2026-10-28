@@ -165,6 +165,9 @@ interface ApiTreino {
     suspend fun enviarMidiaAnalise(sessaoId: String, tipo: String, secao: String?, titulo: String?, arquivo: ArquivoUpload, progresso: (Double) -> Unit): List<MidiaAnalise> =
         throw UnsupportedOperationException("mídia da análise")
     suspend fun apagarMidiaAnalise(sessaoId: String, midiaId: String): List<MidiaAnalise> = throw UnsupportedOperationException("mídia da análise")
+    /** Vídeo grande por link: POST .../analise/link { secao, titulo, url }. */
+    suspend fun adicionarLinkAnalise(sessaoId: String, secao: String, titulo: String?, url: String): List<MidiaAnalise> =
+        throw UnsupportedOperationException("link da análise")
 }
 
 fun clienteUpload(): OkHttpClient = OkHttpClient.Builder()
@@ -364,6 +367,11 @@ class ApiTreinoHttp(
         }
         return midias(respostaOuErro(executarChamada(call), json))
     }
+
+    override suspend fun adicionarLinkAnalise(sessaoId: String, secao: String, titulo: String?, url: String): List<MidiaAnalise> =
+        midias(j("/games/${codificarComponente(sessaoId)}/analise/link", "POST", buildJsonObject {
+            put("secao", secao); put("url", url); if (!titulo.isNullOrBlank()) put("titulo", titulo)
+        }))
 
     override suspend fun apagarMidiaAnalise(sessaoId: String, midiaId: String): List<MidiaAnalise> =
         midias(j("/games/${codificarComponente(sessaoId)}/analise/midia/${codificarComponente(midiaId)}", "DELETE"))

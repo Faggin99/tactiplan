@@ -53,7 +53,9 @@ function elemento(e, imagens) {
       const st = `${pos};font-size:${e.size}pt;font-weight:${e.bold ? 700 : 400};color:#${e.color};text-align:${e.align || 'left'}`;
       const corpo = e.bullets
         ? `<ul>${e.bullets.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>`
-        : `<div>${esc(e.txt)}</div>`;
+        : e.link
+          ? `<div><a href="${esc(e.link)}" style="color:inherit;text-decoration:underline">${esc(e.txt)}</a></div>`
+          : `<div>${esc(e.txt)}</div>`;
       return `<div class="${cls}" style="${st}">${corpo}</div>`;
     }
     default:

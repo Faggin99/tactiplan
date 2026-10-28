@@ -51,6 +51,21 @@ final class AnaliseModelo: ObservableObject {
         }
     }
 
+    /// Vídeo grande: só o link (sai clicável no PDF e no PowerPoint).
+    func adicionarLink(_ url: String, titulo: String, secao: String) async -> Bool {
+        guard let treino else { return false }
+        if let p = problemaLinkVideo(url, linksNaAnalise: midias.filter { $0.tipo == "link" }.count) { aviso = p; return false }
+        do {
+            midias = try await treino.adicionarLinkAnalise(sessaoId, secao: secao, titulo: titulo,
+                                                           url: url.trimmingCharacters(in: .whitespacesAndNewlines))
+            aviso = "Link adicionado."
+            return true
+        } catch {
+            if !aoSessaoAcabar(error) { aviso = mensagemDeErro(error) }
+            return false
+        }
+    }
+
     func remover(_ m: MidiaAnalise) async {
         guard let treino else { return }
         do { midias = try await treino.apagarMidiaAnalise(sessaoId, midiaId: m.id) } catch {
@@ -423,7 +438,7 @@ func escudoPng(_ dados: Data) -> Data? {
     return UIGraphicsImageRenderer(size: tam, format: formato).image { _ in img.draw(in: CGRect(origin: .zero, size: tam)) }.pngData()
 }
 
-/// Vídeos da seção: entram no PowerPoint num slide logo depois dela (o PDF só avisa).
+/// Vídeos da seção: arquivo (até 50 MB) só no PowerPoint; vídeo grande vai por link, clicável no PDF e no PowerPoint.
 struct VideosDaSecao: View {
     let secao: String
     @ObservedObject var modelo: AnaliseModelo
@@ -431,19 +446,22 @@ struct VideosDaSecao: View {
     @EnvironmentObject private var app: AppEstado
     @Environment(\.tema) private var tema
     @State private var item: PhotosPickerItem?
+    @State private var link = ""
+    @State private var tituloLink = ""
 
     var body: some View {
         let c = tema.cores
-        let lista = modelo.midias.filter { $0.tipo == "video" && $0.secao == secao }
+        let lista = modelo.midias.filter { ($0.tipo == "video" || $0.tipo == "link") && $0.secao == secao }
         if podeEditar || !lista.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 RotuloSecao("Vídeos desta seção").padding(.horizontal, 4)
-                Text("Só no PowerPoint (o PDF avisa que há vídeo). MP4 ou MOV até 50 MB.").tipo(Tipos.corpo13).foregroundColor(c.tinta2.color)
+                Text("Arquivo (MP4 ou MOV até 50 MB) vai embutido só no PowerPoint. Vídeo maior: cole o link (YouTube, Drive…) — sai clicável no PDF e no PowerPoint.")
+                    .tipo(Tipos.corpo13).foregroundColor(c.tinta2.color)
                 ForEach(lista) { m in
                     HStack {
-                        Image(systemName: "film").foregroundColor(c.tinta3.color)
+                        Image(systemName: m.tipo == "link" ? "link" : "film").foregroundColor(c.tinta3.color)
                         if let s = urlDoServidor(m.url, base: app.base), let u = URL(string: s) {
-                            Link(m.titulo ?? "Vídeo", destination: u).font(Tipos.corpo15.font).lineLimit(1)
+                            Link(m.titulo ?? (m.tipo == "link" ? m.url : "Vídeo"), destination: u).font(Tipos.corpo15.font).lineLimit(1)
                         } else { Text(m.titulo ?? "Vídeo").tipo(Tipos.corpo15) }
                         Spacer()
                         if podeEditar {
@@ -454,12 +472,18 @@ struct VideosDaSecao: View {
                 }
                 if podeEditar {
                     PhotosPicker(selection: $item, matching: .videos) {
-                        Text(modelo.enviando != nil ? "Enviando… \(Int((modelo.enviando ?? 0) * 100))%" : "Adicionar vídeo")
+                        Text(modelo.enviando != nil ? "Enviando… \(Int((modelo.enviando ?? 0) * 100))%" : "Enviar arquivo de vídeo")
                             .font(Tipos.corpo15.comPeso(.seminegrito).font)
                             .frame(maxWidth: .infinity, minHeight: 48)
                             .background(RoundedRectangle(cornerRadius: CGFloat(Tokens.raioCampo), style: .continuous).stroke(c.borda.color))
                     }
                     .disabled(modelo.enviando != nil)
+                    Campo(dica: "Ou cole o link do vídeo (https://…)", valor: $link, teclado: .URL)
+                    Campo(dica: "Título do link (opcional)", valor: $tituloLink)
+                    Botao(texto: "Adicionar link", variante: .secundario) {
+                        Task { if await modelo.adicionarLink(link, titulo: tituloLink, secao: secao) { link = ""; tituloLink = "" } }
+                    }
+                    .disabled(link.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
             .onChange(of: item) { novo in

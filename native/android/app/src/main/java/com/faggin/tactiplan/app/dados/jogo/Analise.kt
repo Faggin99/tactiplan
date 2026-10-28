@@ -244,6 +244,7 @@ fun caminhosDoEsquema(): List<List<String>> = SECOES_ANALISE.flatMap { s ->
 data class MidiaAnalise(val id: String, val tipo: String, val secao: String? = null, val titulo: String? = null, val url: String = "")
 
 const val MAX_VIDEOS_ANALISE = 12
+const val MAX_LINKS_ANALISE = 20
 const val MAX_BYTES_VIDEO_ANALISE = 50L * 1024 * 1024
 const val MAX_BYTES_ESCUDO = 3L * 1024 * 1024
 private val TIPOS_ESCUDO = setOf("image/png", "image/jpeg", "image/webp")
@@ -258,10 +259,20 @@ fun problemaMidiaAnalise(tipo: String, mime: String, tamanho: Long, videosNaAnal
     }
     else -> when {
         mime.lowercase() !in TIPOS_VIDEO -> "Envie um vídeo (MP4, MOV ou WEBM)."
-        tamanho > MAX_BYTES_VIDEO_ANALISE -> "O vídeo deve ter até 50 MB."
+        tamanho > MAX_BYTES_VIDEO_ANALISE -> MSG_VIDEO_GRANDE
         videosNaAnalise >= MAX_VIDEOS_ANALISE -> "Limite de $MAX_VIDEOS_ANALISE vídeos por análise."
         else -> null
     }
+}
+
+const val MSG_VIDEO_GRANDE = "O vídeo deve ter até 50 MB. Para vídeo grande, cole o link (YouTube, Drive…)."
+
+/** Link de vídeo (vídeo grande): http(s) completo, até 500 caracteres. null = ok. */
+fun problemaLinkVideo(url: String, linksNaAnalise: Int = 0): String? {
+    val u = url.trim()
+    if (!Regex("^https?://[^\\s/]+\\.[^\\s]+$", RegexOption.IGNORE_CASE).matches(u) || u.length > 500) return "Link inválido. Cole o endereço completo (https://…)."
+    if (linksNaAnalise >= MAX_LINKS_ANALISE) return "Limite de $MAX_LINKS_ANALISE links por análise."
+    return null
 }
 
 /** Título do vídeo a partir do nome do arquivo ("saida-curta.mp4" → "saida-curta"). */

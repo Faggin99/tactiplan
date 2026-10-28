@@ -46,6 +46,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.faggin.tactiplan.app.dados.jogo.ApiJogo
 import com.faggin.tactiplan.app.dados.jogo.MidiaAnalise
+import com.faggin.tactiplan.app.dados.jogo.problemaLinkVideo
 import com.faggin.tactiplan.app.dados.jogo.problemaMidiaAnalise
 import com.faggin.tactiplan.app.dados.jogo.tituloDoVideo
 import com.faggin.tactiplan.app.dados.treino.ArquivoUpload
@@ -134,6 +135,16 @@ fun AnaliseTela(amb: AmbienteClube, api: ApiJogo, sessaoId: String, adversario: 
             } catch (e: Exception) {
                 if (!amb.tratarErro(e)) aviso = mensagemErroJogo(e)
             } finally { enviando = null }
+        }
+    }
+    fun adicionarLink(secaoDoLink: String, url: String, titulo: String, pronto: () -> Unit) {
+        val apiT = amb.treino?.api ?: return
+        problemaLinkVideo(url, midias.count { it.tipo == "link" })?.let { aviso = it; return }
+        escopo.launch {
+            try {
+                midias = apiT.adicionarLinkAnalise(sessaoId, secaoDoLink, titulo.ifBlank { null }, url.trim())
+                aviso = "Link adicionado."; pronto()
+            } catch (e: Exception) { if (!amb.tratarErro(e)) aviso = mensagemErroJogo(e) }
         }
     }
     fun removerMidia(m: MidiaAnalise) {
@@ -225,8 +236,9 @@ fun AnaliseTela(amb: AmbienteClube, api: ApiJogo, sessaoId: String, adversario: 
             if (atual == "capa") EscudoDaAnalise(midias.firstOrNull { it.tipo == "escudo" }, amb.apiBase, adversario, editavel, enviando,
                 escolher = { escolherEscudo.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, remover = ::removerMidia)
             s.campos.forEach { campo -> CampoDaAnalise(campo, d, emptyList(), editavel, ::mudar) }
-            if (atual != "capa") VideosDaSecao(midias.filter { it.tipo == "video" && it.secao == atual }, amb.apiBase, editavel, enviando,
+            if (atual != "capa") VideosDaSecao(midias.filter { (it.tipo == "video" || it.tipo == "link") && it.secao == atual }, amb.apiBase, editavel, enviando,
                 escolher = { secaoVideo = atual; escolherVideo.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)) },
+                adicionarLink = { url, titulo, pronto -> adicionarLink(atual, url, titulo, pronto) },
                 remover = ::removerMidia)
         }
     }
@@ -253,30 +265,42 @@ private fun EscudoDaAnalise(
     }
 }
 
-/** Vídeos da seção: entram no PowerPoint num slide logo depois dela (o PDF só avisa). */
+/** Vídeos da seção: arquivo (até 50 MB) só no PowerPoint; vídeo grande vai por link, clicável no PDF e no PowerPoint. */
 @Composable
 private fun VideosDaSecao(
-    lista: List<MidiaAnalise>, base: String, editavel: Boolean, enviando: Double?, escolher: () -> Unit, remover: (MidiaAnalise) -> Unit,
+    lista: List<MidiaAnalise>, base: String, editavel: Boolean, enviando: Double?, escolher: () -> Unit,
+    adicionarLink: (url: String, titulo: String, pronto: () -> Unit) -> Unit, remover: (MidiaAnalise) -> Unit,
 ) {
+    var link by remember { mutableStateOf("") }
+    var tituloLink by remember { mutableStateOf("") }
     val c = TactiPlan.cores
     val context = LocalContext.current
     val escopo = rememberCoroutineScope()
     if (!editavel && lista.isEmpty()) return
     RotuloSecao("Vídeos desta seção")
-    Text("Só no PowerPoint (o PDF avisa que há vídeo). MP4, MOV ou WEBM até 50 MB.", style = TactiPlan.tipos.corpo13, color = c.tinta2)
+    Text("Arquivo (MP4, MOV ou WEBM até 50 MB) vai embutido só no PowerPoint. Vídeo maior: cole o link (YouTube, Drive…) — sai clicável no PDF e no PowerPoint.",
+        style = TactiPlan.tipos.corpo13, color = c.tinta2)
     lista.forEach { m ->
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().testTag("analise:video:${m.id}")) {
             Icon(Icones.documento, null, tint = c.tinta3)
-            Text(m.titulo ?: "Vídeo", style = TactiPlan.tipos.corpo15, color = c.acaoTinta,
+            Text(m.titulo ?: if (m.tipo == "link") m.url else "Vídeo", style = TactiPlan.tipos.corpo15, color = c.acaoTinta, maxLines = 1,
                 modifier = Modifier.weight(1f).padding(horizontal = 8.dp).clickable(role = Role.Button) {
                     val url = urlDoServidor(m.url, base) ?: return@clickable
-                    escopo.launch { abrirAnexoNoSistema(context, url, (m.titulo ?: "video") + ".mp4", "video/*") }
+                    if (m.tipo == "link") {
+                        try { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(url))) } catch (_: Exception) { }
+                    } else escopo.launch { abrirAnexoNoSistema(context, url, (m.titulo ?: "video") + ".mp4", "video/*") }
                 })
             if (editavel) TextButton(onClick = { remover(m) }) { Text("Remover", color = c.tinta2) }
         }
     }
-    if (editavel) Botao(if (enviando != null) "Enviando… ${(enviando * 100).toInt()}%" else "Adicionar vídeo", escolher,
-        Modifier.fillMaxWidth().testTag("analise:video:adicionar"), VarianteBotao.SECUNDARIO, enviando == null)
+    if (editavel) {
+        Botao(if (enviando != null) "Enviando… ${(enviando * 100).toInt()}%" else "Enviar arquivo de vídeo", escolher,
+            Modifier.fillMaxWidth().testTag("analise:video:adicionar"), VarianteBotao.SECUNDARIO, enviando == null)
+        Campo(link, { link = it.take(500) }, "Ou cole o link do vídeo (https://…)", Modifier.fillMaxWidth().testTag("analise:link:url"))
+        Campo(tituloLink, { tituloLink = it.take(120) }, "Título do link (opcional)", Modifier.fillMaxWidth())
+        Botao("Adicionar link", { adicionarLink(link, tituloLink) { link = ""; tituloLink = "" } },
+            Modifier.fillMaxWidth().testTag("analise:link:adicionar"), VarianteBotao.SECUNDARIO, link.isNotBlank())
+    }
 }
 
 /** Um campo do esquema. `base` = caminho do item (campos de Repetir são relativos ao item). */

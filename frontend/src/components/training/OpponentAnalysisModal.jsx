@@ -166,20 +166,24 @@ function Escudo() {
   );
 }
 
-// Vídeos da seção: entram no PowerPoint num slide logo depois da seção (o PDF só avisa).
+// Vídeos da seção: arquivo (até 50 MB) entra no PowerPoint num slide logo depois da seção (o PDF só avisa);
+// vídeo grande vai por LINK, que sai clicável no PDF e no PowerPoint (página "Vídeos (links)" no fim).
 function VideosDaSecao({ secao }) {
-  const { midias, enviar, remover, enviando, podeEditar, colors, cartao } = { ...useContext(Ctx), ...useCampo() };
+  const { midias, enviar, remover, enviando, podeEditar, colors, cartao, adicionarLink } = { ...useContext(Ctx), ...useCampo() };
   const [titulo, setTitulo] = useState('');
-  const lista = midias.filter((m) => m.tipo === 'video' && m.secao === secao);
+  const [link, setLink] = useState('');
+  const lista = midias.filter((m) => (m.tipo === 'video' || m.tipo === 'link') && m.secao === secao);
   if (!podeEditar && !lista.length) return null;
   return (
     <div style={{ ...cartao, gap: '0.5rem' }}>
       <b style={{ fontSize: '0.85rem', color: colors.text, display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Video size={15} />Vídeos desta seção</b>
-      <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Só no PowerPoint (o PDF avisa que há vídeo). MP4, MOV ou WEBM até 50 MB.</span>
+      <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>
+        Arquivo (MP4, MOV ou WEBM até 50 MB) vai embutido só no PowerPoint. Vídeo maior: cole o link (YouTube, Drive…) — sai clicável no PDF e no PowerPoint.
+      </span>
       {lista.map((m) => (
         <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: colors.text }}>
-          <a href={m.url} target="_blank" rel="noreferrer" style={{ flex: 1, color: colors.primary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.titulo || 'Vídeo sem título'}</a>
-          <span style={{ color: colors.textSecondary, fontSize: '0.75rem' }}>{Math.round((m.size_bytes || 0) / 1048576)} MB</span>
+          <a href={m.url} target="_blank" rel="noreferrer" style={{ flex: 1, color: colors.primary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.titulo || (m.tipo === 'link' ? m.url : 'Vídeo sem título')}</a>
+          <span style={{ color: colors.textSecondary, fontSize: '0.75rem' }}>{m.tipo === 'link' ? 'link' : `${Math.round((m.size_bytes || 0) / 1048576)} MB`}</span>
           {podeEditar && <button type="button" onClick={() => remover(m)} aria-label="Remover vídeo" style={{ background: 'none', border: 'none', color: colors.textSecondary, cursor: 'pointer' }}><Trash2 size={15} /></button>}
         </div>
       ))}
@@ -189,8 +193,12 @@ function VideosDaSecao({ secao }) {
             style={{ flex: 1, minWidth: 180, padding: '0.45rem 0.6rem', borderRadius: '0.4rem', border: `1px solid ${colors.border}`, background: colors.background, color: colors.text, fontSize: '0.85rem' }} />
           <BotaoArquivo aceita="video/mp4,video/quicktime,video/webm" disabled={enviando}
             onArquivo={async (f) => { if (await enviar(f, { tipo: 'video', secao, titulo: titulo || f.name.replace(/\.[^.]+$/, '') })) setTitulo(''); }}>
-            <Upload size={14} />{enviando ? 'Enviando…' : 'Adicionar vídeo'}
+            <Upload size={14} />{enviando ? 'Enviando…' : 'Enviar arquivo'}
           </BotaoArquivo>
+          <input value={link} onChange={(e) => setLink(e.target.value)} maxLength={500} placeholder="ou cole o link do vídeo (https://…)"
+            style={{ flex: 1, minWidth: 180, padding: '0.45rem 0.6rem', borderRadius: '0.4rem', border: `1px solid ${colors.border}`, background: colors.background, color: colors.text, fontSize: '0.85rem' }} />
+          <Button variant="outline" size="sm" disabled={!link.trim()}
+            onClick={async () => { if (await adicionarLink({ secao, titulo, url: link.trim() })) { setLink(''); setTitulo(''); } }}>Adicionar link</Button>
         </div>
       )}
     </div>
@@ -252,7 +260,7 @@ export function OpponentAnalysisModal({ isOpen, onClose, session, opponentName, 
   }
 
   async function enviar(file, opcoes) {
-    if (file.size > 50 * 1024 * 1024) { notify.error('Arquivo maior que 50 MB.'); return false; }
+    if (file.size > 50 * 1024 * 1024) { notify.error('Arquivo maior que 50 MB. Para vídeo grande, cole o link (YouTube, Drive…).'); return false; }
     setEnviando(true);
     try {
       const r = await gameService.uploadAnaliseMidia(session.id, file, opcoes);
@@ -264,6 +272,18 @@ export function OpponentAnalysisModal({ isOpen, onClose, session, opponentName, 
       return false;
     } finally {
       setEnviando(false);
+    }
+  }
+
+  async function adicionarLink(dadosLink) {
+    try {
+      const r = await gameService.addAnaliseLink(session.id, dadosLink);
+      setMidias(r.midias || []);
+      notify.success('Link adicionado.');
+      return true;
+    } catch (e) {
+      notify.error(e.message || 'Não foi possível salvar o link.');
+      return false;
     }
   }
 
@@ -442,7 +462,7 @@ export function OpponentAnalysisModal({ isOpen, onClose, session, opponentName, 
         </div>
       )}
     >
-      <Ctx.Provider value={{ dados, muda, colors, podeEditar, midias, enviar, remover, enviando }}>
+      <Ctx.Provider value={{ dados, muda, colors, podeEditar, midias, enviar, remover, enviando, adicionarLink }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(170px, 210px) 1fr', gap: '1rem', alignItems: 'start' }}>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', position: 'sticky', top: 0 }}>
           {SECOES.map(([k, r]) => (

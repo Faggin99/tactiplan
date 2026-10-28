@@ -54,6 +54,12 @@ class AnaliseTest {
         assertTrue(problemaMidiaAnalise("video", "video/mp4", MAX_BYTES_VIDEO_ANALISE + 1)!!.contains("50 MB"))
         assertTrue(problemaMidiaAnalise("video", "video/mp4", 1, videosNaAnalise = 12)!!.contains("Limite"))
         assertEquals("saida-curta", tituloDoVideo("saida-curta.mp4"))
+        assertTrue(problemaMidiaAnalise("video", "video/mp4", MAX_BYTES_VIDEO_ANALISE + 1)!!.contains("link"))
+        assertEquals(null, problemaLinkVideo(" https://youtu.be/abc "))
+        assertEquals(null, problemaLinkVideo("https://drive.google.com/file/d/1/view"))
+        assertTrue(problemaLinkVideo("youtu.be/abc")!!.contains("inválido"))
+        assertTrue(problemaLinkVideo("javascript:alert(1)")!!.contains("inválido"))
+        assertTrue(problemaLinkVideo("https://youtu.be/x", linksNaAnalise = 20)!!.contains("Limite"))
         val m = JsonApp.decodeFromString(MidiaAnalise.serializer(),
             """{"id":"m1","tipo":"video","secao":"ataque","titulo":"Saída","url":"/uploads/analise/x.mp4","size_bytes":"2003"}""")
         assertEquals("ataque", m.secao)

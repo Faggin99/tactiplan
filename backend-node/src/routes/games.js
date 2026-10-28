@@ -30,6 +30,7 @@ const fs = require('fs');
 const { uploadAnaliseMidia } = require('../middleware/upload');
 const { removeStoredFile } = require('../utils/sessionFiles');
 const MAX_VIDEOS_ANALISE = 12;
+const MAX_LINKS_ANALISE = 20;
 
 async function midiasDaAnalise(sessionId) {
   const r = await query(
@@ -90,7 +91,7 @@ router.put('/:sessionId/analise', async (req, res) => {
 router.post('/:sessionId/analise/midia', (req, res) => {
   if (!req.user.can('games:edit')) return res.status(403).json({ error: 'Sem permissão pra editar jogos' });
   uploadAnaliseMidia(req, res, async (err) => {
-    if (err) return res.status(400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'Arquivo maior que 50 MB.' : err.message });
+    if (err) return res.status(400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'Arquivo maior que 50 MB. Para vídeo grande, use um link (YouTube, Drive…).' : err.message });
     if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
     const recusar = (status, error) => {
       try { fs.unlinkSync(req.file.path); } catch { /* já não existe */ }
@@ -128,6 +129,36 @@ router.post('/:sessionId/analise/midia', (req, res) => {
   });
 });
 
+// POST /api/games/:sessionId/analise/link { secao, titulo?, url } — vídeo grande vai por LINK (YouTube, Drive…):
+// sai clicável no PDF e no PowerPoint (não é embutido). Até 20 por análise.
+router.post('/:sessionId/analise/link', async (req, res) => {
+  try {
+    if (!req.user.can('games:edit')) return res.status(403).json({ error: 'Sem permissão pra editar jogos' });
+    const jogo = await jogoDoUsuario(req.params.sessionId, req.user.workspaceIds || []);
+    if (!jogo) return res.status(404).json({ error: 'Jogo não encontrado' });
+    if (!req.user.canWriteWorkspace(jogo.workspace_id)) return res.status(403).json({ error: 'Sem permissão de escrita' });
+    const b = req.body || {};
+    const secao = String(b.secao || '');
+    if (!analise.SECOES.includes(secao)) return res.status(400).json({ error: 'Seção do vídeo inválida.' });
+    const url = String(b.url || '').trim();
+    let ok = false;
+    try { ok = /^https?:$/.test(new URL(url).protocol); } catch { ok = false; }
+    if (!ok || url.length > 500) return res.status(400).json({ error: 'Link inválido. Cole o endereço completo (https://…).' });
+    const titulo = String(b.titulo || '').replace(/\s+/g, ' ').trim().slice(0, 120) || null;
+    const n = await query(`SELECT count(*)::int AS n FROM opponent_analysis_media WHERE session_id = $1 AND tipo = 'link'`, [jogo.id]);
+    if (n.rows[0].n >= MAX_LINKS_ANALISE) return res.status(400).json({ error: `Limite de ${MAX_LINKS_ANALISE} links por análise.` });
+    await query(
+      `INSERT INTO opponent_analysis_media (session_id, workspace_id, tipo, secao, titulo, file_path, mime_type, created_by)
+       VALUES ($1, $2, 'link', $3, $4, $5, 'text/uri-list', $6)`,
+      [jogo.id, jogo.workspace_id, secao, titulo, url, req.user.id || null],
+    );
+    res.status(201).json({ midias: await midiasDaAnalise(jogo.id) });
+  } catch (e) {
+    console.error('Link analise error:', e);
+    res.status(500).json({ error: 'Falha ao salvar o link' });
+  }
+});
+
 // DELETE /api/games/:sessionId/analise/midia/:midiaId
 router.delete('/:sessionId/analise/midia/:midiaId', async (req, res) => {
   try {
@@ -135,9 +166,9 @@ router.delete('/:sessionId/analise/midia/:midiaId', async (req, res) => {
     const jogo = await jogoDoUsuario(req.params.sessionId, req.user.workspaceIds || []);
     if (!jogo) return res.status(404).json({ error: 'Jogo não encontrado' });
     if (!/^[0-9a-f-]{36}$/i.test(req.params.midiaId)) return res.status(400).json({ error: 'Mídia inválida' });
-    const r = await query('DELETE FROM opponent_analysis_media WHERE id = $1 AND session_id = $2 RETURNING file_path', [req.params.midiaId, jogo.id]);
+    const r = await query('DELETE FROM opponent_analysis_media WHERE id = $1 AND session_id = $2 RETURNING tipo, file_path', [req.params.midiaId, jogo.id]);
     if (!r.rows[0]) return res.status(404).json({ error: 'Mídia não encontrada' });
-    removeStoredFile(r.rows[0].file_path);
+    if (r.rows[0].tipo !== 'link') removeStoredFile(r.rows[0].file_path); // link: a URL é de fora
     res.json({ midias: await midiasDaAnalise(jogo.id) });
   } catch (e) {
     console.error('Delete midia analise error:', e);

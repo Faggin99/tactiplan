@@ -478,6 +478,7 @@ async function prepararAnalise(body, user, assets) {
   }
   const videos = m.rows.filter((x) => x.tipo === 'video' && resolveUploadPath(x.file_path))
     .map((x) => ({ id: x.id, secao: x.secao, titulo: x.titulo, path: resolveUploadPath(x.file_path) }));
+  const links = m.rows.filter((x) => x.tipo === 'link').map((x) => ({ secao: x.secao, titulo: x.titulo, url: x.file_path }));
   const vm = {
     a,
     adversario: callUp.opponent || 'Adversário',
@@ -489,6 +490,7 @@ async function prepararAnalise(body, user, assets) {
     fontes: a.fontes,
     imagens,
     videos,
+    links,
   };
   const [y, mm, d] = date.split('-');
   return { deck: montarDeck(vm), vm, base: `Analise_${safeName(callUp.opponent) || 'Adversario'}_${d}-${mm}-${y}` };

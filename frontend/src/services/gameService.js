@@ -17,6 +17,10 @@ export const gameService = {
     fd.append('file', file);
     return await api.upload(`/games/${sessionId}/analise/midia`, fd);
   },
+  // Vídeo grande: só o link (YouTube, Drive…), clicável no PDF e no PowerPoint
+  async addAnaliseLink(sessionId, { secao, titulo = '', url }) {
+    return await api.post(`/games/${sessionId}/analise/link`, { secao, titulo, url });
+  },
   async deleteAnaliseMidia(sessionId, midiaId) {
     return await api.delete(`/games/${sessionId}/analise/midia/${midiaId}`);
   },

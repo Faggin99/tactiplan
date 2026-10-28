@@ -51,6 +51,7 @@ function pintar(slide, pptx, e, imagens, videos) {
       slide.addText(conteudo, {
         ...pos, ...base, margin: 0, align: e.align || 'left', valign: e.valign === 'middle' ? 'middle' : e.valign === 'bottom' ? 'bottom' : 'top',
         lineSpacingMultiple: 1.1, fit: 'shrink',
+        ...(e.link ? { hyperlink: { url: e.link } } : {}),
       });
       break;
     }

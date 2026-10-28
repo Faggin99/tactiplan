@@ -183,6 +183,8 @@ public protocol ApiTreino: Sendable {
     func enviarMidiaAnalise(_ sessaoId: String, tipo: String, secao: String?, titulo: String?, arquivo: ArquivoUpload,
                             progresso: @escaping @Sendable (Double) -> Void) async throws -> [MidiaAnalise]
     func apagarMidiaAnalise(_ sessaoId: String, midiaId: String) async throws -> [MidiaAnalise]
+    /// Vídeo grande por link: POST .../analise/link { secao, titulo, url }.
+    func adicionarLinkAnalise(_ sessaoId: String, secao: String, titulo: String?, url: String) async throws -> [MidiaAnalise]
 }
 
 // Padrões para os falsos dos testes (o ApiTreinoHttp implementa de verdade).
@@ -192,6 +194,7 @@ extension ApiTreino {
     public func enviarMidiaAnalise(_ sessaoId: String, tipo: String, secao: String?, titulo: String?, arquivo: ArquivoUpload,
                                    progresso: @escaping @Sendable (Double) -> Void) async throws -> [MidiaAnalise] { throw ErroApi.offline() }
     public func apagarMidiaAnalise(_ sessaoId: String, midiaId: String) async throws -> [MidiaAnalise] { throw ErroApi.offline() }
+    public func adicionarLinkAnalise(_ sessaoId: String, secao: String, titulo: String?, url: String) async throws -> [MidiaAnalise] { throw ErroApi.offline() }
 }
 
 /// O de verdade, sobre o [Api]. `token`/`workspaceId` da sessão em uso.
@@ -414,6 +417,13 @@ extension ApiTreinoHttp {
             throw ErroApi.offline()
         }
         return try midias(try respostaOuErro(resposta))
+    }
+
+    public func adicionarLinkAnalise(_ sessaoId: String, secao: String, titulo: String?, url: String) async throws -> [MidiaAnalise] {
+        var corpo: [String: Json] = ["secao": .texto(secao), "url": .texto(url)]
+        if let titulo, !titulo.trimmingCharacters(in: .whitespaces).isEmpty { corpo["titulo"] = .texto(titulo) }
+        return try midias(try await api.chamarJson(caminhoAnalise(sessaoId) + "/link", metodo: "POST", corpo: .objeto(corpo),
+                                                   token: token, cabecalhos: cabecalhos))
     }
 
     public func apagarMidiaAnalise(_ sessaoId: String, midiaId: String) async throws -> [MidiaAnalise] {
