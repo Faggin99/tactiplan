@@ -60,7 +60,12 @@ struct MaisTela: View {
             }
 
             ListaAgrupada("Aparência") {
-                LinhaAgrupada(icone: "circle.lefthalf.filled", titulo: "Tema", detalhe: TEXTO_TEMA)
+                LinhaAgrupada(icone: "circle.lefthalf.filled", titulo: "Tema", detalhe: TEXTO_MODO_TEMA)
+                Picker("Tema", selection: Binding(get: { app.modoTema }, set: { app.mudarModoTema($0) })) {
+                    ForEach(ModoTema.allCases) { Text($0.rotulo).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .padding(.bottom, 12)
             }
 
             SecaoSeguranca()

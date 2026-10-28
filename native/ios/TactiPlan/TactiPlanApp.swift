@@ -16,6 +16,8 @@ final class AppEstado: ObservableObject {
     @Published private(set) var estado: EstadoApp
     @Published private(set) var semConexao = false
     @Published private(set) var config = ConfigApp.padrao
+    /// Aparência (aba Mais): Automático / Claro / Escuro, guardada no aparelho.
+    @Published private(set) var modoTema = ModoTema.de(UserDefaults.standard.string(forKey: "tactiplan." + ModoTema.chavePreferencia))
 
     let api: ApiApp
     /// Base da API (as rotas de treino do web usam o mesmo servidor).
@@ -50,6 +52,20 @@ final class AppEstado: ObservableObject {
             Task { @MainActor in await controle?.registrarPush(token, plataforma: PLATAFORMA_IOS) }
         }
         if controle.sessao != nil { PushIOS.shared.ativarSePossivel() }
+    }
+
+    func mudarModoTema(_ novo: ModoTema) {
+        modoTema = novo
+        UserDefaults.standard.set(novo.rawValue, forKey: "tactiplan." + ModoTema.chavePreferencia)
+        aplicarModoTema()
+    }
+
+    /// Fixa claro/escuro na JANELA (vale também para folhas e o compartilhar); Automático = segue o aparelho.
+    func aplicarModoTema() {
+        let estilo: UIUserInterfaceStyle = modoTema.escuroFixo.map { $0 ? .dark : .light } ?? .unspecified
+        for cena in UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }) {
+            for janela in cena.windows { janela.overrideUserInterfaceStyle = estilo }
+        }
     }
 
     /// Ao abrir e ao voltar do fundo: config (flags, versão mínima) e /me — no máximo 1x/30 s.
@@ -112,12 +128,14 @@ struct Raiz: View {
         .environment(\.tema, tema)
         .tint(tema.cores.acaoTinta.color)
         .task {
+            app.aplicarModoTema()
             await RegistroDeFalhas.enviarPendente(base: app.base, token: app.controle.sessao?.token)
             await app.atualizar(forcar: true)
         }
         .onChange(of: fase) { f in
             if f == .background { app.trava.foiProFundo() }
             if f == .active {
+                app.aplicarModoTema()
                 app.trava.voltou()
                 Task { await app.atualizar() }
             }

@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -32,7 +35,6 @@ import com.faggin.tactiplan.app.dados.ACAO_PADRAO
 import com.faggin.tactiplan.app.dados.SUPORTE_TELEFONE
 import com.faggin.tactiplan.app.dados.SUPORTE_TELEFONE_ROTULO
 import com.faggin.tactiplan.app.dados.TEXTO_CORES_CLUBE
-import com.faggin.tactiplan.app.dados.TEXTO_TEMA
 import com.faggin.tactiplan.app.dados.contagem
 import com.faggin.tactiplan.app.dados.corDoClube
 import com.faggin.tactiplan.app.dados.coresDoClube
@@ -161,7 +163,20 @@ fun MaisTela(amb: AmbienteClube) {
         }
 
         ListaAgrupada("Aparência") {
-            LinhaAgrupada(Icones.contrasteIcone, "Tema", TEXTO_TEMA)
+            val escolha = com.faggin.tactiplan.app.ui.LocalEscolhaTema.current
+            LinhaAgrupada(Icones.contrasteIcone, "Tema", com.faggin.tactiplan.app.dados.TEXTO_MODO_TEMA)
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+                val modos = com.faggin.tactiplan.app.dados.ModoTema.entries
+                modos.forEachIndexed { i, m ->
+                    SegmentedButton(
+                        selected = escolha.modo == m, onClick = { escolha.mudar(m) },
+                        shape = SegmentedButtonDefaults.itemShape(i, modos.size),
+                        colors = SegmentedButtonDefaults.colors(
+                            activeContainerColor = TactiPlan.cores.acaoSuave, activeContentColor = TactiPlan.cores.acaoTinta),
+                        modifier = Modifier.testTag("mais:tema:${m.chave}"),
+                    ) { Text(m.rotulo) }
+                }
+            }
         }
 
         SecaoSeguranca()

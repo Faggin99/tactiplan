@@ -1,5 +1,6 @@
 package com.faggin.tactiplan.app.ui
 
+import com.faggin.tactiplan.app.dados.ModoTema
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -78,8 +79,24 @@ fun App(
     LaunchedEffect(api) { try { config = api.config() } catch (_: Exception) {} }
 
     val personalizacao = (estado as? EstadoApp.NoClube)?.contexto?.clube?.personalizacao
-    TactiPlanTema(personalizacao) {
-        CompositionLocalProvider(LocalTravaDoApp provides trava) {
+    // Aparência (aba Mais): Automático / Claro / Escuro, guardada no aparelho
+    val contexto = androidx.compose.ui.platform.LocalContext.current
+    val prefs = remember(contexto) { contexto.getSharedPreferences(ARQ_PREFS_TEMA, android.content.Context.MODE_PRIVATE) }
+    var modoTema by remember { mutableStateOf(ModoTema.de(prefs.getString(ModoTema.CHAVE_PREFERENCIA, null))) }
+    val escuro = modoTema.escuroFixo() ?: androidx.compose.foundation.isSystemInDarkTheme()
+    val vista = androidx.compose.ui.platform.LocalView.current
+    LaunchedEffect(escuro) {
+        val janela = (contexto as? android.app.Activity)?.window ?: return@LaunchedEffect
+        androidx.core.view.WindowCompat.getInsetsController(janela, vista).apply {
+            isAppearanceLightStatusBars = !escuro
+            isAppearanceLightNavigationBars = !escuro
+        }
+    }
+    val escolhaTema = remember(modoTema) {
+        EscolhaTema(modoTema) { novo -> modoTema = novo; prefs.edit().putString(ModoTema.CHAVE_PREFERENCIA, novo.chave).apply() }
+    }
+    TactiPlanTema(personalizacao, escuro) {
+        CompositionLocalProvider(LocalTravaDoApp provides trava, LocalEscolhaTema provides escolhaTema) {
             Box(
                 Modifier.fillMaxSize().background(TactiPlan.cores.fundo)
                     .then(if (estado is EstadoApp.Entrar) Modifier else Modifier.windowInsetsPadding(WindowInsets.safeDrawing)),
@@ -139,3 +156,10 @@ fun App(
         }
     }
 }
+
+private const val ARQ_PREFS_TEMA = "tactiplan_prefs"
+
+/** O modo de aparência em uso e como trocá-lo (a aba Mais lê daqui). */
+class EscolhaTema(val modo: ModoTema, val mudar: (ModoTema) -> Unit)
+
+val LocalEscolhaTema = androidx.compose.runtime.staticCompositionLocalOf { EscolhaTema(ModoTema.AUTOMATICO) {} }
