@@ -394,6 +394,11 @@ fun JogoTela(amb: AmbienteClube, treino: ServicoTreino, api: ApiJogo, sessaoId: 
                     Placar(amb, ed, pacote?.dia?.data)
                     if (doCache && !temRede) FaixaTom("Sem conexão — o jogo grava aqui no aparelho e envia quando a internet voltar.", Tom.AVISO, Icones.nuvemSemRede)
                     pendencia?.let { p -> FaixaFila(p, enviando, !temRede, tentar = { escopo.launch { enviarFila() } }, descartar = { descartar = true }) }
+                    // Análise do adversário à vista (antes só no fim do menu de exportar)
+                    com.faggin.tactiplan.app.ui.comum.ListaAgrupada {
+                        com.faggin.tactiplan.app.ui.comum.LinhaAgrupada(Icones.documento, "Análise do adversário",
+                            if (editavel) "Preencher" else "Ver", aoTocar = { abrirAnalise = true })
+                    }
                     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                         ABAS.forEachIndexed { i, t ->
                             SegmentedButton(selected = aba == i, onClick = { aba = i }, shape = SegmentedButtonDefaults.itemShape(i, ABAS.size),

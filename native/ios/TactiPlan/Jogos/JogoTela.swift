@@ -359,6 +359,11 @@ struct JogoTela: View {
                     FaixasDoTopo(contexto: contexto, sessao: sessao)
                     heroi(ed)
                     faixaDaFila
+                    // Análise do adversário à vista (antes só no fim do menu de exportar)
+                    ListaAgrupada {
+                        LinhaAgrupada(icone: "list.clipboard", titulo: "Análise do adversário",
+                                      detalhe: podeEditar ? "Preencher" : "Ver") { abrirAnalise = true }
+                    }
                     Picker("Seção do jogo", selection: $aba) {
                         ForEach(AbaJogo.allCases) { Text($0.rawValue).tag($0) }
                     }
