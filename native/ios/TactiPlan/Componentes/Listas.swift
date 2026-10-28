@@ -64,11 +64,11 @@ struct LogoClube: View {
 /// (quem chama põe `Divisoria()` entre elas).
 struct ListaAgrupada<Linhas: View>: View {
     let titulo: String?
-    private let linhas: Linhas
+    private let linhas: AnyView // AnyView: ver TelaGrande (pilha no build de produção)
 
     init(_ titulo: String? = nil, @ViewBuilder linhas: () -> Linhas) {
         self.titulo = titulo
-        self.linhas = linhas()
+        self.linhas = AnyView(linhas())
     }
 
     var body: some View {

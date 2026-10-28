@@ -29,8 +29,11 @@ struct TelaGrande<Acessorio: View, Conteudo: View>: View {
     var subtitulo: String?
     var empilhada = false
     var aoAtualizar: (@MainActor @Sendable () async -> Void)?
-    private let acessorio: Acessorio
-    private let conteudo: Conteudo
+    // AnyView de propósito (28/10/2026): o conteúdo inteiro como tipo genérico estourava a pilha da thread
+    // principal no build de produção (aba Mais e ficha do atleta: "Thread stack size exceeded"). Embrulhado,
+    // fica no heap e a pilha guarda só um ponteiro.
+    private let acessorio: AnyView
+    private let conteudo: AnyView
 
     @Environment(\.tema) private var tema
     @Environment(\.toqueNaAba) private var toque
@@ -43,8 +46,8 @@ struct TelaGrande<Acessorio: View, Conteudo: View>: View {
         self.subtitulo = subtitulo
         self.empilhada = empilhada
         self.aoAtualizar = aoAtualizar
-        self.acessorio = acessorio()
-        self.conteudo = conteudo()
+        self.acessorio = AnyView(acessorio())
+        self.conteudo = AnyView(conteudo())
     }
 
     var body: some View {

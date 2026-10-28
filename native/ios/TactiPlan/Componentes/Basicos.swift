@@ -13,7 +13,7 @@ let ALVO_TOQUE: CGFloat = 44
 struct Cartao<Conteudo: View>: View {
     var aoTocar: (() -> Void)?
     var preenchimento: EdgeInsets
-    private let conteudo: Conteudo
+    private let conteudo: AnyView // AnyView: ver TelaGrande (pilha no build de produção)
     @Environment(\.tema) private var tema
 
     init(aoTocar: (() -> Void)? = nil,
@@ -21,7 +21,7 @@ struct Cartao<Conteudo: View>: View {
          @ViewBuilder conteudo: () -> Conteudo) {
         self.aoTocar = aoTocar
         self.preenchimento = preenchimento
-        self.conteudo = conteudo()
+        self.conteudo = AnyView(conteudo())
     }
 
     var body: some View {
