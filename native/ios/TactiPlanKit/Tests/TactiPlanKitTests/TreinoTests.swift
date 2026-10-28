@@ -462,10 +462,15 @@ final class TransporteFalso: Transporte, TransporteUpload, @unchecked Sendable {
     private var _pedidos: [Requisicao] = []
     var pedidos: [Requisicao] { trava.withLock { _pedidos } }
     var respostas: [Resposta] = []
+    /// Resposta pelo caminho da URL (pedidos em paralelo chegam em qualquer ordem). Tem prioridade sobre `respostas`.
+    var porCaminho: [String: Resposta] = [:]
 
     func enviar(_ r: Requisicao) async throws -> Resposta {
         trava.withLock { _pedidos.append(r) }
-        return trava.withLock { respostas.isEmpty ? Resposta(status: 200, corpo: Data("{}".utf8)) : respostas.removeFirst() }
+        return trava.withLock {
+            if let p = porCaminho[r.url.path] { return p }
+            return respostas.isEmpty ? Resposta(status: 200, corpo: Data("{}".utf8)) : respostas.removeFirst()
+        }
     }
 
     func enviar(_ r: Requisicao, progresso: @escaping @Sendable (Double) -> Void) async throws -> Resposta {
@@ -493,15 +498,17 @@ final class TransporteFalso: Transporte, TransporteUpload, @unchecked Sendable {
 
     @Test func `cadastros aceitam lista ou data`() async throws {
         let t = TransporteFalso()
-        t.respostas = [
-            Resposta(status: 200, corpo: Data(#"[{"id":"c1","name":"Aeróbio","dimension":"fisico","active":true}]"#.utf8)),
-            Resposta(status: 200, corpo: Data(#"{"data":[{"id":"e1","name":"Contra-ataque","content_id":"to","display_order":"2"}]}"#.utf8)),
-            Resposta(status: 200, corpo: Data(#"[{"id":"t1","title":"Rondo","content_id":"c1","is_archived":false}]"#.utf8)),
+        // as 3 listas vão em paralelo: cada resposta pelo caminho (no Mac a ordem de chegada varia)
+        t.porCaminho = [
+            "/api/contents": Resposta(status: 200, corpo: Data(#"[{"id":"c1","name":"Aeróbio","dimension":"fisico","active":true}]"#.utf8)),
+            "/api/stages": Resposta(status: 200, corpo: Data(#"{"data":[{"id":"e1","name":"Contra-ataque","content_id":"to","display_order":"2"}]}"#.utf8)),
+            "/api/titles": Resposta(status: 200, corpo: Data(#"[{"id":"t1","title":"Rondo","content_id":"c1","is_archived":false}]"#.utf8)),
         ]
         let c = try await api(t).cadastros(modalidade: "football_11")
         #expect(c.conteudos.map(\.nome) == ["Aeróbio"])
         #expect(t.pedidos.map(\.url.absoluteString).contains("https://x.test/api/stages?modality=football_11"))
-        #expect(c.etapas.count + c.titulos.count >= 1)
+        #expect(c.etapas.map(\.id) == ["e1"])
+        #expect(c.titulos.map(\.id) == ["t1"])
     }
 
     @Test func `upload multipart com activity_id e title antes do arquivo`() async throws {
