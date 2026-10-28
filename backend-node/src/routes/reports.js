@@ -5,7 +5,7 @@
 //   body sessao:       { session_id, include_photos? }
 //   body convocacao:   { session_id }  (A4 paisagem, games:view)
 //   body jogo:         { session_id }  (relatório de 1 jogo, A4 retrato, games:view)
-//   body analise:      { session_id }  (análise do adversário, A4 paisagem, games:view)
+//   body analise:      { session_id, formato?: 'pptx' }  (análise do adversário, slides 16:9; pptx = PowerPoint com vídeos)
 //   body clube:        { club_id, start_date?, end_date?, period_label?, primary_color? } (padrão: ano corrente)
 //   + fotos?   { ids: [ordem], layout, proporcao, legendas, agrupar, legendasCustom } (modal "Fotos do relatório")
 //   + formato? 'pdf' (padrão) | 'fotos' (JSON: miniaturas p/ o modal) | 'html' (JSON { html }: prévia
@@ -16,7 +16,7 @@
 const express = require('express');
 const authMiddleware = require('../middleware/auth');
 const { hasFeature } = require('../utils/planFeatures');
-const { generateReport, listReportPhotos, previewReportPhotos, viewSessionSheet, ReportError, PERMISSION } = require('../reports');
+const { generateReport, generateAnalisePptx, listReportPhotos, previewReportPhotos, viewSessionSheet, ReportError, PERMISSION } = require('../reports');
 const { featureMessage } = require('../middleware/requireActiveSubscription');
 
 const router = express.Router();
@@ -41,6 +41,18 @@ router.post('/:tipo', async (req, res) => {
     }
     if (body.formato === 'html') {
       return res.set('Cache-Control', 'no-store').json(await previewReportPhotos(tipo, body, req.user));
+    }
+    if (tipo === 'analise' && body.formato === 'pptx') {
+      const { buffer, filename, slides } = await generateAnalisePptx(body, req.user);
+      res.set({
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'Content-Length': buffer.length,
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'X-Report-Pages': String(slides),
+        'Cache-Control': 'no-store',
+      });
+      console.log(`[reports] analise.pptx ${slides} slides ${Math.round(buffer.length / 1024)}KB`);
+      return res.end(buffer);
     }
     // quem desistiu (fechou a conexão) não ocupa o Chromium: a fila descarta
     let gone = false;

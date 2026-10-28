@@ -391,6 +391,7 @@ let PLANTEL = [
         #expect(nomePdfConvocacao(adversario: nil, data: "2026-10-24") == "Convocacao_Adversario_24-10-2026.pdf")
         #expect(nomePdfRelatorioJogo(adversario: "Rival FC", data: "2026-10-24") == "Jogo_Rival_FC_24-10-2026.pdf")
         #expect(nomePdfAnalise(adversario: "Rival FC", data: "2026-10-24") == "Analise_Rival_FC_24-10-2026.pdf")
+        #expect(nomePdfAnalise(adversario: "Rival FC", data: "2026-10-24", extensao: "pptx") == "Analise_Rival_FC_24-10-2026.pptx")
         #expect(corpoRelatorioJogo("s1") == ["session_id": "s1"])
         #expect(nomePdfJogos(clube: "Demo FC", rotulo: "3 meses") == "Desempenho_Demo_FC_3_meses.pdf")
     }

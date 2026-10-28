@@ -1,6 +1,10 @@
 package com.faggin.tactiplan.app.ui.jogos
 
 import androidx.activity.compose.BackHandler
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +20,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,6 +45,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.faggin.tactiplan.app.dados.jogo.ApiJogo
+import com.faggin.tactiplan.app.dados.jogo.MidiaAnalise
+import com.faggin.tactiplan.app.dados.jogo.problemaMidiaAnalise
+import com.faggin.tactiplan.app.dados.jogo.tituloDoVideo
+import com.faggin.tactiplan.app.dados.treino.ArquivoUpload
+import com.faggin.tactiplan.app.dados.urlDoServidor
+import com.faggin.tactiplan.app.ui.comum.LogoClube
+import com.faggin.tactiplan.app.ui.semana.abrirAnexoNoSistema
+import com.faggin.tactiplan.app.ui.semana.nomeETamanho
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.faggin.tactiplan.app.dados.jogo.CampoAnalise
 import com.faggin.tactiplan.app.dados.jogo.PAPEL_VAGA
 import com.faggin.tactiplan.app.dados.jogo.SECOES_ANALISE
@@ -89,12 +105,45 @@ fun AnaliseTela(amb: AmbienteClube, api: ApiJogo, sessaoId: String, adversario: 
     var sujo by remember { mutableStateOf(false) }
     var salvando by remember { mutableStateOf(false) }
     var gerando by remember { mutableStateOf(false) }
+    var menuExportar by remember { mutableStateOf(false) }
+    var midias by remember { mutableStateOf<List<MidiaAnalise>>(emptyList()) }
+    var enviando by remember { mutableStateOf<Double?>(null) }
+    var secaoVideo by remember { mutableStateOf<String?>(null) }
     var aviso by remember { mutableStateOf<String?>(null) }
     var sair by remember { mutableStateOf(false) }
 
     LaunchedEffect(sessaoId) {
         try { dados = api.analise(sessaoId) } catch (e: Exception) { if (!amb.tratarErro(e)) erro = mensagemErroJogo(e) }
+        try { midias = amb.treino?.api?.midiasDaAnalise(sessaoId).orEmpty() } catch (_: Exception) { }
     }
+
+    // Escudo (capa) e vídeos da seção (só no PowerPoint): sobem na hora, sem esperar o Salvar
+    fun enviarMidia(uri: Uri, tipo: String, secaoDoVideo: String?) {
+        val apiT = amb.treino?.api ?: return
+        escopo.launch {
+            val r = context.contentResolver
+            val mime = (r.getType(uri) ?: "").lowercase()
+            val (nome0, tamanho) = withContext(Dispatchers.IO) { nomeETamanho(r, uri) }
+            val nome = nome0 ?: if (tipo == "escudo") "escudo" else "video"
+            problemaMidiaAnalise(tipo, mime, tamanho, midias.count { it.tipo == "video" })?.let { aviso = it; return@launch }
+            enviando = 0.0
+            try {
+                midias = apiT.enviarMidiaAnalise(sessaoId, tipo, secaoDoVideo, if (tipo == "video") tituloDoVideo(nome) else null,
+                    ArquivoUpload(nome, mime, tamanho) { r.openInputStream(uri) ?: throw java.io.IOException("sem arquivo") }) { p -> enviando = p }
+                aviso = if (tipo == "escudo") "Escudo salvo." else "Vídeo adicionado."
+            } catch (e: Exception) {
+                if (!amb.tratarErro(e)) aviso = mensagemErroJogo(e)
+            } finally { enviando = null }
+        }
+    }
+    fun removerMidia(m: MidiaAnalise) {
+        val apiT = amb.treino?.api ?: return
+        escopo.launch {
+            try { midias = apiT.apagarMidiaAnalise(sessaoId, m.id) } catch (e: Exception) { if (!amb.tratarErro(e)) aviso = mensagemErroJogo(e) }
+        }
+    }
+    val escolherEscudo = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> if (uri != null) enviarMidia(uri, "escudo", null) }
+    val escolherVideo = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> if (uri != null) enviarMidia(uri, "video", secaoVideo) }
 
     fun mudar(novo: JsonElement) { dados = novo; sujo = true }
     suspend fun salvar(): Boolean {
@@ -106,12 +155,15 @@ fun AnaliseTela(amb: AmbienteClube, api: ApiJogo, sessaoId: String, adversario: 
             if (!amb.tratarErro(e)) aviso = mensagemErroJogo(e); false
         } finally { salvando = false }
     }
-    fun gerarPdf() {
+    // PDF (sem vídeos) ou PowerPoint (com os vídeos de cada seção)
+    fun gerarPdf(pptx: Boolean = false) {
         if (gerando) return
         escopo.launch {
             if (sujo && editavel && !salvar()) return@launch
             gerando = true
-            val r = gerarECompartilhar(context, amb.treino!!.api, "analise", corpoRelatorioJogo(sessaoId), nomePdfAnalise(adversario, data), amb.tratarErro)
+            val nome = nomePdfAnalise(adversario, data, if (pptx) "pptx" else "pdf")
+            val r = if (pptx) com.faggin.tactiplan.app.ui.semana.gerarPptxAnalise(context, amb.treino!!.api, sessaoId, nome, amb.tratarErro)
+                else gerarECompartilhar(context, amb.treino!!.api, "analise", corpoRelatorioJogo(sessaoId), nome, amb.tratarErro)
             if (r is InicioExportar.Erro) aviso = r.mensagem
             gerando = false
         }
@@ -129,9 +181,17 @@ fun AnaliseTela(amb: AmbienteClube, api: ApiJogo, sessaoId: String, adversario: 
 
     val titulo = secao?.let { k -> SECOES_ANALISE.first { it.chave == k }.titulo } ?: "Análise · $adversario"
     TelaRaiz(titulo, aoVoltar = tentarVoltar, pequena = true, acoes = {
-        IconButton(onClick = ::gerarPdf, enabled = dados != null && !gerando, modifier = Modifier.testTag("analise:pdf")) {
-            if (gerando) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = c.acaoTinta)
-            else Icon(Icones.compartilhar, "Gerar PDF da análise")
+        Box {
+            IconButton(onClick = { menuExportar = true }, enabled = dados != null && !gerando, modifier = Modifier.testTag("analise:pdf")) {
+                if (gerando) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = c.acaoTinta)
+                else Icon(Icones.compartilhar, "Exportar a análise")
+            }
+            DropdownMenu(expanded = menuExportar, onDismissRequest = { menuExportar = false }) {
+                DropdownMenuItem(text = { Text("PDF (sem vídeos)") }, onClick = { menuExportar = false; gerarPdf() },
+                    modifier = Modifier.testTag("analise:exportar:pdf"))
+                DropdownMenuItem(text = { Text("PowerPoint (com vídeos)") }, onClick = { menuExportar = false; gerarPdf(pptx = true) },
+                    modifier = Modifier.testTag("analise:exportar:pptx"))
+            }
         }
         if (editavel) TextButton(onClick = { escopo.launch { salvar() } }, enabled = sujo && !salvando, modifier = Modifier.testTag("analise:salvar")) {
             if (salvando) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
@@ -144,7 +204,7 @@ fun AnaliseTela(amb: AmbienteClube, api: ApiJogo, sessaoId: String, adversario: 
         if (d == null) { Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }; return@TelaRaiz }
         val atual = secao
         if (atual == null) {
-            Text("O PDF mostra só o que estiver preenchido.", style = TactiPlan.tipos.corpo13, color = c.tinta2)
+            Text("O relatório mostra só o que estiver preenchido.", style = TactiPlan.tipos.corpo13, color = c.tinta2)
             Cartao(preenchimento = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 4.dp)) {
                 SECOES_ANALISE.forEachIndexed { i, s ->
                     if (i > 0) HorizontalDivider(color = c.borda)
@@ -158,12 +218,65 @@ fun AnaliseTela(amb: AmbienteClube, api: ApiJogo, sessaoId: String, adversario: 
                     }
                 }
             }
-            Botao("Gerar PDF", ::gerarPdf, Modifier.fillMaxWidth(), VarianteBotao.SECUNDARIO, !gerando, icone = Icones.documento)
+            Botao("PDF (sem vídeos)", { gerarPdf() }, Modifier.fillMaxWidth(), VarianteBotao.SECUNDARIO, !gerando, icone = Icones.documento)
+            Botao("PowerPoint (com vídeos)", { gerarPdf(pptx = true) }, Modifier.fillMaxWidth().testTag("analise:pptx"), VarianteBotao.SECUNDARIO, !gerando, icone = Icones.documento)
         } else {
             val s = SECOES_ANALISE.first { it.chave == atual }
+            if (atual == "capa") EscudoDaAnalise(midias.firstOrNull { it.tipo == "escudo" }, amb.apiBase, adversario, editavel, enviando,
+                escolher = { escolherEscudo.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, remover = ::removerMidia)
             s.campos.forEach { campo -> CampoDaAnalise(campo, d, emptyList(), editavel, ::mudar) }
+            if (atual != "capa") VideosDaSecao(midias.filter { it.tipo == "video" && it.secao == atual }, amb.apiBase, editavel, enviando,
+                escolher = { secaoVideo = atual; escolherVideo.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)) },
+                remover = ::removerMidia)
         }
     }
+}
+
+/** Escudo do adversário (capa e topo de cada página do relatório). Sem escudo: as iniciais. */
+@Composable
+private fun EscudoDaAnalise(
+    escudo: MidiaAnalise?, base: String, adversario: String, editavel: Boolean, enviando: Double?, escolher: () -> Unit, remover: (MidiaAnalise) -> Unit,
+) {
+    val c = TactiPlan.cores
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.testTag("analise:escudo")) {
+        LogoClube(urlDoServidor(escudo?.url, base), adversario, c.borda, c.tinta2, 56.dp)
+        Column(Modifier.weight(1f)) {
+            Text("Escudo do adversário", style = TactiPlan.tipos.corpo15, fontWeight = FontWeight.Bold, color = c.tinta)
+            Text("Aparece na capa e no topo de cada página.", style = TactiPlan.tipos.corpo13, color = c.tinta2)
+            if (editavel) Row {
+                TextButton(onClick = escolher, enabled = enviando == null) {
+                    Text(if (enviando != null) "Enviando… ${(enviando * 100).toInt()}%" else if (escudo != null) "Trocar" else "Enviar imagem")
+                }
+                if (escudo != null) TextButton(onClick = { remover(escudo) }, enabled = enviando == null) { Text("Remover", color = c.tinta2) }
+            }
+        }
+    }
+}
+
+/** Vídeos da seção: entram no PowerPoint num slide logo depois dela (o PDF só avisa). */
+@Composable
+private fun VideosDaSecao(
+    lista: List<MidiaAnalise>, base: String, editavel: Boolean, enviando: Double?, escolher: () -> Unit, remover: (MidiaAnalise) -> Unit,
+) {
+    val c = TactiPlan.cores
+    val context = LocalContext.current
+    val escopo = rememberCoroutineScope()
+    if (!editavel && lista.isEmpty()) return
+    RotuloSecao("Vídeos desta seção")
+    Text("Só no PowerPoint (o PDF avisa que há vídeo). MP4, MOV ou WEBM até 50 MB.", style = TactiPlan.tipos.corpo13, color = c.tinta2)
+    lista.forEach { m ->
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().testTag("analise:video:${m.id}")) {
+            Icon(Icones.documento, null, tint = c.tinta3)
+            Text(m.titulo ?: "Vídeo", style = TactiPlan.tipos.corpo15, color = c.acaoTinta,
+                modifier = Modifier.weight(1f).padding(horizontal = 8.dp).clickable(role = Role.Button) {
+                    val url = urlDoServidor(m.url, base) ?: return@clickable
+                    escopo.launch { abrirAnexoNoSistema(context, url, (m.titulo ?: "video") + ".mp4", "video/*") }
+                })
+            if (editavel) TextButton(onClick = { remover(m) }) { Text("Remover", color = c.tinta2) }
+        }
+    }
+    if (editavel) Botao(if (enviando != null) "Enviando… ${(enviando * 100).toInt()}%" else "Adicionar vídeo", escolher,
+        Modifier.fillMaxWidth().testTag("analise:video:adicionar"), VarianteBotao.SECUNDARIO, enviando == null)
 }
 
 /** Um campo do esquema. `base` = caminho do item (campos de Repetir são relativos ao item). */

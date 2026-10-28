@@ -4,13 +4,14 @@ const assert = require('node:assert');
 const AA = require('../src/services/analiseAdversario');
 const { vagasLivres, linhasDa } = require('../src/reports/formacaoLivre');
 const { renderAnalise } = require('../src/reports/templates/analise');
-const { teamPalette } = require('../src/reports/theme');
+const { montarDeck } = require('../src/reports/analiseDeck');
+const { gerarPptx } = require('../src/reports/analisePptx');
 const FLA = require('./fixtures/analise-flamengo.json');
 
 test('normalizar: corta, tira vazios, ignora valores fora da lista e devolve o formato completo', () => {
   const vazio = AA.normalizar(null);
   assert.deepEqual(AA.secoesPreenchidas(vazio), []);
-  assert.deepEqual(vazio.sistema.com_bola, []);
+  assert.deepEqual(vazio.sistema.ofensivo, { formacao: '', descricao: '', itens: [] });
   const a = AA.normalizar({
     sistema: { formacao: ' 4-3-3 ', com_bola: ['  ataque rápido ', '', '   '], sem_bola: 'linha 1\n\nlinha 2' },
     defesa: { medio: { frequencia: 'qualquer', itens: ['x'] } },
@@ -20,9 +21,12 @@ test('normalizar: corta, tira vazios, ignora valores fora da lista e devolve o f
     fontes: { sistema: 'CONMEBOL', 'NAO VALE': 'x' },
     lixo: { qualquer: 1 },
   });
-  assert.equal(a.sistema.formacao, '4-3-3');
-  assert.deepEqual(a.sistema.com_bola, ['ataque rápido']);
-  assert.deepEqual(a.sistema.sem_bola, ['linha 1', 'linha 2']);
+  // análise antiga (formacao/com_bola/sem_bola) migra para ofensivo/defensivo
+  assert.equal(a.sistema.ofensivo.formacao, '4-3-3');
+  assert.deepEqual(a.sistema.ofensivo.itens, ['ataque rápido']);
+  assert.deepEqual(a.sistema.defensivo.itens, ['linha 1', 'linha 2']);
+  const novo = AA.normalizar({ sistema: { ofensivo: { formacao: '4-3-3' }, defensivo: { formacao: '4-4-2', itens: ['bloco médio'] } } });
+  assert.deepEqual(novo.sistema.defensivo, { formacao: '4-4-2', descricao: '', itens: ['bloco médio'] });
   assert.equal(a.defesa.medio.frequencia, '');
   assert.equal(a.campanha.vitorias, 7);
   assert.equal(a.campanha.posse, 100);
@@ -31,7 +35,7 @@ test('normalizar: corta, tira vazios, ignora valores fora da lista e devolve o f
   assert.deepEqual(a.individuais.map((p) => p.nome), ['Pedro']);
   assert.deepEqual(a.fontes, { sistema: 'CONMEBOL' });
   assert.ok(!('lixo' in a));
-  assert.deepEqual(AA.secoesPreenchidas(a), ['campanha', 'sistema', 'escalacao', 'defesa', 'individuais']);
+  assert.deepEqual(AA.secoesPreenchidas(a), ['campanha', 'sistema', 'escalacao', 'individuais', 'defesa']);
 });
 
 test('formação livre: goleiro + linhas da defesa ao ataque, esquerda → direita', () => {
@@ -46,23 +50,61 @@ test('formação livre: goleiro + linhas da defesa ao ataque, esquerda → direi
   assert.deepEqual(vagasLivres(''), [{ vaga: 0, papel: 'GOL', x: 50, y: 91 }]);
 });
 
-test('PDF: capa + uma página por seção preenchida (individuais 2 por página); o vazio não aparece', () => {
-  const team = { name: 'Clube', short: 'CL', modality: 'football_11', palette: teamPalette('#1B8A3E'), logoUrl: null };
+function vmDe(a, extra = {}) {
+  return { a, adversario: 'Flamengo', nossoNome: 'Clube Teste', subtitulo: 'Libertadores 2026', fatos: [{ l: 'Fase', v: 'Semifinal' }],
+    capaRodape: 'Técnico: Jardim', fontes: a.fontes, imagens: {}, videos: [], ...extra };
+}
+
+test('deck: capa + um slide por seção preenchida, na ordem nova (individual logo após a escalação)', () => {
   const a = AA.normalizar(FLA);
-  const vm = { team, a, adversario: 'Flamengo', subtitulo: 'Libertadores 2026', fatos: [{ l: 'Fase', v: 'Semifinal' }], capaRodape: 'Técnico: Jardim',
-    secoes: AA.secoesPreenchidas(a), fontes: a.fontes, right: 'vs Flamengo' };
-  const html = renderAnalise(vm, { now: new Date('2026-10-27T12:00:00Z') });
-  const paginas = (html.match(/<section class="page" data-subtitle/g) || []).length;
-  assert.equal(paginas, 1 + 11 + 2, 'capa + 11 seções + análise individual em 2 páginas (3 jogadores)');
-  assert.match(html, /Provável escalação/);
+  const deck = montarDeck(vmDe(a));
+  // 12 seções; individuais (3 jogadores) em 2 slides; variações cabem em 1
+  assert.equal(deck.slides.length, 1 + 12 + 1);
+  const titulos = deck.slides.slice(1).map((s) => s.els[0].txt);
+  assert.deepEqual(titulos.slice(0, 6), ['Campanha', 'Sistema inicial', 'Variações do sistema', 'Provável escalação', 'Análise individual (1/2)', 'Análise individual (2/2)']);
+  assert.ok(titulos.includes('Organização ofensiva') && titulos.includes('Organização defensiva'));
+  const html = renderAnalise(deck, { titulo: 'x', imagens: {} });
+  assert.equal((html.match(/<section class="s"/g) || []).length, deck.slides.length);
   assert.match(html, /Rossi/);
-  assert.match(html, /Predominante/);
-  assert.match(html, /Mensagem principal para o jogo/);
-  // só a seção de sistema preenchida: capa + 1 página; nada de "Campanha"/"Transições"
-  const so = AA.normalizar({ sistema: { formacao: '4-4-2' } });
-  const h2 = renderAnalise({ ...vm, a: so, secoes: AA.secoesPreenchidas(so), fontes: {} }, { now: new Date() });
-  assert.equal((h2.match(/<section class="page" data-subtitle/g) || []).length, 2);
+  assert.match(html, /Ofensivo/);
+  assert.match(html, /Defensivo/);
+  assert.match(html, /MENSAGEM PRINCIPAL PARA O JOGO/);
+  assert.match(html, /@page\{size:338.67mm 190.5mm/);
+  // nome do adversário na capa e no topo de cada slide
+  assert.ok((html.match(/Flamengo/g) || []).length >= deck.slides.length);
+  // só o sistema preenchido: capa + 1 slide; nada de "Campanha"/"Transições"
+  const so = AA.normalizar({ sistema: { ofensivo: { formacao: '4-4-2' } } });
+  const h2 = renderAnalise(montarDeck(vmDe(so)), { titulo: 'x' });
+  assert.equal((h2.match(/<section class="s"/g) || []).length, 2);
   assert.ok(!h2.includes('Campanha') && !h2.includes('Transições'));
+});
+
+test('vídeos: slide próprio só no PowerPoint; o PDF avisa na seção', () => {
+  const a = AA.normalizar(FLA);
+  const deck = montarDeck(vmDe(a, { videos: [{ id: 'v1', secao: 'ataque', titulo: 'Saída curta' }] }));
+  const iv = deck.slides.findIndex((s) => s.so === 'pptx');
+  assert.ok(iv > 0);
+  assert.equal(deck.slides[iv - 1].els[0].txt, 'Organização ofensiva', 'vídeo logo depois da seção dele');
+  assert.ok(deck.slides[iv].els.some((e) => e.t === 'video' && e.key === 'v1'));
+  const html = renderAnalise(deck, { titulo: 'x' });
+  assert.equal((html.match(/<section class="s"/g) || []).length, deck.slides.length - 1);
+  assert.match(html, /1 vídeo na versão PowerPoint/);
+});
+
+test('vídeo em seção ainda vazia também vai para o PowerPoint', () => {
+  const a = AA.normalizar({ sistema: { ofensivo: { formacao: '4-3-3' } } });
+  const deck = montarDeck(vmDe(a, { videos: [{ id: 'v1', secao: 'ataque', titulo: 'x' }] }));
+  assert.equal(deck.slides.length, 3, 'capa + sistema + vídeo');
+  assert.equal(deck.slides[2].so, 'pptx');
+});
+
+test('PowerPoint: gera um .pptx válido (zip) com um slide por item do deck', async () => {
+  const a = AA.normalizar(FLA);
+  const deck = montarDeck(vmDe(a));
+  const buf = await gerarPptx(deck, { titulo: 'Análise' });
+  assert.equal(buf.slice(0, 2).toString(), 'PK');
+  const nSlides = (buf.toString('latin1').match(/ppt\/slides\/slide\d+\.xml/g) || []).filter((v, i, l) => l.indexOf(v) === i).length;
+  assert.equal(nSlides, deck.slides.length);
 });
 
 test('paridade: lib/formacaoLivre.js do web = a do servidor', async () => {

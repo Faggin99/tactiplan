@@ -1,79 +1,339 @@
 {
-  "capa": { "fase": "Semifinal (volta)", "ida": "Estudiantes 0 × 0 Fla", "tecnico": "Leonardo Jardim", "observacao": "Dados públicos até 22/10/2026" },
+  "capa": {
+    "fase": "Semifinal (volta)",
+    "ida": "Estudiantes 0 × 0 Fla",
+    "tecnico": "Leonardo Jardim",
+    "observacao": "Dados públicos até 22/10/2026"
+  },
   "campanha": {
     "situacao": "Semifinal · 1º do Grupo A (16 pts) · invicto em 11 jogos",
-    "vitorias": 7, "empates": 4, "derrotas": 0, "gols_pro": 20, "gols_contra": 5, "posse": 55,
+    "vitorias": 7,
+    "empates": 4,
+    "derrotas": 0,
+    "gols_pro": 20,
+    "gols_contra": 5,
+    "posse": 55,
     "ultimos": [
-      { "resultado": "E", "adversario": "Cruzeiro", "mando": "F", "placar": "1 × 1" },
-      { "resultado": "V", "adversario": "Cruzeiro", "mando": "C", "placar": "2 × 1" },
-      { "resultado": "V", "adversario": "Del Valle", "mando": "F", "placar": "2 × 0" },
-      { "resultado": "E", "adversario": "Del Valle", "mando": "C", "placar": "1 × 1" },
-      { "resultado": "E", "adversario": "Estudiantes", "mando": "F", "placar": "0 × 0" }
+      {
+        "resultado": "E",
+        "adversario": "Cruzeiro",
+        "mando": "F",
+        "placar": "1 × 1"
+      },
+      {
+        "resultado": "V",
+        "adversario": "Cruzeiro",
+        "mando": "C",
+        "placar": "2 × 1"
+      },
+      {
+        "resultado": "V",
+        "adversario": "Del Valle",
+        "mando": "F",
+        "placar": "2 × 0"
+      },
+      {
+        "resultado": "E",
+        "adversario": "Del Valle",
+        "mando": "C",
+        "placar": "1 × 1"
+      },
+      {
+        "resultado": "E",
+        "adversario": "Estudiantes",
+        "mando": "F",
+        "placar": "0 × 0"
+      }
     ],
-    "casa": { "j": 5, "v": 4, "e": 1, "d": 0, "gp": 11, "gc": 3 },
-    "fora": { "j": 6, "v": 3, "e": 3, "d": 0, "gp": 9, "gc": 2 },
+    "casa": {
+      "j": 5,
+      "v": 4,
+      "e": 1,
+      "d": 0,
+      "gp": 11,
+      "gc": 3
+    },
+    "fora": {
+      "j": 6,
+      "v": 3,
+      "e": 3,
+      "d": 0,
+      "gp": 9,
+      "gc": 2
+    },
     "observacao": "Inclui o 3 × 0 por W.O. contra o Medellín. Empate hoje leva aos pênaltis; o vencedor enfrenta o Palmeiras na final."
   },
   "sistema": {
-    "formacao": "4-3-3", "descricao": "Sistema-base com Leonardo Jardim",
-    "com_bola": ["Menos posse paciente, ataque mais rápido e direto", "Samuel Lino troca de lado durante o jogo", "Carrascal pode jogar por dentro, como camisa 10"],
-    "sem_bola": ["Time mais reativo que com Filipe Luís", "Espera o adversário no próprio campo", "Usa os contra-ataques como arma principal"]
+    "ofensivo": {
+      "formacao": "4-3-3",
+      "descricao": "Sistema-base com Leonardo Jardim",
+      "itens": [
+        "Menos posse paciente, ataque mais rápido e direto",
+        "Samuel Lino troca de lado durante o jogo",
+        "Carrascal pode jogar por dentro, como camisa 10"
+      ]
+    },
+    "defensivo": {
+      "formacao": "4-1-4-1",
+      "descricao": "Organização defensiva",
+      "itens": [
+        "Time mais reativo que com Filipe Luís",
+        "Espera o adversário no próprio campo",
+        "Usa os contra-ataques como arma principal"
+      ]
+    }
   },
   "variacoes": [
-    { "fase": "Com bola", "formacao": "2-3-5", "quando": "posse no campo de ataque", "itens": ["Laterais sobem e pontas abrem o campo"] },
-    { "fase": "Sem bola", "formacao": "4-1-4-1", "quando": "em organização defensiva", "itens": ["Na ida, ficou mais baixo e foi dominado"] },
-    { "fase": "Com Carrascal de 10", "formacao": "4-2-3-1", "quando": "Plata entra aberto pela direita", "itens": ["Paquetá sai ou recua"] }
+    {
+      "fase": "Com bola",
+      "formacao": "2-3-5",
+      "quando": "posse no campo de ataque",
+      "itens": [
+        "Laterais sobem e pontas abrem o campo"
+      ]
+    },
+    {
+      "fase": "Sem bola",
+      "formacao": "4-1-4-1",
+      "quando": "em organização defensiva",
+      "itens": [
+        "Na ida, ficou mais baixo e foi dominado"
+      ]
+    },
+    {
+      "fase": "Com Carrascal de 10",
+      "formacao": "4-2-3-1",
+      "quando": "Plata entra aberto pela direita",
+      "itens": [
+        "Paquetá sai ou recua"
+      ]
+    }
   ],
   "escalacao": {
     "formacao": "4-3-3",
     "jogadores": [
-      { "vaga": 0, "numero": 1, "nome": "Rossi" }, { "vaga": 1, "numero": 26, "nome": "Alex Sandro" }, { "vaga": 2, "numero": 4, "nome": "Léo Pereira" },
-      { "vaga": 3, "numero": 3, "nome": "Léo Ortiz" }, { "vaga": 4, "numero": 22, "nome": "Emerson Royal" }, { "vaga": 5, "numero": 20, "nome": "Paquetá" },
-      { "vaga": 6, "numero": 5, "nome": "Pulgar" }, { "vaga": 7, "numero": 21, "nome": "Jorginho" }, { "vaga": 8, "numero": 16, "nome": "Samuel Lino" },
-      { "vaga": 9, "numero": 9, "nome": "Pedro" }, { "vaga": 10, "numero": 15, "nome": "Carrascal" }
+      {
+        "vaga": 0,
+        "numero": 1,
+        "nome": "Rossi"
+      },
+      {
+        "vaga": 1,
+        "numero": 26,
+        "nome": "Alex Sandro"
+      },
+      {
+        "vaga": 2,
+        "numero": 4,
+        "nome": "Léo Pereira"
+      },
+      {
+        "vaga": 3,
+        "numero": 3,
+        "nome": "Léo Ortiz"
+      },
+      {
+        "vaga": 4,
+        "numero": 22,
+        "nome": "Emerson Royal"
+      },
+      {
+        "vaga": 5,
+        "numero": 20,
+        "nome": "Paquetá"
+      },
+      {
+        "vaga": 6,
+        "numero": 5,
+        "nome": "Pulgar"
+      },
+      {
+        "vaga": 7,
+        "numero": 21,
+        "nome": "Jorginho"
+      },
+      {
+        "vaga": 8,
+        "numero": 16,
+        "nome": "Samuel Lino"
+      },
+      {
+        "vaga": 9,
+        "numero": 9,
+        "nome": "Pedro"
+      },
+      {
+        "vaga": 10,
+        "numero": 15,
+        "nome": "Carrascal"
+      }
     ],
-    "banco": ["27 Bruno Henrique – atacante", "19 Gonzalo Plata – ponta", "8 Saúl – meio (dúvida)", "7 Luiz Araújo – ponta", "Ayrton Lucas – lateral", "2 Varela – lateral"],
-    "desfalques": ["Arrascaeta: fratura no punho", "Danilo: fratura na mandíbula", "Evertton Araújo: em transição física"],
-    "duvidas": ["Saúl: dores na perna esquerda", "Carrascal ou Plata na ponta direita", "Pedro ou Bruno Henrique no ataque"]
+    "banco": [
+      "27 Bruno Henrique – atacante",
+      "19 Gonzalo Plata – ponta",
+      "8 Saúl – meio (dúvida)",
+      "7 Luiz Araújo – ponta",
+      "Ayrton Lucas – lateral",
+      "2 Varela – lateral"
+    ],
+    "desfalques": [
+      "Arrascaeta: fratura no punho",
+      "Danilo: fratura na mandíbula",
+      "Evertton Araújo: em transição física"
+    ],
+    "duvidas": [
+      "Saúl: dores na perna esquerda",
+      "Carrascal ou Plata na ponta direita",
+      "Pedro ou Bruno Henrique no ataque"
+    ]
   },
   "defesa": {
-    "alto": { "frequencia": "pontual", "itens": ["Pressiona a saída em momentos do jogo", "Recuperações no terço final caíram de 5,7 para 3,1 por jogo"] },
-    "medio": { "frequencia": "predominante", "itens": ["Linhas compactas, espera no próprio campo", "Rouba e sai em velocidade pelos lados"] },
-    "baixo": { "frequencia": "", "itens": ["Na ida em La Plata, recuou e foi dominado", "Cede finalizações: 12,7 por jogo no Brasileirão"] }
+    "alto": {
+      "frequencia": "pontual",
+      "itens": [
+        "Pressiona a saída em momentos do jogo",
+        "Recuperações no terço final caíram de 5,7 para 3,1 por jogo"
+      ]
+    },
+    "medio": {
+      "frequencia": "predominante",
+      "itens": [
+        "Linhas compactas, espera no próprio campo",
+        "Rouba e sai em velocidade pelos lados"
+      ]
+    },
+    "baixo": {
+      "frequencia": "",
+      "itens": [
+        "Na ida em La Plata, recuou e foi dominado",
+        "Cede finalizações: 12,7 por jogo no Brasileirão"
+      ]
+    }
   },
   "ataque": {
-    "construcao": ["Posse serve para criar espaço, não para ficar com a bola", "Sofreu gol do Del Valle após pressão na saída"],
-    "segunda_fase": ["Paquetá e Carrascal recebem entre linhas", "Jogo direto se o rival pressionar alto"],
-    "criacao": ["Pontas abertos; Lino alterna os lados", "Sem Arrascaeta, perde o principal criador"],
-    "finalizacao": ["13,6 finalizações e 6,4 no gol por jogo", "Bruno Henrique, artilheiro com 5 gols"]
+    "construcao": [
+      "Posse serve para criar espaço, não para ficar com a bola",
+      "Sofreu gol do Del Valle após pressão na saída"
+    ],
+    "segunda_fase": [
+      "Paquetá e Carrascal recebem entre linhas",
+      "Jogo direto se o rival pressionar alto"
+    ],
+    "criacao": [
+      "Pontas abertos; Lino alterna os lados",
+      "Sem Arrascaeta, perde o principal criador"
+    ],
+    "finalizacao": [
+      "13,6 finalizações e 6,4 no gol por jogo",
+      "Bruno Henrique, artilheiro com 5 gols"
+    ]
   },
   "transicoes": {
-    "perder": { "comportamento": "recuam", "itens": ["Pouca contrapressão: recuperam menos no campo de ataque", "Espaço possível: costas dos laterais quando sobem"] },
-    "recuperar": { "comportamento": "verticais", "itens": ["Contra-ataque é a principal arma do time de Jardim", "Alvos: Lino e Bruno Henrique em velocidade; Pedro de pivô"] }
+    "perder": {
+      "comportamento": "recuam",
+      "itens": [
+        "Pouca contrapressão: recuperam menos no campo de ataque",
+        "Espaço possível: costas dos laterais quando sobem"
+      ]
+    },
+    "recuperar": {
+      "comportamento": "verticais",
+      "itens": [
+        "Contra-ataque é a principal arma do time de Jardim",
+        "Alvos: Lino e Bruno Henrique em velocidade; Pedro de pivô"
+      ]
+    }
   },
   "individuais": [
-    { "nome": "Bruno Henrique", "numero": 27, "posicao": "Atacante", "destaque": "Artilheiro do Fla na Libertadores: 5 gols",
-      "fortes": ["Ataque à profundidade e arranque em transição", "4 gols só na fase de grupos"], "fracos": ["Rende menos sem espaço, contra bloco baixo"],
-      "neutralizar": ["Linha defensiva sem espaço às costas", "Cobertura constante do zagueiro do lado"] },
-    { "nome": "Pedro", "numero": 9, "posicao": "Centroavante", "destaque": "2 gols na fase de grupos · confirmado como titular",
-      "fortes": ["Finalização na área, de primeira e de cabeça", "Pivô de costas para segurar e girar"], "fracos": ["Pouca participação na pressão sem bola"],
-      "neutralizar": ["Zagueiro colado, sem deixar girar", "Cortar o cruzamento na origem"] },
-    { "nome": "Lucas Paquetá", "numero": 20, "posicao": "Meia", "fortes": ["Condução e passe vertical entre linhas", "Batedor de pênalti"],
-      "neutralizar": ["Volante encaixado nele ao receber"] }
+    {
+      "nome": "Bruno Henrique",
+      "numero": 27,
+      "posicao": "Atacante",
+      "destaque": "Artilheiro do Fla na Libertadores: 5 gols",
+      "fortes": [
+        "Ataque à profundidade e arranque em transição",
+        "4 gols só na fase de grupos"
+      ],
+      "fracos": [
+        "Rende menos sem espaço, contra bloco baixo"
+      ],
+      "neutralizar": [
+        "Linha defensiva sem espaço às costas",
+        "Cobertura constante do zagueiro do lado"
+      ]
+    },
+    {
+      "nome": "Pedro",
+      "numero": 9,
+      "posicao": "Centroavante",
+      "destaque": "2 gols na fase de grupos · confirmado como titular",
+      "fortes": [
+        "Finalização na área, de primeira e de cabeça",
+        "Pivô de costas para segurar e girar"
+      ],
+      "fracos": [
+        "Pouca participação na pressão sem bola"
+      ],
+      "neutralizar": [
+        "Zagueiro colado, sem deixar girar",
+        "Cortar o cruzamento na origem"
+      ]
+    },
+    {
+      "nome": "Lucas Paquetá",
+      "numero": 20,
+      "posicao": "Meia",
+      "fortes": [
+        "Condução e passe vertical entre linhas",
+        "Batedor de pênalti"
+      ],
+      "neutralizar": [
+        "Volante encaixado nele ao receber"
+      ]
+    }
   ],
   "bp_ofensiva": {
     "resumo": "20% dos gols com Jardim: 9 de 45 até julho (5 de escanteio, 3 de pênalti e 1 de falta direta).",
-    "escanteios": ["Alvos: Léo Ortiz e Léo Pereira", "Desvio no 1º pau, ataque ao 2º pau"], "faltas": ["1 gol de falta direta com Jardim"],
-    "penaltis": ["3 gols de pênalti com Jardim", "Paquetá converteu contra o Cusco"]
+    "escanteios": [
+      "Alvos: Léo Ortiz e Léo Pereira",
+      "Desvio no 1º pau, ataque ao 2º pau"
+    ],
+    "faltas": [
+      "1 gol de falta direta com Jardim"
+    ],
+    "penaltis": [
+      "3 gols de pênalti com Jardim",
+      "Paquetá converteu contra o Cusco"
+    ]
   },
-  "bp_defensiva": { "marcacao": "", "goleiro": ["Rossi decisivo em pênaltis: herói do título carioca"], "contra_ataque": "Provável: Lino ou Bruno Henrique" },
+  "bp_defensiva": {
+    "marcacao": "",
+    "goleiro": [
+      "Rossi decisivo em pênaltis: herói do título carioca"
+    ],
+    "contra_ataque": "Provável: Lino ou Bruno Henrique"
+  },
   "pontos": {
-    "positivos": ["Invicto na Libertadores: 7 vitórias e 4 empates", "Defesa sólida: 5 gols sofridos em 11 jogos", "Contra-ataque rápido com pontas velozes"],
-    "explorar": ["Sem Arrascaeta, perde o principal criador", "Erra na saída sob pressão (gol do Del Valle)", "Laterais sobem e deixam espaço às costas"]
+    "positivos": [
+      "Invicto na Libertadores: 7 vitórias e 4 empates",
+      "Defesa sólida: 5 gols sofridos em 11 jogos",
+      "Contra-ataque rápido com pontas velozes"
+    ],
+    "explorar": [
+      "Sem Arrascaeta, perde o principal criador",
+      "Erra na saída sob pressão (gol do Del Valle)",
+      "Laterais sobem e deixam espaço às costas"
+    ]
   },
   "final": {
-    "observacoes": ["Empate leva aos pênaltis: Rossi é especialista", "Sem Arrascaeta e Danilo; Saúl é dúvida e Jorginho volta"],
+    "observacoes": [
+      "Empate leva aos pênaltis: Rossi é especialista",
+      "Sem Arrascaeta e Danilo; Saúl é dúvida e Jorginho volta"
+    ],
     "mensagem": "Tirar o espaço do contra-ataque e obrigar o Flamengo a criar contra um bloco organizado, sem o Arrascaeta."
   },
-  "fontes": { "campanha": "CONMEBOL, SportsBettingDime", "escalacao": "Lance, Folha Vitória (22/10/2026)" }
+  "fontes": {
+    "campanha": "CONMEBOL, SportsBettingDime",
+    "escalacao": "Lance, Folha Vitória (22/10/2026)"
+  }
 }

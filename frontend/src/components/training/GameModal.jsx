@@ -906,8 +906,10 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                               { label: 'Convocação · letra grande (PDF)', onClick: () => exportToPdf('grande') },
                               { label: 'Convocação · letra muito grande (PDF)', onClick: () => exportToPdf('muito_grande') },
                               { label: 'Relatório do jogo (PDF)', onClick: exportGameReport },
-                              { label: 'Análise do adversário (PDF)', onClick: () => downloadReport('analise', { session_id: session.id },
+                              { label: 'Análise do adversário (PDF, sem vídeos)', onClick: () => downloadReport('analise', { session_id: session.id },
                                 `Analise_${(opponentName || 'Adversario').replace(/\s+/g, '_')}_${session?.date ? session.date.split('-').reverse().join('-') : ''}.pdf`).catch((e) => notify.error(e.message || 'Não foi possível gerar o PDF.')) },
+                              { label: 'Análise do adversário (PowerPoint, com vídeos)', onClick: () => downloadReport('analise', { session_id: session.id, formato: 'pptx' },
+                                `Analise_${(opponentName || 'Adversario').replace(/\s+/g, '_')}_${session?.date ? session.date.split('-').reverse().join('-') : ''}.pptx`, 'Compartilhar PowerPoint').catch((e) => notify.error(e.message || 'Não foi possível gerar o PowerPoint.')) },
                             ]}
                             onExportExcel={exportToExcel}
                           />

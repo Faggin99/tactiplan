@@ -29,6 +29,25 @@ struct AnaliseTests {
             for k in ks.compactMap(\.texto) { #expect(secaoPreenchida(exemplo, k), "\(k)") }
         }
         #expect(!secaoPreenchida(vazio, "sistema"))
+        // mesma ordem do relatório; ataque/defesa com os nomes novos (28/10)
+        if case .lista(let ordem)? = p["ordem"] { #expect(ordem.compactMap(\.texto) == SECOES_ANALISE.map(\.chave)) }
+        else { Issue.record("ordem") }
+        for k in ["sistema", "individuais", "ataque", "defesa"] {
+            #expect(p["titulos"]?[k]?.texto == SECOES_ANALISE.first { $0.chave == k }?.titulo, "\(k)")
+        }
+    }
+
+    @Test func `escudo e videos - o que o servidor recusaria`() throws {
+        #expect(problemaMidiaAnalise(tipo: "escudo", mime: "image/png", tamanho: 2_000) == nil)
+        #expect(problemaMidiaAnalise(tipo: "escudo", mime: "video/mp4", tamanho: 2_000)?.contains("imagem") == true)
+        #expect(problemaMidiaAnalise(tipo: "escudo", mime: "image/png", tamanho: MAX_BYTES_ESCUDO + 1)?.contains("3 MB") == true)
+        #expect(problemaMidiaAnalise(tipo: "video", mime: "video/quicktime", tamanho: 10_000_000) == nil)
+        #expect(problemaMidiaAnalise(tipo: "video", mime: "video/mp4", tamanho: MAX_BYTES_VIDEO_ANALISE + 1)?.contains("50 MB") == true)
+        #expect(problemaMidiaAnalise(tipo: "video", mime: "video/mp4", tamanho: 1, videosNaAnalise: 12)?.contains("Limite") == true)
+        #expect(tituloDoVideo("saida-curta.mp4") == "saida-curta")
+        let m = try Json.ler(Data(#"{"id":"m1","tipo":"video","secao":"ataque","titulo":"Saída","url":"/uploads/analise/x.mp4","size_bytes":"2003"}"#.utf8))
+            .decodificar(MidiaAnalise.self)
+        #expect(m.secao == "ataque" && m.url == "/uploads/analise/x.mp4")
     }
 
     @Test func `vagas da formacao livre iguais as do servidor`() throws {
@@ -48,10 +67,10 @@ struct AnaliseTests {
 
     @Test func `ler e gravar por caminho, listas e escalacao`() {
         var d: Json = .objeto([:])
-        d = gravarEm(d, ["sistema", "formacao"], "4-3-3")
-        #expect(textoEm(d, ["sistema", "formacao"]) == "4-3-3")
-        d = gravarEm(d, ["sistema", "com_bola"], textoComoLista("a\n\nb"))
-        #expect(listaComoTexto(d, ["sistema", "com_bola"]) == "a\n\nb")
+        d = gravarEm(d, ["sistema", "ofensivo", "formacao"], "4-3-3")
+        #expect(textoEm(d, ["sistema", "ofensivo", "formacao"]) == "4-3-3")
+        d = gravarEm(d, ["sistema", "defensivo", "itens"], textoComoLista("a\n\nb"))
+        #expect(listaComoTexto(d, ["sistema", "defensivo", "itens"]) == "a\n\nb")
         d = gravarEm(d, ["variacoes"], .lista([.objeto([:])]))
         d = gravarEm(d, ["variacoes", "0", "formacao"], "2-3-5")
         #expect(textoEm(d, ["variacoes", "0", "formacao"]) == "2-3-5")

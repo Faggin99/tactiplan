@@ -1,9 +1,10 @@
 // Análise do adversário do jogo (PUT/GET /api/games/:id/analise, migration 062). O treinador
 // preenche por seções, no formato do modelo do dono (Analise_Flamengo_Libertadores_2026.pptx);
-// o PDF (POST /api/reports/analise) mostra só o que foi preenchido. Listas de tópicos: uma linha
+// o PDF / PowerPoint (POST /api/reports/analise, formato 'pptx') mostra só o que foi preenchido. Escudo do
+// adversário e vídeos por seção (migration 063): os vídeos entram só no PowerPoint. Listas de tópicos: uma linha
 // por item (o servidor tira as linhas vazias ao salvar — backend-node/src/services/analiseAdversario.js).
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { Plus, Trash2, FileDown } from 'lucide-react';
+import { Plus, Trash2, FileDown, Presentation, Upload, Video } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -12,11 +13,12 @@ import { downloadReport, safeFileName } from '../../services/reportsService';
 import { notify } from '../../lib/notify';
 import { vagasLivres } from '../../lib/formacaoLivre';
 
+// Mesma ordem e títulos do relatório (backend-node/src/services/analiseAdversario.js TITULOS)
 const SECOES = [
   ['capa', 'Capa'], ['campanha', 'Campanha'], ['sistema', 'Sistema inicial'], ['variacoes', 'Variações do sistema'],
-  ['escalacao', 'Provável escalação'], ['defesa', 'Como defendem'], ['ataque', 'Como jogam com bola'], ['transicoes', 'Transições'],
-  ['individuais', 'Análise individual'], ['bp_ofensiva', 'Bolas paradas ofensivas'], ['bp_defensiva', 'Bolas paradas defensivas'],
-  ['pontos', 'Pontos positivos e a explorar'], ['final', 'Observações finais'],
+  ['escalacao', 'Provável escalação'], ['individuais', 'Análise individual'], ['ataque', 'Organização ofensiva'],
+  ['defesa', 'Organização defensiva'], ['transicoes', 'Transições'], ['bp_ofensiva', 'Bolas paradas ofensivas'],
+  ['bp_defensiva', 'Bolas paradas defensivas'], ['pontos', 'Pontos positivos e a explorar'], ['final', 'Observações finais'],
 ];
 const FREQ = [['', '—'], ['predominante', 'Predominante'], ['frequente', 'Frequente'], ['pontual', 'Pontual'], ['raro', 'Raro']];
 const PERDER = [['', '—'], ['pressionam', 'Pressionam (contrapressão)'], ['temporizam', 'Temporizam'], ['recuam', 'Recuam e recompõem o bloco']];
@@ -126,19 +128,90 @@ function Repetir({ path, novo, max, rotulo, render }) {
   );
 }
 
+// Botão que abre o seletor de arquivo (input escondido dentro do label)
+function BotaoArquivo({ aceita, onArquivo, children, disabled }) {
+  const { colors } = useContext(Ctx);
+  return (
+    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.75rem', borderRadius: '0.4rem', fontSize: '0.82rem', fontWeight: 600,
+      border: `1px solid ${colors.border}`, color: colors.text, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.6 : 1, width: 'fit-content' }}>
+      <input type="file" accept={aceita} disabled={disabled} style={{ display: 'none' }}
+        onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) onArquivo(f); }} />
+      {children}
+    </label>
+  );
+}
+
+function Escudo() {
+  const { midias, enviar, remover, enviando, podeEditar, colors } = useContext(Ctx);
+  const escudo = midias.find((m) => m.tipo === 'escudo');
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+      <div style={{ width: 64, height: 64, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', overflow: 'hidden', border: `1px dashed ${colors.border}`, background: colors.background }}>
+        {escudo ? <img src={escudo.url} alt="Escudo do adversário" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          : <span style={{ fontSize: '0.7rem', color: colors.textSecondary }}>sem escudo</span>}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.03em' }}>Escudo do adversário</span>
+        {podeEditar && (
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <BotaoArquivo aceita="image/png,image/jpeg,image/webp" disabled={enviando} onArquivo={(f) => enviar(f, { tipo: 'escudo' })}>
+              <Upload size={14} />{escudo ? 'Trocar' : 'Enviar imagem'}
+            </BotaoArquivo>
+            {escudo && <button type="button" onClick={() => remover(escudo)} style={{ background: 'none', border: 'none', color: colors.textSecondary, cursor: 'pointer', fontSize: '0.8rem' }}>Remover</button>}
+          </div>
+        )}
+        <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Aparece na capa e no topo de cada página. Sem escudo, vão as iniciais.</span>
+      </div>
+    </div>
+  );
+}
+
+// Vídeos da seção: entram no PowerPoint num slide logo depois da seção (o PDF só avisa).
+function VideosDaSecao({ secao }) {
+  const { midias, enviar, remover, enviando, podeEditar, colors, cartao } = { ...useContext(Ctx), ...useCampo() };
+  const [titulo, setTitulo] = useState('');
+  const lista = midias.filter((m) => m.tipo === 'video' && m.secao === secao);
+  if (!podeEditar && !lista.length) return null;
+  return (
+    <div style={{ ...cartao, gap: '0.5rem' }}>
+      <b style={{ fontSize: '0.85rem', color: colors.text, display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Video size={15} />Vídeos desta seção</b>
+      <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Só no PowerPoint (o PDF avisa que há vídeo). MP4, MOV ou WEBM até 50 MB.</span>
+      {lista.map((m) => (
+        <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.82rem', color: colors.text }}>
+          <a href={m.url} target="_blank" rel="noreferrer" style={{ flex: 1, color: colors.primary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.titulo || 'Vídeo sem título'}</a>
+          <span style={{ color: colors.textSecondary, fontSize: '0.75rem' }}>{Math.round((m.size_bytes || 0) / 1048576)} MB</span>
+          {podeEditar && <button type="button" onClick={() => remover(m)} aria-label="Remover vídeo" style={{ background: 'none', border: 'none', color: colors.textSecondary, cursor: 'pointer' }}><Trash2 size={15} /></button>}
+        </div>
+      ))}
+      {podeEditar && (
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <input value={titulo} onChange={(e) => setTitulo(e.target.value)} maxLength={120} placeholder="Título do vídeo (opcional)"
+            style={{ flex: 1, minWidth: 180, padding: '0.45rem 0.6rem', borderRadius: '0.4rem', border: `1px solid ${colors.border}`, background: colors.background, color: colors.text, fontSize: '0.85rem' }} />
+          <BotaoArquivo aceita="video/mp4,video/quicktime,video/webm" disabled={enviando}
+            onArquivo={async (f) => { if (await enviar(f, { tipo: 'video', secao, titulo: titulo || f.name.replace(/\.[^.]+$/, '') })) setTitulo(''); }}>
+            <Upload size={14} />{enviando ? 'Enviando…' : 'Adicionar vídeo'}
+          </BotaoArquivo>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function OpponentAnalysisModal({ isOpen, onClose, session, opponentName, podeEditar = true }) {
   const { colors } = useTheme();
   const [dados, setDados] = useState(null);
   const [secao, setSecao] = useState('capa');
   const [sujo, setSujo] = useState(false);
   const [salvando, setSalvando] = useState(false);
-  const [gerando, setGerando] = useState(false);
+  const [gerando, setGerando] = useState(null); // 'pdf' | 'pptx'
+  const [midias, setMidias] = useState([]);
+  const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
     if (!isOpen || !session?.id) return;
-    setDados(null); setSujo(false); setSecao('capa');
+    setDados(null); setSujo(false); setSecao('capa'); setMidias([]);
     gameService.getAnalise(session.id)
-      .then((r) => setDados(r.data || {}))
+      .then((r) => { setDados(r.data || {}); setMidias(r.midias || []); })
       .catch((e) => { notify.error(e.message || 'Não foi possível abrir a análise.'); setDados({}); });
   }, [isOpen, session?.id]);
 
@@ -162,16 +235,44 @@ export function OpponentAnalysisModal({ isOpen, onClose, session, opponentName, 
     }
   }
 
-  async function gerarPdf() {
+  // formato 'pdf' (sem vídeos) | 'pptx' (PowerPoint com os vídeos)
+  async function exportar(formato) {
     if (sujo && !(await salvar())) return;
-    setGerando(true);
+    setGerando(formato);
     try {
       const data = session?.date ? session.date.split('-').reverse().join('-') : '';
-      await downloadReport('analise', { session_id: session.id }, `Analise_${safeFileName(opponentName || 'Adversario')}_${data}.pdf`);
+      const nome = `Analise_${safeFileName(opponentName || 'Adversario')}_${data}.${formato}`;
+      if (formato === 'pptx') await downloadReport('analise', { session_id: session.id, formato: 'pptx' }, nome, 'Compartilhar PowerPoint');
+      else await downloadReport('analise', { session_id: session.id }, nome);
     } catch (e) {
-      notify.error(e.message || 'Não foi possível gerar o PDF.');
+      notify.error(e.message || 'Não foi possível gerar o arquivo.');
     } finally {
-      setGerando(false);
+      setGerando(null);
+    }
+  }
+
+  async function enviar(file, opcoes) {
+    if (file.size > 50 * 1024 * 1024) { notify.error('Arquivo maior que 50 MB.'); return false; }
+    setEnviando(true);
+    try {
+      const r = await gameService.uploadAnaliseMidia(session.id, file, opcoes);
+      setMidias(r.midias || []);
+      notify.success(opcoes.tipo === 'escudo' ? 'Escudo salvo.' : 'Vídeo adicionado.');
+      return true;
+    } catch (e) {
+      notify.error(e.message || 'Não foi possível enviar o arquivo.');
+      return false;
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function remover(m) {
+    try {
+      const r = await gameService.deleteAnaliseMidia(session.id, m.id);
+      setMidias(r.midias || midias.filter((x) => x.id !== m.id));
+    } catch (e) {
+      notify.error(e.message || 'Não foi possível remover.');
     }
   }
 
@@ -184,6 +285,7 @@ export function OpponentAnalysisModal({ isOpen, onClose, session, opponentName, 
     switch (secao) {
       case 'capa': return (<>
         <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>Adversário, campeonato, data, horário e local vêm dos dados do jogo.</div>
+        <Escudo />
         <div style={grade(2)}><Texto label="Fase" path={['capa', 'fase']} ph="Ex.: Semifinal (volta)" /><Texto label="Jogo de ida" path={['capa', 'ida']} ph="Ex.: Estudiantes 0 × 0 Fla" /></div>
         <Texto label="Técnico do adversário" path={['capa', 'tecnico']} />
         <Texto label="Observação" path={['capa', 'observacao']} ph="Ex.: Dados públicos até 22/10" />
@@ -212,8 +314,12 @@ export function OpponentAnalysisModal({ isOpen, onClose, session, opponentName, 
         <Fonte k="campanha" />
       </>);
       case 'sistema': return (<>
-        <div style={grade(2)}><Texto label="Formação" path={['sistema', 'formacao']} ph="Ex.: 4-3-3" max={12} /><Texto label="Descrição" path={['sistema', 'descricao']} ph="Ex.: Sistema-base com o técnico atual" /></div>
-        <Lista label="Com bola" path={['sistema', 'com_bola']} /><Lista label="Sem bola" path={['sistema', 'sem_bola']} />
+        {[['ofensivo', 'Ofensivo (com a bola)', 'Ex.: 4-3-3'], ['defensivo', 'Defensivo (sem a bola)', 'Ex.: 4-1-4-1']].map(([lado, r, ph]) => (
+          <div key={lado} style={cartao}><b style={{ fontSize: '0.85rem', color: colors.text }}>{r}</b>
+            <div style={grade(2)}><Texto label="Formação" path={['sistema', lado, 'formacao']} ph={ph} max={12} /><Texto label="Descrição" path={['sistema', lado, 'descricao']} ph="Ex.: Sistema-base com o técnico atual" /></div>
+            <Lista label="Observações" path={['sistema', lado, 'itens']} />
+          </div>
+        ))}
         <Fonte k="sistema" />
       </>);
       case 'variacoes': return (<>
@@ -324,16 +430,19 @@ export function OpponentAnalysisModal({ isOpen, onClose, session, opponentName, 
       footer={(
         <div style={{ display: 'flex', gap: '0.5rem', width: '100%', alignItems: 'center' }}>
           <span style={{ flex: 1, fontSize: '0.78rem', color: colors.textSecondary }}>
-            {sujo ? 'Alterações não salvas' : 'O PDF mostra só o que estiver preenchido.'}
+            {sujo ? 'Alterações não salvas' : 'O relatório mostra só o que estiver preenchido.'}
           </span>
-          <Button variant="outline" onClick={gerarPdf} disabled={!dados || gerando || salvando} icon={<FileDown size={15} />}>
-            {gerando ? 'Gerando…' : 'Gerar PDF'}
+          <Button variant="outline" onClick={() => exportar('pdf')} disabled={!dados || !!gerando || salvando} icon={<FileDown size={15} />}>
+            {gerando === 'pdf' ? 'Gerando…' : 'PDF (sem vídeos)'}
+          </Button>
+          <Button variant="outline" onClick={() => exportar('pptx')} disabled={!dados || !!gerando || salvando} icon={<Presentation size={15} />}>
+            {gerando === 'pptx' ? 'Gerando…' : 'PowerPoint (com vídeos)'}
           </Button>
           {podeEditar && <Button onClick={salvar} disabled={!dados || !sujo || salvando}>{salvando ? 'Salvando…' : 'Salvar'}</Button>}
         </div>
       )}
     >
-      <Ctx.Provider value={{ dados, muda, colors, podeEditar }}>
+      <Ctx.Provider value={{ dados, muda, colors, podeEditar, midias, enviar, remover, enviando }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(170px, 210px) 1fr', gap: '1rem', alignItems: 'start' }}>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', position: 'sticky', top: 0 }}>
           {SECOES.map(([k, r]) => (
@@ -351,6 +460,7 @@ export function OpponentAnalysisModal({ isOpen, onClose, session, opponentName, 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', minWidth: 0 }}>
           <h3 style={{ margin: 0, fontSize: '1.05rem', color: colors.text }}>{SECOES.find(([k]) => k === secao)?.[1]}</h3>
           {formulario()}
+          {dados && secao !== 'capa' && <VideosDaSecao key={secao} secao={secao} />}
         </div>
       </div>
       </Ctx.Provider>

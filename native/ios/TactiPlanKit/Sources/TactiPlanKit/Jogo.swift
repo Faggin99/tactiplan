@@ -618,11 +618,12 @@ public func nomePdfRelatorioJogo(adversario: String?, data: String) -> String {
     return nomeArquivoSeguro(base) + ".pdf"
 }
 
-/// "Analise_Rival_FC_24-10-2026.pdf" — Análise do adversário (POST /api/reports/analise; preenchida no web).
-public func nomePdfAnalise(adversario: String?, data: String) -> String {
+/// "Analise_Rival_FC_24-10-2026.pdf" — Análise do adversário (POST /api/reports/analise).
+/// `extensao` "pptx" = PowerPoint com os vídeos.
+public func nomePdfAnalise(adversario: String?, data: String, extensao: String = "pdf") -> String {
     let adv = (adversario ?? "").trimmingCharacters(in: .whitespaces).isEmpty ? "Adversário" : adversario!
     let base = "Analise_\(adv.split(whereSeparator: { $0.isWhitespace }).joined(separator: "_"))_\(dataBR(data).replacingOccurrences(of: "/", with: "-"))"
-    return nomeArquivoSeguro(base) + ".pdf"
+    return nomeArquivoSeguro(base) + ".\(extensao)"
 }
 
 /// "Convocacao_Rival_FC_24-10-2026.pdf" (o nome do web).

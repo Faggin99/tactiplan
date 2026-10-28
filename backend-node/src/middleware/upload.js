@@ -72,7 +72,17 @@ const uploadAthletePhoto = multer({
   fileFilter
 }).single('photo');
 
+// Análise do adversário: escudo (imagem) e vídeos por seção. Sem PDF/GIF (o PowerPoint embute só isso).
+const MIDIA_ANALISE = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/quicktime', 'video/webm'];
+const uploadAnaliseMidia = multer({
+  storage: createStorage('analise'),
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter: (req, file, cb) => (MIDIA_ANALISE.includes(file.mimetype)
+    ? cb(null, true) : cb(new Error('Envie uma imagem (JPG, PNG, WEBP) ou um vídeo (MP4, MOV, WEBM).'), false)),
+}).single('file');
+
 module.exports = {
+  uploadAnaliseMidia,
   uploadProfilePhoto,
   uploadClubLogo,
   uploadSessionFile,

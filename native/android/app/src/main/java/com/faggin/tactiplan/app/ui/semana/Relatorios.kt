@@ -147,6 +147,16 @@ suspend fun gerarECompartilhar(
     if (tratarErro(e)) InicioExportar.Entregue else InicioExportar.Erro(mensagemErroTreino(e))
 }
 
+/** PowerPoint da análise do adversário (com os vídeos) → folha de compartilhar. */
+suspend fun gerarPptxAnalise(
+    context: Context, api: ApiTreino, sessaoId: String, nome: String, tratarErro: (Throwable) -> Boolean,
+): InicioExportar = try {
+    val pptx = api.pptxDaAnalise(sessaoId)
+    compartilharPdf(context, pptx, nome)?.let { InicioExportar.Erro(it) } ?: InicioExportar.Entregue
+} catch (e: Exception) {
+    if (tratarErro(e)) InicioExportar.Entregue else InicioExportar.Erro(mensagemErroTreino(e))
+}
+
 /** HTML do servidor num WebView travado: sem navegar para fora, sem arquivo local; JS só p/ paginar. */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable

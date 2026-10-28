@@ -49,9 +49,9 @@ export const fetchSessionSheetView = (sessionId, { signal, soPeriodo = false } =
 // Nomes de arquivo no mesmo padrão dos PDFs antigos.
 export const safeFileName = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '_').replace(/[^\w-]/g, '');
 
-export async function downloadReport(tipo, body, filename) {
+export async function downloadReport(tipo, body, filename, dialogTitle = 'Compartilhar PDF') {
   const blob = await fetchReport(tipo, body);
-  await deliverFile(blob, filename, 'Compartilhar PDF');
+  await deliverFile(blob, filename, dialogTitle);
 }
 
 export const reportsService = { fetchReport, downloadReport, fetchReportPhotos, fetchReportPreview };

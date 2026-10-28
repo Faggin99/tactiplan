@@ -8,6 +8,18 @@ export const gameService = {
   async saveAnalise(sessionId, data) {
     return await api.put(`/games/${sessionId}/analise`, { data });
   },
+  // Escudo do adversário e vídeos por seção (migration 063). tipo 'escudo' | 'video'
+  async uploadAnaliseMidia(sessionId, file, { tipo, secao = '', titulo = '' }) {
+    const fd = new FormData();
+    fd.append('tipo', tipo);
+    if (secao) fd.append('secao', secao);
+    if (titulo) fd.append('titulo', titulo);
+    fd.append('file', file);
+    return await api.upload(`/games/${sessionId}/analise/midia`, fd);
+  },
+  async deleteAnaliseMidia(sessionId, midiaId) {
+    return await api.delete(`/games/${sessionId}/analise/midia/${midiaId}`);
+  },
 
   async getMatchData(sessionId) {
     return await api.get(`/games/${sessionId}`);

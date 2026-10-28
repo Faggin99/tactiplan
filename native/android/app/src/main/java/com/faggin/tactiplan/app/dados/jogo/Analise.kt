@@ -68,8 +68,11 @@ val SECOES_ANALISE: List<SecaoAnalise> = listOf(
         CampoAnalise.TextoLongo("Observação", listOf("campanha", "observacao")), fonte("campanha"),
     )),
     SecaoAnalise("sistema", "Sistema inicial", listOf(
-        t("Formação", "sistema", "formacao", dica = "Ex.: 4-3-3", max = 12), t("Descrição", "sistema", "descricao"),
-        l("Com bola", "sistema", "com_bola"), l("Sem bola", "sistema", "sem_bola"), fonte("sistema"),
+        t("Ofensivo · formação", "sistema", "ofensivo", "formacao", dica = "Ex.: 4-3-3", max = 12),
+        t("Ofensivo · descrição", "sistema", "ofensivo", "descricao"), l("Ofensivo · observações", "sistema", "ofensivo", "itens"),
+        t("Defensivo · formação", "sistema", "defensivo", "formacao", dica = "Ex.: 4-1-4-1", max = 12),
+        t("Defensivo · descrição", "sistema", "defensivo", "descricao"), l("Defensivo · observações", "sistema", "defensivo", "itens"),
+        fonte("sistema"),
     )),
     SecaoAnalise("variacoes", "Variações do sistema", listOf(
         CampoAnalise.Repetir("Variações", listOf("variacoes"), "Variação", 6, listOf(
@@ -84,19 +87,6 @@ val SECOES_ANALISE: List<SecaoAnalise> = listOf(
         l("Desfalques", "escalacao", "desfalques"), l("Dúvidas", "escalacao", "duvidas"),
         t("Observação", "escalacao", "observacao"), fonte("escalacao"),
     )),
-    SecaoAnalise("defesa", "Como defendem", listOf("alto" to "Bloco alto", "medio" to "Bloco médio", "baixo" to "Bloco baixo").flatMap { (b, r) ->
-        listOf(CampoAnalise.Escolha("$r · frequência", listOf("defesa", b, "frequencia"), FREQ), CampoAnalise.Lista("$r · observações", listOf("defesa", b, "itens")))
-    } + fonte("defesa")),
-    SecaoAnalise("ataque", "Como jogam com bola", listOf(
-        l("1 · Construção", "ataque", "construcao"), l("2 · 2ª fase de construção", "ataque", "segunda_fase"),
-        l("3 · Criação", "ataque", "criacao"), l("4 · Finalização", "ataque", "finalizacao"), fonte("ataque"),
-    )),
-    SecaoAnalise("transicoes", "Transições", listOf(
-        CampoAnalise.Escolha("Quando perdem a bola", listOf("transicoes", "perder", "comportamento"), PERDER),
-        l("Quando perdem · observações", "transicoes", "perder", "itens"),
-        CampoAnalise.Escolha("Quando roubam a bola", listOf("transicoes", "recuperar", "comportamento"), RECUPERAR),
-        l("Quando roubam · observações", "transicoes", "recuperar", "itens"), fonte("transicoes"),
-    )),
     SecaoAnalise("individuais", "Análise individual", listOf(
         CampoAnalise.Repetir("Jogadores", listOf("individuais"), "Jogador", 8, listOf(
             CampoAnalise.Texto("Nome", listOf("nome")), CampoAnalise.Numero("Nº", listOf("numero"), 99),
@@ -105,6 +95,19 @@ val SECOES_ANALISE: List<SecaoAnalise> = listOf(
             CampoAnalise.Lista("Como neutralizar", listOf("neutralizar")),
         )),
         fonte("individuais"),
+    )),
+    SecaoAnalise("ataque", "Organização ofensiva", listOf(
+        l("1 · Construção", "ataque", "construcao"), l("2 · 2ª fase de construção", "ataque", "segunda_fase"),
+        l("3 · Criação", "ataque", "criacao"), l("4 · Finalização", "ataque", "finalizacao"), fonte("ataque"),
+    )),
+    SecaoAnalise("defesa", "Organização defensiva", listOf("alto" to "Bloco alto", "medio" to "Bloco médio", "baixo" to "Bloco baixo").flatMap { (b, r) ->
+        listOf(CampoAnalise.Escolha("$r · frequência", listOf("defesa", b, "frequencia"), FREQ), CampoAnalise.Lista("$r · observações", listOf("defesa", b, "itens")))
+    } + fonte("defesa")),
+    SecaoAnalise("transicoes", "Transições", listOf(
+        CampoAnalise.Escolha("Quando perdem a bola", listOf("transicoes", "perder", "comportamento"), PERDER),
+        l("Quando perdem · observações", "transicoes", "perder", "itens"),
+        CampoAnalise.Escolha("Quando roubam a bola", listOf("transicoes", "recuperar", "comportamento"), RECUPERAR),
+        l("Quando roubam · observações", "transicoes", "recuperar", "itens"), fonte("transicoes"),
     )),
     SecaoAnalise("bp_ofensiva", "Bolas paradas ofensivas", listOf(
         CampoAnalise.TextoLongo("Resumo", listOf("bp_ofensiva", "resumo"), "Ex.: 20% dos gols de bola parada…"),
@@ -233,3 +236,33 @@ fun caminhosDoEsquema(): List<List<String>> = SECOES_ANALISE.flatMap { s ->
     }
 }
 
+
+// ---------- escudo do adversário e vídeos por seção (migration 063) ----------
+
+/** GET /api/games/:id/analise → `midias`. tipo "escudo" | "video"; url relativa ao servidor. */
+@kotlinx.serialization.Serializable
+data class MidiaAnalise(val id: String, val tipo: String, val secao: String? = null, val titulo: String? = null, val url: String = "")
+
+const val MAX_VIDEOS_ANALISE = 12
+const val MAX_BYTES_VIDEO_ANALISE = 50L * 1024 * 1024
+const val MAX_BYTES_ESCUDO = 3L * 1024 * 1024
+private val TIPOS_ESCUDO = setOf("image/png", "image/jpeg", "image/webp")
+private val TIPOS_VIDEO = setOf("video/mp4", "video/quicktime", "video/webm")
+
+/** Antes de subir: o que o servidor recusaria. null = ok. */
+fun problemaMidiaAnalise(tipo: String, mime: String, tamanho: Long, videosNaAnalise: Int = 0): String? = when (tipo) {
+    "escudo" -> when {
+        mime.lowercase() !in TIPOS_ESCUDO -> "O escudo precisa ser uma imagem (JPG, PNG ou WEBP)."
+        tamanho > MAX_BYTES_ESCUDO -> "O escudo deve ter até 3 MB."
+        else -> null
+    }
+    else -> when {
+        mime.lowercase() !in TIPOS_VIDEO -> "Envie um vídeo (MP4, MOV ou WEBM)."
+        tamanho > MAX_BYTES_VIDEO_ANALISE -> "O vídeo deve ter até 50 MB."
+        videosNaAnalise >= MAX_VIDEOS_ANALISE -> "Limite de $MAX_VIDEOS_ANALISE vídeos por análise."
+        else -> null
+    }
+}
+
+/** Título do vídeo a partir do nome do arquivo ("saida-curta.mp4" → "saida-curta"). */
+fun tituloDoVideo(nomeArquivo: String): String = nomeArquivo.replace(Regex("""\.[A-Za-z0-9]+$"""), "").take(120).ifBlank { "Vídeo" }

@@ -1,8 +1,11 @@
 import SwiftUI
+import PhotosUI
+import UIKit
 import TactiPlanKit
 
 // Análise do adversário no app: lista das 13 seções (● = preenchida) → formulário da seção, gerado
-// pelo esquema do Kit (Analise.swift), o mesmo do web. Salvar = PUT; Gerar PDF salva antes.
+// pelo esquema do Kit (Analise.swift), o mesmo do web. Salvar = PUT; exportar (PDF sem vídeos ou
+// PowerPoint com vídeos) salva antes. Escudo (Capa) e vídeos de cada seção sobem na hora.
 // Android: ui/jogos/AnaliseTela.kt.
 
 @MainActor
@@ -12,18 +15,46 @@ final class AnaliseModelo: ObservableObject {
     @Published var sujo = false
     @Published var salvando = false
     @Published var aviso: String?
+    @Published var midias: [MidiaAnalise] = []
+    @Published var enviando: Double?
 
     let sessaoId: String
     let api: ApiJogo
+    let treino: ApiTreino?
     let aoSessaoAcabar: (Error) -> Bool
 
-    init(sessaoId: String, api: ApiJogo, aoSessaoAcabar: @escaping (Error) -> Bool) {
-        self.sessaoId = sessaoId; self.api = api; self.aoSessaoAcabar = aoSessaoAcabar
+    init(sessaoId: String, api: ApiJogo, treino: ApiTreino? = nil, aoSessaoAcabar: @escaping (Error) -> Bool) {
+        self.sessaoId = sessaoId; self.api = api; self.treino = treino; self.aoSessaoAcabar = aoSessaoAcabar
     }
 
     func carregar() async {
         do { dados = try await api.analise(sessaoId) } catch {
             if !aoSessaoAcabar(error) { erro = mensagemDeErro(error) }
+        }
+        if let treino { midias = (try? await treino.midiasDaAnalise(sessaoId)) ?? [] }
+    }
+
+    /// Escudo (tipo "escudo") ou vídeo da seção (tipo "video").
+    func enviar(_ arquivo: ArquivoUpload, tipo: String, secao: String?) async {
+        guard let treino else { return }
+        if let p = problemaMidiaAnalise(tipo: tipo, mime: arquivo.tipo, tamanho: arquivo.dados.count,
+                                        videosNaAnalise: midias.filter { $0.tipo == "video" }.count) { aviso = p; return }
+        enviando = 0
+        defer { enviando = nil }
+        do {
+            midias = try await treino.enviarMidiaAnalise(sessaoId, tipo: tipo, secao: secao,
+                                                         titulo: tipo == "video" ? tituloDoVideo(arquivo.nome) : nil,
+                                                         arquivo: arquivo) { [weak self] p in Task { @MainActor in self?.enviando = p } }
+            aviso = tipo == "escudo" ? "Escudo salvo." : "Vídeo adicionado."
+        } catch {
+            if !aoSessaoAcabar(error) { aviso = mensagemDeErro(error) }
+        }
+    }
+
+    func remover(_ m: MidiaAnalise) async {
+        guard let treino else { return }
+        do { midias = try await treino.apagarMidiaAnalise(sessaoId, midiaId: m.id) } catch {
+            if !aoSessaoAcabar(error) { aviso = mensagemDeErro(error) }
         }
     }
 
@@ -62,15 +93,17 @@ struct AnaliseTela: View {
          api: ApiJogo, treino: ServicoTreino, aoSessaoAcabar: @escaping (Error) -> Bool) {
         self.sessaoId = sessaoId; self.adversario = adversario; self.data = data
         self.podeEditar = podeEditar; self.usuarioId = usuarioId
-        _modelo = StateObject(wrappedValue: AnaliseModelo(sessaoId: sessaoId, api: api, aoSessaoAcabar: aoSessaoAcabar))
+        _modelo = StateObject(wrappedValue: AnaliseModelo(sessaoId: sessaoId, api: api, treino: treino.api, aoSessaoAcabar: aoSessaoAcabar))
         _exportar = StateObject(wrappedValue: ExportadorRelatorio(servico: treino, aoSessaoAcabar: aoSessaoAcabar))
     }
 
-    private func gerarPdf() {
+    /// PDF (sem vídeos) ou PowerPoint (com os vídeos de cada seção).
+    private func gerarPdf(pptx: Bool = false) {
         Task {
             if modelo.sujo && podeEditar { guard await modelo.salvar() else { return } }
-            exportar.iniciar(tipo: "analise", corpo: corpoRelatorioJogo(sessaoId),
-                             nome: nomePdfAnalise(adversario: adversario, data: data), usuarioId: usuarioId)
+            let nome = nomePdfAnalise(adversario: adversario, data: data, extensao: pptx ? "pptx" : "pdf")
+            if pptx { exportar.gerarPptxAnalise(sessaoId: sessaoId, nome: nome) }
+            else { exportar.iniciar(tipo: "analise", corpo: corpoRelatorioJogo(sessaoId), nome: nome, usuarioId: usuarioId) }
         }
     }
 
@@ -82,12 +115,12 @@ struct AnaliseTela: View {
                 if let e = modelo.erro {
                     Text(e).tipo(Tipos.corpo15).foregroundColor(c.erroTinta.color)
                 } else if let d = modelo.dados {
-                    Text("O PDF mostra só o que estiver preenchido.").tipo(Tipos.corpo13).foregroundColor(c.tinta2.color)
+                    Text("O relatório mostra só o que estiver preenchido.").tipo(Tipos.corpo13).foregroundColor(c.tinta2.color)
                     ListaAgrupada {
                         ForEach(Array(SECOES_ANALISE.enumerated()), id: \.element.chave) { i, s in
                             if i > 0 { Divisoria() }
                             NavigationLink {
-                                SecaoAnaliseTela(secao: s, modelo: modelo, podeEditar: podeEditar)
+                                SecaoAnaliseTela(secao: s, modelo: modelo, podeEditar: podeEditar, adversario: adversario)
                             } label: {
                                 HStack(spacing: 10) {
                                     Circle().fill(secaoPreenchida(d, s.chave) ? c.acao.color : c.borda.color).frame(width: 8, height: 8)
@@ -102,7 +135,9 @@ struct AnaliseTela: View {
                             .accessibilityLabel("\(s.titulo)\(secaoPreenchida(d, s.chave) ? ", preenchida" : "")")
                         }
                     }
-                    Botao(texto: exportar.ocupado ? "Gerando…" : "Gerar PDF", variante: .secundario) { gerarPdf() }
+                    Botao(texto: exportar.ocupado ? "Gerando…" : "PDF (sem vídeos)", variante: .secundario) { gerarPdf() }
+                        .disabled(exportar.ocupado)
+                    Botao(texto: "PowerPoint (com vídeos)", variante: .secundario) { gerarPdf(pptx: true) }
                         .disabled(exportar.ocupado)
                 } else {
                     ProgressView().frame(maxWidth: .infinity).padding(24)
@@ -121,10 +156,13 @@ struct AnaliseTela: View {
                 }
             }
             ToolbarItemGroup(placement: .navigationBarTrailing) {
-                Button { gerarPdf() } label: {
+                Menu {
+                    Button("PDF (sem vídeos)") { gerarPdf() }
+                    Button("PowerPoint (com vídeos)") { gerarPdf(pptx: true) }
+                } label: {
                     if exportar.ocupado { ProgressView() } else { Image(systemName: "square.and.arrow.up") }
                 }
-                .accessibilityLabel("Gerar PDF da análise")
+                .accessibilityLabel("Exportar a análise")
                 .disabled(modelo.dados == nil || exportar.ocupado)
                 if podeEditar {
                     Button { Task { await modelo.salvar() } } label: {
@@ -149,14 +187,18 @@ struct SecaoAnaliseTela: View {
     let secao: SecaoAnalise
     @ObservedObject var modelo: AnaliseModelo
     let podeEditar: Bool
+    var adversario: String = ""
     @Environment(\.tema) private var tema
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
+                if let a = modelo.aviso { Text(a).tipo(Tipos.corpo13).foregroundColor(tema.cores.tinta2.color) }
+                if secao.chave == "capa" { EscudoAnalise(modelo: modelo, podeEditar: podeEditar, adversario: adversario) }
                 ForEach(Array(secao.campos.enumerated()), id: \.offset) { _, campo in
                     campoView(campo, base: [])
                 }
+                if secao.chave != "capa" { VideosDaSecao(secao: secao.chave, modelo: modelo, podeEditar: podeEditar) }
             }
             .padding(16)
         }
@@ -313,6 +355,124 @@ struct SecaoAnaliseTela: View {
                     }
                 }
             })
+        }
+    }
+}
+
+// MARK: escudo e vídeos (migration 063)
+
+/// Escudo do adversário (capa e topo de cada página). Sobe como PNG (mantém o fundo transparente).
+struct EscudoAnalise: View {
+    @ObservedObject var modelo: AnaliseModelo
+    let podeEditar: Bool
+    let adversario: String
+    @EnvironmentObject private var app: AppEstado
+    @Environment(\.tema) private var tema
+    @State private var item: PhotosPickerItem?
+
+    var body: some View {
+        let c = tema.cores
+        let escudo = modelo.midias.first { $0.tipo == "escudo" }
+        HStack(spacing: 12) {
+            Group {
+                if let s = urlDoServidor(escudo?.url, base: app.base), let u = URL(string: s) {
+                    AsyncImage(url: u) { f in if let i = f.image { i.resizable().scaledToFit() } else { AvatarIniciais(nome: adversario, tamanho: 56) } }
+                } else { AvatarIniciais(nome: adversario, tamanho: 56) }
+            }
+            .frame(width: 56, height: 56)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Escudo do adversário").font(Tipos.corpo15.comPeso(.seminegrito).font).foregroundColor(c.tinta.color)
+                Text("Aparece na capa e no topo de cada página.").tipo(Tipos.corpo13).foregroundColor(c.tinta2.color)
+                if podeEditar {
+                    HStack(spacing: 16) {
+                        PhotosPicker(selection: $item, matching: .images) {
+                            Text(modelo.enviando != nil ? "Enviando… \(Int((modelo.enviando ?? 0) * 100))%" : (escudo == nil ? "Enviar imagem" : "Trocar"))
+                        }
+                        .disabled(modelo.enviando != nil)
+                        if let escudo {
+                            Button("Remover", role: .destructive) { Task { await modelo.remover(escudo) } }
+                                .disabled(modelo.enviando != nil)
+                        }
+                    }
+                    .font(Tipos.corpo15.font)
+                }
+            }
+        }
+        .onChange(of: item) { novo in
+            guard let novo else { return }
+            item = nil
+            Task {
+                guard let d = try? await novo.loadTransferable(type: Data.self), let png = escudoPng(d) else {
+                    modelo.aviso = "Não foi possível ler a imagem."; return
+                }
+                await modelo.enviar(ArquivoUpload(nome: "escudo.png", tipo: "image/png", dados: png), tipo: "escudo", secao: nil)
+            }
+        }
+    }
+}
+
+/// Imagem → PNG de até 600 px (escudo leve, com transparência).
+func escudoPng(_ dados: Data) -> Data? {
+    guard let img = UIImage(data: dados) else { return nil }
+    let lado = max(img.size.width, img.size.height)
+    let escala = lado > 600 ? 600 / lado : 1
+    let tam = CGSize(width: (img.size.width * escala).rounded(), height: (img.size.height * escala).rounded())
+    let formato = UIGraphicsImageRendererFormat.default()
+    formato.scale = 1
+    formato.opaque = false
+    return UIGraphicsImageRenderer(size: tam, format: formato).image { _ in img.draw(in: CGRect(origin: .zero, size: tam)) }.pngData()
+}
+
+/// Vídeos da seção: entram no PowerPoint num slide logo depois dela (o PDF só avisa).
+struct VideosDaSecao: View {
+    let secao: String
+    @ObservedObject var modelo: AnaliseModelo
+    let podeEditar: Bool
+    @EnvironmentObject private var app: AppEstado
+    @Environment(\.tema) private var tema
+    @State private var item: PhotosPickerItem?
+
+    var body: some View {
+        let c = tema.cores
+        let lista = modelo.midias.filter { $0.tipo == "video" && $0.secao == secao }
+        if podeEditar || !lista.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                RotuloSecao("Vídeos desta seção").padding(.horizontal, 4)
+                Text("Só no PowerPoint (o PDF avisa que há vídeo). MP4 ou MOV até 50 MB.").tipo(Tipos.corpo13).foregroundColor(c.tinta2.color)
+                ForEach(lista) { m in
+                    HStack {
+                        Image(systemName: "film").foregroundColor(c.tinta3.color)
+                        if let s = urlDoServidor(m.url, base: app.base), let u = URL(string: s) {
+                            Link(m.titulo ?? "Vídeo", destination: u).font(Tipos.corpo15.font).lineLimit(1)
+                        } else { Text(m.titulo ?? "Vídeo").tipo(Tipos.corpo15) }
+                        Spacer()
+                        if podeEditar {
+                            Button(role: .destructive) { Task { await modelo.remover(m) } } label: { Image(systemName: "trash") }
+                                .accessibilityLabel("Remover vídeo")
+                        }
+                    }
+                }
+                if podeEditar {
+                    PhotosPicker(selection: $item, matching: .videos) {
+                        Text(modelo.enviando != nil ? "Enviando… \(Int((modelo.enviando ?? 0) * 100))%" : "Adicionar vídeo")
+                            .font(Tipos.corpo15.comPeso(.seminegrito).font)
+                            .frame(maxWidth: .infinity, minHeight: 48)
+                            .background(RoundedRectangle(cornerRadius: CGFloat(Tokens.raioCampo), style: .continuous).stroke(c.borda.color))
+                    }
+                    .disabled(modelo.enviando != nil)
+                }
+            }
+            .onChange(of: item) { novo in
+                guard let novo else { return }
+                item = nil
+                Task {
+                    let video = novo.supportedContentTypes.first { $0.conforms(to: .movie) }
+                    guard let d = try? await novo.loadTransferable(type: Data.self) else { modelo.aviso = "Não foi possível ler o vídeo."; return }
+                    let mp4 = video?.conforms(to: .mpeg4Movie) == true
+                    let nome = "video-\(Int(Date().timeIntervalSince1970)).\(mp4 ? "mp4" : "mov")"
+                    await modelo.enviar(ArquivoUpload(nome: nome, tipo: mp4 ? "video/mp4" : "video/quicktime", dados: d), tipo: "video", secao: secao)
+                }
+            }
         }
     }
 }

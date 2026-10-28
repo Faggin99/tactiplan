@@ -34,10 +34,16 @@
    "observacao": ""
   },
   "sistema": {
-   "formacao": "",
-   "descricao": "",
-   "com_bola": [],
-   "sem_bola": []
+   "ofensivo": {
+    "formacao": "",
+    "descricao": "",
+    "itens": []
+   },
+   "defensivo": {
+    "formacao": "",
+    "descricao": "",
+    "itens": []
+   }
   },
   "variacoes": [],
   "escalacao": {
@@ -171,18 +177,24 @@
    "observacao": "Inclui o 3 × 0 por W.O. contra o Medellín. Empate hoje leva aos pênaltis; o vencedor enfrenta o Palmeiras na final."
   },
   "sistema": {
-   "formacao": "4-3-3",
-   "descricao": "Sistema-base com Leonardo Jardim",
-   "com_bola": [
-    "Menos posse paciente, ataque mais rápido e direto",
-    "Samuel Lino troca de lado durante o jogo",
-    "Carrascal pode jogar por dentro, como camisa 10"
-   ],
-   "sem_bola": [
-    "Time mais reativo que com Filipe Luís",
-    "Espera o adversário no próprio campo",
-    "Usa os contra-ataques como arma principal"
-   ]
+   "ofensivo": {
+    "formacao": "4-3-3",
+    "descricao": "Sistema-base com Leonardo Jardim",
+    "itens": [
+     "Menos posse paciente, ataque mais rápido e direto",
+     "Samuel Lino troca de lado durante o jogo",
+     "Carrascal pode jogar por dentro, como camisa 10"
+    ]
+   },
+   "defensivo": {
+    "formacao": "4-1-4-1",
+    "descricao": "Organização defensiva",
+    "itens": [
+     "Time mais reativo que com Filipe Luís",
+     "Espera o adversário no próprio campo",
+     "Usa os contra-ataques como arma principal"
+    ]
+   }
   },
   "variacoes": [
    {
@@ -451,15 +463,45 @@
   "sistema",
   "variacoes",
   "escalacao",
-  "defesa",
-  "ataque",
-  "transicoes",
   "individuais",
+  "ataque",
+  "defesa",
+  "transicoes",
   "bp_ofensiva",
   "bp_defensiva",
   "pontos",
   "final"
  ],
+ "ordem": [
+  "capa",
+  "campanha",
+  "sistema",
+  "variacoes",
+  "escalacao",
+  "individuais",
+  "ataque",
+  "defesa",
+  "transicoes",
+  "bp_ofensiva",
+  "bp_defensiva",
+  "pontos",
+  "final"
+ ],
+ "titulos": {
+  "capa": "Capa",
+  "campanha": "Campanha",
+  "sistema": "Sistema inicial",
+  "variacoes": "Variações do sistema",
+  "escalacao": "Provável escalação",
+  "individuais": "Análise individual",
+  "ataque": "Organização ofensiva",
+  "defesa": "Organização defensiva",
+  "transicoes": "Transições",
+  "bp_ofensiva": "Bolas paradas ofensivas",
+  "bp_defensiva": "Bolas paradas defensivas",
+  "pontos": "Pontos positivos e pontos a explorar",
+  "final": "Observações finais"
+ },
  "vagas": {
   "11": [
    {

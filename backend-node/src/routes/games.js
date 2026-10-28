@@ -26,6 +26,17 @@ async function contextoDaSessao(client, sessionId) {
 
 // ---------- Análise do adversário (migration 062) ----------
 const analise = require('../services/analiseAdversario');
+const fs = require('fs');
+const { uploadAnaliseMidia } = require('../middleware/upload');
+const { removeStoredFile } = require('../utils/sessionFiles');
+const MAX_VIDEOS_ANALISE = 12;
+
+async function midiasDaAnalise(sessionId) {
+  const r = await query(
+    `SELECT id, tipo, secao, titulo, file_path AS url, mime_type, size_bytes, created_at
+       FROM opponent_analysis_media WHERE session_id = $1 ORDER BY tipo, created_at`, [sessionId]);
+  return r.rows;
+}
 
 // Jogo da workspace do usuário (para a análise): { id, workspace_id } ou null
 async function jogoDoUsuario(sessionId, workspaceIds) {
@@ -45,7 +56,7 @@ router.get('/:sessionId/analise', async (req, res) => {
     if (!jogo) return res.status(404).json({ error: 'Jogo não encontrado' });
     const r = await query('SELECT data, updated_at FROM opponent_analyses WHERE session_id = $1', [jogo.id]);
     res.json({ data: analise.normalizar(r.rows[0]?.data || {}), updated_at: r.rows[0]?.updated_at || null,
-      secoes: analise.secoesPreenchidas(analise.normalizar(r.rows[0]?.data || {})) });
+      secoes: analise.secoesPreenchidas(analise.normalizar(r.rows[0]?.data || {})), midias: await midiasDaAnalise(jogo.id) });
   } catch (err) {
     console.error('Get analise error:', err);
     res.status(500).json({ error: 'Falha ao carregar a análise' });
@@ -71,6 +82,66 @@ router.put('/:sessionId/analise', async (req, res) => {
   } catch (err) {
     console.error('Put analise error:', err);
     res.status(500).json({ error: 'Falha ao salvar a análise' });
+  }
+});
+
+// POST /api/games/:sessionId/analise/midia (multipart: file, tipo 'escudo'|'video', secao?, titulo?)
+// Escudo: 1 por análise (o novo substitui o anterior). Vídeo: até 12 por análise, numa seção.
+router.post('/:sessionId/analise/midia', (req, res) => {
+  if (!req.user.can('games:edit')) return res.status(403).json({ error: 'Sem permissão pra editar jogos' });
+  uploadAnaliseMidia(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'Arquivo maior que 50 MB.' : err.message });
+    if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+    const recusar = (status, error) => {
+      try { fs.unlinkSync(req.file.path); } catch { /* já não existe */ }
+      return res.status(status).json({ error });
+    };
+    try {
+      const jogo = await jogoDoUsuario(req.params.sessionId, req.user.workspaceIds || []);
+      if (!jogo) return recusar(404, 'Jogo não encontrado');
+      if (!req.user.canWriteWorkspace(jogo.workspace_id)) return recusar(403, 'Sem permissão de escrita');
+      const tipo = req.body.tipo === 'escudo' ? 'escudo' : 'video';
+      const ehImagem = req.file.mimetype.startsWith('image/');
+      if (tipo === 'escudo' && !ehImagem) return recusar(400, 'O escudo precisa ser uma imagem (JPG, PNG ou WEBP).');
+      if (tipo === 'video' && ehImagem) return recusar(400, 'Envie um vídeo (MP4, MOV ou WEBM).');
+      const secao = tipo === 'video' ? String(req.body.secao || '') : null;
+      if (tipo === 'video' && !analise.SECOES.includes(secao)) return recusar(400, 'Seção do vídeo inválida.');
+      const titulo = String(req.body.titulo || '').replace(/\s+/g, ' ').trim().slice(0, 120) || null;
+      const url = `/uploads/analise/${req.file.filename}`;
+      if (tipo === 'video') {
+        const n = await query(`SELECT count(*)::int AS n FROM opponent_analysis_media WHERE session_id = $1 AND tipo = 'video'`, [jogo.id]);
+        if (n.rows[0].n >= MAX_VIDEOS_ANALISE) return recusar(400, `Limite de ${MAX_VIDEOS_ANALISE} vídeos por análise.`);
+      } else {
+        const antigo = await query(`DELETE FROM opponent_analysis_media WHERE session_id = $1 AND tipo = 'escudo' RETURNING file_path`, [jogo.id]);
+        for (const a of antigo.rows) removeStoredFile(a.file_path);
+      }
+      await query(
+        `INSERT INTO opponent_analysis_media (session_id, workspace_id, tipo, secao, titulo, file_path, mime_type, size_bytes, created_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [jogo.id, jogo.workspace_id, tipo, secao, titulo, url, req.file.mimetype, req.file.size, req.user.id || null],
+      );
+      res.status(201).json({ midias: await midiasDaAnalise(jogo.id) });
+    } catch (e) {
+      console.error('Upload midia analise error:', e);
+      recusar(500, 'Falha ao enviar o arquivo');
+    }
+  });
+});
+
+// DELETE /api/games/:sessionId/analise/midia/:midiaId
+router.delete('/:sessionId/analise/midia/:midiaId', async (req, res) => {
+  try {
+    if (!req.user.can('games:edit')) return res.status(403).json({ error: 'Sem permissão pra editar jogos' });
+    const jogo = await jogoDoUsuario(req.params.sessionId, req.user.workspaceIds || []);
+    if (!jogo) return res.status(404).json({ error: 'Jogo não encontrado' });
+    if (!/^[0-9a-f-]{36}$/i.test(req.params.midiaId)) return res.status(400).json({ error: 'Mídia inválida' });
+    const r = await query('DELETE FROM opponent_analysis_media WHERE id = $1 AND session_id = $2 RETURNING file_path', [req.params.midiaId, jogo.id]);
+    if (!r.rows[0]) return res.status(404).json({ error: 'Mídia não encontrada' });
+    removeStoredFile(r.rows[0].file_path);
+    res.json({ midias: await midiasDaAnalise(jogo.id) });
+  } catch (e) {
+    console.error('Delete midia analise error:', e);
+    res.status(500).json({ error: 'Falha ao apagar' });
   }
 });
 

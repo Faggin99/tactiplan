@@ -4,6 +4,7 @@ import com.faggin.tactiplan.app.dados.Api
 import com.faggin.tactiplan.app.dados.ErroApi
 import com.faggin.tactiplan.app.dados.JsonApp
 import com.faggin.tactiplan.app.dados.codificarComponente
+import com.faggin.tactiplan.app.dados.jogo.MidiaAnalise
 import com.faggin.tactiplan.app.dados.executarChamada
 import com.faggin.tactiplan.app.dados.respostaOuErro
 import java.io.ByteArrayInputStream
@@ -157,6 +158,13 @@ interface ApiTreino {
     suspend fun fotosDoRelatorio(tipo: String, corpo: Map<String, JsonElement>): ListaFotosRelatorio
     suspend fun htmlDoRelatorio(tipo: String, corpo: Map<String, JsonElement>): String
     suspend fun pdfDoRelatorio(tipo: String, corpo: Map<String, JsonElement>): ByteArray
+    /** PowerPoint da análise do adversário (com os vídeos): POST /api/reports/analise { formato: 'pptx' }. */
+    suspend fun pptxDaAnalise(sessaoId: String): ByteArray = throw UnsupportedOperationException("PowerPoint da análise")
+    /** Escudo do adversário e vídeos por seção: GET .../analise (midias), POST/DELETE .../analise/midia. */
+    suspend fun midiasDaAnalise(sessaoId: String): List<MidiaAnalise> = emptyList()
+    suspend fun enviarMidiaAnalise(sessaoId: String, tipo: String, secao: String?, titulo: String?, arquivo: ArquivoUpload, progresso: (Double) -> Unit): List<MidiaAnalise> =
+        throw UnsupportedOperationException("mídia da análise")
+    suspend fun apagarMidiaAnalise(sessaoId: String, midiaId: String): List<MidiaAnalise> = throw UnsupportedOperationException("mídia da análise")
 }
 
 fun clienteUpload(): OkHttpClient = OkHttpClient.Builder()
@@ -332,6 +340,43 @@ class ApiTreinoHttp(
             respostaOuErro(status to String(bytes, Charsets.UTF_8), json)
         }
         if (bytes.size <= 4 || String(bytes, 0, 4, Charsets.ISO_8859_1) != "%PDF") throw ErroApi(0, null, MSG_PDF_FALHOU)
+        return bytes
+    }
+
+    private fun midias(r: JsonElement): List<MidiaAnalise> =
+        json.decodeFromJsonElement(ListSerializer(MidiaAnalise.serializer()), (r as? JsonObject)?.get("midias") as? JsonArray ?: JsonArray(emptyList()))
+
+    override suspend fun midiasDaAnalise(sessaoId: String): List<MidiaAnalise> =
+        midias(j("/games/${codificarComponente(sessaoId)}/analise"))
+
+    override suspend fun enviarMidiaAnalise(
+        sessaoId: String, tipo: String, secao: String?, titulo: String?, arquivo: ArquivoUpload, progresso: (Double) -> Unit,
+    ): List<MidiaAnalise> {
+        val corpo = MultipartBody.Builder(fronteira()).setType(MultipartBody.FORM).addFormDataPart("tipo", tipo)
+        if (!secao.isNullOrEmpty()) corpo.addFormDataPart("secao", secao)
+        if (!titulo.isNullOrEmpty()) corpo.addFormDataPart("titulo", titulo)
+        corpo.addFormDataPart(CAMPO_ANEXO, arquivo.nome, CorpoComProgresso(arquivo, progresso))
+        val call = try {
+            upload.newCall(Request.Builder().url((api.base + "/games/${codificarComponente(sessaoId)}/analise/midia").toHttpUrl())
+                .post(corpo.build()).header("authorization", "Bearer $token").header("X-Workspace-Id", workspaceId).build())
+        } catch (e: IllegalArgumentException) {
+            throw ErroApi.offline()
+        }
+        return midias(respostaOuErro(executarChamada(call), json))
+    }
+
+    override suspend fun apagarMidiaAnalise(sessaoId: String, midiaId: String): List<MidiaAnalise> =
+        midias(j("/games/${codificarComponente(sessaoId)}/analise/midia/${codificarComponente(midiaId)}", "DELETE"))
+
+    override suspend fun pptxDaAnalise(sessaoId: String): ByteArray {
+        val corpo = mapOf("session_id" to JsonPrimitive(sessaoId), "formato" to JsonPrimitive("pptx"))
+        val call = try { relatorios.newCall(pedidoRelatorio("analise", corpo)) } catch (e: IllegalArgumentException) { throw ErroApi.offline() }
+        val (status, bytes) = executarBytes(call)
+        if (status !in 200..299) {
+            respostaOuErro(status to String(bytes, Charsets.UTF_8), json)
+        }
+        // .pptx é um zip: começa com "PK"
+        if (bytes.size <= 4 || bytes[0] != 'P'.code.toByte() || bytes[1] != 'K'.code.toByte()) throw ErroApi(0, null, "Não foi possível gerar o PowerPoint. Tente de novo.")
         return bytes
     }
 }

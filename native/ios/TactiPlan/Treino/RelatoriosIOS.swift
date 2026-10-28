@@ -77,6 +77,22 @@ final class ExportadorRelatorio: ObservableObject {
         }
     }
 
+    /// PowerPoint da análise do adversário (com os vídeos) → folha de compartilhar.
+    func gerarPptxAnalise(sessaoId: String, nome: String) {
+        guard !ocupado else { return }
+        ocupado = true
+        Task {
+            defer { ocupado = false }
+            do {
+                let d = try await servico.api.pptxDaAnalise(sessaoId)
+                compartilhar = ArquivoLocal(url: try arquivoTemporario(d, nome: nome, pasta: "relatorios"))
+            } catch {
+                if aoSessaoAcabar(error) { return }
+                aviso = mensagemErroTreino(error, permissao: "Você não tem permissão para exportar este relatório.")
+            }
+        }
+    }
+
     private func gerarPdf(tipo: String, corpo: [String: Json], nome: String) async {
         if let url = await pdf(tipo: tipo, corpo: corpo, nome: nome) { compartilhar = ArquivoLocal(url: url) }
     }

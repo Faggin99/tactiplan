@@ -37,6 +37,14 @@ function linhaTabela(v) {
   return { j: numero(o.j), v: numero(o.v), e: numero(o.e), d: numero(o.d), gp: numero(o.gp), gc: numero(o.gc) };
 }
 
+function ladoSistema(o, formacaoAntiga, descricaoAntiga, itensAntigos) {
+  return {
+    formacao: texto(o.formacao ?? formacaoAntiga, 12),
+    descricao: texto(o.descricao ?? descricaoAntiga, LIM.medio),
+    itens: itens(o.itens ?? itensAntigos),
+  };
+}
+
 /** Limpa e valida a análise vinda do formulário. Sempre devolve o formato completo. */
 function normalizar(bruto) {
   const d = objeto(bruto);
@@ -77,11 +85,11 @@ function normalizar(bruto) {
       posse: numero(camp.posse, 100),
       observacao: texto(camp.observacao, LIM.longo),
     },
+    // Sistema inicial OFENSIVO e DEFENSIVO (28/10). Análise antiga (formacao/descricao/com_bola/sem_bola)
+    // migra sozinha: formação e descrição → ofensivo; com bola → ofensivo; sem bola → defensivo.
     sistema: {
-      formacao: texto(sis.formacao, 12),
-      descricao: texto(sis.descricao, LIM.medio),
-      com_bola: itens(sis.com_bola),
-      sem_bola: itens(sis.sem_bola),
+      ofensivo: ladoSistema(objeto(sis.ofensivo), sis.formacao, sis.descricao, sis.com_bola),
+      defensivo: ladoSistema(objeto(sis.defensivo), null, null, sis.sem_bola),
     },
     variacoes: (Array.isArray(d.variacoes) ? d.variacoes : []).map((v) => {
       const o = objeto(v);
@@ -142,13 +150,15 @@ const TEM = {
   campanha: (c) => !!(c.situacao || c.observacao || c.ultimos.length || c.posse !== null
     || [c.vitorias, c.empates, c.derrotas, c.gols_pro, c.gols_contra].some((n) => n !== null)
     || tabelaTem(c.casa) || tabelaTem(c.fora)),
-  sistema: (s) => !!(s.formacao || s.descricao || s.com_bola.length || s.sem_bola.length),
+  sistema: (s) => ['ofensivo', 'defensivo'].some((k) => s[k].formacao || s[k].descricao || s[k].itens.length),
   variacoes: (v) => v.length > 0,
   escalacao: (e) => !!(e.jogadores.length || e.banco.length || e.desfalques.length || e.duvidas.length || e.observacao),
-  defesa: (d) => BLOCOS.some((b) => d[b].frequencia || d[b].itens.length),
-  ataque: (a) => FASES_ATAQUE.some((f) => a[f].length),
-  transicoes: (t) => !!(t.perder.comportamento || t.perder.itens.length || t.recuperar.comportamento || t.recuperar.itens.length),
+  // análise individual logo depois da provável escalação (pedido de 28/10)
   individuais: (i) => i.length > 0,
+  // "Organização ofensiva" (era "Como jogam com bola") e "Organização defensiva" (era "Como defendem")
+  ataque: (a) => FASES_ATAQUE.some((f) => a[f].length),
+  defesa: (d) => BLOCOS.some((b) => d[b].frequencia || d[b].itens.length),
+  transicoes: (t) => !!(t.perder.comportamento || t.perder.itens.length || t.recuperar.comportamento || t.recuperar.itens.length),
   bp_ofensiva: (b) => !!(b.resumo || BP_OFENSIVA.some((k) => b[k].length)),
   bp_defensiva: (b) => !!(b.marcacao || b.homens_area !== null || b.trave || b.barreira || b.contra_ataque || b.goleiro.length || b.itens.length),
   pontos: (p) => !!(p.positivos.length || p.explorar.length),
@@ -160,7 +170,16 @@ function secoesPreenchidas(a) {
   return Object.keys(TEM).filter((k) => TEM[k](a[k]));
 }
 
+// Títulos das seções (PDF, PowerPoint e telas usam os mesmos)
+const TITULOS = {
+  capa: 'Capa', campanha: 'Campanha', sistema: 'Sistema inicial', variacoes: 'Variações do sistema',
+  escalacao: 'Provável escalação', individuais: 'Análise individual', ataque: 'Organização ofensiva',
+  defesa: 'Organização defensiva', transicoes: 'Transições', bp_ofensiva: 'Bolas paradas ofensivas',
+  bp_defensiva: 'Bolas paradas defensivas', pontos: 'Pontos positivos e pontos a explorar', final: 'Observações finais',
+};
+const SECOES = Object.keys(TITULOS);
+
 module.exports = {
-  normalizar, secoesPreenchidas, LIM,
+  normalizar, secoesPreenchidas, LIM, TITULOS, SECOES,
   BLOCOS, FREQUENCIAS, AO_PERDER, AO_RECUPERAR, RESULTADOS, MANDOS, FASES_ATAQUE, BP_OFENSIVA,
 };

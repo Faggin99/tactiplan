@@ -69,8 +69,11 @@ public let SECOES_ANALISE: [SecaoAnalise] = [
         .textoLongo(rotulo: "Observação", caminho: ["campanha", "observacao"]), fonte("campanha"),
     ]),
     SecaoAnalise(chave: "sistema", titulo: "Sistema inicial", campos: [
-        t("Formação", "sistema", "formacao", dica: "Ex.: 4-3-3", max: 12), t("Descrição", "sistema", "descricao"),
-        l("Com bola", "sistema", "com_bola"), l("Sem bola", "sistema", "sem_bola"), fonte("sistema"),
+        t("Ofensivo · formação", "sistema", "ofensivo", "formacao", dica: "Ex.: 4-3-3", max: 12),
+        t("Ofensivo · descrição", "sistema", "ofensivo", "descricao"), l("Ofensivo · observações", "sistema", "ofensivo", "itens"),
+        t("Defensivo · formação", "sistema", "defensivo", "formacao", dica: "Ex.: 4-1-4-1", max: 12),
+        t("Defensivo · descrição", "sistema", "defensivo", "descricao"), l("Defensivo · observações", "sistema", "defensivo", "itens"),
+        fonte("sistema"),
     ]),
     SecaoAnalise(chave: "variacoes", titulo: "Variações do sistema", campos: [
         .repetir(rotulo: "Variações", caminho: ["variacoes"], item: "Variação", max: 6, campos: [
@@ -85,20 +88,6 @@ public let SECOES_ANALISE: [SecaoAnalise] = [
         l("Desfalques", "escalacao", "desfalques"), l("Dúvidas", "escalacao", "duvidas"),
         t("Observação", "escalacao", "observacao"), fonte("escalacao"),
     ]),
-    SecaoAnalise(chave: "defesa", titulo: "Como defendem", campos: [("alto", "Bloco alto"), ("medio", "Bloco médio"), ("baixo", "Bloco baixo")].flatMap { b, r in
-        [CampoAnalise.escolha(rotulo: "\(r) · frequência", caminho: ["defesa", b, "frequencia"], opcoes: FREQ),
-         CampoAnalise.lista(rotulo: "\(r) · observações", caminho: ["defesa", b, "itens"])]
-    } + [fonte("defesa")]),
-    SecaoAnalise(chave: "ataque", titulo: "Como jogam com bola", campos: [
-        l("1 · Construção", "ataque", "construcao"), l("2 · 2ª fase de construção", "ataque", "segunda_fase"),
-        l("3 · Criação", "ataque", "criacao"), l("4 · Finalização", "ataque", "finalizacao"), fonte("ataque"),
-    ]),
-    SecaoAnalise(chave: "transicoes", titulo: "Transições", campos: [
-        .escolha(rotulo: "Quando perdem a bola", caminho: ["transicoes", "perder", "comportamento"], opcoes: PERDER),
-        l("Quando perdem · observações", "transicoes", "perder", "itens"),
-        .escolha(rotulo: "Quando roubam a bola", caminho: ["transicoes", "recuperar", "comportamento"], opcoes: RECUPERAR),
-        l("Quando roubam · observações", "transicoes", "recuperar", "itens"), fonte("transicoes"),
-    ]),
     SecaoAnalise(chave: "individuais", titulo: "Análise individual", campos: [
         .repetir(rotulo: "Jogadores", caminho: ["individuais"], item: "Jogador", max: 8, campos: [
             .texto(rotulo: "Nome", caminho: ["nome"]), .numero(rotulo: "Nº", caminho: ["numero"], max: 99),
@@ -107,6 +96,20 @@ public let SECOES_ANALISE: [SecaoAnalise] = [
             .lista(rotulo: "Como neutralizar", caminho: ["neutralizar"]),
         ]),
         fonte("individuais"),
+    ]),
+    SecaoAnalise(chave: "ataque", titulo: "Organização ofensiva", campos: [
+        l("1 · Construção", "ataque", "construcao"), l("2 · 2ª fase de construção", "ataque", "segunda_fase"),
+        l("3 · Criação", "ataque", "criacao"), l("4 · Finalização", "ataque", "finalizacao"), fonte("ataque"),
+    ]),
+    SecaoAnalise(chave: "defesa", titulo: "Organização defensiva", campos: [("alto", "Bloco alto"), ("medio", "Bloco médio"), ("baixo", "Bloco baixo")].flatMap { b, r in
+        [CampoAnalise.escolha(rotulo: "\(r) · frequência", caminho: ["defesa", b, "frequencia"], opcoes: FREQ),
+         CampoAnalise.lista(rotulo: "\(r) · observações", caminho: ["defesa", b, "itens"])]
+    } + [fonte("defesa")]),
+    SecaoAnalise(chave: "transicoes", titulo: "Transições", campos: [
+        .escolha(rotulo: "Quando perdem a bola", caminho: ["transicoes", "perder", "comportamento"], opcoes: PERDER),
+        l("Quando perdem · observações", "transicoes", "perder", "itens"),
+        .escolha(rotulo: "Quando roubam a bola", caminho: ["transicoes", "recuperar", "comportamento"], opcoes: RECUPERAR),
+        l("Quando roubam · observações", "transicoes", "recuperar", "itens"), fonte("transicoes"),
     ]),
     SecaoAnalise(chave: "bp_ofensiva", titulo: "Bolas paradas ofensivas", campos: [
         .textoLongo(rotulo: "Resumo", caminho: ["bp_ofensiva", "resumo"], dica: "Ex.: 20% dos gols de bola parada…"),
@@ -255,4 +258,52 @@ public func caminhoDe(_ c: CampoAnalise) -> [String]? {
     case .texto(_, let p, _, _), .textoLongo(_, let p, _), .numero(_, let p, _), .lista(_, let p, _), .escolha(_, let p, _): return p
     default: return nil
     }
+}
+
+// MARK: escudo do adversário e vídeos por seção (migration 063)
+
+/// GET /api/games/:id/analise → `midias`. tipo "escudo" | "video"; url relativa ao servidor.
+public struct MidiaAnalise: Codable, Sendable, Equatable, Identifiable {
+    public let id: String
+    public let tipo: String
+    public let secao: String?
+    public let titulo: String?
+    public let url: String
+    public init(id: String, tipo: String, secao: String? = nil, titulo: String? = nil, url: String = "") {
+        self.id = id; self.tipo = tipo; self.secao = secao; self.titulo = titulo; self.url = url
+    }
+    enum CodingKeys: String, CodingKey { case id, tipo, secao, titulo, url }
+    public init(from d: Decoder) throws {
+        let c = try d.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        tipo = try c.decode(String.self, forKey: .tipo)
+        secao = try c.decodeIfPresent(String.self, forKey: .secao)
+        titulo = try c.decodeIfPresent(String.self, forKey: .titulo)
+        url = try c.decodeIfPresent(String.self, forKey: .url) ?? ""
+    }
+}
+
+public let MAX_VIDEOS_ANALISE = 12
+public let MAX_BYTES_VIDEO_ANALISE = 50 * 1024 * 1024
+public let MAX_BYTES_ESCUDO = 3 * 1024 * 1024
+
+/// Antes de subir: o que o servidor recusaria. nil = ok.
+public func problemaMidiaAnalise(tipo: String, mime: String, tamanho: Int, videosNaAnalise: Int = 0) -> String? {
+    let m = mime.lowercased()
+    if tipo == "escudo" {
+        if !["image/png", "image/jpeg", "image/webp"].contains(m) { return "O escudo precisa ser uma imagem (JPG, PNG ou WEBP)." }
+        if tamanho > MAX_BYTES_ESCUDO { return "O escudo deve ter até 3 MB." }
+        return nil
+    }
+    if !["video/mp4", "video/quicktime", "video/webm"].contains(m) { return "Envie um vídeo (MP4, MOV ou WEBM)." }
+    if tamanho > MAX_BYTES_VIDEO_ANALISE { return "O vídeo deve ter até 50 MB." }
+    if videosNaAnalise >= MAX_VIDEOS_ANALISE { return "Limite de \(MAX_VIDEOS_ANALISE) vídeos por análise." }
+    return nil
+}
+
+/// Título do vídeo a partir do nome do arquivo ("saida-curta.mp4" → "saida-curta").
+public func tituloDoVideo(_ nomeArquivo: String) -> String {
+    let semExt = nomeArquivo.replacingOccurrences(of: #"\.[A-Za-z0-9]+$"#, with: "", options: .regularExpression)
+    let t = String(semExt.prefix(120))
+    return t.trimmingCharacters(in: .whitespaces).isEmpty ? "Vídeo" : t
 }

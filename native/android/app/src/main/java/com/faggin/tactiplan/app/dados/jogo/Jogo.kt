@@ -461,11 +461,11 @@ fun nomePdfRelatorioJogo(adversario: String?, data: String): String {
     return nomeArquivoSeguro(base) + ".pdf"
 }
 
-/** Análise do adversário (POST /api/reports/analise; preenchida no web). */
-fun nomePdfAnalise(adversario: String?, data: String): String {
+/** Análise do adversário (POST /api/reports/analise). `extensao` "pptx" = PowerPoint com os vídeos. */
+fun nomePdfAnalise(adversario: String?, data: String, extensao: String = "pdf"): String {
     val adv = if (adversario.isNullOrBlank()) "Adversário" else adversario
     val base = "Analise_${adv.split(Regex("\\s+")).filter { it.isNotEmpty() }.joinToString("_")}_${dataBR(data).replace("/", "-")}"
-    return nomeArquivoSeguro(base) + ".pdf"
+    return nomeArquivoSeguro(base) + ".$extensao"
 }
 
 fun nomePdfConvocacao(adversario: String?, data: String): String {

@@ -176,6 +176,22 @@ public protocol ApiTreino: Sendable {
     func htmlDoRelatorio(_ tipo: String, corpo: [String: Json]) async throws -> String
     /// POST /api/reports/:tipo → PDF.
     func pdfDoRelatorio(_ tipo: String, corpo: [String: Json]) async throws -> Data
+    /// PowerPoint da análise do adversário (com os vídeos): POST /api/reports/analise { formato: 'pptx' }.
+    func pptxDaAnalise(_ sessaoId: String) async throws -> Data
+    /// Escudo do adversário e vídeos por seção: GET .../analise (midias), POST/DELETE .../analise/midia.
+    func midiasDaAnalise(_ sessaoId: String) async throws -> [MidiaAnalise]
+    func enviarMidiaAnalise(_ sessaoId: String, tipo: String, secao: String?, titulo: String?, arquivo: ArquivoUpload,
+                            progresso: @escaping @Sendable (Double) -> Void) async throws -> [MidiaAnalise]
+    func apagarMidiaAnalise(_ sessaoId: String, midiaId: String) async throws -> [MidiaAnalise]
+}
+
+// Padrões para os falsos dos testes (o ApiTreinoHttp implementa de verdade).
+extension ApiTreino {
+    public func pptxDaAnalise(_ sessaoId: String) async throws -> Data { throw ErroApi.offline() }
+    public func midiasDaAnalise(_ sessaoId: String) async throws -> [MidiaAnalise] { [] }
+    public func enviarMidiaAnalise(_ sessaoId: String, tipo: String, secao: String?, titulo: String?, arquivo: ArquivoUpload,
+                                   progresso: @escaping @Sendable (Double) -> Void) async throws -> [MidiaAnalise] { throw ErroApi.offline() }
+    public func apagarMidiaAnalise(_ sessaoId: String, midiaId: String) async throws -> [MidiaAnalise] { throw ErroApi.offline() }
 }
 
 /// O de verdade, sobre o [Api]. `token`/`workspaceId` da sessão em uso.
@@ -353,6 +369,56 @@ public final class ApiTreinoHttp: ApiTreino {
             throw ErroApi(status: 0, codigo: nil, mensagem: MSG_PDF_FALHOU)
         }
         return d
+    }
+}
+
+extension ApiTreinoHttp {
+    private func midias(_ j: Json) throws -> [MidiaAnalise] {
+        guard let l = j["midias"] else { return [] }
+        return try l.decodificar([MidiaAnalise].self)
+    }
+    private var caminhoAnalise: (String) -> String { { "/games/\(codificarComponente($0))/analise" } }
+
+    public func pptxDaAnalise(_ sessaoId: String) async throws -> Data {
+        let d = try await relatorios.chamarDados(CaminhosTreino.relatorio("analise"), metodo: "POST",
+                                                 corpo: .objeto(["session_id": .texto(sessaoId), "formato": "pptx"]),
+                                                 token: token, cabecalhos: cabecalhos)
+        // .pptx é um zip: começa com "PK"
+        guard d.count > 4, d.prefix(2) == Data("PK".utf8) else {
+            throw ErroApi(status: 0, codigo: nil, mensagem: "Não foi possível gerar o PowerPoint. Tente de novo.")
+        }
+        return d
+    }
+
+    public func midiasDaAnalise(_ sessaoId: String) async throws -> [MidiaAnalise] {
+        try midias(try await api.chamarJson(caminhoAnalise(sessaoId), metodo: "GET", corpo: nil, token: token, cabecalhos: cabecalhos))
+    }
+
+    public func enviarMidiaAnalise(_ sessaoId: String, tipo: String, secao: String?, titulo: String?, arquivo: ArquivoUpload,
+                                   progresso: @escaping @Sendable (Double) -> Void) async throws -> [MidiaAnalise] {
+        guard let upload, let url = urlHttp(api.base + caminhoAnalise(sessaoId) + "/midia"), valorCabecalhoValido(arquivo.tipo) else {
+            throw ErroApi.offline()
+        }
+        let f = fronteira()
+        var campos: [(String, String)] = [("tipo", tipo)]
+        if let secao, !secao.isEmpty { campos.append(("secao", secao)) }
+        if let titulo, !titulo.isEmpty { campos.append(("titulo", titulo)) }
+        let req = Requisicao(url: url, metodo: "POST", cabecalhos: [
+            ("content-type", "multipart/form-data; boundary=\(f)"), ("X-Workspace-Id", workspaceId), ("authorization", "Bearer \(token)"),
+        ], corpo: corpoMultipart(campo: CAMPO_ANEXO, arquivo: arquivo, fronteira: f, campos: campos))
+        let resposta: Resposta
+        do {
+            resposta = try await upload.enviar(req, progresso: progresso)
+        } catch {
+            if error is CancellationError || Task.isCancelled { throw CancellationError() }
+            throw ErroApi.offline()
+        }
+        return try midias(try respostaOuErro(resposta))
+    }
+
+    public func apagarMidiaAnalise(_ sessaoId: String, midiaId: String) async throws -> [MidiaAnalise] {
+        try midias(try await api.chamarJson(caminhoAnalise(sessaoId) + "/midia/\(codificarComponente(midiaId))", metodo: "DELETE",
+                                            corpo: nil, token: token, cabecalhos: cabecalhos))
     }
 }
 

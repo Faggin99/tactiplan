@@ -104,7 +104,7 @@ fun reduzirFoto(resolver: ContentResolver, uri: Uri): ByteArray? {
     return saida.toByteArray()
 }
 
-private fun nomeETamanho(resolver: ContentResolver, uri: Uri): Pair<String?, Long> {
+internal fun nomeETamanho(resolver: ContentResolver, uri: Uri): Pair<String?, Long> {
     if (uri.scheme == "file") {
         val f = File(uri.path ?: "")
         return f.name to f.length()
@@ -222,18 +222,20 @@ suspend fun abrirAnexoNoSistema(context: Context, url: String, nome: String, tip
     }
 }
 
-/** PDF do relatório → cache `relatorios/` (só o último) → folha de compartilhar do sistema. */
+/** PDF do relatório → cache `relatorios/` (só o último) → folha de compartilhar do sistema. Nome em .pptx = PowerPoint. */
 fun compartilharPdf(context: Context, bytes: ByteArray, nome: String): String? {
+    val pptx = nome.endsWith(".pptx")
     return try {
         val pasta = File(context.cacheDir, PASTA_RELATORIOS).apply { mkdirs() }
         pasta.listFiles()?.forEach { it.delete() }
-        val f = File(pasta, nomeSeguro(nome).let { if (it.endsWith(".pdf")) it else "$it.pdf" })
+        val f = File(pasta, nomeSeguro(nome).let { if (pptx || it.endsWith(".pdf")) it else "$it.pdf" })
         f.writeBytes(bytes)
         val uri = FileProvider.getUriForFile(context, autoridadeArquivos(context), f)
-        val enviar = Intent(Intent.ACTION_SEND).setType("application/pdf").putExtra(Intent.EXTRA_STREAM, uri)
+        val tipo = if (pptx) "application/vnd.openxmlformats-officedocument.presentationml.presentation" else "application/pdf"
+        val enviar = Intent(Intent.ACTION_SEND).setType(tipo).putExtra(Intent.EXTRA_STREAM, uri)
             .putExtra(Intent.EXTRA_TITLE, f.name)
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        context.startActivity(Intent.createChooser(enviar, "Compartilhar PDF").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        context.startActivity(Intent.createChooser(enviar, if (pptx) "Compartilhar PowerPoint" else "Compartilhar PDF").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         null
     } catch (_: ActivityNotFoundException) {
         MSG_SEM_VISUALIZADOR

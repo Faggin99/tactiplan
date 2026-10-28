@@ -1,6 +1,8 @@
 // Orquestra os relatórios PDF: busca os MESMOS dados das telas
 // (services/statsData, services/sessionData), monta o view model (builders),
 // desenha o HTML (templates) e converte com o Chromium (renderer).
+const fs = require('fs');
+const path = require('path');
 const { query } = require('../config/database');
 const stats = require('../services/statsData');
 const { getSessionDetail } = require('../services/sessionData');
@@ -8,7 +10,7 @@ const B = require('./builders');
 const F = require('./format');
 const { teamPalette, normalizeHex } = require('./theme');
 const { positionSector, sectorInfo } = require('./positionSector');
-const { loadLogo, loadPhotos, loadThumbs, filterImageAttachments } = require('./photos');
+const { loadLogo, loadPhotos, loadThumbs, filterImageAttachments, resolveUploadPath } = require('./photos');
 const { renderPdf } = require('./renderer');
 const PC = require('./photoConfig');
 const { toPreviewHtml } = require('./preview');
@@ -21,6 +23,8 @@ const { renderPlantel } = require('./templates/plantel');
 const { renderJogo } = require('./templates/jogo');
 const { renderWeekProgram } = require('./templates/semana');
 const { renderAnalise } = require('./templates/analise');
+const { montarDeck } = require('./analiseDeck');
+const { gerarPptx } = require('./analisePptx');
 const AA = require('../services/analiseAdversario');
 const { formacaoValida, formacaoPadrao } = require('../utils/formacao');
 const P = require('../services/periodos');
@@ -447,13 +451,17 @@ async function buildJogo(body, user, assets) {
   };
 }
 
-// Análise do adversário (A4 paisagem): capa com os dados do jogo + uma página por seção PREENCHIDA.
-async function buildAnalise(body, user, assets) {
+// Análise do adversário: deck 16:9 (analiseDeck.js) no desenho do modelo do dono. Capa com os dados do
+// jogo + um slide por seção PREENCHIDA. Mesmo deck vira PDF (sem vídeos) ou PowerPoint (com vídeos).
+async function prepararAnalise(body, user, assets) {
   const { session, team, callUp, workspaceIds } = await carregarJogo(body, user, assets);
-  const r = await query('SELECT data FROM opponent_analyses WHERE session_id = $1 AND workspace_id = ANY($2)', [session.id, workspaceIds]);
+  const [r, m] = await Promise.all([
+    query('SELECT data FROM opponent_analyses WHERE session_id = $1 AND workspace_id = ANY($2)', [session.id, workspaceIds]),
+    query(`SELECT id, tipo, secao, titulo, file_path, mime_type FROM opponent_analysis_media
+            WHERE session_id = $1 AND workspace_id = ANY($2) ORDER BY created_at`, [session.id, workspaceIds]),
+  ]);
   const a = AA.normalizar(r.rows[0]?.data || {});
   const date = F.toDateStr(session.date);
-  const [y, m, d] = date.split('-');
   const quando = `${F.ddmmyyyy(date)}${session.match_kickoff ? `, ${session.match_kickoff}` : ''}`;
   const fatos = [
     a.capa.fase ? { l: 'Fase', v: a.capa.fase } : null,
@@ -461,23 +469,55 @@ async function buildAnalise(body, user, assets) {
     { l: 'Data', v: quando },
     session.match_venue ? { l: 'Local', v: session.match_venue } : null,
   ].filter(Boolean);
+  const imagens = {};
+  if (team.logoUrl) imagens.nosso = team.logoUrl;
+  const escudo = m.rows.find((x) => x.tipo === 'escudo');
+  if (escudo) {
+    const img = await loadLogo(escudo.file_path);
+    if (img) { assets.set('img/escudo-adv', img); imagens.adversario = 'img/escudo-adv'; }
+  }
+  const videos = m.rows.filter((x) => x.tipo === 'video' && resolveUploadPath(x.file_path))
+    .map((x) => ({ id: x.id, secao: x.secao, titulo: x.titulo, path: resolveUploadPath(x.file_path) }));
   const vm = {
-    team,
     a,
-    adversario: callUp.opponent,
+    adversario: callUp.opponent || 'Adversário',
+    nossoNome: team.name,
     // "Libertadores 2026 · Rodada 6 · Fora" (campeonato/rodada/mando do jogo)
     subtitulo: callUp.meta.join(' · '),
     fatos,
     capaRodape: [a.capa.tecnico ? `Técnico: ${a.capa.tecnico}` : null, a.capa.observacao || null].filter(Boolean).join(' · '),
-    secoes: AA.secoesPreenchidas(a),
     fontes: a.fontes,
-    right: `vs ${callUp.opponent} · ${F.ddmmyyyy(date)}`,
+    imagens,
+    videos,
   };
+  const [y, mm, d] = date.split('-');
+  return { deck: montarDeck(vm), vm, base: `Analise_${safeName(callUp.opponent) || 'Adversario'}_${d}-${mm}-${y}` };
+}
+
+async function buildAnalise(body, user, assets) {
+  const { deck, vm, base } = await prepararAnalise(body, user, assets);
   return {
-    html: renderAnalise(vm, { now: new Date() }),
-    filename: `Analise_${safeName(callUp.opponent) || 'Adversario'}_${d}-${m}-${y}.pdf`,
+    html: renderAnalise(deck, { titulo: `Análise · ${vm.adversario}`, imagens: vm.imagens }),
+    filename: `${base}.pdf`,
     landscape: true,
   };
+}
+
+// PowerPoint da análise (com os vídeos embutidos). POST /api/reports/analise { session_id, formato: 'pptx' }
+async function generateAnalisePptx(body, user) {
+  const assets = new Map();
+  const { deck, vm, base } = await prepararAnalise(body || {}, user, assets);
+  const imagens = {};
+  for (const [k, ref] of Object.entries(vm.imagens)) {
+    const a = assets.get(ref);
+    if (a) imagens[k] = `${a.contentType};base64,${a.body.toString('base64')}`;
+  }
+  const videos = {};
+  for (const v of vm.videos) {
+    if (fs.existsSync(v.path)) videos[v.id] = { path: v.path, extn: path.extname(v.path).slice(1).toLowerCase() || 'mp4' };
+  }
+  const buffer = await gerarPptx(deck, { titulo: `Análise de adversário · ${vm.adversario}`, autor: vm.nossoNome, imagens, videos });
+  return { buffer, filename: `${base}.pptx`, slides: deck.slides.length };
 }
 
 // Plantel do clube: mesma consulta/escopo de GET /api/athletes?club_id (categoria do membro).
@@ -616,4 +656,4 @@ async function viewSessionSheet(body, user) {
   return { html: toPreviewHtml(html, assets) };
 }
 
-module.exports = { buildPlantel, generateReport, listReportPhotos, previewReportPhotos, viewSessionSheet, ReportError, PERMISSION, BUILDERS };
+module.exports = { buildPlantel, generateReport, generateAnalisePptx, listReportPhotos, previewReportPhotos, viewSessionSheet, ReportError, PERMISSION, BUILDERS };

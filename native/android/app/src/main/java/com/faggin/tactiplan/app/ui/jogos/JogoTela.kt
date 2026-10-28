@@ -299,14 +299,15 @@ fun JogoTela(amb: AmbienteClube, treino: ServicoTreino, api: ApiJogo, sessaoId: 
         }
     }
 
-    // Análise do adversário: o PDF do que foi preenchido no web
-    fun exportarAnalise() {
+    // Análise do adversário: PDF (sem vídeos) ou PowerPoint (com os vídeos)
+    fun exportarAnalise(pptx: Boolean = false) {
         val atual = editor ?: return
         if (exportando) return
         exportando = true
         escopo.launch {
-            val r = gerarECompartilhar(context, treino.api, "analise", corpoRelatorioJogo(sessaoId),
-                com.faggin.tactiplan.app.dados.jogo.nomePdfAnalise(atual.dados.adversario, pacote?.dia?.data ?: ""), amb.tratarErro)
+            val nome = com.faggin.tactiplan.app.dados.jogo.nomePdfAnalise(atual.dados.adversario, pacote?.dia?.data ?: "", if (pptx) "pptx" else "pdf")
+            val r = if (pptx) com.faggin.tactiplan.app.ui.semana.gerarPptxAnalise(context, treino.api, sessaoId, nome, amb.tratarErro)
+                else gerarECompartilhar(context, treino.api, "analise", corpoRelatorioJogo(sessaoId), nome, amb.tratarErro)
             if (r is InicioExportar.Erro) dialogo = r.mensagem
             exportando = false
         }
@@ -346,8 +347,10 @@ fun JogoTela(amb: AmbienteClube, treino: ServicoTreino, api: ApiJogo, sessaoId: 
                                 }
                                 DropdownMenuItem(text = { Text("Relatório do jogo (PDF)") }, onClick = { menuExportar = false; exportarRelatorioJogo() },
                                     modifier = Modifier.testTag("jogo:exportar:relatorio"))
-                                DropdownMenuItem(text = { Text("Análise do adversário (PDF)") }, onClick = { menuExportar = false; exportarAnalise() },
+                                DropdownMenuItem(text = { Text("Análise do adversário (PDF, sem vídeos)") }, onClick = { menuExportar = false; exportarAnalise() },
                                     modifier = Modifier.testTag("jogo:exportar:analise"))
+                                DropdownMenuItem(text = { Text("Análise do adversário (PowerPoint, com vídeos)") }, onClick = { menuExportar = false; exportarAnalise(pptx = true) },
+                                    modifier = Modifier.testTag("jogo:exportar:analise:pptx"))
                                 HorizontalDivider()
                                 DropdownMenuItem(text = { Text(if (editavel) "Preencher análise do adversário" else "Ver análise do adversário") },
                                     onClick = { menuExportar = false; abrirAnalise = true }, modifier = Modifier.testTag("jogo:analise"))

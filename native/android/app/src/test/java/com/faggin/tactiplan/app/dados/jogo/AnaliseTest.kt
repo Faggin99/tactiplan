@@ -38,6 +38,25 @@ class AnaliseTest {
         val preenchidas = (par["secoesExemplo"] as JsonArray).map { it.jsonPrimitive.content }
         for (k in preenchidas) assertTrue(k, secaoPreenchida(exemplo, k))
         assertFalse(secaoPreenchida(vazio, "sistema"))
+        // mesma ordem do relatório; ataque/defesa com os nomes novos (28/10)
+        assertEquals((par["ordem"] as JsonArray).map { it.jsonPrimitive.content }, SECOES_ANALISE.map { it.chave })
+        val titulos = par["titulos"]!!.jsonObject
+        for (k in listOf("sistema", "individuais", "ataque", "defesa")) {
+            assertEquals(k, titulos[k]!!.jsonPrimitive.content, SECOES_ANALISE.first { it.chave == k }.titulo)
+        }
+    }
+
+    @Test fun `escudo e videos - o que o servidor recusaria`() {
+        assertEquals(null, problemaMidiaAnalise("escudo", "image/png", 2_000))
+        assertTrue(problemaMidiaAnalise("escudo", "video/mp4", 2_000)!!.contains("imagem"))
+        assertTrue(problemaMidiaAnalise("escudo", "image/png", MAX_BYTES_ESCUDO + 1)!!.contains("3 MB"))
+        assertEquals(null, problemaMidiaAnalise("video", "video/quicktime", 10_000_000))
+        assertTrue(problemaMidiaAnalise("video", "video/mp4", MAX_BYTES_VIDEO_ANALISE + 1)!!.contains("50 MB"))
+        assertTrue(problemaMidiaAnalise("video", "video/mp4", 1, videosNaAnalise = 12)!!.contains("Limite"))
+        assertEquals("saida-curta", tituloDoVideo("saida-curta.mp4"))
+        val m = JsonApp.decodeFromString(MidiaAnalise.serializer(),
+            """{"id":"m1","tipo":"video","secao":"ataque","titulo":"Saída","url":"/uploads/analise/x.mp4","size_bytes":"2003"}""")
+        assertEquals("ataque", m.secao)
     }
 
     @Test fun `vagas da formacao livre iguais as do servidor`() {
@@ -57,10 +76,10 @@ class AnaliseTest {
 
     @Test fun `ler e gravar por caminho, listas e escalacao`() {
         var d: kotlinx.serialization.json.JsonElement = JsonObject(emptyMap())
-        d = gravarEm(d, listOf("sistema", "formacao"), JsonPrimitive("4-3-3"))
-        assertEquals("4-3-3", textoEm(d, listOf("sistema", "formacao")))
-        d = gravarEm(d, listOf("sistema", "com_bola"), textoComoLista("a\n\nb"))
-        assertEquals("a\n\nb", listaComoTexto(d, listOf("sistema", "com_bola")))
+        d = gravarEm(d, listOf("sistema", "ofensivo", "formacao"), JsonPrimitive("4-3-3"))
+        assertEquals("4-3-3", textoEm(d, listOf("sistema", "ofensivo", "formacao")))
+        d = gravarEm(d, listOf("sistema", "defensivo", "itens"), textoComoLista("a\n\nb"))
+        assertEquals("a\n\nb", listaComoTexto(d, listOf("sistema", "defensivo", "itens")))
         d = gravarEm(d, listOf("variacoes"), JsonArray(listOf(JsonObject(emptyMap()))))
         d = gravarEm(d, listOf("variacoes", "0", "formacao"), JsonPrimitive("2-3-5"))
         assertEquals("2-3-5", textoEm(d, listOf("variacoes", "0", "formacao")))
@@ -74,5 +93,6 @@ class AnaliseTest {
         assertNotNull(jogadorDaVaga(d, 0)); assertEquals(JsonNull, gravarEm(null, emptyList(), JsonNull))
         assertTrue(secaoPreenchida(d, "sistema")); assertTrue(secaoPreenchida(d, "escalacao")); assertFalse(secaoPreenchida(d, "final"))
         assertEquals("Analise_Rival_FC_24-10-2026.pdf", nomePdfAnalise("Rival FC", "2026-10-24"))
+        assertEquals("Analise_Rival_FC_24-10-2026.pptx", nomePdfAnalise("Rival FC", "2026-10-24", "pptx"))
     }
 }
