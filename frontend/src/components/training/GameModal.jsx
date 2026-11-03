@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, Trophy, Users, Plus, Trash2, Goal, Shield, AlertTriangle, Clock, UserPlus, Wand2, ArrowLeftRight, Square, RotateCcw, GripVertical, ClipboardList } from 'lucide-react';
+import { X, Trophy, Users, Plus, Trash2, Goal, Shield, AlertTriangle, Clock, UserPlus, Wand2, ArrowLeftRight, Square, RotateCcw, GripVertical, ClipboardList, Film } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Button } from '../common/Button';
 import { PlayerSelectionModal } from './PlayerSelectionModal';
@@ -11,6 +11,7 @@ import { useClub } from '../../contexts/ClubContext';
 import { competitionService } from '../../services/competitionService';
 import { LineupField } from './LineupField';
 import { OpponentAnalysisModal } from './OpponentAnalysisModal';
+import { VideoAnalysisModal } from './VideoAnalysisModal';
 import { startLineupDrag } from '../../lib/lineupDrag';
 import { SlotAthletePicker } from './SlotAthletePicker';
 import { useIsMobile } from '../../hooks/useIsMobile';
@@ -39,6 +40,7 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
 
   const [opponentName, setOpponentName] = useState('');
   const [showAnalise, setShowAnalise] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
   // Horário, local do jogo e apresentação (aparecem na Convocação)
   const [matchKickoff, setMatchKickoff] = useState('');
   const [matchVenue, setMatchVenue] = useState('');
@@ -671,6 +673,21 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
                   <ClipboardList size={14} /> Análise do adversário
                 </button>
               )}
+              {session?.id && (
+                <button
+                  type="button"
+                  onClick={() => setShowVideo(true)}
+                  title="Marcar os lances no vídeo do jogo e ver o scout"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.35rem', marginLeft: '0.4rem',
+                    padding: '0.3rem 0.65rem', borderRadius: '0.4rem', cursor: 'pointer',
+                    border: `1px solid ${colors.primary}`, background: `${colors.primary}14`, color: colors.primary,
+                    fontSize: '0.78rem', fontWeight: 600,
+                  }}
+                >
+                  <Film size={14} /> Análise de vídeo
+                </button>
+              )}
             </div>
             <button
               onClick={onClose}
@@ -1224,6 +1241,17 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
         onClose={() => setShowAnalise(false)}
         session={session}
         opponentName={opponentName}
+      />
+      <VideoAnalysisModal
+        isOpen={showVideo}
+        onClose={() => setShowVideo(false)}
+        session={session}
+        opponentName={opponentName}
+        players={selectedPlayers}
+        formation={formation}
+        duration={Number(matchDuration) || sport.defaultDuration}
+        // gol/cartão marcado no vídeo entra nos eventos do jogo (grava no Salvar, como os outros)
+        onLancarEvento={(ev) => setEvents((es) => [...es, { ...ev, id: Date.now() }])}
       />
     </>
   );

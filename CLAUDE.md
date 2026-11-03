@@ -220,3 +220,20 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   `normalizar` ou no `formacaoLivre` → regere (o npm test do backend falha se ficar velho).
 - Fix 27/10: escolher o horário (Manhã/Tarde) num dia ainda não criado dava 404 (`/sessions/null/periodo`);
   agora cria a semana antes e o horário vale no Salvar do modal de tipo.
+
+## Análise do jogo em VÍDEO — Fase 1 (03/11/2026, estudo SCT360)
+- Migration 065: `video_tags` (tags do CLUBE; sem linhas = `TAGS_PADRAO` do código), `match_video_clips` (lance: tag
+  nome/cor, equipe nosso|adversario, athlete_id OU adv_numero/adv_nome, inicio_ms/fim_ms, observacao, lancado) e
+  `match_video_meta` (arquivo_nome, duracao_ms, inicio1_ms, inicio2_ms). O ARQUIVO DE VÍDEO NUNCA SOBE: fica no
+  computador (object URL); ao reabrir o treinador escolhe o mesmo arquivo.
+- `src/services/analiseVideo.js`: `normalizarLance/Tags/Meta` (portas de entrada), `minutoDoJogo` (tempo do vídeo →
+  minuto pelos marcos; 2º tempo começa em duração/2+1) e `scout` (por tag, nosso×adv, atleta×tag, faixas de 15 min).
+  `frontend/src/lib/analiseVideo.js` é CÓPIA de minutoDoJogo+scout (teste de paridade em tests/analise-video.test.js).
+- Rotas `/api/video-analise/:sessionId` (GET; PUT meta; POST/PATCH/DELETE lances; PUT tags do clube). games:view/edit.
+  O GET traz os jogadores do adversário da provável escalação da Análise do adversário.
+- Web: botão "Análise de vídeo" no cabeçalho do modal do jogo → `VideoAnalysisModal.jsx` (vídeo + linha do tempo,
+  campo com a escalação, teclas 1–9 começam/terminam o lance, lista editável, aba Scout + CSV). "Lançar no jogo":
+  tag que começa com "Gol" (nosso → goal_scored, adversário → goal_conceded) ou "Cartão"/"amarelo"/"vermelho" (nosso)
+  vira evento no estado do modal do jogo (grava no Salvar do jogo); exige o marco do tempo para saber o minuto.
+- Próximas fases (estudo /var/www/arquivos/Estudo_SCT360_TactiPlan.pdf): 2 scout nas Estatísticas/relatórios;
+  3 desenhos (holofote, seta, zona…) e cortes em vídeo; 4 presença do treino; 5 app.

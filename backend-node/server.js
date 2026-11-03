@@ -25,6 +25,7 @@ const activitiesRoutes = require('./src/routes/activities');
 const contentsRoutes = require('./src/routes/contents');
 const titlesRoutes = require('./src/routes/titles');
 const gamesRoutes = require('./src/routes/games');
+const videoAnaliseRoutes = require('./src/routes/videoAnalise'); // análise do jogo em vídeo (065)
 const statsRoutes = require('./src/routes/stats');
 const playsRoutes = require('./src/routes/plays');
 const themesRoutes = require('./src/routes/themes');
@@ -101,6 +102,7 @@ app.use('/api/sessions', sessionsRoutes);
 app.use('/api/activities', activitiesRoutes);
 app.use('/api/titles', titlesRoutes);
 app.use('/api/games', gamesRoutes);
+app.use('/api/video-analise', videoAnaliseRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/plays', playsRoutes);
