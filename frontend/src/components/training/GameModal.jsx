@@ -31,7 +31,8 @@ function lineupSig(players, formation, opponent, competitionId, matchRound, matc
   ]);
 }
 
-export function GameModal({ isOpen, onClose, session, onSave }) {
+// abrir: 'analise' | 'video' — já abre a análise do adversário / de vídeo (atalhos da Início)
+export function GameModal({ isOpen, onClose, session, onSave, abrir = null }) {
   const { colors } = useTheme();
   const { athletes } = useAthletes();
   const sport = useSportConfig();
@@ -71,6 +72,12 @@ export function GameModal({ isOpen, onClose, session, onSave }) {
       loadMatchData();
     }
   }, [isOpen, session]);
+
+  useEffect(() => {
+    if (!isOpen || !session) return;
+    if (abrir === 'analise') setShowAnalise(true);
+    if (abrir === 'video') setShowVideo(true);
+  }, [isOpen, session?.id, abrir]);
 
   useEffect(() => {
     if (!isOpen || !selectedClub?.id) return;

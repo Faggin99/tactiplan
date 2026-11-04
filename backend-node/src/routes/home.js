@@ -12,7 +12,7 @@ router.get('/home/dashboard', async (req, res) => {
     const workspaceIds = req.user.workspaceIds || [];
     const clubId = req.query.clubId || null;
     if (workspaceIds.length === 0) {
-      return res.json({ nextSessions: [], nextMatch: null, activeInjuries: [], announcements: [], summary: { totalAthletes: 0, activeInjuries: 0 } });
+      return res.json({ nextSessions: [], nextMatch: null, lastMatch: null, activeInjuries: [], announcements: [], summary: { totalAthletes: 0, activeInjuries: 0 } });
     }
 
     const nextSessionSql = `
@@ -41,6 +41,18 @@ router.get('/home/dashboard', async (req, res) => {
        LIMIT 1
     `;
     const nextMatchResult = await query(nextMatchSql, nextSessionParams);
+
+    // Último jogo já disputado (até hoje) — atalho "Análise de vídeo" da Início
+    const lastMatchResult = await query(`
+      SELECT s.id, s.date, s.day_name, s.opponent_name, m.club_id
+        FROM training_sessions s
+        JOIN training_microcycles m ON s.microcycle_id = m.id
+       WHERE s.workspace_id = ANY($1)
+         AND s.date <= CURRENT_DATE
+         AND s.session_type = 'match'
+         ${clubId ? 'AND m.club_id = $2' : ''}
+       ORDER BY s.date DESC
+       LIMIT 1`, nextSessionParams);
 
     const activeInjuriesSql = `
       SELECT i.id, i.athlete_id, i.injury_type, i.body_part, i.severity, i.started_at, i.expected_return,
@@ -89,6 +101,7 @@ router.get('/home/dashboard', async (req, res) => {
       // 1 linha por dia (dia com 2+ períodos traz `periodos`)
       nextSessions: proximasPorDia(nextSessionsResult.rows, 5),
       nextMatch: nextMatchResult.rows[0] || null,
+      lastMatch: lastMatchResult.rows[0] || null,
       activeInjuries: activeInjuriesResult.rows,
       announcements: announcementsResult.rows,
       summary: {

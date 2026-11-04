@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Plus, Moon, Trophy, Paperclip, ClipboardCheck } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useClub } from '../contexts/ClubContext';
@@ -41,7 +42,9 @@ export function TrainingPage() {
   const [monthlyThemePref] = usePreference('pref_monthly_theme', 'disabled');
   const plan = usePlanFeatures();
   const showMonthlyTheme = monthlyThemePref === 'enabled' && plan.monthly_theme;
-  const tour = useTour('training');
+  // chegou por atalho da Início (abre um jogo): o tutorial não abre por cima
+  const [veioDeAtalho] = useState(() => /[?&]jogo=/.test(window.location.hash + window.location.search));
+  const tour = useTour('training', !veioDeAtalho);
   useTourReplayListener('training', () => tour.setIsOpen(true));
 
   const isMobileDevice = typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches;
@@ -129,7 +132,16 @@ export function TrainingPage() {
     const today = new Date().getDay();
     return today === 0 ? 6 : today - 1;
   });
+  // Atalho da Início: /training?jogo=<id>&data=YYYY-MM-DD&abrir=analise|video abre o jogo direto
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [atalhoJogo, setAtalhoJogo] = useState(() => {
+    const id = searchParams.get('jogo');
+    const data = searchParams.get('data');
+    return id && /^\d{4}-\d{2}-\d{2}$/.test(data || '') ? { id, data, abrir: searchParams.get('abrir') } : null;
+  });
+  const [abrirNoJogo, setAbrirNoJogo] = useState(null);
   const [currentWeek, setCurrentWeek] = useState(() => {
+    if (atalhoJogo) return getWeekInfo(new Date(`${atalhoJogo.data}T12:00:00`));
     // Try to load saved week from localStorage
     const savedWeek = localStorage.getItem('selectedTrainingWeek');
     if (savedWeek) {
@@ -242,6 +254,19 @@ export function TrainingPage() {
       loadMicrocycle(true); // Force reload from server
     }
   }, [selectedClub?.id]);
+
+  // Atalho: quando a semana do jogo carregar, abre o modal do jogo (e a análise pedida)
+  useEffect(() => {
+    if (!atalhoJogo || !microcycle) return;
+    const sessoes = (microcycle.sessions || []).flatMap((s) => [s, ...(s.periodos || [])]);
+    const jogo = sessoes.find((s) => s.id === atalhoJogo.id);
+    setAtalhoJogo(null);
+    setSearchParams({}, { replace: true });
+    if (!jogo) { notify.error('Não encontrei esse jogo na programação.'); return; }
+    setSelectedSession(jogo);
+    setAbrirNoJogo(['analise', 'video'].includes(atalhoJogo.abrir) ? atalhoJogo.abrir : null);
+    setShowGameModal(true);
+  }, [atalhoJogo, microcycle]);
 
   // Save selected week to localStorage whenever it changes
   useEffect(() => {
@@ -1499,8 +1524,9 @@ export function TrainingPage() {
 
       <GameModal
         isOpen={showGameModal}
-        onClose={() => setShowGameModal(false)}
+        onClose={() => { setShowGameModal(false); setAbrirNoJogo(null); }}
         session={selectedSession}
+        abrir={abrirNoJogo}
         onSave={async (data) => {
           // Invalidate cache and reload microcycle
           const invalidateCacheKey = `${selectedClub.id}-${currentWeek.identifier}`;

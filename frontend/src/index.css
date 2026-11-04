@@ -135,3 +135,7 @@ button, input, select, textarea { font-family: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .tp-periodo-in { animation: none; }
 }
+
+/* Início — botões de atalho */
+.home-atalho:focus-visible { outline: 2px solid var(--atalho-cor); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .home-atalho { transform: none !important; transition: none !important; } }

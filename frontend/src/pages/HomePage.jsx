@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Calendar, BarChart3, Users, Waypoints, Target, CreditCard,
-  Trophy, HeartPulse, Megaphone, ChevronRight, AlertTriangle, Info, Check, X, Clock,
-  FileText, Loader2,
+  Calendar, BarChart3, Users, Waypoints, Target,
+  Trophy, ChevronRight, AlertTriangle, Info, Check, X, Clock,
+  FileText, Loader2, Binoculars, Film,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -14,16 +14,8 @@ import { homeService } from '../services/homeService';
 import { downloadReport, safeFileName } from '../services/reportsService';
 import { notify } from '../lib/notify';
 import { useFeatureGuard } from '../components/common/PlanGate';
+import { useCan } from '../hooks/useCan';
 import { rotuloSessaoDoDia, listaPeriodos } from '../lib/periodos';
-
-const QUICK_LINKS = [
-  { key: 'training',       label: 'Programação',   icon: Calendar,   route: '/training',          color: '#2563eb' },
-  { key: 'stats',          label: 'Estatísticas',  icon: BarChart3,  route: '/training-stats',    color: '#f59e0b' },
-  { key: 'plantel',        label: 'Plantel',       icon: Users,      route: '/plantel',           color: '#22c55e' },
-  { key: 'tactical-board', label: 'Quadro Tático', icon: Waypoints,  route: '/tactical-board',    color: '#a855f7' },
-  { key: 'activities',     label: 'Atividades',    icon: Target,     route: '/settings/activities', color: '#06b6d4' },
-  { key: 'billing',        label: 'Assinatura',    icon: CreditCard, route: '/billing',           color: '#ec4899' },
-];
 
 const SEVERITY_STYLE = {
   info:      { color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', icon: Info },
@@ -66,6 +58,7 @@ export function HomePage() {
   const { selectedClub } = useClub();
   const isMobile = useIsMobile();
   const guardFeature = useFeatureGuard();
+  const { can } = useCan();
 
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -147,6 +140,60 @@ export function HomePage() {
   const announcements = dashboard?.announcements || [];
   const summary = dashboard?.summary || { totalAthletes: 0, activeInjuries: 0 };
 
+  const lastMatch = dashboard?.lastMatch || null;
+  // Abre o jogo na Programação (semana certa) e, se pedido, já a análise
+  const abrirJogo = (jogo, abrir) => {
+    const data = String(jogo.date).split('T')[0];
+    navigate(`/training?jogo=${jogo.id}&data=${data}${abrir ? `&abrir=${abrir}` : ''}`);
+  };
+  const descJogo = (jogo) => `${jogo.opponent_name || 'Adversário a definir'} · ${formatDateBR(jogo.date).slice(0, 5)}`;
+  const jogoAnalise = nextMatch || lastMatch;
+  const jogoVideo = lastMatch || nextMatch;
+  const semJogo = 'Nenhum jogo cadastrado';
+
+  const atalhos = [
+    {
+      key: 'jogo', label: 'Próximo jogo', icon: Trophy, color: '#f59e0b',
+      sub: nextMatch ? `${descJogo(nextMatch)} · ${daysFromToday(nextMatch.date)}` : 'Sem jogo agendado',
+      onClick: () => (nextMatch ? abrirJogo(nextMatch) : navigate('/training')),
+    },
+    {
+      key: 'analise', label: 'Análise do adversário', icon: Binoculars, color: '#ef4444',
+      sub: jogoAnalise ? descJogo(jogoAnalise) : semJogo,
+      onClick: () => (jogoAnalise ? abrirJogo(jogoAnalise, 'analise') : navigate('/training')),
+    },
+    {
+      key: 'video', label: 'Análise de vídeo', icon: Film, color: '#8b5cf6',
+      sub: jogoVideo ? descJogo(jogoVideo) : semJogo,
+      onClick: () => (jogoVideo ? abrirJogo(jogoVideo, 'video') : navigate('/training')),
+    },
+    {
+      key: 'programacao', label: 'Programação', icon: Calendar, color: '#2563eb',
+      sub: nextSession ? `${rotuloSessaoDoDia(nextSession)} · ${daysFromToday(nextSession.date)}` : 'Montar a semana',
+      onClick: () => navigate('/training'),
+    },
+    can('athletes:view') && {
+      key: 'plantel', label: 'Plantel', icon: Users, color: '#16a34a',
+      sub: `${summary.totalAthletes === 1 ? '1 atleta' : `${summary.totalAthletes || 0} atletas`}${summary.activeInjuries ? ` · ${summary.activeInjuries} no DM` : ''}`,
+      onClick: () => navigate('/plantel'),
+    },
+    {
+      key: 'stats', label: 'Estatísticas', icon: BarChart3, color: '#0891b2',
+      sub: 'Treinos, jogos e atletas',
+      onClick: () => navigate('/training-stats'),
+    },
+    {
+      key: 'quadro', label: 'Quadro tático', icon: Waypoints, color: '#a855f7',
+      sub: 'Jogadas e vídeos',
+      onClick: () => navigate('/tactical-board'),
+    },
+    {
+      key: 'atividades', label: 'Atividades', icon: Target, color: '#0d9488',
+      sub: 'Banco de exercícios',
+      onClick: () => navigate('/settings/activities'),
+    },
+  ].filter(Boolean);
+
   return (
     <Layout>
       {/* flex:1 — em telas altas (tablet) o conteúdo estica e distribui em vez
@@ -223,13 +270,12 @@ export function HomePage() {
           </div>
         )}
 
-        {/* Resumo numérico — 4 cards de quick stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.6rem' }}>
-          <StatCard icon={<Calendar size={16} />}    color="#3b82f6" label="Próximo treino" value={nextSession ? `${SESSION_TYPE_LABEL[nextSession.session_type] || 'Treino'} · ${daysFromToday(nextSession.date)}` : '—'} sub={nextSession ? `${formatDateBR(nextSession.date)}${nextSession.periodos?.length > 1 ? ` · ${listaPeriodos(nextSession.periodos)}` : ''}` : 'Sem sessões futuras'} colors={colors} />
-          <StatCard icon={<Trophy size={16} />}      color="#f59e0b" label="Próximo jogo"   value={nextMatch ? (nextMatch.opponent_name || 'A definir') : '—'} sub={nextMatch ? `${formatDateBR(nextMatch.date)} · ${daysFromToday(nextMatch.date)}` : 'Sem jogo agendado'} colors={colors} />
-          <StatCard icon={<Users size={16} />}       color="#22c55e" label="Plantel"        value={String(summary.totalAthletes || 0)} sub={`${summary.totalAthletes === 1 ? '1 atleta' : `${summary.totalAthletes} atletas`}`} colors={colors} />
-          <StatCard icon={<HeartPulse size={16} />}  color="#ef4444" label="Lesionados"     value={String(summary.activeInjuries || 0)} sub={summary.activeInjuries === 0 ? 'Plantel pleno' : 'Ativos no DM'} colors={colors} clickable onClick={() => navigate('/plantel')} />
-        </div>
+        {/* Atalhos — cada botão leva direto à função (os de jogo já abrem o jogo certo) */}
+        <nav aria-label="Atalhos" style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: isMobile ? '0.5rem' : '0.65rem' }}>
+          {atalhos.map((a) => (
+            <Atalho key={a.key} {...a} colors={colors} isMobile={isMobile} />
+          ))}
+        </nav>
 
         {/* Conteúdo principal — 2 colunas: próximas sessões | lesionados.
             flex:1 + minHeight:0: absorve a altura extra em telas altas (os
@@ -327,38 +373,6 @@ export function HomePage() {
           </div>
         </div>
 
-        {/* Atalhos rápidos */}
-        <div style={cardStyle}>
-          <div style={sectionTitleStyle}>Atalhos</div>
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)', gap: '0.5rem' }}>
-            {QUICK_LINKS.map((q) => {
-              const Icon = q.icon;
-              return (
-                <button
-                  key={q.key}
-                  onClick={() => navigate(q.route)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '0.6rem',
-                    padding: '0.7rem 0.85rem',
-                    backgroundColor: 'transparent',
-                    border: `1px solid ${colors.border}`,
-                    borderLeft: `3px solid ${q.color}`,
-                    borderRadius: '0.4rem',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    color: colors.text,
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.background}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                >
-                  <Icon size={18} style={{ color: q.color || colors.primary, flexShrink: 0 }} />
-                  <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{q.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {loading && (
           <div style={{ padding: '1rem', textAlign: 'center', color: colors.textSecondary, fontSize: '0.85rem' }}>
             Carregando…
@@ -369,34 +383,42 @@ export function HomePage() {
   );
 }
 
-function StatCard({ icon, color, label, value, sub, colors, clickable, onClick }) {
+function Atalho({ label, sub, icon: Icon, color, onClick, colors, isMobile }) {
+  const [hover, setHover] = useState(false);
   return (
-    <div
-      onClick={clickable ? onClick : undefined}
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      className="home-atalho"
       style={{
-        padding: '0.875rem 1rem',
+        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: isMobile ? '0.55rem' : '0.75rem',
+        minWidth: 0, minHeight: isMobile ? 104 : 124,
+        padding: isMobile ? '0.8rem' : '1rem 1.05rem',
         backgroundColor: colors.surface,
-        border: `1px solid ${colors.border}`,
-        borderRadius: '0.5rem',
-        display: 'flex', flexDirection: 'column', gap: '0.4rem',
-        minHeight: 90,
-        cursor: clickable ? 'pointer' : 'default',
-        transition: 'border-color 0.15s',
+        border: `1px solid ${hover ? color : colors.border}`,
+        borderRadius: '0.75rem',
+        textAlign: 'left',
+        cursor: 'pointer',
+        color: colors.text,
+        transform: hover ? 'translateY(-2px)' : 'none',
+        boxShadow: hover ? `0 6px 16px -6px ${color}55` : 'none',
+        transition: 'transform 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1), border-color 180ms',
+        ['--atalho-cor']: color,
       }}
-      onMouseEnter={(e) => clickable && (e.currentTarget.style.borderColor = color)}
-      onMouseLeave={(e) => clickable && (e.currentTarget.style.borderColor = colors.border)}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-        <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: `${color}1A`, color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {icon}
-        </div>
-        <div style={{ fontSize: '0.65rem', color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>
-          {label}
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+        <span style={{ width: isMobile ? 34 : 40, height: isMobile ? 34 : 40, borderRadius: 10, backgroundColor: `${color}1F`, color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon size={isMobile ? 18 : 21} strokeWidth={2} />
+        </span>
+        <ChevronRight size={16} style={{ color: hover ? color : colors.textSecondary, opacity: hover ? 1 : 0.5, transition: 'color 180ms, opacity 180ms' }} />
       </div>
-      <div style={{ fontSize: '1.05rem', fontWeight: 700, color: colors.text, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</div>
-      {sub && <div style={{ fontSize: '0.72rem', color: colors.textSecondary }}>{sub}</div>}
-    </div>
+      <div style={{ minWidth: 0, width: '100%' }}>
+        <div style={{ fontSize: isMobile ? '0.9rem' : '0.98rem', fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.25 }}>{label}</div>
+        <div style={{ fontSize: '0.76rem', color: colors.textSecondary, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sub}</div>
+      </div>
+    </button>
   );
 }
 
