@@ -50,7 +50,9 @@ public let SECOES_ANALISE: [SecaoAnalise] = [
     SecaoAnalise(chave: "capa", titulo: "Capa", campos: [
         .aviso("Adversário, campeonato, data, horário e local vêm dos dados do jogo."),
         t("Fase", "capa", "fase", dica: "Ex.: Semifinal (volta)"), t("Jogo de ida", "capa", "ida", dica: "Ex.: Estudiantes 0 × 0 Fla"),
-        t("Técnico do adversário", "capa", "tecnico"), t("Observação", "capa", "observacao", dica: "Ex.: Dados públicos até 22/10"),
+        t("Técnico do adversário", "capa", "tecnico"),
+        l("Jogos analisados (um por linha)", "capa", "jogos", dica: "Ex.: Flamengo 2 × 1 Palmeiras (12/10)"),
+        t("Observação", "capa", "observacao", dica: "Ex.: Dados públicos até 22/10"),
     ]),
     SecaoAnalise(chave: "campanha", titulo: "Campanha", campos: [
         t("Situação na competição", "campanha", "situacao", dica: "Ex.: 1º do Grupo A · invicto"),
@@ -106,10 +108,10 @@ public let SECOES_ANALISE: [SecaoAnalise] = [
          CampoAnalise.lista(rotulo: "\(r) · observações", caminho: ["defesa", b, "itens"])]
     } + [fonte("defesa")]),
     SecaoAnalise(chave: "transicoes", titulo: "Transições", campos: [
-        .escolha(rotulo: "Quando perdem a bola", caminho: ["transicoes", "perder", "comportamento"], opcoes: PERDER),
-        l("Quando perdem · observações", "transicoes", "perder", "itens"),
-        .escolha(rotulo: "Quando roubam a bola", caminho: ["transicoes", "recuperar", "comportamento"], opcoes: RECUPERAR),
-        l("Quando roubam · observações", "transicoes", "recuperar", "itens"), fonte("transicoes"),
+        .escolha(rotulo: "Transição defensiva · quando perdem a bola", caminho: ["transicoes", "perder", "comportamento"], opcoes: PERDER),
+        l("Transição defensiva · observações", "transicoes", "perder", "itens"),
+        .escolha(rotulo: "Transição ofensiva · quando roubam a bola", caminho: ["transicoes", "recuperar", "comportamento"], opcoes: RECUPERAR),
+        l("Transição ofensiva · observações", "transicoes", "recuperar", "itens"), fonte("transicoes"),
     ]),
     SecaoAnalise(chave: "bp_ofensiva", titulo: "Bolas paradas ofensivas", campos: [
         .textoLongo(rotulo: "Resumo", caminho: ["bp_ofensiva", "resumo"], dica: "Ex.: 20% dos gols de bola parada…"),
@@ -123,7 +125,9 @@ public let SECOES_ANALISE: [SecaoAnalise] = [
         l("Goleiro", "bp_defensiva", "goleiro"), l("Observações", "bp_defensiva", "itens"), fonte("bp_defensiva"),
     ]),
     SecaoAnalise(chave: "pontos", titulo: "Pontos positivos e a explorar", campos: [
-        l("Pontos positivos (o que fazem bem)", "pontos", "positivos"), l("Pontos a explorar (fragilidades)", "pontos", "explorar"), fonte("pontos"),
+        l("Pontos positivos (o que fazem bem)", "pontos", "positivos"),
+        l("Soluções (como anular os pontos positivos)", "pontos", "solucoes", dica: "Ex.: Fechar o corredor do lateral esquerdo com o ponta"),
+        l("Pontos a explorar (fragilidades)", "pontos", "explorar"), fonte("pontos"),
     ]),
     SecaoAnalise(chave: "final", titulo: "Observações finais", campos: [
         l("Observações finais", "final", "observacoes"),
@@ -262,7 +266,7 @@ public func caminhoDe(_ c: CampoAnalise) -> [String]? {
 
 // MARK: escudo do adversário e vídeos por seção (migration 063)
 
-/// GET /api/games/:id/analise → `midias`. tipo "escudo" | "video"; url relativa ao servidor.
+/// GET /api/games/:id/analise → `midias`. tipo "escudo" | "video" | "link" | "foto"; url relativa ao servidor.
 public struct MidiaAnalise: Codable, Sendable, Equatable, Identifiable {
     public let id: String
     public let tipo: String
@@ -285,13 +289,21 @@ public struct MidiaAnalise: Codable, Sendable, Equatable, Identifiable {
 
 public let MAX_VIDEOS_ANALISE = 12
 public let MAX_LINKS_ANALISE = 20
+/// Fotos por seção (migration 066): o servidor reduz; até 30 por análise.
+public let MAX_FOTOS_ANALISE = 30
 public let MSG_VIDEO_GRANDE = "O vídeo deve ter até 50 MB. Para vídeo grande, cole o link (YouTube, Drive…)."
 public let MAX_BYTES_VIDEO_ANALISE = 50 * 1024 * 1024
 public let MAX_BYTES_ESCUDO = 3 * 1024 * 1024
 
 /// Antes de subir: o que o servidor recusaria. nil = ok.
-public func problemaMidiaAnalise(tipo: String, mime: String, tamanho: Int, videosNaAnalise: Int = 0) -> String? {
+public func problemaMidiaAnalise(tipo: String, mime: String, tamanho: Int, videosNaAnalise: Int = 0, fotosNaAnalise: Int = 0) -> String? {
     let m = mime.lowercased()
+    if tipo == "foto" {
+        if !["image/png", "image/jpeg", "image/webp"].contains(m) { return "A foto precisa ser uma imagem (JPG, PNG ou WEBP)." }
+        if tamanho > MAX_BYTES_VIDEO_ANALISE { return "A foto deve ter até 50 MB." }
+        if fotosNaAnalise >= MAX_FOTOS_ANALISE { return "Limite de \(MAX_FOTOS_ANALISE) fotos por análise." }
+        return nil
+    }
     if tipo == "escudo" {
         if !["image/png", "image/jpeg", "image/webp"].contains(m) { return "O escudo precisa ser uma imagem (JPG, PNG ou WEBP)." }
         if tamanho > MAX_BYTES_ESCUDO { return "O escudo deve ter até 3 MB." }

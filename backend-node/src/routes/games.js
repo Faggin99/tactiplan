@@ -31,6 +31,8 @@ const { uploadAnaliseMidia } = require('../middleware/upload');
 const { removeStoredFile } = require('../utils/sessionFiles');
 const MAX_VIDEOS_ANALISE = 12;
 const MAX_LINKS_ANALISE = 20;
+const MAX_FOTOS_ANALISE = 30;
+const { otimizarFoto, comprimirVideoDepois } = require('../services/analiseMidiaOtimizar');
 
 async function midiasDaAnalise(sessionId) {
   const r = await query(
@@ -86,8 +88,9 @@ router.put('/:sessionId/analise', async (req, res) => {
   }
 });
 
-// POST /api/games/:sessionId/analise/midia (multipart: file, tipo 'escudo'|'video', secao?, titulo?)
-// Escudo: 1 por análise (o novo substitui o anterior). Vídeo: até 12 por análise, numa seção.
+// POST /api/games/:sessionId/analise/midia (multipart: file, tipo 'escudo'|'video'|'foto', secao?, titulo?)
+// Escudo: 1 por análise (o novo substitui o anterior). Vídeo: até 12 por análise, numa seção (comprimido
+// depois da resposta). Foto: até 30, numa seção, com legenda opcional (reduzida na hora).
 router.post('/:sessionId/analise/midia', (req, res) => {
   if (!req.user.can('games:edit')) return res.status(403).json({ error: 'Sem permissão pra editar jogos' });
   uploadAnaliseMidia(req, res, async (err) => {
@@ -101,27 +104,31 @@ router.post('/:sessionId/analise/midia', (req, res) => {
       const jogo = await jogoDoUsuario(req.params.sessionId, req.user.workspaceIds || []);
       if (!jogo) return recusar(404, 'Jogo não encontrado');
       if (!req.user.canWriteWorkspace(jogo.workspace_id)) return recusar(403, 'Sem permissão de escrita');
-      const tipo = req.body.tipo === 'escudo' ? 'escudo' : 'video';
+      const tipo = ['escudo', 'foto'].includes(req.body.tipo) ? req.body.tipo : 'video';
       const ehImagem = req.file.mimetype.startsWith('image/');
       if (tipo === 'escudo' && !ehImagem) return recusar(400, 'O escudo precisa ser uma imagem (JPG, PNG ou WEBP).');
+      if (tipo === 'foto' && !ehImagem) return recusar(400, 'A foto precisa ser uma imagem (JPG, PNG ou WEBP).');
       if (tipo === 'video' && ehImagem) return recusar(400, 'Envie um vídeo (MP4, MOV ou WEBM).');
-      const secao = tipo === 'video' ? String(req.body.secao || '') : null;
-      if (tipo === 'video' && !analise.SECOES.includes(secao)) return recusar(400, 'Seção do vídeo inválida.');
+      const secao = tipo === 'escudo' ? null : String(req.body.secao || '');
+      if (secao !== null && !analise.SECOES.includes(secao)) return recusar(400, 'Seção inválida.');
       const titulo = String(req.body.titulo || '').replace(/\s+/g, ' ').trim().slice(0, 120) || null;
-      const url = `/uploads/analise/${req.file.filename}`;
-      if (tipo === 'video') {
-        const n = await query(`SELECT count(*)::int AS n FROM opponent_analysis_media WHERE session_id = $1 AND tipo = 'video'`, [jogo.id]);
-        if (n.rows[0].n >= MAX_VIDEOS_ANALISE) return recusar(400, `Limite de ${MAX_VIDEOS_ANALISE} vídeos por análise.`);
+      let arquivo = { file_path: `/uploads/analise/${req.file.filename}`, size_bytes: req.file.size, mime_type: req.file.mimetype };
+      if (tipo === 'video' || tipo === 'foto') {
+        const max = tipo === 'video' ? MAX_VIDEOS_ANALISE : MAX_FOTOS_ANALISE;
+        const n = await query('SELECT count(*)::int AS n FROM opponent_analysis_media WHERE session_id = $1 AND tipo = $2', [jogo.id, tipo]);
+        if (n.rows[0].n >= max) return recusar(400, `Limite de ${max} ${tipo === 'video' ? 'vídeos' : 'fotos'} por análise.`);
       } else {
         const antigo = await query(`DELETE FROM opponent_analysis_media WHERE session_id = $1 AND tipo = 'escudo' RETURNING file_path`, [jogo.id]);
         for (const a of antigo.rows) removeStoredFile(a.file_path);
       }
-      await query(
+      if (tipo === 'foto') arquivo = (await otimizarFoto(arquivo.file_path)) || arquivo;
+      const ins = await query(
         `INSERT INTO opponent_analysis_media (session_id, workspace_id, tipo, secao, titulo, file_path, mime_type, size_bytes, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-        [jogo.id, jogo.workspace_id, tipo, secao, titulo, url, req.file.mimetype, req.file.size, req.user.id || null],
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+        [jogo.id, jogo.workspace_id, tipo, secao, titulo, arquivo.file_path, arquivo.mime_type, arquivo.size_bytes, req.user.id || null],
       );
       res.status(201).json({ midias: await midiasDaAnalise(jogo.id) });
+      if (tipo === 'video') comprimirVideoDepois(ins.rows[0].id);
     } catch (e) {
       console.error('Upload midia analise error:', e);
       recusar(500, 'Falha ao enviar o arquivo');

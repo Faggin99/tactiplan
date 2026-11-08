@@ -67,6 +67,8 @@ function normalizar(bruto) {
       ida: texto(capa.ida, LIM.curto),
       tecnico: texto(capa.tecnico, LIM.curto),
       observacao: texto(capa.observacao, LIM.medio),
+      // jogos do adversário assistidos para montar a análise (08/11)
+      jogos: itens(capa.jogos, 8, LIM.curto),
     },
     campanha: {
       situacao: texto(camp.situacao, LIM.medio),
@@ -135,7 +137,8 @@ function normalizar(bruto) {
       goleiro: itens(bpd.goleiro, 4),
       itens: itens(bpd.itens, 6),
     },
-    pontos: { positivos: itens(pts.positivos, 8), explorar: itens(pts.explorar, 8) },
+    // soluções = como anular os pontos positivos do adversário (08/11)
+    pontos: { positivos: itens(pts.positivos, 8), solucoes: itens(pts.solucoes, 8), explorar: itens(pts.explorar, 8) },
     final: { observacoes: itens(fim.observacoes, 8), mensagem: texto(fim.mensagem, LIM.longo) },
     fontes: Object.fromEntries(Object.entries(fontes).filter(([k]) => /^[a-z_]{2,20}$/.test(k))
       .map(([k, v]) => [k, texto(v, LIM.medio)]).filter(([, v]) => v).slice(0, 20)),
@@ -161,7 +164,7 @@ const TEM = {
   transicoes: (t) => !!(t.perder.comportamento || t.perder.itens.length || t.recuperar.comportamento || t.recuperar.itens.length),
   bp_ofensiva: (b) => !!(b.resumo || BP_OFENSIVA.some((k) => b[k].length)),
   bp_defensiva: (b) => !!(b.marcacao || b.homens_area !== null || b.trave || b.barreira || b.contra_ataque || b.goleiro.length || b.itens.length),
-  pontos: (p) => !!(p.positivos.length || p.explorar.length),
+  pontos: (p) => !!(p.positivos.length || p.solucoes.length || p.explorar.length),
   final: (f) => !!(f.observacoes.length || f.mensagem),
 };
 

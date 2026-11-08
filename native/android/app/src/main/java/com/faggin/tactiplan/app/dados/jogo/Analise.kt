@@ -49,7 +49,9 @@ val SECOES_ANALISE: List<SecaoAnalise> = listOf(
     SecaoAnalise("capa", "Capa", listOf(
         CampoAnalise.Aviso("Adversário, campeonato, data, horário e local vêm dos dados do jogo."),
         t("Fase", "capa", "fase", dica = "Ex.: Semifinal (volta)"), t("Jogo de ida", "capa", "ida", dica = "Ex.: Estudiantes 0 × 0 Fla"),
-        t("Técnico do adversário", "capa", "tecnico"), t("Observação", "capa", "observacao", dica = "Ex.: Dados públicos até 22/10"),
+        t("Técnico do adversário", "capa", "tecnico"),
+        l("Jogos analisados (um por linha)", "capa", "jogos", dica = "Ex.: Flamengo 2 × 1 Palmeiras (12/10)"),
+        t("Observação", "capa", "observacao", dica = "Ex.: Dados públicos até 22/10"),
     )),
     SecaoAnalise("campanha", "Campanha", listOf(
         t("Situação na competição", "campanha", "situacao", dica = "Ex.: 1º do Grupo A · invicto"),
@@ -104,10 +106,10 @@ val SECOES_ANALISE: List<SecaoAnalise> = listOf(
         listOf(CampoAnalise.Escolha("$r · frequência", listOf("defesa", b, "frequencia"), FREQ), CampoAnalise.Lista("$r · observações", listOf("defesa", b, "itens")))
     } + fonte("defesa")),
     SecaoAnalise("transicoes", "Transições", listOf(
-        CampoAnalise.Escolha("Quando perdem a bola", listOf("transicoes", "perder", "comportamento"), PERDER),
-        l("Quando perdem · observações", "transicoes", "perder", "itens"),
-        CampoAnalise.Escolha("Quando roubam a bola", listOf("transicoes", "recuperar", "comportamento"), RECUPERAR),
-        l("Quando roubam · observações", "transicoes", "recuperar", "itens"), fonte("transicoes"),
+        CampoAnalise.Escolha("Transição defensiva · quando perdem a bola", listOf("transicoes", "perder", "comportamento"), PERDER),
+        l("Transição defensiva · observações", "transicoes", "perder", "itens"),
+        CampoAnalise.Escolha("Transição ofensiva · quando roubam a bola", listOf("transicoes", "recuperar", "comportamento"), RECUPERAR),
+        l("Transição ofensiva · observações", "transicoes", "recuperar", "itens"), fonte("transicoes"),
     )),
     SecaoAnalise("bp_ofensiva", "Bolas paradas ofensivas", listOf(
         CampoAnalise.TextoLongo("Resumo", listOf("bp_ofensiva", "resumo"), "Ex.: 20% dos gols de bola parada…"),
@@ -121,7 +123,9 @@ val SECOES_ANALISE: List<SecaoAnalise> = listOf(
         l("Goleiro", "bp_defensiva", "goleiro"), l("Observações", "bp_defensiva", "itens"), fonte("bp_defensiva"),
     )),
     SecaoAnalise("pontos", "Pontos positivos e a explorar", listOf(
-        l("Pontos positivos (o que fazem bem)", "pontos", "positivos"), l("Pontos a explorar (fragilidades)", "pontos", "explorar"), fonte("pontos"),
+        l("Pontos positivos (o que fazem bem)", "pontos", "positivos"),
+        l("Soluções (como anular os pontos positivos)", "pontos", "solucoes", dica = "Ex.: Fechar o corredor do lateral esquerdo com o ponta"),
+        l("Pontos a explorar (fragilidades)", "pontos", "explorar"), fonte("pontos"),
     )),
     SecaoAnalise("final", "Observações finais", listOf(
         l("Observações finais", "final", "observacoes"),
@@ -245,13 +249,20 @@ data class MidiaAnalise(val id: String, val tipo: String, val secao: String? = n
 
 const val MAX_VIDEOS_ANALISE = 12
 const val MAX_LINKS_ANALISE = 20
+const val MAX_FOTOS_ANALISE = 30
 const val MAX_BYTES_VIDEO_ANALISE = 50L * 1024 * 1024
 const val MAX_BYTES_ESCUDO = 3L * 1024 * 1024
 private val TIPOS_ESCUDO = setOf("image/png", "image/jpeg", "image/webp")
 private val TIPOS_VIDEO = setOf("video/mp4", "video/quicktime", "video/webm")
 
-/** Antes de subir: o que o servidor recusaria. null = ok. */
-fun problemaMidiaAnalise(tipo: String, mime: String, tamanho: Long, videosNaAnalise: Int = 0): String? = when (tipo) {
+/** Antes de subir: o que o servidor recusaria. null = ok. Foto chega aqui já em JPEG (o app converte). */
+fun problemaMidiaAnalise(tipo: String, mime: String, tamanho: Long, videosNaAnalise: Int = 0, fotosNaAnalise: Int = 0): String? = when (tipo) {
+    "foto" -> when {
+        mime.lowercase() !in TIPOS_ESCUDO -> "A foto precisa ser uma imagem (JPG, PNG ou WEBP)."
+        tamanho > MAX_BYTES_VIDEO_ANALISE -> "A foto deve ter até 50 MB."
+        fotosNaAnalise >= MAX_FOTOS_ANALISE -> "Limite de $MAX_FOTOS_ANALISE fotos por análise."
+        else -> null
+    }
     "escudo" -> when {
         mime.lowercase() !in TIPOS_ESCUDO -> "O escudo precisa ser uma imagem (JPG, PNG ou WEBP)."
         tamanho > MAX_BYTES_ESCUDO -> "O escudo deve ter até 3 MB."
@@ -273,6 +284,13 @@ fun problemaLinkVideo(url: String, linksNaAnalise: Int = 0): String? {
     if (!Regex("^https?://[^\\s/]+\\.[^\\s]+$", RegexOption.IGNORE_CASE).matches(u) || u.length > 500) return "Link inválido. Cole o endereço completo (https://…)."
     if (linksNaAnalise >= MAX_LINKS_ANALISE) return "Limite de $MAX_LINKS_ANALISE links por análise."
     return null
+}
+
+/** Mensagem depois de subir a mídia. */
+fun avisoMidiaEnviada(tipo: String): String = when (tipo) {
+    "escudo" -> "Escudo salvo."
+    "foto" -> "Foto adicionada."
+    else -> "Vídeo adicionado. Ele fica mais leve em alguns minutos, para o PowerPoint caber no WhatsApp."
 }
 
 /** Título do vídeo a partir do nome do arquivo ("saida-curta.mp4" → "saida-curta"). */

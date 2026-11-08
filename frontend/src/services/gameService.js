@@ -56,6 +56,10 @@ export const gameService = {
       match_round: data.match_round ?? null,
       match_location: data.match_location ?? null,
       video_full_url: data.video_full_url ?? null,
+      // Horário / Local / Apresentação: só vão quando o formulário manda (o servidor só mexe com a chave presente)
+      ...('match_kickoff' in data ? { match_kickoff: data.match_kickoff ?? null } : {}),
+      ...('match_venue' in data ? { match_venue: data.match_venue ?? null } : {}),
+      ...('match_meet_time' in data ? { match_meet_time: data.match_meet_time ?? null } : {}),
       // formulário novo de substituição: o servidor pode recusar substituição inválida (400)
       ...(data.subs_check ? { subs_check: true } : {}),
     });

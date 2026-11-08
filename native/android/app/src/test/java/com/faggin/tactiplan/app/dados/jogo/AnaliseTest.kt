@@ -54,6 +54,11 @@ class AnaliseTest {
         assertTrue(problemaMidiaAnalise("video", "video/mp4", MAX_BYTES_VIDEO_ANALISE + 1)!!.contains("50 MB"))
         assertTrue(problemaMidiaAnalise("video", "video/mp4", 1, videosNaAnalise = 12)!!.contains("Limite"))
         assertEquals("saida-curta", tituloDoVideo("saida-curta.mp4"))
+        // fotos da seção (08/11): imagem, até 30 por análise
+        assertEquals(null, problemaMidiaAnalise("foto", "image/jpeg", 2_000_000))
+        assertTrue(problemaMidiaAnalise("foto", "video/mp4", 2_000)!!.contains("imagem"))
+        assertTrue(problemaMidiaAnalise("foto", "image/jpeg", 1, fotosNaAnalise = 30)!!.contains("Limite"))
+        assertEquals("Foto adicionada.", avisoMidiaEnviada("foto"))
         assertTrue(problemaMidiaAnalise("video", "video/mp4", MAX_BYTES_VIDEO_ANALISE + 1)!!.contains("link"))
         assertEquals(null, problemaLinkVideo(" https://youtu.be/abc "))
         assertEquals(null, problemaLinkVideo("https://drive.google.com/file/d/1/view"))

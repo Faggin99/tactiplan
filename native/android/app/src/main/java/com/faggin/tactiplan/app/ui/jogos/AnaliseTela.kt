@@ -49,6 +49,13 @@ import com.faggin.tactiplan.app.dados.jogo.MidiaAnalise
 import com.faggin.tactiplan.app.dados.jogo.problemaLinkVideo
 import com.faggin.tactiplan.app.dados.jogo.problemaMidiaAnalise
 import com.faggin.tactiplan.app.dados.jogo.tituloDoVideo
+import com.faggin.tactiplan.app.dados.jogo.avisoMidiaEnviada
+import com.faggin.tactiplan.app.ui.comum.imagemRemota
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.layout.ContentScale
 import com.faggin.tactiplan.app.dados.treino.ArquivoUpload
 import com.faggin.tactiplan.app.dados.urlDoServidor
 import com.faggin.tactiplan.app.ui.comum.LogoClube
@@ -118,20 +125,27 @@ fun AnaliseTela(amb: AmbienteClube, api: ApiJogo, sessaoId: String, adversario: 
         try { midias = amb.treino?.api?.midiasDaAnalise(sessaoId).orEmpty() } catch (_: Exception) { }
     }
 
-    // Escudo (capa) e vídeos da seção (só no PowerPoint): sobem na hora, sem esperar o Salvar
-    fun enviarMidia(uri: Uri, tipo: String, secaoDoVideo: String?) {
+    // Escudo (capa), fotos e vídeos da seção: sobem na hora, sem esperar o Salvar.
+    // Foto vai sempre em JPEG (HEIC do celular o servidor não lê); o servidor reduz.
+    fun enviarMidia(uri: Uri, tipo: String, secaoDoVideo: String?, legenda: String? = null, pronto: () -> Unit = {}) {
         val apiT = amb.treino?.api ?: return
         escopo.launch {
             val r = context.contentResolver
-            val mime = (r.getType(uri) ?: "").lowercase()
-            val (nome0, tamanho) = withContext(Dispatchers.IO) { nomeETamanho(r, uri) }
-            val nome = nome0 ?: if (tipo == "escudo") "escudo" else "video"
-            problemaMidiaAnalise(tipo, mime, tamanho, midias.count { it.tipo == "video" })?.let { aviso = it; return@launch }
+            var mime = (r.getType(uri) ?: "").lowercase()
+            var (nome0, tamanho) = withContext(Dispatchers.IO) { nomeETamanho(r, uri) }
+            var abrir: () -> java.io.InputStream = { r.openInputStream(uri) ?: throw java.io.IOException("sem arquivo") }
+            if (tipo == "foto" && mime !in setOf("image/jpeg", "image/png", "image/webp")) {
+                val jpeg = withContext(Dispatchers.IO) { fotoEmJpeg(r, uri) } ?: run { aviso = "Não consegui ler essa foto. Tente outra."; return@launch }
+                mime = "image/jpeg"; tamanho = jpeg.size.toLong(); nome0 = (nome0 ?: "foto").replace(Regex("""\.[A-Za-z0-9]+$"""), "") + ".jpg"
+                abrir = { java.io.ByteArrayInputStream(jpeg) }
+            }
+            val nome = nome0 ?: when (tipo) { "escudo" -> "escudo"; "foto" -> "foto.jpg"; else -> "video" }
+            problemaMidiaAnalise(tipo, mime, tamanho, midias.count { it.tipo == "video" }, midias.count { it.tipo == "foto" })?.let { aviso = it; return@launch }
             enviando = 0.0
             try {
-                midias = apiT.enviarMidiaAnalise(sessaoId, tipo, secaoDoVideo, if (tipo == "video") tituloDoVideo(nome) else null,
-                    ArquivoUpload(nome, mime, tamanho) { r.openInputStream(uri) ?: throw java.io.IOException("sem arquivo") }) { p -> enviando = p }
-                aviso = if (tipo == "escudo") "Escudo salvo." else "Vídeo adicionado."
+                val titulo = when (tipo) { "video" -> tituloDoVideo(nome); "foto" -> legenda?.trim()?.ifBlank { null }?.take(120); else -> null }
+                midias = apiT.enviarMidiaAnalise(sessaoId, tipo, secaoDoVideo, titulo, ArquivoUpload(nome, mime, tamanho, abrir)) { p -> enviando = p }
+                aviso = avisoMidiaEnviada(tipo); pronto()
             } catch (e: Exception) {
                 if (!amb.tratarErro(e)) aviso = mensagemErroJogo(e)
             } finally { enviando = null }
@@ -155,6 +169,10 @@ fun AnaliseTela(amb: AmbienteClube, api: ApiJogo, sessaoId: String, adversario: 
     }
     val escolherEscudo = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> if (uri != null) enviarMidia(uri, "escudo", null) }
     val escolherVideo = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> if (uri != null) enviarMidia(uri, "video", secaoVideo) }
+    var legendaFoto by remember { mutableStateOf("") }
+    val escolherFoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) enviarMidia(uri, "foto", secaoVideo, legendaFoto) { legendaFoto = "" }
+    }
 
     fun mudar(novo: JsonElement) { dados = novo; sujo = true }
     suspend fun salvar(): Boolean {
@@ -236,6 +254,10 @@ fun AnaliseTela(amb: AmbienteClube, api: ApiJogo, sessaoId: String, adversario: 
             if (atual == "capa") EscudoDaAnalise(midias.firstOrNull { it.tipo == "escudo" }, amb.apiBase, adversario, editavel, enviando,
                 escolher = { escolherEscudo.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, remover = ::removerMidia)
             s.campos.forEach { campo -> CampoDaAnalise(campo, d, emptyList(), editavel, ::mudar) }
+            if (atual != "capa") FotosDaSecao(midias.filter { it.tipo == "foto" && it.secao == atual }, amb.apiBase, editavel, enviando,
+                legendaFoto, { legendaFoto = it.take(120) },
+                escolher = { secaoVideo = atual; escolherFoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                remover = ::removerMidia)
             if (atual != "capa") VideosDaSecao(midias.filter { (it.tipo == "video" || it.tipo == "link") && it.secao == atual }, amb.apiBase, editavel, enviando,
                 escolher = { secaoVideo = atual; escolherVideo.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)) },
                 adicionarLink = { url, titulo, pronto -> adicionarLink(atual, url, titulo, pronto) },
@@ -262,6 +284,48 @@ private fun EscudoDaAnalise(
                 if (escudo != null) TextButton(onClick = { remover(escudo) }, enabled = enviando == null) { Text("Remover", color = c.tinta2) }
             }
         }
+    }
+}
+
+/** Foto da galeria em JPEG (lado maior até 2400 px) — para HEIC/HEIF e outros formatos que o servidor não lê. */
+private fun fotoEmJpeg(r: android.content.ContentResolver, uri: Uri): ByteArray? = try {
+    val limites = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    r.openInputStream(uri)?.use { android.graphics.BitmapFactory.decodeStream(it, null, limites) }
+    var amostra = 1
+    while (maxOf(limites.outWidth, limites.outHeight) / (amostra * 2) >= 2400) amostra *= 2
+    val bmp = r.openInputStream(uri)?.use { android.graphics.BitmapFactory.decodeStream(it, null, android.graphics.BitmapFactory.Options().apply { inSampleSize = amostra }) }
+    bmp?.let { java.io.ByteArrayOutputStream().also { out -> it.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, out) }.toByteArray() }
+} catch (_: Exception) { null }
+
+/** Fotos da seção (PDF e PowerPoint, 2 por slide). A legenda diz a situação ("Bloco alto", "Construção"). */
+@Composable
+private fun FotosDaSecao(
+    lista: List<MidiaAnalise>, base: String, editavel: Boolean, enviando: Double?,
+    legenda: String, mudarLegenda: (String) -> Unit, escolher: () -> Unit, remover: (MidiaAnalise) -> Unit,
+) {
+    val c = TactiPlan.cores
+    if (!editavel && lista.isEmpty()) return
+    RotuloSecao("Fotos desta seção")
+    Text("Aparecem no PDF e no PowerPoint. Use a legenda para dizer a situação (ex.: Bloco alto, Construção, Escanteio).",
+        style = TactiPlan.tipos.corpo13, color = c.tinta2)
+    lista.chunked(2).forEach { par ->
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            par.forEach { m ->
+                Column(Modifier.weight(1f).testTag("analise:foto:${m.id}")) {
+                    Box(Modifier.fillMaxWidth().aspectRatio(4f / 3f).clip(RoundedCornerShape(8.dp)).background(c.borda)) {
+                        imagemRemota(urlDoServidor(m.url, base))?.let { Image(it, m.titulo, Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
+                    }
+                    Text(m.titulo ?: "Sem legenda", style = TactiPlan.tipos.corpo13, color = c.tinta, maxLines = 1, modifier = Modifier.padding(top = 4.dp))
+                    if (editavel) TextButton(onClick = { remover(m) }) { Text("Remover", color = c.tinta2) }
+                }
+            }
+            if (par.size == 1) Box(Modifier.weight(1f))
+        }
+    }
+    if (editavel) {
+        Campo(legenda, mudarLegenda, "Legenda (ex.: Bloco alto)", Modifier.fillMaxWidth().testTag("analise:foto:legenda"))
+        Botao(if (enviando != null) "Enviando… ${(enviando * 100).toInt()}%" else "Enviar foto", escolher,
+            Modifier.fillMaxWidth().testTag("analise:foto:adicionar"), VarianteBotao.SECUNDARIO, enviando == null)
     }
 }
 

@@ -34,20 +34,27 @@ final class AnaliseModelo: ObservableObject {
         if let treino { midias = (try? await treino.midiasDaAnalise(sessaoId)) ?? [] }
     }
 
-    /// Escudo (tipo "escudo") ou vídeo da seção (tipo "video").
-    func enviar(_ arquivo: ArquivoUpload, tipo: String, secao: String?) async {
-        guard let treino else { return }
+    /// Escudo (tipo "escudo"), vídeo da seção (tipo "video") ou foto da seção (tipo "foto", com legenda).
+    @discardableResult
+    func enviar(_ arquivo: ArquivoUpload, tipo: String, secao: String?, legenda: String? = nil) async -> Bool {
+        guard let treino else { return false }
         if let p = problemaMidiaAnalise(tipo: tipo, mime: arquivo.tipo, tamanho: arquivo.dados.count,
-                                        videosNaAnalise: midias.filter { $0.tipo == "video" }.count) { aviso = p; return }
+                                        videosNaAnalise: midias.filter { $0.tipo == "video" }.count,
+                                        fotosNaAnalise: midias.filter { $0.tipo == "foto" }.count) { aviso = p; return false }
         enviando = 0
         defer { enviando = nil }
         do {
-            midias = try await treino.enviarMidiaAnalise(sessaoId, tipo: tipo, secao: secao,
-                                                         titulo: tipo == "video" ? tituloDoVideo(arquivo.nome) : nil,
+            let titulo: String? = tipo == "video" ? tituloDoVideo(arquivo.nome)
+                : tipo == "foto" ? legenda.flatMap { l in
+                    let t = l.trimmingCharacters(in: .whitespacesAndNewlines); return t.isEmpty ? nil : String(t.prefix(120)) } : nil
+            midias = try await treino.enviarMidiaAnalise(sessaoId, tipo: tipo, secao: secao, titulo: titulo,
                                                          arquivo: arquivo) { [modelo = self] p in Task { @MainActor in modelo.enviando = p } }
-            aviso = tipo == "escudo" ? "Escudo salvo." : "Vídeo adicionado."
+            aviso = tipo == "escudo" ? "Escudo salvo." : tipo == "foto" ? "Foto adicionada."
+                : "Vídeo adicionado. Ele fica mais leve em alguns minutos, para o PowerPoint caber no WhatsApp."
+            return true
         } catch {
             if !aoSessaoAcabar(error) { aviso = mensagemDeErro(error) }
+            return false
         }
     }
 
@@ -213,7 +220,10 @@ struct SecaoAnaliseTela: View {
                 ForEach(Array(secao.campos.enumerated()), id: \.offset) { _, campo in
                     campoView(campo, base: [])
                 }
-                if secao.chave != "capa" { VideosDaSecao(secao: secao.chave, modelo: modelo, podeEditar: podeEditar) }
+                if secao.chave != "capa" {
+                    FotosDaSecao(secao: secao.chave, modelo: modelo, podeEditar: podeEditar)
+                    VideosDaSecao(secao: secao.chave, modelo: modelo, podeEditar: podeEditar)
+                }
             }
             .padding(16)
         }
@@ -436,6 +446,98 @@ func escudoPng(_ dados: Data) -> Data? {
     formato.scale = 1
     formato.opaque = false
     return UIGraphicsImageRenderer(size: tam, format: formato).image { _ in img.draw(in: CGRect(origin: .zero, size: tam)) }.pngData()
+}
+
+/// Fotos da seção (prints, lances, desenhos): a legenda diz a situação ("Bloco alto", "Construção").
+/// Saem no PDF e no PowerPoint, 2 por slide. Sobe sempre JPEG (HEIC do iPhone o servidor não lê).
+struct FotosDaSecao: View {
+    let secao: String
+    @ObservedObject var modelo: AnaliseModelo
+    let podeEditar: Bool
+    @EnvironmentObject private var app: AppEstado
+    @Environment(\.tema) private var tema
+    @State private var item: PhotosPickerItem?
+    @State private var legenda = ""
+
+    var body: some View {
+        let c = tema.cores
+        let lista = modelo.midias.filter { $0.tipo == "foto" && $0.secao == secao }
+        if podeEditar || !lista.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                RotuloSecao("Fotos desta seção").padding(.horizontal, 4)
+                Text("Aparecem no PDF e no PowerPoint. Use a legenda para dizer a situação (ex.: Bloco alto, Construção, Escanteio).")
+                    .tipo(Tipos.corpo13).foregroundColor(c.tinta2.color)
+                if !lista.isEmpty {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 8)], spacing: 8) {
+                        ForEach(lista) { m in miniatura(m, c: c) }
+                    }
+                }
+                if podeEditar {
+                    Campo(dica: "Legenda (ex.: Bloco alto)", valor: $legenda)
+                    PhotosPicker(selection: $item, matching: .images) {
+                        Text(modelo.enviando != nil ? "Enviando… \(Int((modelo.enviando ?? 0) * 100))%" : "Enviar foto")
+                            .font(Tipos.corpo15.comPeso(.seminegrito).font)
+                            .frame(maxWidth: .infinity, minHeight: 48)
+                            .background(RoundedRectangle(cornerRadius: CGFloat(Tokens.raioCampo), style: .continuous).stroke(c.borda.color))
+                    }
+                    .disabled(modelo.enviando != nil)
+                }
+            }
+            .onChange(of: item) { novo in
+                guard let novo else { return }
+                item = nil
+                Task {
+                    guard let d = try? await novo.loadTransferable(type: Data.self), let jpg = fotoJpeg(d) else {
+                        modelo.aviso = "Não foi possível ler a imagem."; return
+                    }
+                    let nome = "foto-\(Int(Date().timeIntervalSince1970)).jpg"
+                    if await modelo.enviar(ArquivoUpload(nome: nome, tipo: "image/jpeg", dados: jpg), tipo: "foto", secao: secao, legenda: legenda) {
+                        legenda = ""
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func miniatura(_ m: MidiaAnalise, c: Cores) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ZStack(alignment: .topTrailing) {
+                Group {
+                    if let s = urlDoServidor(m.url, base: app.base), let u = URL(string: s) {
+                        AsyncImage(url: u) { f in
+                            if let i = f.image { i.resizable().scaledToFill() } else { c.skeleton.color }
+                        }
+                    } else { c.skeleton.color }
+                }
+                .frame(height: 100)
+                .frame(maxWidth: .infinity)
+                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                if podeEditar {
+                    Button { Task { await modelo.remover(m) } } label: {
+                        Image(systemName: "xmark").font(.system(size: 12, weight: .bold)).foregroundColor(.white)
+                            .frame(width: 28, height: 28).background(Circle().fill(Color.black.opacity(0.6)))
+                    }
+                    .padding(4)
+                    .accessibilityLabel("Remover foto")
+                }
+            }
+            Text(m.titulo ?? "Sem legenda").tipo(Tipos.corpo13).foregroundColor(c.tinta.color).lineLimit(1)
+        }
+    }
+}
+
+/// Imagem (inclusive HEIC) → JPEG de até 1920 px.
+func fotoJpeg(_ dados: Data) -> Data? {
+    guard let img = UIImage(data: dados) else { return nil }
+    let lado = max(img.size.width, img.size.height)
+    let escala = lado > 1920 ? 1920 / lado : 1
+    let tam = CGSize(width: (img.size.width * escala).rounded(), height: (img.size.height * escala).rounded())
+    let formato = UIGraphicsImageRendererFormat.default()
+    formato.scale = 1
+    return UIGraphicsImageRenderer(size: tam, format: formato).image { _ in img.draw(in: CGRect(origin: .zero, size: tam)) }
+        .jpegData(compressionQuality: 0.85)
 }
 
 /// Vídeos da seção: arquivo (até 50 MB) só no PowerPoint; vídeo grande vai por link, clicável no PDF e no PowerPoint.

@@ -4,7 +4,7 @@
 // adversário e vídeos por seção (migration 063): os vídeos entram só no PowerPoint. Listas de tópicos: uma linha
 // por item (o servidor tira as linhas vazias ao salvar — backend-node/src/services/analiseAdversario.js).
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { Plus, Trash2, FileDown, Presentation, Upload, Video } from 'lucide-react';
+import { Plus, Trash2, FileDown, Presentation, Upload, Video, ImagePlus, X } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -166,6 +166,49 @@ function Escudo() {
   );
 }
 
+// Fotos da seção (prints, lances, desenhos): legenda opcional diz a situação ("Bloco alto", "Construção").
+// Saem no PDF e no PowerPoint, 2 por slide, logo depois da seção.
+function FotosDaSecao({ secao }) {
+  const { midias, enviar, remover, enviando, podeEditar, colors, cartao } = { ...useContext(Ctx), ...useCampo() };
+  const [titulo, setTitulo] = useState('');
+  const lista = midias.filter((m) => m.tipo === 'foto' && m.secao === secao);
+  if (!podeEditar && !lista.length) return null;
+  return (
+    <div style={{ ...cartao, gap: '0.5rem' }}>
+      <b style={{ fontSize: '0.85rem', color: colors.text, display: 'flex', alignItems: 'center', gap: '0.4rem' }}><ImagePlus size={15} />Fotos desta seção</b>
+      <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>
+        Aparecem no PDF e no PowerPoint. Use a legenda para dizer a situação (ex.: Bloco alto, Construção, Escanteio).
+      </span>
+      {lista.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '0.5rem' }}>
+          {lista.map((m) => (
+            <figure key={m.id} style={{ margin: 0, position: 'relative', border: `1px solid ${colors.border}`, borderRadius: '0.4rem', overflow: 'hidden', background: colors.background }}>
+              <a href={m.url} target="_blank" rel="noreferrer"><img src={m.url} alt={m.titulo || 'Foto'} style={{ display: 'block', width: '100%', aspectRatio: '4 / 3', objectFit: 'cover' }} /></a>
+              <figcaption style={{ fontSize: '0.72rem', color: colors.text, padding: '0.25rem 0.4rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.titulo || 'Sem legenda'}</figcaption>
+              {podeEditar && (
+                <button type="button" onClick={() => remover(m)} aria-label="Remover foto"
+                  style={{ position: 'absolute', top: 4, right: 4, width: 24, height: 24, display: 'grid', placeItems: 'center', borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.6)', color: '#fff', cursor: 'pointer' }}>
+                  <X size={14} />
+                </button>
+              )}
+            </figure>
+          ))}
+        </div>
+      )}
+      {podeEditar && (
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <input value={titulo} onChange={(e) => setTitulo(e.target.value)} maxLength={120} placeholder="Legenda (ex.: Bloco alto)"
+            style={{ flex: 1, minWidth: 180, padding: '0.45rem 0.6rem', borderRadius: '0.4rem', border: `1px solid ${colors.border}`, background: colors.background, color: colors.text, fontSize: '0.85rem' }} />
+          <BotaoArquivo aceita="image/png,image/jpeg,image/webp" disabled={enviando}
+            onArquivo={async (f) => { if (await enviar(f, { tipo: 'foto', secao, titulo })) setTitulo(''); }}>
+            <Upload size={14} />{enviando ? 'Enviando…' : 'Enviar foto'}
+          </BotaoArquivo>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Vídeos da seção: arquivo (até 50 MB) entra no PowerPoint num slide logo depois da seção (o PDF só avisa);
 // vídeo grande vai por LINK, que sai clicável no PDF e no PowerPoint (página "Vídeos (links)" no fim).
 function VideosDaSecao({ secao }) {
@@ -265,7 +308,7 @@ export function OpponentAnalysisModal({ isOpen, onClose, session, opponentName, 
     try {
       const r = await gameService.uploadAnaliseMidia(session.id, file, opcoes);
       setMidias(r.midias || []);
-      notify.success(opcoes.tipo === 'escudo' ? 'Escudo salvo.' : 'Vídeo adicionado.');
+      notify.success(opcoes.tipo === 'escudo' ? 'Escudo salvo.' : opcoes.tipo === 'foto' ? 'Foto adicionada.' : 'Vídeo adicionado. Ele fica mais leve em alguns minutos, para o PowerPoint caber no WhatsApp.');
       return true;
     } catch (e) {
       notify.error(e.message || 'Não foi possível enviar o arquivo.');
@@ -308,6 +351,7 @@ export function OpponentAnalysisModal({ isOpen, onClose, session, opponentName, 
         <Escudo />
         <div style={grade(2)}><Texto label="Fase" path={['capa', 'fase']} ph="Ex.: Semifinal (volta)" /><Texto label="Jogo de ida" path={['capa', 'ida']} ph="Ex.: Estudiantes 0 × 0 Fla" /></div>
         <Texto label="Técnico do adversário" path={['capa', 'tecnico']} />
+        <Lista label="Jogos analisados (um por linha)" path={['capa', 'jogos']} linhas={3} ph="Ex.: Flamengo 2 × 1 Palmeiras (12/10)" />
         <Texto label="Observação" path={['capa', 'observacao']} ph="Ex.: Dados públicos até 22/10" />
       </>);
       case 'campanha': return (<>
@@ -395,10 +439,10 @@ export function OpponentAnalysisModal({ isOpen, onClose, session, opponentName, 
         <Fonte k="ataque" />
       </>);
       case 'transicoes': return (<>
-        <div style={cartao}><b style={{ fontSize: '0.85rem', color: colors.text }}>Quando perdem a bola</b>
+        <div style={cartao}><b style={{ fontSize: '0.85rem', color: colors.text }}>Transição defensiva · quando perdem a bola</b>
           <Escolha label="Comportamento predominante" path={['transicoes', 'perder', 'comportamento']} opcoes={PERDER} />
           <Lista label="Observações" path={['transicoes', 'perder', 'itens']} linhas={2} /></div>
-        <div style={cartao}><b style={{ fontSize: '0.85rem', color: colors.text }}>Quando roubam a bola</b>
+        <div style={cartao}><b style={{ fontSize: '0.85rem', color: colors.text }}>Transição ofensiva · quando roubam a bola</b>
           <Escolha label="Comportamento predominante" path={['transicoes', 'recuperar', 'comportamento']} opcoes={RECUPERAR} />
           <Lista label="Observações" path={['transicoes', 'recuperar', 'itens']} linhas={2} /></div>
         <Fonte k="transicoes" />
@@ -429,6 +473,7 @@ export function OpponentAnalysisModal({ isOpen, onClose, session, opponentName, 
       </>);
       case 'pontos': return (<>
         <Lista label="Pontos positivos (o que fazem bem)" path={['pontos', 'positivos']} linhas={5} />
+        <Lista label="Soluções (como anular os pontos positivos)" path={['pontos', 'solucoes']} linhas={5} ph="Ex.: Fechar o corredor do lateral esquerdo com o ponta" />
         <Lista label="Pontos a explorar (fragilidades)" path={['pontos', 'explorar']} linhas={5} />
         <Fonte k="pontos" />
       </>);
@@ -480,6 +525,7 @@ export function OpponentAnalysisModal({ isOpen, onClose, session, opponentName, 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', minWidth: 0 }}>
           <h3 style={{ margin: 0, fontSize: '1.05rem', color: colors.text }}>{SECOES.find(([k]) => k === secao)?.[1]}</h3>
           {formulario()}
+          {dados && secao !== 'capa' && <FotosDaSecao key={`f-${secao}`} secao={secao} />}
           {dados && secao !== 'capa' && <VideosDaSecao key={secao} secao={secao} />}
         </div>
       </div>

@@ -221,6 +221,17 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
 - Fix 27/10: escolher o horário (Manhã/Tarde) num dia ainda não criado dava 404 (`/sessions/null/periodo`);
   agora cria a semana antes e o horário vale no Salvar do modal de tipo.
 
+## Análise do adversário — ajustes de 08/11/2026 (lista do treinador)
+- Migration 066: `opponent_analysis_media.tipo` aceita `'foto'` (por seção, legenda em `titulo`, até 30). A foto é reduzida
+  no envio (1920 px, JPEG 82, via `resizeInWorker`); sai no PDF E no PowerPoint (`slideFotos`, 2 por slide, depois da seção).
+  Apps convertem para JPEG antes (HEIC).
+- Vídeo da análise é COMPRIMIDO depois do upload (`src/services/analiseMidiaOtimizar.js`: fila, ffmpeg nice, ≤1280 px,
+  CRF 28, AAC 96k; só troca se ficar menor) — PowerPoint de 100+ MB não ia por WhatsApp. Os 3 vídeos antigos (jogo
+  d5e73b43) foram comprimidos; originais em /root/arquivados/tactiplan-videos-analise-originais-20261108.
+- `normalizar`: `capa.jogos` (jogos analisados, lista na capa) e `pontos.solucoes` (como anular os pontos positivos; coluna
+  amarela no slide). Transições = "Transição defensiva · ao perder" / "Transição ofensiva · ao roubar".
+- Fix: Horário/Local/Apresentação do jogo NUNCA gravavam pelo web (`gameService.saveAllMatchData` não repassava as chaves).
+
 ## Análise do jogo em VÍDEO — Fase 1 (03/11/2026, estudo SCT360)
 - Migration 065: `video_tags` (tags do CLUBE; sem linhas = `TAGS_PADRAO` do código), `match_video_clips` (lance: tag
   nome/cor, equipe nosso|adversario, athlete_id OU adv_numero/adv_nome, inicio_ms/fim_ms, observacao, lancado) e

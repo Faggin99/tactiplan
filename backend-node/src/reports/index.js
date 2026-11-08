@@ -476,6 +476,15 @@ async function prepararAnalise(body, user, assets) {
     const img = await loadLogo(escudo.file_path);
     if (img) { assets.set('img/escudo-adv', img); imagens.adversario = 'img/escudo-adv'; }
   }
+  // fotos das seções (já reduzidas no envio)
+  const fotos = [];
+  for (const x of m.rows.filter((r) => r.tipo === 'foto')) {
+    const img = await loadLogo(x.file_path);
+    if (!img) continue;
+    assets.set(`img/foto-${x.id}`, img);
+    imagens[`foto:${x.id}`] = `img/foto-${x.id}`;
+    fotos.push({ id: x.id, secao: x.secao, titulo: x.titulo });
+  }
   const videos = m.rows.filter((x) => x.tipo === 'video' && resolveUploadPath(x.file_path))
     .map((x) => ({ id: x.id, secao: x.secao, titulo: x.titulo, path: resolveUploadPath(x.file_path) }));
   const links = m.rows.filter((x) => x.tipo === 'link').map((x) => ({ secao: x.secao, titulo: x.titulo, url: x.file_path }));
@@ -490,6 +499,7 @@ async function prepararAnalise(body, user, assets) {
     fontes: a.fontes,
     imagens,
     videos,
+    fotos,
     links,
   };
   const [y, mm, d] = date.split('-');

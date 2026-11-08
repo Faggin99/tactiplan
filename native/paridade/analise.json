@@ -4,7 +4,8 @@
    "fase": "",
    "ida": "",
    "tecnico": "",
-   "observacao": ""
+   "observacao": "",
+   "jogos": []
   },
   "campanha": {
    "situacao": "",
@@ -103,6 +104,7 @@
   },
   "pontos": {
    "positivos": [],
+   "solucoes": [],
    "explorar": []
   },
   "final": {
@@ -116,7 +118,8 @@
    "fase": "Semifinal (volta)",
    "ida": "Estudiantes 0 × 0 Fla",
    "tecnico": "Leonardo Jardim",
-   "observacao": "Dados públicos até 22/10/2026"
+   "observacao": "Dados públicos até 22/10/2026",
+   "jogos": []
   },
   "campanha": {
    "situacao": "Semifinal · 1º do Grupo A (16 pts) · invicto em 11 jogos",
@@ -440,6 +443,7 @@
     "Defesa sólida: 5 gols sofridos em 11 jogos",
     "Contra-ataque rápido com pontas velozes"
    ],
+   "solucoes": [],
    "explorar": [
     "Sem Arrascaeta, perde o principal criador",
     "Erra na saída sob pressão (gol do Del Valle)",

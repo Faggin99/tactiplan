@@ -158,6 +158,8 @@ function capa(vm) {
     els.push(text(c.x + 0.25, 12.1, c.w - 0.5, 0.75, f.l.toUpperCase(), 10, { bold: true, color: C.escuro, valign: 'middle' }));
     els.push(text(c.x + 0.25, 12.95, c.w - 0.5, 1.6, f.v, 14, { color: C.branco, valign: 'top' }));
   });
+  const jogos = vm.a.capa.jogos || [];
+  if (jogos.length) els.push(text(2.0, 14.9, 20.3, 1.0, `Jogos analisados: ${jogos.join(' · ')}`, 12, { color: C.branco, valign: 'middle' }));
   if (vm.capaRodape) els.push(text(2.0, 16.0, 20.3, 0.9, vm.capaRodape, 12, { color: C.verdeClaro, valign: 'middle' }));
   // à direita: o escudo do adversário grande e o nosso menor ("Clube × Adversário")
   els.push(box(24.4, 2.0, 7.9, 15.0, null, { line: C.verdeClaro, raio: 0.3 }));
@@ -386,7 +388,7 @@ const OPC = {
 };
 function transicoes(vm, n) {
   const t = vm.a.transicoes;
-  const lados = [['perder', 'Quando perdem a bola', C.vermelho], ['recuperar', 'Quando roubam a bola', C.verde]]
+  const lados = [['perder', 'Transição defensiva · ao perder a bola', C.vermelho], ['recuperar', 'Transição ofensiva · ao roubar a bola', C.verde]]
     .filter(([k]) => t[k].comportamento || t[k].itens.length);
   const els = cromo(vm, 'Transições', null, 'transicoes');
   colunas(lados.length).forEach((col, i) => {
@@ -463,6 +465,7 @@ function bpDefensiva(vm, n) {
 function pontos(vm, n) {
   const p = vm.a.pontos;
   const lados = [['positivos', 'Pontos positivos', 'O que fazem bem e precisa ser neutralizado', C.verde],
+    ['solucoes', 'Soluções', 'Como anular os pontos positivos', C.amarelo],
     ['explorar', 'Pontos a serem explorados', 'Fragilidades que podem ser atacadas', C.vermelho]].filter(([k]) => p[k].length);
   const els = cromo(vm, AA.TITULOS.pontos, null, 'pontos');
   colunas(lados.length).forEach((col, i) => {
@@ -505,6 +508,21 @@ function slideVideo(vm, n, v) {
   return { els: [...els, ...rodape(vm, n, null)], so: 'pptx' };
 }
 
+// Fotos da seção (PDF e PowerPoint): até 2 por slide, com a legenda embaixo, logo depois da seção.
+const FOTOS_POR_SLIDE = 2;
+function slideFotos(vm, n, secao, parte, rotParte) {
+  const els = cromo(vm, `Fotos · ${AA.TITULOS[secao] || ''}${rotParte}`, null, null);
+  const legenda = parte.some((f) => f.titulo) ? 1.1 : 0;
+  colunas(parte.length, M, LARG, 0.8).forEach((col, i) => {
+    const f = parte[i];
+    const h = ALT - legenda;
+    els.push(box(col.x, TOPO, col.w, h, C.claro, { raio: 0.2 }));
+    els.push({ t: 'img', x: col.x + 0.2, y: TOPO + 0.2, w: col.w - 0.4, h: h - 0.4, key: `foto:${f.id}` });
+    if (f.titulo) els.push(text(col.x, TOPO + h + 0.15, col.w, legenda - 0.2, f.titulo, 13, { bold: true, color: C.escuro, align: 'center', valign: 'middle' }));
+  });
+  return { els: [...els, ...rodape(vm, n, null)] };
+}
+
 // Vídeos por LINK (grandes demais para subir): lista clicável no fim, no PDF e no PowerPoint.
 const LINKS_POR_SLIDE = 8;
 function slideLinks(vm, n, parte, rotParte) {
@@ -525,19 +543,28 @@ function slideLinks(vm, n, parte, rotParte) {
 
 /**
  * vm: { a (normalizada), adversario, nossoNome, subtitulo, fatos[{l,v}], capaRodape, fontes,
- *       imagens {nosso?, adversario?}, videos [{id, secao, titulo}], links [{secao, titulo, url}] }
+ *       imagens {nosso?, adversario?, 'foto:<id>'?}, videos [{id, secao, titulo}], fotos [{id, secao, titulo}],
+ *       links [{secao, titulo, url}] }
  * Devolve { largura, altura, slides: [{ fundo?, els, so? }] }.
  */
 function montarDeck(vm) {
-  const v = { ...vm, videosPorSecao: {}, linksPorSecao: {} };
+  const v = { ...vm, videosPorSecao: {}, linksPorSecao: {}, fotosPorSecao: {} };
   for (const vid of vm.videos || []) (v.videosPorSecao[vid.secao] = v.videosPorSecao[vid.secao] || []).push(vid);
+  for (const f of vm.fotos || []) (v.fotosPorSecao[f.secao] = v.fotosPorSecao[f.secao] || []).push(f);
   for (const l of vm.links || []) (v.linksPorSecao[l.secao] = v.linksPorSecao[l.secao] || []).push(l);
   const slides = [capa(v)];
   const n = () => slides.length + 1;
-  const comVideos = (secao) => { for (const vid of v.videosPorSecao[secao] || []) slides.push(slideVideo(v, n(), vid)); };
+  const comVideos = (secao) => {
+    const fotos = v.fotosPorSecao[secao] || [];
+    const total = Math.ceil(fotos.length / FOTOS_POR_SLIDE);
+    for (let i = 0; i < fotos.length; i += FOTOS_POR_SLIDE) {
+      slides.push(slideFotos(v, n(), secao, fotos.slice(i, i + FOTOS_POR_SLIDE), total > 1 ? ` (${i / FOTOS_POR_SLIDE + 1}/${total})` : ''));
+    }
+    for (const vid of v.videosPorSecao[secao] || []) slides.push(slideVideo(v, n(), vid));
+  };
   const preenchidas = new Set(AA.secoesPreenchidas(v.a));
-  // seção vazia com vídeo: o vídeo entra mesmo assim (slide próprio, só no PowerPoint)
-  for (const k of AA.SECOES.filter((x) => preenchidas.has(x) || (v.videosPorSecao[x] || []).length)) {
+  // seção vazia com foto/vídeo: a mídia entra mesmo assim (slide próprio; vídeo só no PowerPoint)
+  for (const k of AA.SECOES.filter((x) => preenchidas.has(x) || (v.videosPorSecao[x] || []).length || (v.fotosPorSecao[x] || []).length)) {
     if (!preenchidas.has(k)) {
       comVideos(k);
       continue;
