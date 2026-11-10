@@ -147,6 +147,20 @@ router.get('/:id', async (req, res) => {
 
 const VALID_MODALITIES = ['football_11', 'football_7', 'futsal'];
 
+// Contas de antes das workspaces (cadastros de ago/2026) não têm workspace nenhuma: o 1º clube dava
+// 400 "Nenhuma workspace ativa". Cria a workspace própria na hora (só quem não tem NENHUMA acessível).
+async function garantirWorkspacePropria(req) {
+  if (req.user.workspaceId || (req.user.accessibleWorkspaces || []).length) return;
+  const u = await query('SELECT name, email FROM users WHERE id = $1', [req.user.id]);
+  const nome = (u.rows[0]?.name || '').trim() || String(u.rows[0]?.email || '').split('@')[0] || 'Minha conta';
+  const ws = await query('INSERT INTO workspaces (name, owner_id) VALUES ($1, $2) RETURNING id', [nome, req.user.id]);
+  const id = ws.rows[0].id;
+  authMiddleware.invalidateAccessibleCache?.(req.user.id);
+  req.user.accessibleWorkspaces = [{ workspace_id: id, name: nome, owner_id: req.user.id, role: 'owner', is_owner: true }];
+  req.user.workspaceId = id;
+  req.user.workspaceIds = [id];
+}
+
 // POST /api/clubs
 router.post('/', async (req, res) => {
   try {
@@ -169,6 +183,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'secondary_color em formato inválido (esperado #RRGGBB)' });
     }
 
+    await garantirWorkspacePropria(req);
     if (!req.user.workspaceId) {
       return res.status(400).json({ error: 'Nenhuma workspace ativa' });
     }
