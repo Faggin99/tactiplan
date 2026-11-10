@@ -2,8 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Calendar, BarChart3, Users, Waypoints, Target,
-  Trophy, ChevronRight, AlertTriangle, Info, Check, X, Clock,
-  FileText, Loader2, Binoculars, Film,
+  ChevronRight, AlertTriangle, Info, Check, X, Clock,
+  FileText, Loader2,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -140,36 +140,16 @@ export function HomePage() {
   const announcements = dashboard?.announcements || [];
   const summary = dashboard?.summary || { totalAthletes: 0, activeInjuries: 0 };
 
-  const lastMatch = dashboard?.lastMatch || null;
-  // Abre o jogo na Programação (semana certa) e, se pedido, já a análise
-  const abrirJogo = (jogo, abrir) => {
-    const data = String(jogo.date).split('T')[0];
-    navigate(`/training?jogo=${jogo.id}&data=${data}${abrir ? `&abrir=${abrir}` : ''}`);
-  };
+  // Os atalhos de jogo/análise/vídeo levavam todos à mesma Programação da semana:
+  // viraram um só botão (10/11/2026). Mostra o próximo jogo, senão a próxima sessão.
   const descJogo = (jogo) => `${jogo.opponent_name || 'Adversário a definir'} · ${formatDateBR(jogo.date).slice(0, 5)}`;
-  const jogoAnalise = nextMatch || lastMatch;
-  const jogoVideo = lastMatch || nextMatch;
-  const semJogo = 'Nenhum jogo cadastrado';
 
   const atalhos = [
     {
-      key: 'jogo', label: 'Próximo jogo', icon: Trophy, color: '#f59e0b',
-      sub: nextMatch ? `${descJogo(nextMatch)} · ${daysFromToday(nextMatch.date)}` : 'Sem jogo agendado',
-      onClick: () => (nextMatch ? abrirJogo(nextMatch) : navigate('/training')),
-    },
-    {
-      key: 'analise', label: 'Análise do adversário', icon: Binoculars, color: '#ef4444',
-      sub: jogoAnalise ? descJogo(jogoAnalise) : semJogo,
-      onClick: () => (jogoAnalise ? abrirJogo(jogoAnalise, 'analise') : navigate('/training')),
-    },
-    {
-      key: 'video', label: 'Análise de vídeo', icon: Film, color: '#8b5cf6',
-      sub: jogoVideo ? descJogo(jogoVideo) : semJogo,
-      onClick: () => (jogoVideo ? abrirJogo(jogoVideo, 'video') : navigate('/training')),
-    },
-    {
-      key: 'programacao', label: 'Programação', icon: Calendar, color: '#2563eb',
-      sub: nextSession ? `${rotuloSessaoDoDia(nextSession)} · ${daysFromToday(nextSession.date)}` : 'Montar a semana',
+      key: 'programacao', label: 'Programação', icon: Calendar, color: '#2563eb', destaque: true,
+      sub: nextMatch
+        ? `Próximo jogo: ${descJogo(nextMatch)} · ${daysFromToday(nextMatch.date)}`
+        : nextSession ? `${rotuloSessaoDoDia(nextSession)} · ${daysFromToday(nextSession.date)}` : 'Montar a semana',
       onClick: () => navigate('/training'),
     },
     can('athletes:view') && {
@@ -271,7 +251,7 @@ export function HomePage() {
         )}
 
         {/* Atalhos — cada botão leva direto à função (os de jogo já abrem o jogo certo) */}
-        <nav aria-label="Atalhos" style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(4, minmax(0, 1fr))', gap: isMobile ? '0.5rem' : '0.65rem' }}>
+        <nav aria-label="Atalhos" style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))', gap: isMobile ? '0.5rem' : '0.65rem' }}>
           {atalhos.map((a) => (
             <Atalho key={a.key} {...a} colors={colors} isMobile={isMobile} />
           ))}
@@ -383,7 +363,7 @@ export function HomePage() {
   );
 }
 
-function Atalho({ label, sub, icon: Icon, color, onClick, colors, isMobile }) {
+function Atalho({ label, sub, icon: Icon, color, onClick, colors, isMobile, destaque }) {
   const [hover, setHover] = useState(false);
   return (
     <button
@@ -395,6 +375,7 @@ function Atalho({ label, sub, icon: Icon, color, onClick, colors, isMobile }) {
       style={{
         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: isMobile ? '0.55rem' : '0.75rem',
         minWidth: 0, minHeight: isMobile ? 104 : 124,
+        gridColumn: destaque && isMobile ? 'span 2' : undefined,
         padding: isMobile ? '0.8rem' : '1rem 1.05rem',
         backgroundColor: colors.surface,
         border: `1px solid ${hover ? color : colors.border}`,
