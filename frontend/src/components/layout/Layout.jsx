@@ -23,7 +23,9 @@ export function Layout({ children }) {
   const isMobile = useIsMobile();
   const location = useLocation();
 
-  const fixedViewport = FIXED_VIEWPORT_ROUTES.some(p => location.pathname.startsWith(p));
+  // Início no computador também cabe na tela (pedido do dono, 11/11/2026: nada de rolar)
+  const fixedViewport = FIXED_VIEWPORT_ROUTES.some(p => location.pathname.startsWith(p))
+    || (!isMobile && location.pathname === '/home');
   // Menu lateral (padrão do Gestsport): gaveta no celular; no computador recolhe em trilho de
   // ícones, preferência guardada no aparelho.
   const [drawer, setDrawer] = useState(false);

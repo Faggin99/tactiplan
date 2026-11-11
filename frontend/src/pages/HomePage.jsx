@@ -65,6 +65,7 @@ export function HomePage() {
   const { colors, estilo, estiloTokens, isDark } = useTheme();
   const { selectedClub, getLogoUrl } = useClub();
   const isMobile = useIsMobile();
+  const altura = useAlturaJanela();
   const guardFeature = useFeatureGuard();
   const { can } = useCan();
 
@@ -161,27 +162,26 @@ export function HomePage() {
     { key: 'ativ', label: 'Atividades', sub: 'Banco de exercícios', icon: Target, ilu: 'alvo', onClick: () => navigate('/settings/activities') },
   ].filter(Boolean);
 
+  // Quantas atividades cabem por dia sem rolar a página (altura da janela)
+  const porDia = altura >= 1050 ? 5 : altura >= 900 ? 4 : altura >= 780 ? 3 : 2;
+  const avisos = isMobile ? announcements : announcements.slice(0, 1);
+
   return (
     <Layout>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.85rem' : '1.1rem', maxWidth: 1320, width: '100%', margin: '0 auto' }}>
-        <Capa ctx={ctx} clube={selectedClub} logoUrl={logoUrl}
-          titulo={`${saudacao()}${firstName ? `, ${firstName}` : ''}.`}
-          sub={`${selectedClub ? `${selectedClub.name} · ` : ''}${new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}`}
-          alerta={alerta} onRelatorio={selectedClub ? handleGenerateReport : null} reportLoading={reportLoading} />
-
-        {announcements.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {announcements.map((a) => {
+      <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.85rem' : '0.9rem', maxWidth: 1440, width: '100%', margin: '0 auto', ...(isMobile ? {} : { flex: 1, minHeight: 0, paddingBottom: estilo === 'prancheta' ? 4 : 0 }) }}>
+        {avisos.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flexShrink: 0 }}>
+            {avisos.map((a) => {
               const sev = SEVERITY_STYLE[a.severity] || SEVERITY_STYLE.info;
               const Icon = sev.icon;
               return (
-                <div key={a.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.7rem', padding: '0.85rem 1rem', borderRadius: estiloTokens.raio, border: `1px solid ${sev.color}40`, backgroundColor: sev.bg }}>
+                <div key={a.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.7rem', padding: '0.6rem 0.9rem', borderRadius: estiloTokens.raio, border: `1px solid ${sev.color}40`, backgroundColor: sev.bg }}>
                   <Icon size={18} style={{ color: sev.color, marginTop: 2, flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: colors.text, marginBottom: 2 }}>{a.title}</div>
-                    <div style={{ fontSize: '0.8rem', color: colors.text, lineHeight: 1.5, opacity: 0.85 }}>{a.body}</div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 600, color: colors.text }}>{a.title}</div>
+                    <div style={{ fontSize: '0.8rem', color: colors.text, lineHeight: 1.45, opacity: 0.85 }}>{a.body}</div>
                     {a.link_url && (
-                      <a href={a.link_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: 4, fontSize: '0.78rem', color: sev.color, textDecoration: 'none', fontWeight: 600 }}>
+                      <a href={a.link_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: 2, fontSize: '0.78rem', color: sev.color, textDecoration: 'none', fontWeight: 600 }}>
                         Saiba mais <ChevronRight size={12} />
                       </a>
                     )}
@@ -195,24 +195,32 @@ export function HomePage() {
           </div>
         )}
 
-        <QuadroSemana ctx={ctx} dias={dias} hojeStr={hojeStr} numSemana={numSemana} clube={selectedClub?.name}
-          onDia={abrirDia} onAbrir={() => navigate(semanaDe ? `/training?data=${hojeStr}` : '/training')} loading={loading && !dashboard} />
+        <Quadro ctx={ctx} clube={selectedClub} logoUrl={logoUrl} dias={dias} hojeStr={hojeStr} numSemana={numSemana}
+          saudacao={`${saudacao()}${firstName ? `, ${firstName}` : ''}.`}
+          dataHoje={new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+          alerta={alerta} onRelatorio={selectedClub ? handleGenerateReport : null} reportLoading={reportLoading}
+          onDia={abrirDia} onAbrir={() => navigate(semanaDe ? `/training?data=${hojeStr}` : '/training')}
+          loading={loading && !dashboard} porDia={porDia} atalhos={atalhos} />
 
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0,1.35fr) minmax(0,1fr) minmax(0,1fr)', gap: isMobile ? '0.85rem' : '1.1rem', alignItems: 'stretch' }}>
-          <CartaoHoje ctx={ctx} hoje={hoje} nextSessions={nextSessions} hojeStr={hojeStr} onAbrir={abrirDia} />
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr)', gap: isMobile ? '0.85rem' : '0.9rem', alignItems: 'stretch', ...(isMobile ? {} : { flexShrink: 0, height: altura >= 900 ? 268 : 236 }) }}>
+          <CartaoHoje ctx={ctx} hoje={hoje} nextSessions={nextSessions} hojeStr={hojeStr} onAbrir={abrirDia} max={altura >= 1000 ? 4 : 3} />
           <CartaoJogo ctx={ctx} jogo={nextMatch} dias={diasJogo} treinos={treinosAteJogo} onAbrir={abrirJogo} onProgramacao={() => navigate('/training')} />
           <CartaoPlantel ctx={ctx} total={summary.totalAthletes || 0} disponiveis={disponiveis} injuries={injuries}
-            podeVer={can('athletes:view')} onPlantel={() => navigate('/plantel')} />
+            podeVer={can('athletes:view')} onPlantel={() => navigate('/plantel')} max={altura >= 1000 ? 2 : 1} />
         </div>
-
-        <nav aria-label="Atalhos" style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0,1fr))' : `repeat(${atalhos.length}, minmax(0,1fr))`, gap: isMobile ? '0.6rem' : '0.8rem' }}>
-          {atalhos.map((a, i) => (
-            <Atalho key={a.key} ctx={ctx} {...a} largo={isMobile && i === 0 && atalhos.length % 2 === 1} />
-          ))}
-        </nav>
       </div>
     </Layout>
   );
+}
+
+function useAlturaJanela() {
+  const [h, setH] = useState(() => (typeof window !== 'undefined' ? window.innerHeight : 900));
+  useEffect(() => {
+    const f = () => setH(window.innerHeight);
+    window.addEventListener('resize', f);
+    return () => window.removeEventListener('resize', f);
+  }, []);
+  return h;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -230,21 +238,30 @@ function Titulo({ ctx, children, tamanho = '1.05rem', cor, as: Tag = 'h2', style
 
 // Moldura do "cartão" conforme o estilo: alumínio grosso no quadro tático, fino nos outros.
 function cartaoStyle(ctx, extra = {}) {
-  const { colors, tk, estilo } = ctx;
+  const { colors, tk, estilo, isDark } = ctx;
+  const folha = estilo === 'prancheta';
   return {
-    backgroundColor: colors.surface,
-    border: `${estilo === 'prancheta' ? 4 : 1}px solid ${colors.border}`,
-    borderRadius: tk.raio,
-    padding: ctx.isMobile ? '1rem' : '1.15rem 1.25rem',
-    boxShadow: estilo === 'prancheta' ? '0 8px 18px -14px rgba(0,0,0,.55)' : estilo === 'gramado' ? '0 10px 24px -20px rgba(16,36,26,.5)' : 'none',
+    position: 'relative',
+    backgroundColor: folha ? (isDark ? '#23282D' : '#FFFFFF') : colors.surface,
+    border: folha ? 'none' : `1px solid ${colors.border}`,
+    borderRadius: folha ? 2 : tk.raio,
+    padding: ctx.isMobile ? '1rem' : '0.95rem 1.15rem',
+    boxShadow: folha ? '0 1px 1px rgba(0,0,0,.12), 0 10px 18px -12px rgba(0,0,0,.45)' : estilo === 'gramado' ? '0 10px 24px -20px rgba(16,36,26,.5)' : 'none',
     minWidth: 0,
+    overflow: folha ? 'visible' : 'hidden',
     ...extra,
   };
 }
 
+// Ímã que prende a folha no quadro (só no Quadro tático)
+function Prende({ ctx, cor }) {
+  if (ctx.estilo !== 'prancheta') return null;
+  return <Ima cor={cor || ctx.colors.primary} tamanho={18} style={{ position: 'absolute', top: -7, left: '50%', marginLeft: -9, zIndex: 1 }} />;
+}
+
 function Ima({ cor, tamanho = 14, children, style }) {
   return (
-    <span aria-hidden="true" style={{ width: tamanho, height: tamanho, borderRadius: '50%', backgroundColor: cor, flexShrink: 0, boxShadow: 'inset 0 -2px 0 rgba(0,0,0,.25), 0 1px 2px rgba(0,0,0,.25)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: tamanho * 0.45, fontWeight: 700, ...style }}>
+    <span aria-hidden="true" style={{ width: tamanho, height: tamanho, borderRadius: '50%', backgroundColor: cor, backgroundImage: 'radial-gradient(circle at 35% 30%, rgba(255,255,255,.55) 0, rgba(255,255,255,0) 45%)', flexShrink: 0, boxShadow: 'inset 0 -2px 0 rgba(0,0,0,.25), 0 1px 2px rgba(0,0,0,.3)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: tamanho * 0.45, fontWeight: 700, ...style }}>
       {children}
     </span>
   );
@@ -275,63 +292,6 @@ function Escudo({ clube, logoUrl, tamanho = 64, borda = '#fff' }) {
       <path d="M11 38h62v11H11z" fill={cor2} opacity=".9" />
       <text x="42" y={sigla.length > 3 ? 70 : 72} textAnchor="middle" fontFamily="Poppins, sans-serif" fontWeight="800" fontSize={sigla.length > 3 ? 13 : 16} fill={bestTextOn(cor)}>{sigla}</text>
     </svg>
-  );
-}
-
-// ---------------------------------------------------------------------------------------------
-// Capa (do "Vestiário"): escudo + saudação; fundo conforme o estilo
-// ---------------------------------------------------------------------------------------------
-
-function Capa({ ctx, clube, logoUrl, titulo, sub, alerta, onRelatorio, reportLoading }) {
-  const { colors, tk, estilo, isMobile } = ctx;
-  const primaria = colors.primary;
-  const quadro = estilo === 'prancheta';
-  const fundo = {
-    clube: `linear-gradient(115deg, ${darkenHex(primaria, 0.35)} 0%, ${darkenHex(primaria, 0.12)} 55%, ${primaria} 100%)`,
-    quadro: colors.surface,
-    gramado: '#1d6b37',
-    placar: '#0b0b0c',
-  }[tk.capa] || primaria;
-  // texto sobre a capa: no quadro, a tinta do tema; na faixa do clube, contraste com a cor; nos outros, branco
-  const ct = quadro ? colors.text : tk.capa === 'clube' ? bestTextOn(darkenHex(primaria, 0.2)) : '#ffffff';
-  const ctTitulo = quadro ? primaria : ct;
-  const claro = ct.toLowerCase() === '#ffffff';
-  return (
-    <section aria-label="Resumo" style={{
-      position: 'relative', overflow: 'hidden', borderRadius: tk.raio, background: fundo,
-      border: quadro ? `6px solid ${colors.border}` : 'none',
-      boxShadow: quadro ? '0 10px 22px -16px rgba(0,0,0,.55), inset 0 0 0 1px rgba(0,0,0,.06)' : '0 14px 30px -22px rgba(0,0,0,.6)',
-      minHeight: isMobile ? 168 : 200, display: 'flex', alignItems: 'flex-end',
-    }}>
-      {!(isMobile && tk.capa === 'quadro') && <FundoCapa tipo={tk.capa} primaria={primaria} colors={colors} />}
-      {estilo === 'placar' && <div aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 6, backgroundColor: primaria }} />}
-      <div style={{ position: 'relative', width: '100%', display: 'flex', alignItems: isMobile ? 'flex-start' : 'flex-end', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '0.75rem' : '1.25rem', padding: isMobile ? '1.1rem 1rem 1.15rem' : '1.6rem 1.75rem 1.6rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.8rem' : '1.1rem', minWidth: 0, flex: 1 }}>
-          <Escudo clube={clube} logoUrl={logoUrl} tamanho={isMobile ? 52 : 76} borda={quadro ? colors.border : '#fff'} />
-          <div style={{ minWidth: 0 }}>
-            <Titulo ctx={ctx} as="h1" tamanho={isMobile ? '1.55rem' : '2.15rem'} cor={ctTitulo} style={{ letterSpacing: estilo === 'placar' ? '0.02em' : quadro ? 0 : '-0.03em', fontWeight: tk.pesoTitulo === 700 && estilo !== 'placar' && !quadro ? 800 : undefined }}>
-              {titulo}
-            </Titulo>
-            <p style={{ margin: '0.3rem 0 0', fontSize: isMobile ? '0.82rem' : '0.95rem', color: quadro ? colors.textSecondary : ct, opacity: quadro ? 1 : 0.88 }}>{sub}</p>
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', flexShrink: 0 }}>
-          {alerta && (quadro
-            ? <span className="tp-titulo" style={{ fontFamily: tk.fonteTitulo, color: VERMELHO, fontSize: isMobile ? '1.35rem' : '1.75rem', transform: 'rotate(-3deg)', borderBottom: `3px solid ${VERMELHO}`, lineHeight: 1.05, padding: '0 4px 2px' }}>{alerta}</span>
-            : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, backgroundColor: VERMELHO, color: '#fff', fontWeight: 700, fontSize: '0.8rem', borderRadius: estilo === 'placar' ? 2 : 99, padding: '0.32rem 0.8rem', textTransform: estilo === 'placar' ? 'uppercase' : 'none', letterSpacing: estilo === 'placar' ? '0.04em' : 0 }}>{alerta}</span>)}
-          {onRelatorio && (
-            <button type="button" onClick={onRelatorio} disabled={reportLoading} title={`Gera um PDF com plantel, treinos e jogos de ${new Date().getFullYear()}`}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.55rem 0.9rem', borderRadius: Math.min(tk.raio, 10), fontSize: '0.84rem', fontWeight: 600, fontFamily: 'inherit', cursor: reportLoading ? 'progress' : 'pointer', opacity: reportLoading ? 0.75 : 1,
-                ...(quadro
-                  ? { backgroundColor: colors.surface, color: colors.text, border: `2px solid ${colors.text}` }
-                  : { backgroundColor: claro ? 'rgba(255,255,255,.14)' : 'rgba(0,0,0,.08)', color: ct, border: 'none', boxShadow: `inset 0 0 0 1px ${claro ? 'rgba(255,255,255,.4)' : 'rgba(0,0,0,.25)'}` }) }}>
-              {reportLoading ? <Loader2 size={15} className="animate-spin" /> : <FileText size={15} />}
-              {reportLoading ? 'Gerando…' : 'Relatório do clube'}
-            </button>
-          )}
-        </div>
-      </div>
-    </section>
   );
 }
 
@@ -402,94 +362,204 @@ function FundoCapa({ tipo, primaria, colors }) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Quadro da semana (da "Prancheta"): 7 colunas, ímãs por atividade, total do dia
+// O quadro (Prancheta + Vestiário): cabeçalho (capa), a semana em colunas com ímãs e os atalhos.
+// No Quadro tático é um quadro branco de verdade: moldura de alumínio, calha com pincéis embaixo,
+// título "Semana 46" a pincel e o aviso do jogo em vermelho. Nos outros estilos o cabeçalho é a
+// capa (faixa na cor do clube, gramado ou placar) com o escudo e a saudação.
 // ---------------------------------------------------------------------------------------------
 
-function QuadroSemana({ ctx, dias, hojeStr, numSemana, clube, onDia, onAbrir, loading }) {
-  const { colors, tk, estilo, isMobile } = ctx;
+function Quadro({ ctx, clube, logoUrl, dias, hojeStr, numSemana, saudacao: ola, dataHoje, alerta, onRelatorio, reportLoading, onDia, onAbrir, loading, porDia, atalhos }) {
+  const { colors, tk, estilo, isMobile, isDark } = ctx;
   const quadro = estilo === 'prancheta';
-  const visiveis = isMobile ? dias.filter((d) => d.data >= hojeStr) : dias;
-  const separador = quadro ? `2px dashed ${colors.border}` : `1px solid ${colors.border}`;
   const totalSemana = dias.reduce((s, d) => s + d.minutos, 0);
-  return (
-    <section aria-label="Semana" style={cartaoStyle(ctx, quadro ? { border: `6px solid ${colors.border}`, padding: isMobile ? '0.9rem' : '1.15rem 1.35rem 1rem' } : {})}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap', marginBottom: isMobile ? '0.5rem' : '0.75rem' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <Titulo ctx={ctx} tamanho={isMobile ? '1.15rem' : '1.3rem'} cor={quadro ? colors.primary : undefined}>
-            Semana {numSemana}
-          </Titulo>
-          <span className="tp-num" style={{ fontSize: '0.82rem', color: colors.textSecondary }}>
-            {ddmm(dias[0].data)} a {ddmm(dias[6].data)}{clube ? ` · ${clube}` : ''}{totalSemana ? ` · ${totalSemana} min de treino` : ''}
-          </span>
+  const faixaSemana = `${ddmm(dias[0].data)} a ${ddmm(dias[6].data)}${totalSemana ? ` · ${totalSemana} min de treino` : ''}`;
+
+  const relatorio = onRelatorio && (
+    <button type="button" onClick={onRelatorio} disabled={reportLoading} title={`Gera um PDF com plantel, treinos e jogos de ${new Date().getFullYear()}`}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', padding: '0.45rem 0.8rem', borderRadius: quadro ? 3 : Math.min(tk.raio, 10), fontSize: '0.82rem', fontWeight: 600, fontFamily: 'inherit', cursor: reportLoading ? 'progress' : 'pointer', opacity: reportLoading ? 0.75 : 1, whiteSpace: 'nowrap',
+        ...(quadro
+          ? { backgroundColor: 'transparent', color: colors.text, border: `2px solid ${colors.text}` }
+          : { backgroundColor: 'rgba(255,255,255,.14)', color: '#fff', border: 'none', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.4)' }) }}>
+      {reportLoading ? <Loader2 size={15} className="animate-spin" /> : <FileText size={15} />}
+      {reportLoading ? 'Gerando…' : 'Relatório do clube'}
+    </button>
+  );
+
+  const avisoJogo = alerta && (quadro
+    ? <span className="tp-titulo" style={{ fontFamily: tk.fonteTitulo, fontWeight: 700, color: VERMELHO, fontSize: isMobile ? '1.3rem' : '1.7rem', transform: 'rotate(-3deg)', borderBottom: `3px solid ${VERMELHO}`, lineHeight: 1.05, padding: '0 4px 2px', whiteSpace: 'nowrap' }}>{alerta}</span>
+    : <span style={{ display: 'inline-flex', alignItems: 'center', backgroundColor: VERMELHO, color: '#fff', fontWeight: 700, fontSize: '0.8rem', borderRadius: estilo === 'placar' ? 2 : 99, padding: '0.32rem 0.8rem', textTransform: estilo === 'placar' ? 'uppercase' : 'none', letterSpacing: estilo === 'placar' ? '0.04em' : 0, whiteSpace: 'nowrap' }}>{alerta}</span>);
+
+  // ------------------------------------------------ cabeçalho
+  let cabecalho;
+  if (quadro) {
+    cabecalho = (
+      <div style={{ display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', gap: isMobile ? '0.6rem' : '1rem', flexDirection: isMobile ? 'column' : 'row', paddingBottom: isMobile ? '0.6rem' : '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', minWidth: 0, flex: 1 }}>
+          <Escudo clube={clube} logoUrl={logoUrl} tamanho={isMobile ? 44 : 54} borda={colors.border} />
+          <div style={{ minWidth: 0 }}>
+            <h1 className="tp-titulo" style={{ margin: 0, fontFamily: tk.fonteTitulo, fontWeight: 700, fontSize: isMobile ? '2rem' : '2.6rem', lineHeight: 0.95, color: colors.primary }}>
+              Semana {numSemana}
+            </h1>
+            <p style={{ margin: '0.3rem 0 0', fontSize: isMobile ? '0.8rem' : '0.9rem', color: colors.textSecondary }}>
+              {clube?.name ? `${clube.name} · ` : ''}{dataHoje} · {ola}
+            </p>
+          </div>
         </div>
-        <LinkAcao ctx={ctx} onClick={onAbrir}>Abrir a semana</LinkAcao>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          {avisoJogo}
+          {relatorio}
+        </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(7, minmax(0,1fr))', borderTop: separador }}>
-        {visiveis.map((d, idx) => {
-          const eHoje = d.data === hojeStr;
-          const jogo = d.periodos.find((p) => p.tipo === 'match');
-          const folga = d.periodos.length > 0 && d.periodos.every((p) => p.tipo === 'rest');
-          const atividades = d.periodos.filter((p) => p.tipo === 'training').flatMap((p) => p.atividades.map((a) => ({ ...a, periodo: d.periodos.length > 1 ? p.periodo : null })));
-          const avaliacao = d.periodos.some((p) => p.tipo === 'assessment');
-          const mostrar = isMobile ? atividades.slice(0, 3) : atividades.slice(0, 4);
-          const resto = atividades.length - mostrar.length;
-          const ultimo = idx === visiveis.length - 1;
-          return (
-            <button key={d.data} type="button" className="tp-dia" onClick={() => onDia(d.data)} aria-label={`Abrir ${DIAS_LONGOS[d.i]} ${ddmm(d.data)}`}
-              style={{
-                display: 'flex', flexDirection: 'column', gap: isMobile ? 6 : 8, textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', color: colors.text,
-                padding: isMobile ? '0.65rem 0.15rem' : '0.75rem 0.7rem 0.6rem', minHeight: isMobile ? 0 : 214, minWidth: 0,
-                background: eHoje ? (quadro ? `repeating-linear-gradient(0deg, transparent 0 27px, ${colors.primary}10 27px 28px)` : `${colors.primary}0D`) : 'transparent',
-                border: 'none',
-                borderRight: !isMobile && !ultimo ? separador : 'none',
-                borderBottom: isMobile && !ultimo ? separador : 'none',
-                borderRadius: 0,
-              }}>
-              <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', width: '100%', gap: 6 }}>
-                <span className="tp-titulo" style={{ fontFamily: tk.fonteTitulo, fontWeight: tk.pesoTitulo, textTransform: tk.caixaTitulo, fontSize: quadro ? '1.2rem' : '0.95rem', color: eHoje ? colors.primary : colors.text, lineHeight: 1.1 }}>
-                  {DIAS_CURTOS[d.i]}{eHoje ? ' · hoje' : ''}
-                </span>
-                <span className="tp-num" style={{ fontSize: '0.74rem', color: colors.textSecondary, fontFamily: quadro ? "'Red Hat Mono', ui-monospace, monospace" : 'inherit' }}>{ddmm(d.data)}</span>
+    );
+  } else {
+    cabecalho = (
+      <>
+        <div style={{ position: 'relative', overflow: 'hidden', borderRadius: `${tk.raio}px ${tk.raio}px 0 0`, background: tk.capa === 'clube' ? `linear-gradient(115deg, ${darkenHex(colors.primary, 0.42)} 0%, ${darkenHex(colors.primary, 0.2)} 60%, ${darkenHex(colors.primary, 0.05)} 100%)` : tk.capa === 'gramado' ? '#1d6b37' : '#0b0b0c', flexShrink: 0 }}>
+          <FundoCapa tipo={tk.capa} primaria={colors.primary} colors={colors} />
+          {estilo === 'placar' && <div aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 5, backgroundColor: colors.primary }} />}
+          <div style={{ position: 'relative', display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '0.7rem' : '1rem', padding: isMobile ? '1rem' : '1.05rem 1.4rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.9rem', minWidth: 0, flex: 1 }}>
+              <Escudo clube={clube} logoUrl={logoUrl} tamanho={isMobile ? 46 : 58} />
+              <div style={{ minWidth: 0 }}>
+                <h1 className="tp-titulo" style={{ margin: 0, fontSize: isMobile ? '1.45rem' : '1.85rem', lineHeight: 1.05, color: '#fff', fontWeight: estilo === 'placar' ? 700 : 800, letterSpacing: estilo === 'placar' ? '0.02em' : '-0.03em' }}>{ola}</h1>
+                <p style={{ margin: '0.25rem 0 0', fontSize: isMobile ? '0.8rem' : '0.9rem', color: 'rgba(255,255,255,.86)' }}>{clube?.name ? `${clube.name} · ` : ''}{dataHoje}</p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>{avisoJogo}{relatorio}</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap', padding: isMobile ? '0.8rem 1rem 0.4rem' : '0.8rem 1.25rem 0.45rem' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.7rem', flexWrap: 'wrap' }}>
+            <Titulo ctx={ctx} tamanho="1.15rem">Semana {numSemana}</Titulo>
+            <span className="tp-num" style={{ fontSize: '0.8rem', color: colors.textSecondary }}>{faixaSemana}</span>
+          </div>
+          <LinkAcao ctx={ctx} onClick={onAbrir}>Abrir a semana</LinkAcao>
+        </div>
+      </>
+    );
+  }
+
+  // ------------------------------------------------ semana
+  const visiveis = isMobile ? dias.filter((d) => d.data >= hojeStr) : dias;
+  const separador = quadro ? `2px dashed ${isDark ? '#4a5157' : '#C3C8CC'}` : `1px solid ${colors.border}`;
+  const semana = (
+    <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(7, minmax(0,1fr))', gridTemplateRows: isMobile ? undefined : 'minmax(0,1fr)', borderTop: separador, flex: isMobile ? undefined : 1, minHeight: 0, margin: quadro ? 0 : (isMobile ? '0 1rem' : '0 1.25rem') }}>
+      {visiveis.map((d, idx) => {
+        const eHoje = d.data === hojeStr;
+        const jogo = d.periodos.find((p) => p.tipo === 'match');
+        const folga = d.periodos.length > 0 && d.periodos.every((p) => p.tipo === 'rest');
+        const atividades = d.periodos.filter((p) => p.tipo === 'training').flatMap((p) => p.atividades.map((a) => ({ ...a, periodo: d.periodos.length > 1 ? p.periodo : null })));
+        const avaliacao = d.periodos.some((p) => p.tipo === 'assessment');
+        const mostrar = atividades.slice(0, isMobile ? 3 : porDia);
+        const resto = atividades.length - mostrar.length;
+        const ultimo = idx === visiveis.length - 1;
+        const passado = d.data < hojeStr;
+        return (
+          <button key={d.data} type="button" className="tp-dia" onClick={() => onDia(d.data)} aria-label={`Abrir ${DIAS_LONGOS[d.i]} ${ddmm(d.data)}`}
+            style={{
+              display: 'flex', flexDirection: 'column', gap: isMobile ? 6 : 7, textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', color: colors.text,
+              padding: isMobile ? '0.6rem 0.15rem' : '0.6rem 0.65rem 0.5rem', minWidth: 0, minHeight: 0, overflow: 'hidden',
+              background: eHoje ? (quadro ? `repeating-linear-gradient(0deg, transparent 0 25px, ${colors.primary}14 25px 26px)` : `${colors.primary}0F`) : 'transparent',
+              border: 'none', borderRight: !isMobile && !ultimo ? separador : 'none', borderBottom: isMobile && !ultimo ? separador : 'none', borderRadius: 0,
+              opacity: passado && !isMobile ? 0.72 : 1,
+            }}>
+            <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', width: '100%', gap: 6 }}>
+              <span className="tp-titulo" style={{ fontFamily: tk.fonteTitulo, fontWeight: tk.pesoTitulo, textTransform: tk.caixaTitulo, fontSize: quadro ? '1.3rem' : '0.95rem', color: eHoje ? colors.primary : colors.text, lineHeight: 1.05, whiteSpace: 'nowrap' }}>
+                {DIAS_CURTOS[d.i]}{eHoje ? ' · hoje' : ''}
               </span>
-              {loading ? (
-                <span style={{ fontSize: '0.78rem', color: colors.textMuted }}>…</span>
-              ) : jogo ? (
-                <span style={{ border: `2px solid ${VERMELHO}`, borderRadius: Math.min(tk.raio, 6), padding: '0.45rem 0.5rem', color: VERMELHO, transform: quadro ? 'rotate(-1.5deg)' : 'none', alignSelf: 'stretch' }}>
-                  <span className="tp-titulo" style={{ display: 'block', fontFamily: tk.fonteTitulo, fontWeight: tk.pesoTitulo, textTransform: 'uppercase', fontSize: quadro ? '1.2rem' : '0.9rem', lineHeight: 1 }}>Jogo!</span>
-                  <span style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>× {jogo.adversario || 'adversário a definir'}</span>
-                </span>
-              ) : folga ? (
-                <span className="tp-titulo" style={{ fontFamily: quadro ? tk.fonteTitulo : 'inherit', fontWeight: 400, color: colors.textMuted, fontSize: quadro ? '1.1rem' : '0.82rem', marginTop: isMobile ? 0 : 18, alignSelf: isMobile ? 'flex-start' : 'center' }}>folga</span>
-              ) : (
-                <>
-                  {mostrar.map((a, k) => (
-                    <span key={k} style={{ display: 'flex', gap: 7, alignItems: 'flex-start', fontSize: '0.8rem', lineHeight: 1.25, minWidth: 0 }}>
-                      <Ima cor={COR_PILAR[a.pilar] || colors.textMuted} tamanho={13} style={{ marginTop: 2 }} />
-                      <span style={{ minWidth: 0 }}>
-                        <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', fontWeight: 600 }} title={NOME_PILAR[a.pilar] || ''}>{a.titulo}</span>
-                        <span className="tp-num" style={{ fontSize: '0.72rem', color: colors.textSecondary }}>{a.minutos ? `${a.minutos} min` : ''}{a.periodo ? `${a.minutos ? ' · ' : ''}${rotuloPeriodo(a.periodo)}` : ''}</span>
-                      </span>
+              <span className="tp-num" style={{ fontSize: '0.74rem', color: colors.textSecondary, fontFamily: quadro ? "'Red Hat Mono', ui-monospace, monospace" : 'inherit' }}>{ddmm(d.data)}</span>
+            </span>
+            {loading ? (
+              <span style={{ fontSize: '0.78rem', color: colors.textMuted }}>…</span>
+            ) : jogo ? (
+              <span style={{ border: `2.5px solid ${VERMELHO}`, borderRadius: quadro ? 3 : Math.min(tk.raio, 6), padding: '0.45rem 0.5rem', color: VERMELHO, transform: quadro ? 'rotate(-2deg)' : 'none', alignSelf: 'stretch', marginTop: 2 }}>
+                <span className="tp-titulo" style={{ display: 'block', fontFamily: tk.fonteTitulo, fontWeight: tk.pesoTitulo, textTransform: 'uppercase', fontSize: quadro ? '1.35rem' : '0.9rem', lineHeight: 1 }}>Jogo!</span>
+                <span style={{ display: 'block', fontSize: '0.74rem', fontWeight: 600, marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>× {jogo.adversario || 'adversário a definir'}</span>
+              </span>
+            ) : folga ? (
+              <span className="tp-titulo" style={{ fontFamily: quadro ? tk.fonteTitulo : 'inherit', fontWeight: 400, color: colors.textMuted, fontSize: quadro ? '1.2rem' : '0.82rem', marginTop: isMobile ? 0 : 14, alignSelf: isMobile ? 'flex-start' : 'center', textTransform: 'none' }}>folga</span>
+            ) : (
+              <>
+                {mostrar.map((a, k) => (
+                  <span key={k} style={{ display: 'flex', gap: 7, alignItems: 'flex-start', fontSize: '0.8rem', lineHeight: 1.25, minWidth: 0 }}>
+                    <Ima cor={COR_PILAR[a.pilar] || colors.textMuted} tamanho={quadro ? 15 : 12} style={{ marginTop: quadro ? 1 : 2 }} />
+                    <span style={{ minWidth: 0 }}>
+                      <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', fontWeight: 600 }} title={NOME_PILAR[a.pilar] || ''}>{a.titulo}</span>
+                      <span className="tp-num" style={{ fontSize: '0.72rem', color: colors.textSecondary }}>{a.minutos ? `${a.minutos} min` : ''}{a.periodo ? `${a.minutos ? ' · ' : ''}${rotuloPeriodo(a.periodo)}` : ''}</span>
                     </span>
-                  ))}
-                  {resto > 0 && <span style={{ fontSize: '0.74rem', color: colors.textSecondary }}>+{resto} atividade{resto > 1 ? 's' : ''}</span>}
-                  {avaliacao && <span style={{ fontSize: '0.76rem', fontWeight: 600, color: colors.textSecondary }}>Avaliação</span>}
-                  {!atividades.length && !avaliacao && <span style={{ fontSize: '0.78rem', color: colors.textMuted }}>{d.data < hojeStr ? '—' : 'a planejar'}</span>}
-                </>
-              )}
-              {d.minutos > 0 && (
-                <span className="tp-titulo tp-num" style={{ marginTop: isMobile ? 0 : 'auto', alignSelf: isMobile ? 'flex-end' : 'flex-start', fontFamily: quadro ? tk.fonteTitulo : 'inherit', fontWeight: 700, fontSize: quadro ? '1.15rem' : '0.82rem', color: quadro ? colors.primary : colors.text, textTransform: 'none' }}>
-                  {quadro ? `= ${d.minutos}'` : `${d.minutos} min`}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-      <div style={{ display: 'flex', gap: '0.9rem', flexWrap: 'wrap', marginTop: '0.7rem', fontSize: '0.74rem', color: colors.textSecondary }}>
+                  </span>
+                ))}
+                {resto > 0 && <span style={{ fontSize: '0.74rem', color: colors.textSecondary }}>+{resto} atividade{resto > 1 ? 's' : ''}</span>}
+                {avaliacao && <span style={{ fontSize: '0.76rem', fontWeight: 600, color: colors.textSecondary }}>Avaliação</span>}
+                {!atividades.length && !avaliacao && (
+                  <span className={quadro ? 'tp-titulo' : undefined} style={{ fontFamily: quadro ? tk.fonteTitulo : 'inherit', fontWeight: 400, fontSize: quadro ? '1.05rem' : '0.78rem', color: colors.textMuted, textTransform: 'none' }}>
+                    {passado ? '—' : quadro ? '+ a planejar' : 'a planejar'}
+                  </span>
+                )}
+              </>
+            )}
+            {d.minutos > 0 && (
+              <span className="tp-titulo tp-num" style={{ marginTop: 'auto', alignSelf: isMobile ? 'flex-end' : 'flex-start', fontFamily: quadro ? tk.fonteTitulo : 'inherit', fontWeight: 700, fontSize: quadro ? '1.25rem' : '0.82rem', color: quadro ? colors.primary : colors.text, textTransform: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                {quadro ? `= ${d.minutos}'` : `${d.minutos} min`}{quadro && eHoje && <ArrowRight size={18} />}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  // ------------------------------------------------ rodapé: legenda + atalhos
+  const rodape = (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap', borderTop: quadro ? separador : `1px solid ${colors.border}`, padding: quadro ? '0.65rem 0 0' : (isMobile ? '0.75rem 1rem 1rem' : '0.7rem 1.25rem 0.85rem'), flexShrink: 0 }}>
+      <div style={{ display: 'flex', gap: '0.85rem', flexWrap: 'wrap', fontSize: '0.74rem', color: colors.textSecondary }}>
         {Object.keys(COR_PILAR).map((k) => (
           <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Ima cor={COR_PILAR[k]} tamanho={10} />{NOME_PILAR[k]}</span>
         ))}
       </div>
+      <nav aria-label="Atalhos" style={{ display: isMobile ? 'grid' : 'flex', gridTemplateColumns: isMobile ? '1fr 1fr' : undefined, gap: isMobile ? 6 : 8, flexWrap: 'wrap', width: isMobile ? '100%' : 'auto' }}>
+        {atalhos.map((a, i) => <AtalhoCompacto key={a.key} ctx={ctx} {...a} principal={i === 0} largo={isMobile && i === 0 && atalhos.length % 2 === 1} />)}
+      </nav>
+    </div>
+  );
+
+  if (quadro) {
+    return (
+      <section aria-label="Quadro da semana" style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0, flex: isMobile ? undefined : 1, marginBottom: isMobile ? 6 : 14 }}>
+        <div style={{
+          position: 'relative', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0,
+          backgroundColor: colors.surface,
+          backgroundImage: isDark ? 'none' : 'linear-gradient(160deg, rgba(255,255,255,.9) 0%, rgba(255,255,255,0) 35%, rgba(0,0,0,.025) 100%)',
+          border: `${isMobile ? 6 : 9}px solid ${colors.border}`, borderRadius: 7,
+          boxShadow: `inset 0 0 0 1px ${isDark ? 'rgba(0,0,0,.4)' : 'rgba(0,0,0,.08)'}, inset 0 2px 6px rgba(0,0,0,.06), 0 14px 26px -18px rgba(0,0,0,.6)`,
+          padding: isMobile ? '0.85rem 0.8rem 0.8rem' : '1rem 1.4rem 0.8rem',
+        }}>
+          {cabecalho}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: -2, marginBottom: 4 }}>
+            <span className="tp-num" style={{ fontSize: '0.78rem', color: colors.textSecondary, marginRight: 'auto' }}>{faixaSemana}</span>
+            <LinkAcao ctx={ctx} onClick={onAbrir}>Abrir a semana</LinkAcao>
+          </div>
+          {semana}
+          {rodape}
+        </div>
+        {/* calha do quadro com os pincéis e o apagador */}
+        {!isMobile && (
+          <div aria-hidden="true" style={{ position: 'absolute', left: '18%', right: '18%', bottom: -13, height: 13, borderRadius: '0 0 4px 4px', background: isDark ? '#3d444b' : 'linear-gradient(#a7aeb5, #858c93)', boxShadow: '0 4px 8px -4px rgba(0,0,0,.5)' }}>
+            <span style={{ position: 'absolute', left: '12%', top: -6, width: 64, height: 9, borderRadius: 5, background: '#1A3E9C', boxShadow: 'inset 0 -2px 0 rgba(0,0,0,.3)' }} />
+            <span style={{ position: 'absolute', left: 'calc(12% + 74px)', top: -6, width: 64, height: 9, borderRadius: 5, background: VERMELHO, boxShadow: 'inset 0 -2px 0 rgba(0,0,0,.3)' }} />
+            <span style={{ position: 'absolute', left: 'calc(12% + 148px)', top: -6, width: 64, height: 9, borderRadius: 5, background: '#222', boxShadow: 'inset 0 -2px 0 rgba(255,255,255,.15)' }} />
+            <span style={{ position: 'absolute', right: '14%', top: -12, width: 70, height: 15, borderRadius: 3, background: 'linear-gradient(#3a3a3a 0 45%, #d8d2c4 45%)', boxShadow: '0 1px 2px rgba(0,0,0,.4)' }} />
+          </div>
+        )}
+      </section>
+    );
+  }
+
+  return (
+    <section aria-label="Semana" style={cartaoStyle(ctx, { display: 'flex', flexDirection: 'column', padding: 0, flex: isMobile ? undefined : 1, minHeight: 0 })}>
+      {cabecalho}
+      {semana}
+      {rodape}
     </section>
   );
 }
@@ -498,24 +568,25 @@ function QuadroSemana({ ctx, dias, hojeStr, numSemana, clube, onDia, onAbrir, lo
 // Hoje (do "Vestiário"): o treino do dia, atividade a atividade
 // ---------------------------------------------------------------------------------------------
 
-function CartaoHoje({ ctx, hoje, nextSessions, hojeStr, onAbrir }) {
+function CartaoHoje({ ctx, hoje, nextSessions, hojeStr, onAbrir, max = 4 }) {
   const { colors, tk } = ctx;
   const treinos = (hoje?.periodos || []).filter((p) => p.tipo === 'training' && p.atividades.length);
   const jogoHoje = (hoje?.periodos || []).find((p) => p.tipo === 'match');
   const proximo = nextSessions.find((s) => String(s.date).split('T')[0] > hojeStr && s.session_type === 'training');
   return (
-    <section aria-label="Treino de hoje" style={cartaoStyle(ctx, { display: 'flex', flexDirection: 'column' })}>
+    <section aria-label="Treino de hoje" style={cartaoStyle(ctx, { display: 'flex', flexDirection: 'column', transform: ctx.estilo === 'prancheta' && !ctx.isMobile ? 'rotate(-0.4deg)' : 'none' })}>
+      <Prende ctx={ctx} />
       {treinos.length ? (
         <>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: '0.7rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: '0.4rem' }}>
             <div>
-              <Titulo ctx={ctx} tamanho="1.15rem">Treino de hoje{treinos.length === 1 && treinos[0].periodo ? ` · ${rotuloPeriodo(treinos[0].periodo)}` : ''}</Titulo>
+              <Titulo ctx={ctx} tamanho="1.1rem">Treino de hoje{treinos.length === 1 && treinos[0].periodo ? ` · ${rotuloPeriodo(treinos[0].periodo)}` : ''}</Titulo>
               <p className="tp-num" style={{ margin: '0.25rem 0 0', fontSize: '0.82rem', color: colors.textSecondary }}>{hoje.minutos} minutos · {treinos.reduce((s, p) => s + p.atividades.length, 0)} atividades</p>
             </div>
           </div>
-          <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', flex: 1 }}>
-            {treinos.flatMap((p) => p.atividades.map((a, k) => ({ ...a, k: `${p.id}-${k}`, periodo: treinos.length > 1 ? p.periodo : null }))).slice(0, 6).map((a, k, arr) => (
-              <li key={a.k} style={{ display: 'grid', gridTemplateColumns: '14px 1fr auto', gap: 10, alignItems: 'start', padding: '0.45rem 0', borderBottom: k < arr.length - 1 ? `1px ${ctx.estilo === 'prancheta' ? 'dashed' : 'solid'} ${colors.border}` : 'none' }}>
+          <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
+            {treinos.flatMap((p) => p.atividades.map((a, k) => ({ ...a, k: `${p.id}-${k}`, periodo: treinos.length > 1 ? p.periodo : null }))).slice(0, max).map((a, k, arr) => (
+              <li key={a.k} style={{ display: 'grid', gridTemplateColumns: '14px 1fr auto', gap: 10, alignItems: 'start', padding: '0.32rem 0', borderBottom: k < arr.length - 1 ? `1px ${ctx.estilo === 'prancheta' ? 'dashed' : 'solid'} ${colors.border}` : 'none' }}>
                 <Ima cor={COR_PILAR[a.pilar] || colors.textMuted} tamanho={12} style={{ marginTop: 3 }} />
                 <span style={{ minWidth: 0 }}>
                   <span style={{ display: 'block', fontWeight: 600, fontSize: '0.86rem', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.titulo}</span>
@@ -525,11 +596,8 @@ function CartaoHoje({ ctx, hoje, nextSessions, hojeStr, onAbrir }) {
               </li>
             ))}
           </ol>
-          <div style={{ marginTop: '0.8rem' }}>
-            <button type="button" onClick={() => onAbrir(hojeStr)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '0.6rem 1rem', borderRadius: Math.min(tk.raio, 10), border: 'none', backgroundColor: colors.primary, color: colors.primaryText, fontWeight: 600, fontSize: '0.86rem', fontFamily: 'inherit', cursor: 'pointer' }}>
-              Abrir o treino <ArrowRight size={16} />
-            </button>
+          <div style={{ marginTop: 'auto', paddingTop: '0.4rem' }}>
+            <LinkAcao ctx={ctx} onClick={() => onAbrir(hojeStr)}>Abrir o treino</LinkAcao>
           </div>
         </>
       ) : (
@@ -571,7 +639,7 @@ function CampoMini({ ctx, formacao }) {
   const linha = quadro ? colors.primary : '#ffffff';
   const pts = posicoesDaFormacao(formacao);
   return (
-    <svg viewBox="0 0 200 110" role="img" aria-label={`Formação ${formacao || '4-3-3'}`} style={{ width: '100%', height: 'auto', display: 'block', borderRadius: Math.min(ctx.tk.raio, 8), backgroundColor: quadro ? 'transparent' : '#1f7a3f' }}>
+    <svg viewBox="0 0 200 110" role="img" aria-label={`Formação ${formacao || '4-3-3'}`} style={{ width: '100%', height: 'auto', maxHeight: ctx.isMobile ? 'none' : 92, display: 'block', borderRadius: Math.min(ctx.tk.raio, 8), backgroundColor: quadro ? 'transparent' : '#1f7a3f' }}>
       {!quadro && <g fill="#000" opacity=".08">{[0, 40, 80, 120, 160].map((x) => <rect key={x} x={x} width="20" height="110" />)}</g>}
       <g fill="none" stroke={linha} strokeOpacity={quadro ? 0.55 : 0.6} strokeWidth="1.5" strokeDasharray={quadro ? '5 4' : undefined}>
         <rect x="3" y="3" width="194" height="104" rx="2" /><path d="M100 3v104" /><circle cx="100" cy="55" r="15" />
@@ -589,6 +657,7 @@ function CartaoJogo({ ctx, jogo, dias, treinos, onAbrir, onProgramacao }) {
   if (!jogo) {
     return (
       <section aria-label="Próximo jogo" style={cartaoStyle(ctx, { display: 'flex', flexDirection: 'column' })}>
+        <Prende ctx={ctx} cor={VERMELHO} />
         <Titulo ctx={ctx} tamanho="1.15rem">Próximo jogo</Titulo>
         <p style={{ margin: '0.45rem 0 0.9rem', fontSize: '0.88rem', color: colors.textSecondary, lineHeight: 1.5 }}>Nenhum jogo marcado. Na Programação, mude o tipo de um dia para Jogo.</p>
         <div style={{ marginTop: 'auto' }}><LinkAcao ctx={ctx} onClick={onProgramacao}>Ir para a Programação</LinkAcao></div>
@@ -604,7 +673,8 @@ function CartaoJogo({ ctx, jogo, dias, treinos, onAbrir, onProgramacao }) {
     </span>
   );
   return (
-    <section aria-label="Próximo jogo" style={cartaoStyle(ctx, { display: 'flex', flexDirection: 'column', gap: '0.65rem' })}>
+    <section aria-label="Próximo jogo" style={cartaoStyle(ctx, { display: 'flex', flexDirection: 'column', gap: '0.5rem' })}>
+      <Prende ctx={ctx} cor={VERMELHO} />
       <div>
         <span style={{ fontSize: '0.74rem', fontWeight: 700, color: VERMELHO, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
           {DIAS_LONGOS[(dataDe(data).getDay() + 6) % 7]} {ddmm(data)}{jogo.match_kickoff ? ` · ${jogo.match_kickoff.replace(':', 'h')}` : ''}{mando ? ` · ${mando}` : ''}
@@ -641,12 +711,13 @@ function CartaoJogo({ ctx, jogo, dias, treinos, onAbrir, onProgramacao }) {
 // Plantel: prontos × no departamento médico (um ímã por atleta)
 // ---------------------------------------------------------------------------------------------
 
-function CartaoPlantel({ ctx, total, disponiveis, injuries, podeVer, onPlantel }) {
+function CartaoPlantel({ ctx, total, disponiveis, injuries, podeVer, onPlantel, max = 2 }) {
   const { colors, tk, estilo } = ctx;
   const n = Math.min(total, 30);
   const noDm = Math.min(injuries.length, n);
   return (
-    <section aria-label="Plantel" style={cartaoStyle(ctx, { display: 'flex', flexDirection: 'column' })}>
+    <section aria-label="Plantel" style={cartaoStyle(ctx, { display: 'flex', flexDirection: 'column', transform: ctx.estilo === 'prancheta' && !ctx.isMobile ? 'rotate(0.35deg)' : 'none' })}>
+      <Prende ctx={ctx} cor="#555" />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
         <Titulo ctx={ctx} tamanho="1.15rem">Plantel</Titulo>
         {podeVer && <LinkAcao ctx={ctx} onClick={onPlantel}>Ver plantel</LinkAcao>}
@@ -666,7 +737,7 @@ function CartaoPlantel({ ctx, total, disponiveis, injuries, podeVer, onPlantel }
         <p style={{ margin: 0, fontSize: '0.84rem', color: colors.textSecondary }}>{total ? 'Ninguém no departamento médico.' : 'Nenhum atleta cadastrado ainda.'}</p>
       ) : (
         <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-          {injuries.slice(0, 3).map((inj, k, arr) => (
+          {injuries.slice(0, max).map((inj, k, arr) => (
             <li key={inj.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '0.45rem 0', borderBottom: k < arr.length - 1 ? `1px ${estilo === 'prancheta' ? 'dashed' : 'solid'} ${colors.border}` : 'none' }}>
               <Ima cor={VERMELHO} tamanho={12} style={{ marginTop: 4 }} />
               <span style={{ minWidth: 0, flex: 1 }}>
@@ -675,7 +746,7 @@ function CartaoPlantel({ ctx, total, disponiveis, injuries, podeVer, onPlantel }
               </span>
             </li>
           ))}
-          {injuries.length > 3 && <li style={{ fontSize: '0.78rem', color: colors.textSecondary, paddingTop: 4 }}>+{injuries.length - 3} no departamento médico</li>}
+          {injuries.length > max && <li style={{ fontSize: '0.78rem', color: colors.textSecondary, paddingTop: 4 }}>+{injuries.length - max} no departamento médico</li>}
         </ul>
       )}
       {!podeVer && <span style={{ marginTop: 'auto' }} />}
@@ -685,64 +756,36 @@ function CartaoPlantel({ ctx, total, disponiveis, injuries, podeVer, onPlantel }
 }
 
 // ---------------------------------------------------------------------------------------------
-// Atalhos (do "Vestiário"): cartões ilustrados; no quadro tático viram etiquetas
+// Atalhos compactos no pé do quadro: etiquetas de pincel (Quadro tático), placas pretas (Placar),
+// pastilhas coloridas (Clássico e Gramado). O primeiro (Programação) vai na cor do clube.
 // ---------------------------------------------------------------------------------------------
 
-const COR_ATALHO = { semana: null, pessoas: '#1e3a8a', barras: '#7c2d12', campo: '#0f172a', alvo: '#5b21b6' };
+const COR_ATALHO = { semana: null, pessoas: '#1e3a8a', barras: '#9a3412', campo: '#0f172a', alvo: '#5b21b6' };
 
-function Ilustracao({ tipo, cor }) {
-  const g = { fill: 'none', stroke: cor, strokeOpacity: 0.28, strokeWidth: 2 };
-  const f = { fill: cor, fillOpacity: 0.22 };
-  return (
-    <svg aria-hidden="true" viewBox="0 0 300 110" preserveAspectRatio="xMaxYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
-      {tipo === 'semana' && <g {...g}><rect x="170" y="12" width="118" height="86" rx="4" /><path d="M170 34h118M200 12v86M230 12v86M260 12v86" /></g>}
-      {tipo === 'pessoas' && <g {...f}><circle cx="215" cy="40" r="16" /><path d="M185 98c0-20 13-32 30-32s30 12 30 32z" /><circle cx="262" cy="47" r="12" /><path d="M241 98c2-15 10-24 21-24s19 9 21 24z" /></g>}
-      {tipo === 'barras' && <g {...f}><rect x="182" y="62" width="16" height="40" /><rect x="206" y="42" width="16" height="60" /><rect x="230" y="24" width="16" height="78" /><rect x="254" y="50" width="16" height="52" /></g>}
-      {tipo === 'campo' && <><g {...g}><rect x="160" y="10" width="130" height="90" /><path d="M225 10v90" /><circle cx="225" cy="55" r="16" /></g><path d="M180 82c30-30 55-40 90-30" stroke="#facc15" strokeOpacity=".75" strokeWidth="2.5" fill="none" strokeDasharray="5 4" /></>}
-      {tipo === 'alvo' && <g {...g}><circle cx="240" cy="55" r="40" /><circle cx="240" cy="55" r="25" /><circle cx="240" cy="55" r="10" /></g>}
-    </svg>
-  );
-}
-
-function Atalho({ ctx, label, sub, icon: Icon, ilu, onClick, largo }) {
-  const { colors, tk, estilo, isMobile } = ctx;
-  const base = { gridColumn: largo ? 'span 2' : undefined, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'flex-start', textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', minWidth: 0, minHeight: isMobile ? 84 : 104, padding: isMobile ? '0.75rem 0.85rem' : '0.9rem 1rem', borderRadius: tk.raio };
+function AtalhoCompacto({ ctx, label, icon: Icon, ilu, onClick, principal, largo }) {
+  const { colors, tk, estilo } = ctx;
+  const base = { gridColumn: largo ? 'span 2' : undefined, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '0.48rem 0.85rem', fontFamily: 'inherit', fontSize: '0.84rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', minWidth: 0 };
   if (estilo === 'prancheta') {
-    // etiqueta de quadro: branco, contorno de pincel; a 1ª na cor do clube
-    const cheia = ilu === 'semana';
     return (
       <button type="button" onClick={onClick} className="tp-cartao-link"
-        style={{ ...base, justifyContent: 'space-between', backgroundColor: cheia ? colors.primary : colors.surface, color: cheia ? colors.primaryText : colors.text, border: `2.5px solid ${cheia ? colors.primary : colors.text}` }}>
-        <Icon size={20} />
-        <span>
-          <span className="tp-titulo" style={{ display: 'block', fontFamily: tk.fonteTitulo, fontWeight: 700, fontSize: '1.25rem', lineHeight: 1.1 }}>{label}</span>
-          <span style={{ fontSize: '0.74rem', opacity: 0.8 }}>{sub}</span>
-        </span>
+        style={{ ...base, borderRadius: 3, backgroundColor: principal ? colors.primary : 'transparent', color: principal ? colors.primaryText : colors.text, border: `2px solid ${principal ? colors.primary : colors.text}`, fontWeight: 700 }}>
+        <Icon size={16} />{label}
       </button>
     );
   }
   if (estilo === 'placar') {
     return (
       <button type="button" onClick={onClick} className="tp-cartao-link"
-        style={{ ...base, justifyContent: 'space-between', backgroundColor: '#0b0b0c', color: '#f5f5f4', border: 'none', borderBottom: `4px solid ${colors.primary}` }}>
-        <Icon size={19} color={colors.primary === '#0b0b0c' ? '#fff' : colors.primary} />
-        <span>
-          <span className="tp-titulo" style={{ display: 'block', fontFamily: tk.fonteTitulo, fontWeight: 700, textTransform: 'uppercase', fontSize: '1.2rem', letterSpacing: '0.03em', lineHeight: 1.05 }}>{label}</span>
-          <span style={{ fontSize: '0.72rem', color: '#a6a6ae' }}>{sub}</span>
-        </span>
+        style={{ ...base, borderRadius: 2, backgroundColor: '#0b0b0c', color: '#f5f5f4', border: 'none', borderBottom: `3px solid ${colors.primary}`, fontFamily: tk.fonteTitulo, textTransform: 'uppercase', letterSpacing: '0.04em', fontSize: '0.95rem', fontWeight: 700 }}>
+        <Icon size={15} />{label}
       </button>
     );
   }
-  // Clássico e Gramado: cartões coloridos com ilustração
-  const fundo = COR_ATALHO[ilu] || colors.primary;
-  const texto = ilu === 'semana' ? colors.primaryText : '#fff';
+  const fundo = principal ? colors.primary : (COR_ATALHO[ilu] || colors.primary);
   return (
-    <button type="button" onClick={onClick} className="tp-cartao-link" style={{ ...base, backgroundColor: fundo, color: texto, border: 'none' }}>
-      <Ilustracao tipo={ilu} cor={texto} />
-      <span style={{ position: 'relative' }}>
-        <span className="tp-titulo" style={{ display: 'block', fontWeight: estilo === 'gramado' ? 800 : 700, fontSize: '1rem', lineHeight: 1.15 }}>{label}</span>
-        <span style={{ fontSize: '0.74rem', opacity: 0.85 }}>{sub}</span>
-      </span>
+    <button type="button" onClick={onClick} className="tp-cartao-link"
+      style={{ ...base, borderRadius: Math.min(tk.raio, 10), backgroundColor: fundo, color: principal ? colors.primaryText : '#fff', border: 'none' }}>
+      <Icon size={16} />{label}
     </button>
   );
 }

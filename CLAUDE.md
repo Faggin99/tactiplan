@@ -265,4 +265,10 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
 - `GET /api/home/dashboard` agora traz `semana` (dias da semana atual → períodos → atividades {titulo, bloco, minutos, pilar})
   e o próximo jogo com horário/local/apresentação/mando/formação. `?semanaDe=AAAA-MM-DD` mostra outra semana (prévia/teste;
   na tela: `#/home?semanaDe=…`).
+- 12/11: Início CABE NA TELA no computador (`Layout` trata `/home` como viewport fixo; itens por dia/cartão pela altura da
+  janela). Composição: UM quadro (cabeçalho/capa + semana + legenda e atalhos no pé) e embaixo 3 cartões. No Quadro tático é
+  o quadro branco do modelo A: moldura de alumínio, calha com pincéis e apagador, "Semana N" a pincel, aviso do jogo em
+  vermelho, etiquetas de atalho; os cartões viram folhas presas por ímã.
+- Primária ilegível (contraste < 3:1 com fundo/superfície, ex. #24eb45 do Uberlândia no claro) é escurecida/clareada na tela
+  por `legivelSobre` em `resolveThemeColors` (o branding salvo não muda).
 - Ainda não: ímãs/pincel dentro da Programação e das outras telas (lá o estilo muda cores, fundo e títulos); apps nativos.

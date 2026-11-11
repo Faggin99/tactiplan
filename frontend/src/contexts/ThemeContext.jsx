@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState, useEffect, useCallback } from 'react';
-import { normalizeHex, darkenHex, lightenHex, relativeLuminance, bestTextOn } from '../lib/color';
+import { normalizeHex, darkenHex, lightenHex, relativeLuminance, bestTextOn, contrastRatio } from '../lib/color';
 import { ESTILOS, estiloValido } from '../lib/estilos';
 
 const ThemeContext = createContext();
@@ -109,9 +109,25 @@ export function resolveThemeColors(themeName, branding, estilo = 'classico') {
     out.primaryHover = relativeLuminance(o.primary) < 0.03 ? lightenHex(o.primary, 0.18) : darkenHex(o.primary, 0.2);
     out.info = o.primary; // links/info acompanham a cor do clube
   }
+  // Primária ilegível sobre o fundo (ex.: verde-neon #24eb45 no claro, contraste 1,6:1): escurece
+  // (no claro) ou clareia (no escuro) até 3:1 com o fundo e a superfície — títulos, links e ímãs
+  // ficam legíveis e perto da cor real. O que o clube salvou não muda; só a cor usada na tela.
+  out.primary = legivelSobre(out.primary, [out.background, out.surface]);
+  out.primaryHover = relativeLuminance(out.primary) < 0.03 ? lightenHex(out.primary, 0.18) : darkenHex(out.primary, 0.2);
+  if (o.primary) out.info = out.primary;
   // Texto sobre a primária SEMPRE automático (contraste AA): amarelo pede texto escuro.
   out.primaryText = bestTextOn(out.primary);
   return out;
+}
+
+function legivelSobre(cor, fundos) {
+  const claro = relativeLuminance(fundos[0]) > 0.5;
+  let c = cor;
+  for (let i = 0; i < 20; i++) {
+    if (fundos.every((f) => contrastRatio(c, f) >= 3)) break;
+    c = claro ? darkenHex(c, 0.06) : lightenHex(c, 0.06);
+  }
+  return c;
 }
 
 export function ThemeProvider({ children }) {
