@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo, useState, useEffect, useCallback } from 'react';
 import { normalizeHex, darkenHex, lightenHex, relativeLuminance, bestTextOn } from '../lib/color';
+import { ESTILOS, estiloValido } from '../lib/estilos';
 
 const ThemeContext = createContext();
 
@@ -82,9 +83,12 @@ export function effectiveClubBranding(club) {
 
 // Paleta efetiva de um tema com os overrides do branding (exportada pra prévia da
 // Personalização montar amostras sem mexer no tema global). Mesma lógica do Gestsport.
-export function resolveThemeColors(themeName, branding) {
-  const base = themes[themeName].colors;
-  const o = (branding && branding[themeName]) || {};
+export function resolveThemeColors(themeName, branding, estilo = 'classico') {
+  const est = ESTILOS[estiloValido(estilo)];
+  const base = { ...themes[themeName].colors, ...(est[themeName] || {}) };
+  const cheio = (branding && branding[themeName]) || {};
+  // Fora do Clássico, o estilo manda nas superfícies; do clube vale só a primária.
+  const o = estiloValido(estilo) === 'classico' ? cheio : (cheio.primary ? { primary: cheio.primary } : {});
   const out = { ...base };
   if (o.background) out.background = o.background;
   if (o.surface) {
@@ -115,6 +119,11 @@ export function ThemeProvider({ children }) {
     const saved = localStorage.getItem('theme');
     return saved || 'light';
   });
+  // Estilo (Clássico, Quadro tático, Gramado, Placar) — por aparelho.
+  const [estilo, setEstiloState] = useState(() => {
+    try { return estiloValido(localStorage.getItem('estilo')); } catch { return 'classico'; }
+  });
+  const setEstilo = useCallback((id) => setEstiloState(estiloValido(id)), []);
   // Branding do clube ativo — o ClubProvider injeta via setClubBranding.
   const [clubBranding, setClubBranding] = useState(null);
   // Rascunho da página Personalização (prévia ao vivo no app inteiro). null = sem prévia.
@@ -124,6 +133,21 @@ export function ThemeProvider({ children }) {
     localStorage.setItem('theme', theme);
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+
+  // Estilo: atributo no <html> (regras em index.css) + variáveis de tipografia/forma.
+  const estiloTokens = ESTILOS[estilo].tokens;
+  useEffect(() => {
+    try { localStorage.setItem('estilo', estilo); } catch { /* sem storage */ }
+    const el = document.documentElement;
+    el.setAttribute('data-estilo', estilo);
+    el.style.setProperty('--fonte-titulo', estiloTokens.fonteTitulo);
+    el.style.setProperty('--peso-titulo', String(estiloTokens.pesoTitulo));
+    el.style.setProperty('--caixa-titulo', estiloTokens.caixaTitulo);
+    el.style.setProperty('--fonte-texto', estiloTokens.fonteTexto);
+    el.style.setProperty('--raio', `${estiloTokens.raio}px`);
+  }, [estilo, estiloTokens]);
+
+
 
   const toggleTheme = () => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
@@ -136,7 +160,9 @@ export function ThemeProvider({ children }) {
   }, []);
 
   const activeBranding = brandingDraft || clubBranding;
-  const colors = useMemo(() => resolveThemeColors(theme, activeBranding), [theme, activeBranding]);
+  const colors = useMemo(() => resolveThemeColors(theme, activeBranding, estilo), [theme, activeBranding, estilo]);
+  // primária para CSS (seleção de texto, foco)
+  useEffect(() => { document.documentElement.style.setProperty('--cor-primaria', colors.primary); }, [colors.primary]);
 
   const value = {
     theme,
@@ -144,6 +170,9 @@ export function ThemeProvider({ children }) {
     toggleTheme,
     colors,
     isDark: theme === 'dark',
+    estilo,
+    setEstilo,
+    estiloTokens,
     clubBranding,
     setClubBranding,
     brandingDraft,

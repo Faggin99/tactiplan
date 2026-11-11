@@ -139,3 +139,24 @@ button, input, select, textarea { font-family: inherit; }
 /* Início — botões de atalho */
 .home-atalho:focus-visible { outline: 2px solid var(--atalho-cor); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .home-atalho { transform: none !important; transition: none !important; } }
+
+/* ===== Estilos do app (11/11/2026) — data-estilo no <html>, variáveis do ThemeContext ===== */
+body { font-family: var(--fonte-texto, 'Poppins'), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+html:not([data-estilo="classico"]) h1,
+html:not([data-estilo="classico"]) h2,
+.tp-titulo {
+  font-family: var(--fonte-titulo, 'Poppins');
+  font-weight: var(--peso-titulo, 700);
+  text-transform: var(--caixa-titulo, none);
+}
+html[data-estilo="prancheta"] h1, html[data-estilo="prancheta"] h2 { letter-spacing: 0; }
+html[data-estilo="placar"] h1, html[data-estilo="placar"] h2 { letter-spacing: 0.01em; }
+::selection { background: color-mix(in srgb, var(--cor-primaria, #2563eb) 30%, transparent); }
+/* números alinhados em tabelas e totais */
+.tp-num { font-variant-numeric: tabular-nums; }
+/* Início: hover dos cartões e do quadro */
+.tp-cartao-link { transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1); }
+.tp-cartao-link:hover { transform: translateY(-2px); box-shadow: 0 10px 22px -12px rgba(0, 0, 0, 0.45); }
+.tp-cartao-link:focus-visible, .tp-dia:focus-visible { outline: 2px solid var(--cor-primaria, #2563eb); outline-offset: 2px; }
+.tp-dia { transition: background-color 150ms ease; }
+@media (prefers-reduced-motion: reduce) { .tp-cartao-link, .tp-cartao-link:hover { transform: none; transition: none; } }

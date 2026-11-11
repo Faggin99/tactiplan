@@ -3,9 +3,10 @@ import { createPortal } from 'react-dom';
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home, Calendar, BarChart3, Waypoints, Building2, LayoutGrid, Users, User, Trophy, BookOpen, Target,
-  ChevronDown, ChevronRight, LogOut, CreditCard, Settings, Lock, X, PanelLeft, HelpCircle, Moon, Sun, Menu,
+  ChevronDown, ChevronRight, LogOut, CreditCard, Settings, Lock, X, PanelLeft, HelpCircle, Menu,
   Check, Loader2, FolderCog, Paintbrush,
 } from 'lucide-react';
+import MenuAparencia from './MenuAparencia';
 import { CADASTROS_TABS, isCadastrosPath, CADASTROS_EXTRA } from '../../lib/cadastros';
 import { usePlanFeatures } from '../../hooks/usePlanFeatures';
 import { useCan } from '../../hooks/useCan';
@@ -549,7 +550,7 @@ function MenuTutorial({ compacto = false }) {
 
 // Barra superior do desktop: recolher/expandir o menu + "onde estou" + tutorial e tema.
 export function AppTopBar({ collapsed, onToggle }) {
-  const { colors, isDark, toggleTheme } = useTheme();
+  const { colors } = useTheme();
   const { selectedClub } = useClub();
   const { pathname } = useLocation();
   const { secao, pagina } = paginaDaRota(pathname);
@@ -572,16 +573,14 @@ export function AppTopBar({ collapsed, onToggle }) {
       </nav>
       <div style={{ flex: 1 }} />
       <MenuTutorial />
-      <BotaoIcone onClick={toggleTheme} title={isDark ? 'Usar tema claro' : 'Usar tema escuro'}>
-        {isDark ? <Sun size={18} /> : <Moon size={18} />}
-      </BotaoIcone>
+      <MenuAparencia />
     </div>
   );
 }
 
 // Barra superior do celular: abre a gaveta, marca e atalhos.
 export function AppMobileBar({ onOpenMenu }) {
-  const { colors, isDark, toggleTheme } = useTheme();
+  const { colors } = useTheme();
   const marca = useMarcaClube();
   return (
     <header style={{ position: 'sticky', top: 0, zIndex: 200, height: '3.5rem', display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0 0.75rem', paddingTop: 'env(safe-area-inset-top)', boxSizing: 'content-box', backgroundColor: colors.surface, borderBottom: `1px solid ${colors.border}` }}>
@@ -595,10 +594,7 @@ export function AppMobileBar({ onOpenMenu }) {
       </Link>
       <div style={{ flex: 1 }} />
       <MenuTutorial compacto />
-      <button type="button" onClick={toggleTheme} aria-label={isDark ? 'Usar tema claro' : 'Usar tema escuro'}
-        style={{ width: 36, height: 36, borderRadius: '0.6rem', border: 'none', background: 'transparent', color: colors.textSecondary, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        {isDark ? <Sun size={19} /> : <Moon size={19} />}
-      </button>
+      <MenuAparencia compacto />
     </header>
   );
 }

@@ -248,3 +248,21 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   vira evento no estado do modal do jogo (grava no Salvar do jogo); exige o marco do tempo para saber o minuto.
 - Próximas fases (estudo /var/www/arquivos/Estudo_SCT360_TactiPlan.pdf): 2 scout nas Estatísticas/relatórios;
   3 desenhos (holofote, seta, zona…) e cortes em vídeo; 4 presença do treino; 5 app.
+
+## Estilos do app + Início nova (11/11/2026)
+- Menu "Aparência" no topo (`components/layout/MenuAparencia.jsx`, no lugar da lua/sol): Claro/Escuro + ESTILO
+  (`lib/estilos.js`): Clássico (o de antes), Quadro tático (quadro branco, Kalam nos títulos, Hanken no texto, moldura
+  de alumínio), Gramado (verde de campo, cantos 14px) e Placar (contraste alto, Barlow Condensed em caixa alta).
+  Por aparelho (localStorage `estilo`). `ThemeContext` expõe `estilo`, `setEstilo`, `estiloTokens`; põe `data-estilo` no
+  <html> e as variáveis `--fonte-titulo/--peso-titulo/--caixa-titulo/--fonte-texto/--raio/--cor-primaria` (regras em index.css:
+  h1/h2 fora do Clássico usam a fonte do estilo). `resolveThemeColors(tema, branding, estilo)`: fora do Clássico o estilo manda
+  nas superfícies e do branding do clube vale só a primária. Fontes empacotadas (@fontsource kalam/hanken-grotesk/barlow-condensed).
+- Início (`HomePage.jsx`) = mistura da Prancheta com o Vestiário (estudo em /var/www/arquivos/Estudo_Inicio_TactiPlan.pdf):
+  capa com escudo (logo do clube ou escudo desenhado com as cores/sigla) e saudação, fundo pelo estilo (`tokens.capa`:
+  clube | quadro | gramado | placar); QUADRO DA SEMANA (7 dias, ímã por atividade na cor do pilar `COR_PILAR`, total do dia,
+  jogo/folga; clique abre o dia); Treino de hoje; Próximo jogo (campo com a formação, dias, treinos antes, Análise); Plantel
+  (prontos × DM, um ímã por atleta); atalhos ilustrados (etiquetas no Quadro tático, placas no Placar).
+- `GET /api/home/dashboard` agora traz `semana` (dias da semana atual → períodos → atividades {titulo, bloco, minutos, pilar})
+  e o próximo jogo com horário/local/apresentação/mando/formação. `?semanaDe=AAAA-MM-DD` mostra outra semana (prévia/teste;
+  na tela: `#/home?semanaDe=…`).
+- Ainda não: ímãs/pincel dentro da Programação e das outras telas (lá o estilo muda cores, fundo e títulos); apps nativos.

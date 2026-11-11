@@ -1,7 +1,7 @@
 const express = require('express');
 const { query } = require('../config/database');
 const authMiddleware = require('../middleware/auth');
-const { proximasPorDia, ordemSql } = require('../services/periodos');
+const { proximasPorDia, ordemSql, periodoEfetivo } = require('../services/periodos');
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -30,7 +30,8 @@ router.get('/home/dashboard', async (req, res) => {
     const nextSessionsResult = await query(nextSessionSql, nextSessionParams);
 
     const nextMatchSql = `
-      SELECT s.id, s.date, s.day_name, s.opponent_name, m.club_id
+      SELECT s.id, s.date, s.day_name, s.opponent_name, m.club_id,
+             s.match_kickoff, s.match_venue, s.match_meet_time, s.match_location, s.formation
         FROM training_sessions s
         JOIN training_microcycles m ON s.microcycle_id = m.id
        WHERE s.workspace_id = ANY($1)
@@ -97,7 +98,12 @@ router.get('/home/dashboard', async (req, res) => {
       nextSessionParams
     );
 
+    // ?semanaDe=AAAA-MM-DD: mostra a semana desse dia (prévia/teste); padrão = hoje
+    const semanaDe = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.semanaDe || '')) ? req.query.semanaDe : null;
+    const semana = await semanaAtual(nextSessionParams, clubId, semanaDe);
+
     res.json({
+      semana,
       // 1 linha por dia (dia com 2+ períodos traz `periodos`)
       nextSessions: proximasPorDia(nextSessionsResult.rows, 5),
       nextMatch: nextMatchResult.rows[0] || null,
@@ -114,5 +120,44 @@ router.get('/home/dashboard', async (req, res) => {
     res.status(500).json({ error: 'Failed to load home dashboard' });
   }
 });
+
+// Semana ATUAL (seg–dom) para o quadro da Início: por dia os períodos, com as atividades
+// (título, minutos e o pilar do 1º conteúdo, que pinta o ímã) e o total de minutos.
+async function semanaAtual(baseParams, clubId, semanaDe) {
+  const params = [...baseParams, semanaDe];
+  const ref = `COALESCE($${params.length}::date, CURRENT_DATE)`;
+  const r = await query(`
+    SELECT s.id, s.date::text AS date, s.session_type, s.periodo, s.opponent_name,
+           b."order" AS ordem, b.name AS bloco, a.id AS atividade_id, a.duration_minutes AS minutos,
+           COALESCE(NULLIF(t.title, ''), NULLIF(a.description, '')) AS titulo,
+           (SELECT c.dimension FROM training_activity_contents tc JOIN contents c ON c.id = tc.content_id
+             WHERE tc.activity_id = a.id ORDER BY c.name LIMIT 1) AS pilar
+      FROM training_sessions s
+      JOIN training_microcycles m ON m.id = s.microcycle_id
+      LEFT JOIN training_activity_blocks b ON b.session_id = s.id
+      LEFT JOIN training_activities a ON a.block_id = b.id AND COALESCE(a.is_rest, false) = false
+      LEFT JOIN activity_titles t ON t.id = a.title_id
+     WHERE s.workspace_id = ANY($1)
+       ${clubId ? 'AND m.club_id = $2' : ''}
+       AND s.date BETWEEN date_trunc('week', ${ref})::date AND (date_trunc('week', ${ref})::date + 6)
+     ORDER BY s.date, ${ordemSql('s')}, b."order"`, params);
+  const dias = new Map();
+  for (const row of r.rows) {
+    let dia = dias.get(row.date);
+    if (!dia) { dia = { date: row.date, periodos: [], minutos: 0 }; dias.set(row.date, dia); }
+    let p = dia.periodos.find((x) => x.id === row.id);
+    if (!p) {
+      p = { id: row.id, tipo: row.session_type || 'training', periodo: row.session_type === 'training' || row.session_type === 'assessment' ? periodoEfetivo(row) : row.periodo, adversario: row.opponent_name || null, atividades: [], minutos: 0 };
+      dia.periodos.push(p);
+    }
+    if (row.atividade_id && (row.titulo || row.minutos)) {
+      const min = Number(row.minutos) || 0;
+      p.atividades.push({ titulo: row.titulo || row.bloco, bloco: row.bloco, minutos: min, pilar: row.pilar || null });
+      p.minutos += min;
+      dia.minutos += min;
+    }
+  }
+  return Array.from(dias.values());
+}
 
 module.exports = router;
