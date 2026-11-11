@@ -43,7 +43,7 @@ export function TrainingPage() {
   const plan = usePlanFeatures();
   const showMonthlyTheme = monthlyThemePref === 'enabled' && plan.monthly_theme;
   // chegou por atalho da Início (abre um jogo): o tutorial não abre por cima
-  const [veioDeAtalho] = useState(() => /[?&]jogo=/.test(window.location.hash + window.location.search));
+  const [veioDeAtalho] = useState(() => /[?&](jogo|data)=/.test(window.location.hash + window.location.search));
   const tour = useTour('training', !veioDeAtalho);
   useTourReplayListener('training', () => tour.setIsOpen(true));
 

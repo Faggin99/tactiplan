@@ -9,6 +9,14 @@ export const trainingService = {
       if (!data || !data.id) {
         return { data: createEmptyWeekStructure(weekIdentifier) };
       }
+      // Semana com dia faltando (dia apagado): mostra os 7 dias mesmo assim; o dia vazio
+      // é criado no 1º uso (o /microcycles/ensure completa os dias que faltam).
+      const sessions = Array.isArray(data.sessions) ? data.sessions : [];
+      if (sessions.length < 7) {
+        const porData = new Map(sessions.map((s) => [String(s.date).split('T')[0], s]));
+        const vazia = createEmptyWeekStructure(weekIdentifier);
+        data.sessions = vazia.sessions.map((v) => porData.get(v.date) || v);
+      }
       return { data };
     } catch (error) {
       console.log('Microcycle not found, returning empty structure');
