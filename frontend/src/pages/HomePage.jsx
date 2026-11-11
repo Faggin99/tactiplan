@@ -273,7 +273,11 @@ export function HomePage() {
                   return (
                     <button
                       key={s.id}
-                      onClick={() => navigate('/training')}
+                      onClick={() => {
+                        // abre a semana DESSA sessão (antes ia para a última semana vista); jogo já abre o jogo
+                        const data = String(s.date).split('T')[0];
+                        navigate(isMatch ? `/training?jogo=${s.id}&data=${data}` : `/training?data=${data}`);
+                      }}
                       style={{
                         display: 'flex', alignItems: 'center', gap: '0.75rem',
                         padding: '0.6rem 0.75rem',

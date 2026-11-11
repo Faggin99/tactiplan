@@ -142,6 +142,9 @@ export function TrainingPage() {
   const [abrirNoJogo, setAbrirNoJogo] = useState(null);
   const [currentWeek, setCurrentWeek] = useState(() => {
     if (atalhoJogo) return getWeekInfo(new Date(`${atalhoJogo.data}T12:00:00`));
+    // ?data=AAAA-MM-DD sem jogo (Início › Próximas sessões): abre a semana desse dia
+    const dataUrl = searchParams.get('data');
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dataUrl || '')) return getWeekInfo(new Date(`${dataUrl}T12:00:00`));
     // Try to load saved week from localStorage
     const savedWeek = localStorage.getItem('selectedTrainingWeek');
     if (savedWeek) {
@@ -267,6 +270,11 @@ export function TrainingPage() {
     setAbrirNoJogo(['analise', 'video'].includes(atalhoJogo.abrir) ? atalhoJogo.abrir : null);
     setShowGameModal(true);
   }, [atalhoJogo, microcycle]);
+
+  // ?data sem jogo: a semana já foi escolhida na abertura; limpa a URL
+  useEffect(() => {
+    if (!atalhoJogo && searchParams.get('data')) setSearchParams({}, { replace: true });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Save selected week to localStorage whenever it changes
   useEffect(() => {
