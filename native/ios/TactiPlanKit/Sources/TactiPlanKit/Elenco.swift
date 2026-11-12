@@ -78,7 +78,7 @@ public func compararNome(_ a: String, _ b: String) -> Bool {
 
 /// Ordem por posição do web (PlantelPage `positionOrder`); desconhecida/nula = 999.
 public let ORDEM_POSICAO: [String: Int] = [
-    "GOL": 1, "GR": 1, "LD": 2, "DD": 2, "ZAG": 3, "DC": 3, "Z": 3, "LE": 4, "DE": 4, "VOL": 5, "MC": 5,
+    "GOL": 1, "GR": 1, "LD": 2, "DD": 2, "ZAG": 3, "DC": 3, "Z": 3, "LE": 4, "DE": 4, "VOL": 5, "VOL2": 5, "MC": 5,
     "MEI": 6, "MD": 6, "ME": 6, "MOF": 6, "M": 6, "ED": 7, "EE": 8, "CA": 9, "PL": 9, "SA": 9, "A": 9,
     "FIX": 3, "ALA-D": 5, "ALA-E": 6, "PIV": 9,
 ]
@@ -95,7 +95,7 @@ public struct Posicao: Equatable, Sendable, Hashable {
 
 private let POSICOES_CAMPO = [
     Posicao("GOL", "Goleiro"), Posicao("ZAG", "Zagueiro"), Posicao("LD", "Lateral Direito"), Posicao("LE", "Lateral Esquerdo"),
-    Posicao("VOL", "Volante"), Posicao("MEI", "Meia"), Posicao("ED", "Extremo Direito"), Posicao("EE", "Extremo Esquerdo"),
+    Posicao("VOL", "1º Volante"), Posicao("VOL2", "2º Volante"), Posicao("MEI", "Meia"), Posicao("ED", "Extremo Direito"), Posicao("EE", "Extremo Esquerdo"),
     Posicao("CA", "Centroavante"),
 ]
 private let POSICOES_FUTSAL = [

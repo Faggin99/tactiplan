@@ -109,6 +109,11 @@ function normalizeFoot(v) {
   return (v === 'right' || v === 'left' || v === 'both') ? v : null;
 }
 
+// Lado em que prefere jogar (migration 067; a tela pede para zagueiros). null = não informado.
+function normalizeLado(v) {
+  return (v === 'direita' || v === 'esquerda' || v === 'ambos') ? v : null;
+}
+
 // POST /api/athletes
 router.post('/', async (req, res) => {
   try {
@@ -150,13 +155,13 @@ router.post('/', async (req, res) => {
     const result = await query(
       `INSERT INTO athletes (name, position, jersey_number, status, observation, "group", photo_url,
                              club_id, category_id, workspace_id,
-                             birthdate, height_cm, preferred_foot, previous_club)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                             birthdate, height_cm, preferred_foot, previous_club, lado_preferido)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
        RETURNING *`,
       [formatarNome(name), position || null, jersey_number || null, status || 'active', observation || null,
        group || null, photo_url || null, club_id, category_id || null, wsId,
        birthdate || null, Number.isFinite(+height_cm) && +height_cm > 0 ? +height_cm : null,
-       normalizeFoot(preferred_foot), previous_club?.trim() || null]
+       normalizeFoot(preferred_foot), previous_club?.trim() || null, normalizeLado(req.body.lado_preferido)]
     );
 
     res.status(201).json(result.rows[0]);
@@ -185,6 +190,7 @@ router.put('/:id', async (req, res) => {
       `UPDATE athletes SET name = $1, position = $2, jersey_number = $3, status = $4,
        observation = $5, "group" = $6, photo_url = $7, club_id = $8, category_id = $9,
        birthdate = $10, height_cm = $11, preferred_foot = $12, previous_club = $13,
+       lado_preferido = CASE WHEN $16::boolean THEN $17 ELSE lado_preferido END,
        updated_at = NOW()
        WHERE id = $14 AND workspace_id = ANY($15)
        RETURNING *`,
@@ -192,7 +198,9 @@ router.put('/:id', async (req, res) => {
        group || null, photo_url || null, club_id, category_id || null,
        birthdate || null, Number.isFinite(+height_cm) && +height_cm > 0 ? +height_cm : null,
        normalizeFoot(preferred_foot), previous_club?.trim() || null,
-       req.params.id, req.user.workspaceIds || []]
+       req.params.id, req.user.workspaceIds || [],
+       // lado preferido: só quando a chave vem no corpo (o app que ainda não conhece o campo não apaga)
+       Object.prototype.hasOwnProperty.call(req.body, 'lado_preferido'), normalizeLado(req.body.lado_preferido)]
     );
 
     if (result.rows.length === 0) {

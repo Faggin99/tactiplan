@@ -87,7 +87,11 @@
     },
     {
      "code": "VOL",
-     "name": "Volante"
+     "name": "1º Volante"
+    },
+    {
+     "code": "VOL2",
+     "name": "2º Volante"
     },
     {
      "code": "MEI",
@@ -125,7 +129,11 @@
     },
     {
      "code": "VOL",
-     "name": "Volante"
+     "name": "1º Volante"
+    },
+    {
+     "code": "VOL2",
+     "name": "2º Volante"
     },
     {
      "code": "MEI",
@@ -183,6 +191,7 @@
    "LE": 4,
    "DE": 4,
    "VOL": 5,
+   "VOL2": 5,
    "MC": 5,
    "MEI": 6,
    "MD": 6,

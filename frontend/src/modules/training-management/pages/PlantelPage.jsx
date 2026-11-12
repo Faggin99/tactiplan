@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Save, Users, List, Grid } from 'lucide-react';
+import { Plus, Save, Users, List, Grid, Shirt } from 'lucide-react';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useIsMobile } from '../../../hooks/useIsMobile';
 import { useClub } from '../../../contexts/ClubContext';
@@ -9,6 +9,7 @@ import { categoryService } from '../../../services/categoryService';
 import PlayerModal from '../components/plantel/PlayerModal';
 import PlayersTable from '../components/plantel/PlayersTable';
 import GroupColumn from '../components/plantel/GroupColumn';
+import Campograma from '../components/plantel/Campograma';
 import { generatePlantelExcel } from '../utils/pdfGenerator';
 import { downloadReport, safeFileName } from '../../../services/reportsService';
 import { ExportMenu } from '../../../components/common/ExportMenu';
@@ -30,7 +31,7 @@ export default function PlantelPage() {
   const [editingPlayer, setEditingPlayer] = useState(null);
   const [groupChanges, setGroupChanges] = useState({});
   const [hasChanges, setHasChanges] = useState(false);
-  const [activeTab, setActiveTab] = useState('table'); // 'table' or 'groups'
+  const [activeTab, setActiveTab] = useState('table'); // 'table' | 'campo' | 'groups'
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState('name'); // 'name' or 'position'
   const itemsPerPage = 10;
@@ -41,7 +42,7 @@ export default function PlantelPage() {
     { title: 'Plantel de Atletas', content: 'Aqui você gerencia todos os atletas do clube. Vamos te mostrar rapidinho.' },
     { selector: '[data-tour="new-athlete"]', title: 'Novo atleta', content: 'Cadastre nome, posição, status, grupo e categoria. Você também pode adicionar dados pessoais (data de nascimento, altura, pé preferencial, último clube) e uma foto que aparecerá no PDF do plantel e nas convocações.', placement: 'bottom' },
     { selector: '[data-tour="generate-pdf"]', title: 'Exportar plantel', content: 'O PDF do plantel inclui a foto de cada atleta ao lado do nome (quando cadastrada). Excel sai com aba por grupo e filtros automáticos.', placement: 'bottom' },
-    { selector: '[data-tour="plantel-tabs"]', title: 'Lista ou Grupos', content: 'Veja seu plantel em tabela (com mais detalhes) ou agrupado (G1, G2, G3, Transição, DM). Para mover atletas entre grupos use "Grupos de Treino".', placement: 'bottom' },
+    { selector: '[data-tour="plantel-tabs"]', title: 'Lista, Campograma ou Grupos', content: 'Veja seu plantel em tabela (com mais detalhes), desenhado no campo por posição (Campograma) ou agrupado (G1, G2, G3, Transição, DM). Para mover atletas entre grupos use "Grupos de Treino".', placement: 'bottom' },
     { title: 'Próximos passos', content: 'Edite um atleta clicando na linha pra anexar foto e dados pessoais. Em seguida vá em "Treinos" no menu superior pra montar a semana com esses atletas.' },
   ];
 
@@ -198,7 +199,7 @@ export default function PlantelPage() {
     LD: 2, DD: 2,
     ZAG: 3, DC: 3, Z: 3,
     LE: 4, DE: 4,
-    VOL: 5, MC: 5,
+    VOL: 5, VOL2: 5, MC: 5,
     MEI: 6, MD: 6, ME: 6, MOF: 6, M: 6,
     ED: 7, EE: 8,
     CA: 9, PL: 9, SA: 9, A: 9,
@@ -422,6 +423,13 @@ export default function PlantelPage() {
           Lista de Atletas
         </button>
         <button
+          style={tabStyle(activeTab === 'campo')}
+          onClick={() => setActiveTab('campo')}
+        >
+          <Shirt size={20} strokeWidth={1.5} />
+          Campograma
+        </button>
+        <button
           style={tabStyle(activeTab === 'groups')}
           onClick={() => setActiveTab('groups')}
         >
@@ -484,6 +492,26 @@ export default function PlantelPage() {
                 onEdit={handleEditPlayer}
                 onDelete={handleDeletePlayer}
               />
+            </div>
+          </>
+        ) : activeTab === 'campo' ? (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', flexShrink: 0, flexWrap: 'wrap', gap: '0.5rem' }}>
+              <h2 style={sectionTitleStyle}>Campograma</h2>
+              {categories.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <label style={{ fontSize: '0.875rem', color: colors.text }}>Categoria:</label>
+                  <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
+                    style={{ padding: '0.4rem 0.75rem', fontSize: '0.875rem', border: `1px solid ${colors.border}`, borderRadius: '0.375rem', backgroundColor: colors.background, color: colors.text, cursor: 'pointer' }}>
+                    <option value="all">Todas</option>
+                    <option value="none">Sem categoria</option>
+                    {categories.map(c => (<option key={c.id} value={c.id}>{c.name}{c.age_group ? ` (${c.age_group})` : ''}</option>))}
+                  </select>
+                </div>
+              )}
+            </div>
+            <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+              <Campograma athletes={sortedAthletes} onSelect={handleEditPlayer} />
             </div>
           </>
         ) : (

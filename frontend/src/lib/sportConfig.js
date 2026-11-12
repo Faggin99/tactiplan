@@ -15,6 +15,13 @@ export const MODALITY_DESCRIPTIONS = {
   futsal:      '5 jogadores em quadra, 2 tempos de 20 min. Quadra coberta.',
 };
 
+// Lado preferido (migration 067): pedido para zagueiros (direita, esquerda ou os dois).
+export const LADOS_PREFERIDOS = [
+  { value: 'direita', label: 'Pela direita', curto: 'D' },
+  { value: 'esquerda', label: 'Pela esquerda', curto: 'E' },
+  { value: 'ambos', label: 'Pelos dois lados', curto: 'D/E' },
+];
+
 // Posições aceitas por modalidade (códigos curtos + nomes)
 // Futebol 11 e Futebol 7 usam a mesma lista (nomenclatura brasileira).
 // Códigos antigos (GR, DD, DC, DE, MD, MC, ME, MOF, PL, SA, Z, M, A) foram
@@ -25,7 +32,8 @@ const FIELD_POSITIONS = [
   { code: 'ZAG', name: 'Zagueiro' },
   { code: 'LD',  name: 'Lateral Direito' },
   { code: 'LE',  name: 'Lateral Esquerdo' },
-  { code: 'VOL', name: 'Volante' },
+  { code: 'VOL', name: '1º Volante' },
+  { code: 'VOL2', name: '2º Volante' },
   { code: 'MEI', name: 'Meia' },
   { code: 'ED',  name: 'Extremo Direito' },
   { code: 'EE',  name: 'Extremo Esquerdo' },

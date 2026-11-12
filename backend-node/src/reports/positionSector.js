@@ -22,7 +22,7 @@ const SECTOR_ORDER = ['gol', 'def', 'mei', 'ata', 'outros'];
 const BY_CODE = {
   gol: ['GOL', /* legado */ 'GR', 'GK'],
   def: ['ZAG', 'LD', 'LE', 'FIX', /* legado */ 'DD', 'DC', 'DE', 'Z', 'DEF'],
-  mei: ['VOL', 'MEI', 'ALA-D', 'ALA-E', /* legado */ 'MD', 'MC', 'ME', 'MOF', 'M'],
+  mei: ['VOL', 'VOL2', 'MEI', 'ALA-D', 'ALA-E', /* legado */ 'MD', 'MC', 'ME', 'MOF', 'M'],
   ata: ['ED', 'EE', 'CA', 'PIV', /* legado */ 'PL', 'SA', 'A', 'PD', 'PE', 'ATA'],
 };
 const CODE_TO_SECTOR = new Map();
@@ -54,7 +54,7 @@ function sectorInfo(key) {
 const POSITION_ORDER = [
   'GOL', 'GR', 'GK',
   'ZAG', 'Z', 'DC', 'FIX', 'LD', 'DD', 'LE', 'DE', 'DEF',
-  'VOL', 'MC', 'MD', 'ME', 'MEI', 'M', 'MOF', 'ALA-D', 'ALA-E',
+  'VOL', 'VOL2', 'MC', 'MD', 'ME', 'MEI', 'M', 'MOF', 'ALA-D', 'ALA-E',
   'ED', 'EE', 'PD', 'PE', 'CA', 'PL', 'SA', 'PIV', 'A', 'ATA',
 ];
 const POSITION_RANK = new Map(POSITION_ORDER.map((c, i) => [c, i]));

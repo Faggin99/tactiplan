@@ -9,7 +9,7 @@ const path = require('path');
 const { pathToFileURL } = require('url');
 const { positionSector } = require('../src/reports/positionSector');
 
-const NOVOS = { GOL: 'gol', ZAG: 'def', LD: 'def', LE: 'def', VOL: 'mei', MEI: 'mei', ED: 'ata', EE: 'ata', CA: 'ata' };
+const NOVOS = { GOL: 'gol', ZAG: 'def', LD: 'def', LE: 'def', VOL: 'mei', VOL2: 'mei', MEI: 'mei', ED: 'ata', EE: 'ata', CA: 'ata' };
 const FUTSAL = { GOL: 'gol', FIX: 'def', 'ALA-D': 'mei', 'ALA-E': 'mei', PIV: 'ata' };
 // Mapa da migration: antigo → novo
 const MAPA = {
@@ -34,7 +34,7 @@ test('setor: código antigo continua com o mesmo setor do novo (dado legado)', (
 test('sportConfig: Futebol 11 e 7 com a lista brasileira; futsal intacto', async () => {
   const cfg = await import(pathToFileURL(path.join(__dirname, '../../frontend/src/lib/sportConfig.js')).href);
   const codes = (m) => cfg.POSITIONS[m].map((p) => p.code);
-  const lista = ['GOL', 'ZAG', 'LD', 'LE', 'VOL', 'MEI', 'ED', 'EE', 'CA'];
+  const lista = ['GOL', 'ZAG', 'LD', 'LE', 'VOL', 'VOL2', 'MEI', 'ED', 'EE', 'CA'];
   assert.deepStrictEqual(codes('football_11'), lista);
   assert.deepStrictEqual(codes('football_7'), lista);
   assert.deepStrictEqual(codes('futsal'), ['GOL', 'FIX', 'ALA-D', 'ALA-E', 'PIV']);

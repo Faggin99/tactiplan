@@ -8,6 +8,7 @@ import { Button } from '../../../../components/common/Button';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { useClub } from '../../../../contexts/ClubContext';
 import { useSportConfig } from '../../../../hooks/useSportConfig';
+import { LADOS_PREFERIDOS } from '../../../../lib/sportConfig';
 import { injuryService } from '../../../../services/injuryService';
 import { categoryService } from '../../../../services/categoryService';
 import { athleteService } from '../../services/athleteService';
@@ -55,7 +56,7 @@ export default function PlayerModal({ isOpen, onClose, onSave, player = null }) 
   const [tab, setTab] = useState('dados'); // 'dados' | 'lesoes'
   const [formData, setFormData] = useState({
     name: '', position: '', jersey_number: '', status: 'active', observation: '', group: '', category_id: '',
-    birthdate: '', height_cm: '', preferred_foot: '', previous_club: '',
+    birthdate: '', height_cm: '', preferred_foot: '', previous_club: '', lado_preferido: '',
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -88,13 +89,14 @@ export default function PlayerModal({ isOpen, onClose, onSave, player = null }) 
         birthdate: player.birthdate ? String(player.birthdate).split('T')[0] : '',
         height_cm: player.height_cm || '',
         preferred_foot: player.preferred_foot || '',
+        lado_preferido: player.lado_preferido || '',
         previous_club: player.previous_club || '',
       });
       setPhotoUrl(player.photo_url || '');
     } else {
       setFormData({
         name: '', position: '', jersey_number: '', status: 'active', observation: '', group: '', category_id: '',
-        birthdate: '', height_cm: '', preferred_foot: '', previous_club: '',
+        birthdate: '', height_cm: '', preferred_foot: '', previous_club: '', lado_preferido: '',
       });
       setPhotoUrl('');
     }
@@ -140,7 +142,9 @@ export default function PlayerModal({ isOpen, onClose, onSave, player = null }) 
     setLoading(true);
     try {
       // Em edição já temos id — manda photo_url só nesse caso (criação faz upload depois do save)
-      const payload = player?.id ? { ...formData, photo_url: photoUrl || null } : formData;
+      // lado preferido só vale para zagueiro
+      const base = { ...formData, lado_preferido: formData.position === 'ZAG' ? (formData.lado_preferido || null) : null };
+      const payload = player?.id ? { ...base, photo_url: photoUrl || null } : base;
       await onSave(payload);
       onClose();
     } catch (error) {
@@ -352,6 +356,10 @@ export default function PlayerModal({ isOpen, onClose, onSave, player = null }) 
           <Input label="Nome do Atleta" value={formData.name} onChange={(e) => handleChange('name', e.target.value)} error={errors.name} placeholder="Digite o nome completo" fullWidth required />
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem' }}>
             <Select label="Posição" value={formData.position} onChange={(e) => handleChange('position', e.target.value)} options={POSITIONS} placeholder="Selecione a posição" fullWidth required />
+            {formData.position === 'ZAG' && (
+              <Select label="Joga por qual lado?" value={formData.lado_preferido} onChange={(e) => handleChange('lado_preferido', e.target.value)}
+                options={[{ value: '', label: '—' }, ...LADOS_PREFERIDOS.map((l) => ({ value: l.value, label: l.label }))]} fullWidth />
+            )}
             <Input
               label="Camisa"
               type="number"

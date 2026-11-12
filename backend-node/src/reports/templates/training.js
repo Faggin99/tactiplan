@@ -87,11 +87,12 @@ function weeksChart(vm) {
     const segs = (w.pillars || []).length ? w.pillars : [{ key: 'none', minutes: w.minutes }];
     const soma = segs.reduce((t, g) => t + g.minutes, 0) || 1;
     const stack = h ? `<i class="stk" style="height:${h}%">${segs.slice().reverse().map((g) => `<u style="flex:${Math.round((g.minutes / soma) * 1000)};background:${C.dimInfo(g.key === 'none' ? 'outros' : g.key).color}"></u>`).join('')}</i>` : '';
-    return `<div class="c">${w.minutes > 0 && !dense ? `<b>${w.minutes}'</b>` : ''}${stack}</div>`;
+    // minutos SEMPRE visíveis (antes sumiam com mais de 10 semanas); muitas semanas = letra menor / em pé
+    return `<div class="c">${w.minutes > 0 ? `<b>${w.minutes}'</b>` : ''}${stack}</div>`;
   }).join('');
   const labs = weeks.map((w, i) => `<span>${i % every === 0 ? esc(w.label) : ''}</span>`).join('');
   return `<div class="card">${C.sec('Minutos por semana', `${F.plural(weeks.length, 'semana', 'semanas')} · início de cada semana · cores = pilares`)}
-    <div class="colchart${dense ? ' dense' : ''}" style="height:34mm">${cols}</div><div class="collab${dense ? ' dense' : ''}">${labs}</div></div>`;
+    <div class="colchart${dense ? ' dense' : ''}${weeks.length > 24 ? ' vert' : ''}" style="height:${weeks.length > 24 ? 40 : 34}mm">${cols}</div><div class="collab${dense ? ' dense' : ''}">${labs}</div></div>`;
 }
 
 function pillars(vm) {

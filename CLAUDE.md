@@ -280,3 +280,15 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   hoje em amarelo, total em pílula) e no PLACAR (painel preto com pontinhos de LED, dias em letra de placar com a cor do
   clube embaixo, totais âmbar, JOGO em vermelho). Clássico sem mudança. Mesmas classes tp-*.
 - Ainda não: as demais telas (lá o estilo muda cores, fundo e títulos); apps nativos.
+
+## Plantel: campograma + posições (12/11/2026)
+- Plantel ganhou a aba CAMPOGRAMA (`components/plantel/Campograma.jsx`): elenco desenhado no campo, cada atleta (foto/
+  iniciais, número, nome) empilhado no lugar da posição; DM em vermelho (opção de esconder); deitado no computador, em pé
+  no celular; segue o estilo (quadro a pincel no Quadro tático, painel no Placar). Clique abre a ficha.
+- Posições: VOL agora é "1º Volante" e entrou VOL2 "2º Volante" (setor meio; ordem igual à do VOL). Web, relatórios
+  (positionSector), formation.js, apps (Elenco.kt/.swift) e paridade t3.json atualizados.
+- Migration 067: `athletes.lado_preferido` ('direita'|'esquerda'|'ambos'); a ficha pergunta para ZAG ("Joga por qual
+  lado?"), a lista mostra "ZAG · D". PUT só mexe no campo quando a chave vem (app antigo não apaga). No campograma os
+  zagueiros se dividem por lado.
+- Relatórios: `teamPalette` escurece cor do clube clara demais até 3:1 no branco (#24eb45 → #18A330, igual à tela; amarelo
+  vira dourado). Gráfico "Minutos por semana" mostra os minutos SEMPRE (antes sumiam com 10+ semanas; 25+ = em pé).

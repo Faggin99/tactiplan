@@ -44,7 +44,10 @@ function contrast(a, b) {
 }
 
 function teamPalette(input) {
-  const hex = normalizeHex(input) || DEFAULT_TEAM_COLOR;
+  // Cor do clube ilegível no papel branco (ex.: verde-neon #24eb45, contraste 1,6:1): escurece até
+  // 3:1 — a mesma regra da tela (ThemeContext.legivelSobre). O cadastro do clube não muda.
+  let hex = normalizeHex(input) || DEFAULT_TEAM_COLOR;
+  for (let i = 0; i < 20 && contrast(hex, '#FFFFFF') < 3; i++) hex = mix(hex, '#000000', 0.06);
   const onTeam = contrast(hex, '#FFFFFF') >= contrast(hex, '#0F172A') ? '#FFFFFF' : '#0F172A';
   let ink = hex;
   for (let i = 0; i < 20 && contrast(ink, '#FFFFFF') < 4.5; i++) ink = mix(ink, '#000000', 0.08);

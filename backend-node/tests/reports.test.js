@@ -20,13 +20,15 @@ test('teamPalette: verde padrão, texto branco e tinta com contraste >= 4.5', ()
   assert.strictEqual(p.pTat, p.team);
 });
 
-test('teamPalette: amarelo usa texto escuro no header e tinta/barra escurecidas', () => {
-  const p = teamPalette('#FFD200');
-  assert.strictEqual(p.onTeam, '#0F172A');
-  assert.ok(contrast(p.teamInk, '#FFFFFF') >= 4.5, 'título legível no branco');
-  assert.notStrictEqual(p.teamInk, p.team);
-  assert.strictEqual(p.pTat, p.teamInk, 'barras/pilar tático usam a versão escura');
-  assert.ok(contrast(p.onTeam, p.team) >= 4.5, 'texto do header legível sobre o amarelo');
+test('teamPalette: cor clara demais (amarelo, verde-neon) escurece até 3:1 no papel; textos legíveis', () => {
+  for (const cor of ['#FFD200', '#24EB45']) {
+    const p = teamPalette(cor);
+    assert.notStrictEqual(p.team, cor, `${cor} escurece`);
+    assert.ok(contrast(p.team, '#FFFFFF') >= 3, `${cor}: a cor do time aparece no branco`);
+    assert.ok(contrast(p.teamInk, '#FFFFFF') >= 4.5, `${cor}: título legível no branco`);
+    assert.ok(contrast(p.onTeam, p.team) >= 3, `${cor}: texto do header legível sobre a cor`);
+  }
+  assert.strictEqual(teamPalette('#24eb45').team, '#18A330', 'mesma cor da tela (ThemeContext.legivelSobre)');
 });
 
 test('teamPalette: preto mantém texto branco; cor inválida cai no padrão', () => {
@@ -377,8 +379,8 @@ test('templates geram HTML com a cor do time e escapam texto do usuário', () =>
   const { renderSession } = require('../src/reports/templates/session');
   const team = { ...TEAM, name: 'Time <script>x</script>', palette: teamPalette('#FFD200') };
   const html = renderGames(B.buildGamesReport({ stats: GAME_STATS, team, period: WEEK }), { now: new Date() });
-  assert.ok(html.includes('--team:#FFD200'));
-  assert.ok(html.includes('--on-team:#0F172A'));
+  assert.ok(html.includes(`--team:${team.palette.team}`));
+  assert.ok(html.includes(`--on-team:${team.palette.onTeam}`));
   assert.ok(!html.includes('<script>x</script>'));
   assert.ok(html.includes('Nenhum gol sofrido no período'), 'EmptyState no lugar do gráfico vazio');
   assert.ok(html.includes('fonts/poppins-latin-700-normal.woff2'), 'fontes locais');

@@ -68,7 +68,7 @@ val ORDEM_POSICAO: Map<String, Int> = mapOf(
     "LD" to 2, "DD" to 2,
     "ZAG" to 3, "DC" to 3, "Z" to 3,
     "LE" to 4, "DE" to 4,
-    "VOL" to 5, "MC" to 5,
+    "VOL" to 5, "VOL2" to 5, "MC" to 5,
     "MEI" to 6, "MD" to 6, "ME" to 6, "MOF" to 6, "M" to 6,
     "ED" to 7, "EE" to 8,
     "CA" to 9, "PL" to 9, "SA" to 9, "A" to 9,
@@ -108,7 +108,7 @@ data class Posicao(val codigo: String, val nome: String)
 
 private val POSICOES_CAMPO = listOf(
     Posicao("GOL", "Goleiro"), Posicao("ZAG", "Zagueiro"), Posicao("LD", "Lateral Direito"), Posicao("LE", "Lateral Esquerdo"),
-    Posicao("VOL", "Volante"), Posicao("MEI", "Meia"), Posicao("ED", "Extremo Direito"), Posicao("EE", "Extremo Esquerdo"),
+    Posicao("VOL", "1º Volante"), Posicao("VOL2", "2º Volante"), Posicao("MEI", "Meia"), Posicao("ED", "Extremo Direito"), Posicao("EE", "Extremo Esquerdo"),
     Posicao("CA", "Centroavante"),
 )
 private val POSICOES_FUTSAL = listOf(

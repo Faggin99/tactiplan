@@ -119,7 +119,7 @@ const PAPEL_POR_POSICAO = {
   // Futebol 11/7 (nomenclatura atual)
   GOL: 'GOL',
   ZAG: 'DEF', LD: 'DEF', LE: 'DEF',
-  VOL: 'MEI', MEI: 'MEI',
+  VOL: 'MEI', VOL2: 'MEI', MEI: 'MEI',
   ED: 'ATA', EE: 'ATA', CA: 'ATA',
   // Futsal
   FIX: 'DEF', 'ALA-D': 'MEI', 'ALA-E': 'MEI', PIV: 'ATA',

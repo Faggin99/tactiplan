@@ -1,3 +1,4 @@
+import { LADOS_PREFERIDOS } from '../../../../lib/sportConfig';
 import React, { useState } from 'react';
 import { Edit2, Trash2 } from 'lucide-react';
 import { useTheme } from '../../../../contexts/ThemeContext';
@@ -130,7 +131,7 @@ export default function PlayersTable({ players, onEdit, onDelete }) {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', fontSize: '0.85rem', color: colors.textSecondary }}>
-                {player.position && <span style={{ backgroundColor: `${colors.primary}15`, padding: '0.2rem 0.6rem', borderRadius: '0.25rem', color: colors.primary, fontWeight: '500' }}>{player.position}</span>}
+                {player.position && <span style={{ backgroundColor: `${colors.primary}15`, padding: '0.2rem 0.6rem', borderRadius: '0.25rem', color: colors.primary, fontWeight: '500' }}>{rotuloPosicao(player)}</span>}
                 <span>{getStatusLabel(player.status)}</span>
                 <span>{getGroupLabel(player.group)}</span>
               </div>
@@ -155,7 +156,7 @@ export default function PlayersTable({ players, onEdit, onDelete }) {
               {players.map((player) => (
                 <tr key={player.id}>
                   <td style={tdStyle}>{player.name}</td>
-                  <td style={tdStyle}>{player.position || '-'}</td>
+                  <td style={tdStyle}>{player.position ? rotuloPosicao(player) : '-'}</td>
                   <td style={tdStyle}>{getStatusLabel(player.status)}</td>
                   <td
                     style={observationCellStyle}
@@ -218,4 +219,10 @@ export default function PlayersTable({ players, onEdit, onDelete }) {
       )}
     </>
   );
+}
+
+// "ZAG · D" quando o zagueiro tem lado preferido
+function rotuloPosicao(p) {
+  const lado = p.position === 'ZAG' && LADOS_PREFERIDOS.find((l) => l.value === p.lado_preferido);
+  return lado ? `${p.position} · ${lado.curto}` : p.position;
 }

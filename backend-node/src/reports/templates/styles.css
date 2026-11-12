@@ -192,6 +192,7 @@ body{font-family:Inter,sans-serif;color:var(--ink);font-size:8.5pt;line-height:1
 .colchart .c b{font:700 8pt Poppins;margin-bottom:.8mm;white-space:nowrap}
 .colchart.dense{gap:1mm}
 .colchart.dense .c b{font-size:6pt}
+.colchart.vert .c b{font-size:5.6pt;writing-mode:vertical-rl;transform:rotate(180deg);margin-bottom:.6mm;letter-spacing:0;font-variant-numeric:tabular-nums}
 .colchart .avg{position:absolute;left:0;right:0;border-top:1px dashed var(--loss)}
 .colchart .avg span{position:absolute;right:0;top:-4mm;font-size:6.5pt;color:var(--loss);font-weight:600;background:#fff;padding-left:1mm}
 .collab{display:flex;gap:3mm;padding:1.2mm 2mm 0;font-size:6.5pt;color:var(--muted)}
