@@ -3,6 +3,8 @@
 const F = require('../format');
 const C = require('./components');
 const { heroPoints, history } = require('./games');
+const { weeksChart } = require('./training');
+const { campogramaHtml } = require('./campograma');
 
 const esc = F.esc;
 
@@ -110,6 +112,52 @@ function plantel(vm) {
     + '<div class="note" style="margin-top:auto">“—” = sem número de camisa cadastrado no plantel.</div>';
 }
 
+// Página "Elenco em campo": campograma à esquerda e, ao lado, os destaques do período e o DM.
+function lista(titulo, itens, fmt) {
+  const linhas = itens.length
+    ? itens.map((p, i) => `<li><span class="pos">${i + 1}º</span><span class="nm">${p.shirt != null ? `<em>${esc(p.shirt)}</em> ` : ''}${esc(p.name)}</span><b>${fmt(p.value)}</b></li>`).join('')
+    : '<li class="vazio">—</li>';
+  return `<div class="dq"><h5>${esc(titulo)}</h5><ol>${linhas}</ol></div>`;
+}
+
+// carga da temporada: minutos por semana (mesmo gráfico do relatório de treino, com os números)
+function semanas(vm) {
+  const t = vm.training;
+  return !t.empty && t.weeks && t.weeks.length > 1 && t.weekMax > 0 ? weeksChart({ weeks: t.weeks, weekMax: t.weekMax }, { altura: 28 }) : '';
+}
+
+function elencoEmCampo(vm) {
+  if (!vm.squadAllowed || !vm.campo || !vm.campo.zonas.length) return '';
+  const d = vm.destaques || { gols: [], assistencias: [], minutos: [] };
+  const dm = (vm.dm || []).length
+    ? `<ol>${vm.dm.map((x) => `<li class="dm"><span class="nm">${esc(x.name)}<small>${esc([x.injury_type, x.body_part].filter(Boolean).join(' · '))}${x.expected_return ? ` · volta ${esc(F.ddmm(F.toDateStr(x.expected_return)))}` : ''}</small></span></li>`).join('')}</ol>`
+    : '<p class="vazio">Ninguém no departamento médico.</p>';
+  const lado = `<div class="dq-col">
+      ${lista('Artilharia', d.gols, (v) => `${v} ${v === 1 ? 'gol' : 'gols'}`)}
+      ${lista('Assistências', d.assistencias, (v) => `${v}`)}
+      ${lista('Mais minutos', d.minutos, (v) => `${F.int(v)}'`)}
+      <div class="dq"><h5>Departamento médico</h5>${dm}</div>
+    </div>`;
+  return `<div class="card">${C.sec('Elenco em campo', 'por posição · em vermelho, no departamento médico')}
+    <div class="ec">${campogramaHtml(vm.campo, { futsal: vm.team.modality === 'futsal', largura: 96, altura: 148, card: false })}${lado}</div>
+    <style>
+      .ec{display:grid;grid-template-columns:100mm 1fr;gap:5mm;align-items:start}
+      .ec .cg{margin:0}
+      .dq-col{display:flex;flex-direction:column;gap:4mm}
+      .dq h5{margin:0 0 1.5mm;font:700 7pt Poppins;letter-spacing:.08em;text-transform:uppercase;color:var(--team-ink)}
+      .dq ol{list-style:none;margin:0;padding:0}
+      .dq li{display:flex;align-items:baseline;gap:2mm;padding:1.3mm 0;border-bottom:1px solid var(--line,#e5e7eb);font-size:8pt}
+      .dq li .pos{width:5mm;color:var(--ink-2);font-weight:600}
+      .dq li .nm{flex:1;min-width:0}
+      .dq li .nm em{font-style:normal;font-weight:800;color:var(--ink-2)}
+      .dq li .nm small{display:block;color:var(--ink-2);font-size:6.8pt}
+      .dq li b{font-variant-numeric:tabular-nums}
+      .dq li.dm .nm{padding-left:3mm;position:relative}
+      .dq li.dm .nm::before{content:"";position:absolute;left:0;top:1.2mm;width:1.8mm;height:1.8mm;border-radius:50%;background:#C62D2D}
+      .dq .vazio{color:var(--ink-2);font-size:7.5pt;margin:0}
+    </style></div>`;
+}
+
 function renderClube(vm, { now }) {
   const team = vm.team;
   const foot = C.footer({ now });
@@ -117,8 +165,15 @@ function renderClube(vm, { now }) {
   const header1 = C.fullHeader({
     team, eyebrow: reportName, title: team.name, metaHtml: esc(vm.meta), badgeTop: vm.badgeTop, badgeSub: vm.badgeSub,
   });
+  const temporada = semanas(vm) + elencoEmCampo(vm);
   const pages = [
     C.page({ header: header1, subtitle: 'Desempenho e treinos', body: desempenho(vm) + treinos(vm), foot }),
+    ...(temporada ? [C.page({
+      header: C.compactHeader({ team, reportName, subtitle: 'Temporada', right: vm.right }),
+      subtitle: 'Temporada',
+      body: temporada,
+      foot,
+    })] : []),
     C.page({
       header: C.compactHeader({ team, reportName, subtitle: 'Plantel', right: vm.right }),
       subtitle: 'Plantel',

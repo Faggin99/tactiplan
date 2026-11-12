@@ -77,7 +77,7 @@ function weekGrid(vm) {
 }
 
 // Períodos longos: uma coluna por semana (minutos), empilhada pelos pilares
-function weeksChart(vm) {
+function weeksChart(vm, { altura = null } = {}) {
   const weeks = vm.weeks || [];
   const max = vm.weekMax || 1;
   const dense = weeks.length > 10;
@@ -92,7 +92,7 @@ function weeksChart(vm) {
   }).join('');
   const labs = weeks.map((w, i) => `<span>${i % every === 0 ? esc(w.label) : ''}</span>`).join('');
   return `<div class="card">${C.sec('Minutos por semana', `${F.plural(weeks.length, 'semana', 'semanas')} · início de cada semana · cores = pilares`)}
-    <div class="colchart${dense ? ' dense' : ''}${weeks.length > 24 ? ' vert' : ''}" style="height:${weeks.length > 24 ? 40 : 34}mm">${cols}</div><div class="collab${dense ? ' dense' : ''}">${labs}</div></div>`;
+    <div class="colchart${dense ? ' dense' : ''}${weeks.length > 24 ? ' vert' : ''}" style="height:${altura || (weeks.length > 24 ? 40 : 34)}mm">${cols}</div><div class="collab${dense ? ' dense' : ''}">${labs}</div></div>`;
 }
 
 function pillars(vm) {
@@ -197,4 +197,4 @@ function renderTraining(vm, { now, onlyPhotos = false }) {
   });
 }
 
-module.exports = { renderTraining };
+module.exports = { renderTraining, weeksChart };

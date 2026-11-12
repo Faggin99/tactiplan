@@ -550,7 +550,7 @@ async function generateAnalisePptx(body, user) {
 async function loadSquad(clubId, workspaceIds, allowedCategoryIds) {
   if (Array.isArray(allowedCategoryIds) && allowedCategoryIds.length === 0) return [];
   const params = [clubId, workspaceIds];
-  let sql = 'SELECT id, name, position, jersey_number, "group" FROM athletes WHERE club_id = $1 AND workspace_id = ANY($2)';
+  let sql = 'SELECT id, name, position, jersey_number, "group", lado_preferido, status, photo_url FROM athletes WHERE club_id = $1 AND workspace_id = ANY($2)';
   if (Array.isArray(allowedCategoryIds)) {
     params.push(allowedCategoryIds);
     sql += ` AND category_id = ANY($${params.length})`;
@@ -578,6 +578,31 @@ async function buildClube(body, user, assets) {
     gameStats, trainingStats, athletes, team, period, squadAllowed,
     defaultDuration: stats.DEFAULT_DURATION_BY_MODALITY[gameStats.modality || team.modality] || 90,
   });
+  // 12/11/2026: minutos por semana (carga da temporada), campograma e destaques
+  if (!period.isSingleWeek) {
+    const sessions = await stats.getPeriodSessions(q);
+    vm.training.weeks = B.buildWeeks({ period, sessions, sessionsByDate: trainingStats.sessionsByDate });
+    vm.training.weekMax = Math.max(0, ...vm.training.weeks.map((w) => w.minutes));
+  }
+  if (squadAllowed && athletes.length) {
+    const comFoto = athletes.filter((a) => a.photo_url).map((a) => ({ id: a.id, file_path: a.photo_url }));
+    const fotoDe = new Map();
+    if (comFoto.length) {
+      for (const t of await loadThumbs(comFoto)) {
+        const key = `img/atleta-${t.id}`;
+        assets.set(key, { body: t.buffer, contentType: 'image/jpeg' });
+        fotoDe.set(t.id, key);
+      }
+    }
+    vm.campo = buildCampograma(athletes.map((a) => ({ ...a, photoKey: fotoDe.get(a.id) || null })), team.modality);
+    vm.destaques = B.buildClubHighlights(vm.squad);
+    const dm = await query(
+      `SELECT a.name, i.injury_type, i.body_part, i.started_at, i.expected_return
+         FROM athlete_injuries i JOIN athletes a ON a.id = i.athlete_id
+        WHERE a.club_id = $1 AND i.workspace_id = ANY($2) AND i.resolved_at IS NULL
+        ORDER BY i.started_at DESC LIMIT 6`, [team.id, workspaceIds]);
+    vm.dm = dm.rows;
+  }
   // mesmo nome do PDF antigo (jsPDF): Relatorio_<Clube>_<ano>.pdf
   const label = body.period_label || (B.isSeason(period) ? period.start.slice(0, 4) : `${period.start}_${period.end}`);
   return {

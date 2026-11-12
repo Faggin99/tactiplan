@@ -292,5 +292,10 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   zagueiros se dividem por lado.
 - PDF do plantel: 1ª página = CAMPOGRAMA (campo em pé, `src/reports/campograma.js` + `campograma()` em templates/plantel.js;
   zagueiros por lado, DM em vermelho, fotos); a lista por grupo começa na página 2. Teste: tests/campograma.test.js.
+- RELATÓRIO DO CLUBE (12/11): nova página 2 "Temporada" = Minutos por semana (weeksChart do treino, `altura` 28mm) +
+  "Elenco em campo" (campograma 96×148mm + coluna Destaques: artilharia, assistências, mais minutos top 3 via
+  `B.buildClubHighlights`, e o DM atual de athlete_injuries). Campograma do PDF virou componente `templates/campograma.js`.
+  ⚠️ Paginador mede cada bloco ao entrar na página: o <style> do bloco tem de ficar DENTRO dele (senão o bloco mede
+  sem estilo, parece enorme e pula de página).
 - Relatórios: `teamPalette` escurece cor do clube clara demais até 3:1 no branco (#24eb45 → #18A330, igual à tela; amarelo
   vira dourado). Gráfico "Minutos por semana" mostra os minutos SEMPRE (antes sumiam com 10+ semanas; 25+ = em pé).

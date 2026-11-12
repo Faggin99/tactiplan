@@ -1073,6 +1073,15 @@ function buildSquad(athletes, playerStats) {
   };
 }
 
+// Destaques do elenco no período (Relatório do clube): top 3 em gols, assistências e minutos.
+function buildClubHighlights(squad) {
+  const players = (squad?.sectors || []).flatMap((s) => s.players);
+  const top = (campo) => players.filter((p) => (p.stats?.[campo] || 0) > 0)
+    .sort((a, b) => (b.stats[campo] - a.stats[campo]) || String(a.name).localeCompare(String(b.name), 'pt-BR'))
+    .slice(0, 3).map((p) => ({ name: p.name, value: p.stats[campo], shirt: p.shirt ?? null }));
+  return { gols: top('goals'), assistencias: top('assists'), minutos: top('minutes') };
+}
+
 function buildClubReport({ gameStats, trainingStats, athletes, team, period, squadAllowed = true, defaultDuration = 90 }) {
   const games = buildGamesReport({ stats: gameStats, team, period, defaultDuration });
   const g = gameStats || {};
@@ -1109,6 +1118,7 @@ module.exports = {
   buildWeekProgram,
   buildGameSheet,
   buildClubReport,
+  buildClubHighlights,
   buildSquad,
   buildClubTraining,
   clubStreak,
