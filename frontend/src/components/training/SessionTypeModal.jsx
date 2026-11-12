@@ -60,6 +60,9 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
   const [novoTipo, setNovoTipo] = useState('training');
   const [novoAvTipos, setNovoAvTipos] = useState([]);
   const [novoAvOutra, setNovoAvOutra] = useState('');
+  // treino de TRANSIÇÃO (atletas voltando do DM): treino próprio, fora das estatísticas do grupo
+  const [transicao, setTransicao] = useState(false);
+  const [novoTransicao, setNovoTransicao] = useState(false);
 
   const periodos = periodosDoDia(day);
   const livres = periodos ? periodosLivres(day) : PERIODOS;
@@ -74,8 +77,9 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
       setOpponentName(session.opponent_name || '');
       setAvTipos(Array.isArray(session.assessment_types) ? session.assessment_types : []);
       setAvOutra(session.assessment_other || '');
+      setTransicao(!!session.treino_transicao);
     }
-    setNovoTipo('training'); setNovoAvTipos([]); setNovoAvOutra('');
+    setNovoTipo('training'); setNovoAvTipos([]); setNovoAvOutra(''); setNovoTransicao(false);
     setPeriodoNovo(null);
     setAdicionando(false);
     setConfirmarRemocao(false);
@@ -106,6 +110,7 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
       session_type: sessionType,
       opponent_name: sessionType === 'match' ? opponentName : null,
       ...(sessionType === 'assessment' ? { assessment_types: avaliacaoAtual.tipos, assessment_other: avaliacaoAtual.outra } : {}),
+      treino_transicao: sessionType === 'training' && transicao,
     });
   });
 
@@ -261,6 +266,20 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
           </div>
         )}
 
+        {/* Treino de transição: só para treino */}
+        {sessionType === 'training' && (
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', padding: '0.75rem 0.85rem', borderRadius: '0.5rem', cursor: 'pointer',
+            border: `1px solid ${transicao ? '#f59e0b' : colors.border}`, backgroundColor: transicao ? 'rgba(250,204,21,0.14)' : 'transparent' }}>
+            <input type="checkbox" checked={transicao} onChange={(e) => setTransicao(e.target.checked)} style={{ marginTop: 3 }} />
+            <span>
+              <span style={{ display: 'block', fontWeight: 600, color: colors.text }}>Treino de transição</span>
+              <span style={{ display: 'block', fontSize: '0.8rem', color: colors.textSecondary, marginTop: 2 }}>
+                Treino só dos atletas em transição (voltando do DM). Aparece em amarelo e não entra nas estatísticas nem no total do dia.
+              </span>
+            </span>
+          </label>
+        )}
+
         {/* Descrição do tipo selecionado */}
         <div style={{
           padding: '1rem',
@@ -269,7 +288,7 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
           fontSize: '0.875rem',
           color: colors.textSecondary,
         }}>
-          {sessionType === 'training' && 'Treino normal com 6 subdivisões de atividades.'}
+          {sessionType === 'training' && (transicao ? 'Treino de transição com 6 subdivisões de atividades.' : 'Treino normal com 6 subdivisões de atividades.')}
           {sessionType === 'rest' && 'Dia de descanso - sem atividades programadas.'}
           {sessionType === 'match' && 'Dia de jogo - informação do adversário + 1 bloco "Não relacionados".'}
           {sessionType === 'assessment' && 'Período de avaliação - sem blocos de atividade. Não soma minutos nem entra nas estatísticas.'}
@@ -343,8 +362,9 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
                 <div>
                   <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.35rem' }}>O novo período é de:</div>
                   <div role="group" aria-label="Tipo do novo período" style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                    <button type="button" aria-pressed={novoTipo === 'training'} style={chip(novoTipo === 'training')} onClick={() => setNovoTipo('training')}><Dribbble size={14} />Treino</button>
-                    <button type="button" aria-pressed={novoTipo === 'assessment'} style={chip(novoTipo === 'assessment')} onClick={() => setNovoTipo('assessment')}><ClipboardCheck size={14} />Avaliação</button>
+                    <button type="button" aria-pressed={novoTipo === 'training' && !novoTransicao} style={chip(novoTipo === 'training' && !novoTransicao)} onClick={() => { setNovoTipo('training'); setNovoTransicao(false); }}><Dribbble size={14} />Treino</button>
+                    <button type="button" aria-pressed={novoTipo === 'training' && novoTransicao} style={chip(novoTipo === 'training' && novoTransicao)} onClick={() => { setNovoTipo('training'); setNovoTransicao(true); }}><Dribbble size={14} />Treino de transição</button>
+                    <button type="button" aria-pressed={novoTipo === 'assessment'} style={chip(novoTipo === 'assessment')} onClick={() => { setNovoTipo('assessment'); setNovoTransicao(false); }}><ClipboardCheck size={14} />Avaliação</button>
                   </div>
                 </div>
                 {novoTipo === 'assessment' && (
@@ -363,11 +383,12 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
                         atual: periodos ? null : atual,
                         novo,
                         tipo: novoTipo,
+                        ...(novoTipo === 'training' && novoTransicao ? { treino_transicao: true } : {}),
                         ...(novoTipo === 'assessment' ? { assessment_types: avaliacaoNova.tipos, assessment_other: avaliacaoNova.outra } : {}),
                       });
                     })}
                   >
-                    {ocupado ? 'Adicionando…' : `Adicionar ${rotuloPeriodo(novo)}${novoTipo === 'assessment' ? ' (avaliação)' : ''}`}
+                    {ocupado ? 'Adicionando…' : `Adicionar ${rotuloPeriodo(novo)}${novoTipo === 'assessment' ? ' (avaliação)' : novoTransicao ? ' (transição)' : ''}`}
                   </Button>
                 </div>
               </div>

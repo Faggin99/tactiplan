@@ -322,7 +322,8 @@ function buildDays({ period, sessions, sessionsByDate, gamesById }) {
         minutes: P.ehAvaliacao(s) ? 0 : Number(s.minutes) || 0,
         // o que o período treinou (a célula do dia mostra uma linha por período)
         focus: s.session_type === 'match' ? ''
-          : (P.ehAvaliacao(s) ? (P.rotulosAvaliacao(s).join(', ') || 'Avaliação') : dayFocus(contentsByPeriod.get(s.id) || [])),
+          : (P.ehAvaliacao(s) ? (P.rotulosAvaliacao(s).join(', ') || 'Avaliação')
+            : s.treino_transicao ? 'Transição' : dayFocus(contentsByPeriod.get(s.id) || [])),
       }));
       // "90+60" só quando 2+ períodos têm minutos (nunca "125+0")
       base.split = P.divisaoMinutos(base.periods);
@@ -861,7 +862,9 @@ function buildWeekProgram({ team, period, details = [], gamesById = null, weekNu
       const ef = vm.type === 'training' || vm.type === 'assessment' ? (P.rotuloPeriodo(P.periodoEfetivo(s)) || null) : (varios ? P.rotuloPeriodo(s.periodo) : null);
       return {
         type: vm.type,
-        label: ef,
+        // treino de transição (migration 068): "Manhã · Transição", fora do total do dia
+        label: ef && s.treino_transicao ? `${ef} · Transição` : (s.treino_transicao ? 'Transição' : ef),
+        transicao: !!s.treino_transicao,
         pillar: vm.type === 'training' ? predominancia(vm.blocks) : null,
         blocks: vm.blocks.map((b) => ({ phase: b.phase, content: b.contents.join(' · '), title: b.title !== b.contents.join(', ') ? b.title : '', minutes: b.minutes, pillar: b.pillar })),
         total: vm.total,
@@ -869,7 +872,7 @@ function buildWeekProgram({ team, period, details = [], gamesById = null, weekNu
         assessment: vm.assessment,
       };
     });
-    const minutes = periodos.reduce((t, p) => t + (p.type === 'assessment' ? 0 : p.total), 0);
+    const minutes = periodos.reduce((t, p) => t + (p.type === 'assessment' || p.transicao ? 0 : p.total), 0);
     totalMin += minutes;
     if (periodos.some((p) => p.type === 'match')) jogos++;
     else if (periodos.some((p) => p.type === 'training' && p.blocks.length)) treinos++;

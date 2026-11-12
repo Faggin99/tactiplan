@@ -95,11 +95,13 @@ router.post('/:id/periodos', async (req, res) => {
     const ref = r.dia[0];
     const ins = await client.query(
       `INSERT INTO training_sessions (microcycle_id, date, day_name, day_of_week, workspace_id, club_id, session_type, periodo,
-                                      assessment_types, assessment_other)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                                      assessment_types, assessment_other, treino_transicao)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING id`,
       [ref.microcycle_id, ref.date, ref.day_name, ref.day_of_week, ref.workspace_id, ref.club_id,
-        tipoNovo === 'assessment' ? 'assessment' : 'training', v.novo, av.tipos, av.outra]
+        tipoNovo === 'assessment' ? 'assessment' : 'training', v.novo, av.tipos, av.outra,
+        // treino de transição (migration 068): só para treino
+        tipoNovo !== 'assessment' && req.body?.treino_transicao === true]
     );
     const novoId = ins.rows[0].id;
     const { BLOCK_NAMES } = require('./microcycles');
@@ -209,10 +211,15 @@ router.put('/:id/type', async (req, res) => {
 
     const result = await query(
       `UPDATE training_sessions SET session_type = $1, opponent_name = $2,
-              assessment_types = $5, assessment_other = $6, updated_at = NOW()
+              assessment_types = $5, assessment_other = $6,
+              -- treino de transição: só vale em treino; outro tipo zera. Sem a chave (app antigo), mantém.
+              treino_transicao = CASE WHEN COALESCE($1, 'training') <> 'training' THEN false
+                                      WHEN $7::boolean IS NULL THEN treino_transicao ELSE $7::boolean END,
+              updated_at = NOW()
        WHERE id = $3 AND workspace_id = ANY($4)
        RETURNING *`,
-      [session_type || null, session_type === 'assessment' ? null : (opponent_name || null), req.params.id, req.user.workspaceIds || [], av.tipos, av.outra]
+      [session_type || null, session_type === 'assessment' ? null : (opponent_name || null), req.params.id, req.user.workspaceIds || [], av.tipos, av.outra,
+       typeof req.body.treino_transicao === 'boolean' ? req.body.treino_transicao : null]
     );
 
     if (result.rows.length === 0) {

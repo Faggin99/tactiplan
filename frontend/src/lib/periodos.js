@@ -41,11 +41,17 @@ export function normalizarAvaliacao({ tipos, outra } = {}) {
   return { ok: true, tipos: TIPOS_AVALIACAO.filter((t) => set.has(t)), outra: texto || null };
 }
 
-// 1ª linha da coluna / carrossel: "Manhã · Avaliação", "Tarde · Jogo", "Manhã · Tático".
+// Treino de TRANSIÇÃO (migration 068): treino próprio de quem volta do DM; fora das estatísticas e
+// do total do dia (não é carga do grupo).
+export function ehTransicao(s) {
+  return !!s && (s.session_type || 'training') === 'training' && !!s.treino_transicao;
+}
+
+// 1ª linha da coluna / carrossel: "Manhã · Avaliação", "Tarde · Jogo", "Manhã · Tático", "Tarde · Transição".
 export function rotuloLinhaPeriodo(s, pilares = []) {
   const per = rotuloPeriodo(periodoEfetivo(s));
   const tipo = s?.session_type || 'training';
-  const resto = tipo === 'assessment' ? ['Avaliação'] : tipo === 'match' ? ['Jogo'] : pilares;
+  const resto = tipo === 'assessment' ? ['Avaliação'] : tipo === 'match' ? ['Jogo'] : ehTransicao(s) ? ['Transição'] : pilares;
   return `${per || ''}${per && resto.length ? ' · ' : ''}${resto.join(' | ')}`;
 }
 
@@ -69,7 +75,7 @@ export function periodosDoDia(day) {
 }
 
 export function minutosDaSessao(s) {
-  if (ehAvaliacao(s)) return 0; // avaliação não soma minutos
+  if (ehAvaliacao(s) || ehTransicao(s)) return 0; // avaliação e treino de transição não somam no dia
   return (s?.blocks || []).reduce((t, b) => t + (parseInt(b.activity?.duration_minutes, 10) || 0), 0);
 }
 
@@ -110,6 +116,7 @@ export function rotuloSessaoDoDia(s) {
   if (!lista) {
     if (s?.session_type === 'match') return `Jogo${vs}`;
     if (s?.session_type === 'assessment') return 'Avaliação';
+    if (ehTransicao(s)) return 'Treino de transição';
     return s?.session_type === 'rest' ? 'Descanso' : 'Treino';
   }
   const tipos = new Set(lista.map((p) => p.session_type || 'training'));

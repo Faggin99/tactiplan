@@ -45,15 +45,18 @@ export const trainingService = {
       opponent_name: data.opponent_name || null,
       // avaliação: tipos da lista fixa + "Outra" (texto curto)
       ...(data.session_type === 'assessment' ? { assessment_types: data.assessment_types || [], assessment_other: data.assessment_other || null } : {}),
+      // treino de transição (só em treino; o servidor zera nos outros tipos)
+      ...(typeof data.treino_transicao === 'boolean' ? { treino_transicao: data.session_type === 'training' && data.treino_transicao } : {}),
     });
     return { data: result };
   },
 
   // Períodos do dia (Manhã/Tarde/Noite). atual = nome do treino que já existe
   // (só quando o dia ainda tem 1 período).
-  async addPeriod(sessionId, { novo, atual = null, tipo = 'training', assessment_types = null, assessment_other = null }) {
+  async addPeriod(sessionId, { novo, atual = null, tipo = 'training', assessment_types = null, assessment_other = null, treino_transicao = false }) {
     const result = await api.post(`/sessions/${sessionId}/periodos`, {
       novo,
+      ...(tipo === 'training' && treino_transicao ? { treino_transicao: true } : {}),
       ...(atual ? { atual } : {}),
       ...(tipo === 'assessment' ? { tipo, assessment_types: assessment_types || [], assessment_other: assessment_other || null } : {}),
     });

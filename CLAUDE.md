@@ -302,3 +302,13 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   sem estilo, parece enorme e pula de página).
 - Relatórios: `teamPalette` escurece cor do clube clara demais até 3:1 no branco (#24eb45 → #18A330, igual à tela; amarelo
   vira dourado). Gráfico "Minutos por semana" mostra os minutos SEMPRE (antes sumiam com 10+ semanas; 25+ = em pé).
+
+## Transição: atleta e treino (12/11/2026)
+- ATLETA em transição = grupo "Transição" (já existia). Início: "prontos para jogar" = total − DM − transição; legenda
+  "N disponíveis · N em transição · N no DM" (ímãs verde/amarelo/vermelho). DM = grupo DM, "Lesionado" ou lesão aberta.
+- TREINO DE TRANSIÇÃO: migration 068 `training_sessions.treino_transicao` (só vale em treino). Janela do tipo do dia:
+  "Treino de transição" (caixa) e, ao adicionar período, o chip "Treino de transição". PUT /sessions/:id/type e
+  POST /sessions/:id/periodos aceitam `treino_transicao` (sem a chave, o PUT mantém; outro tipo zera).
+- Fica FORA das estatísticas do grupo (como a avaliação: statsData filtra; getPeriodSessions devolve 0 min) e fora do total do
+  dia (lib/periodos `minutosDaSessao`, Início, PDF da semana). Aparece: Programação ("Tarde · Transição", linha amarela
+  `.tp-transicao`), Início (etiqueta amarela no quadro), PDFs ("· Transição"). App nativo ainda não conhece o campo.

@@ -28,7 +28,7 @@ import { formatKm, toKm } from '../utils/distancia';
 import { ExportMenu } from '../components/common/ExportMenu';
 import { safeFileName } from '../services/reportsService';
 import { useReportPhotosExport } from '../components/reports/useReportPhotosExport';
-import { periodosDoDia, rotuloPeriodo, periodoEfetivo, minutosDaSessao, distanciaDoDia, divisaoMinutos, rotuloLinhaPeriodo, rotulosAvaliacao } from '../lib/periodos';
+import { periodosDoDia, rotuloPeriodo, periodoEfetivo, minutosDaSessao, distanciaDoDia, divisaoMinutos, rotuloLinhaPeriodo, rotulosAvaliacao, ehTransicao } from '../lib/periodos';
 
 export function TrainingPage() {
   const { colors } = useTheme();
@@ -852,7 +852,7 @@ export function TrainingPage() {
                   {periodos ? (
                     // 2+ períodos: nome do período + pilar dele, setas ‹ › e pontinhos
                     <div
-                      className="tp-periodo" style={{ ...contentsSummaryStyle, position: 'relative', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '0.1rem', padding: isMobile ? '0.3rem 0.1rem' : '0.4rem 0.15rem' }}
+                      className={`tp-periodo${ehTransicao(shown) ? ' tp-transicao' : ''}`} style={{ ...contentsSummaryStyle, position: 'relative', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '0.1rem', padding: isMobile ? '0.3rem 0.1rem' : '0.4rem 0.15rem' }}
                       aria-roledescription="carrossel"
                       aria-label={`Períodos do dia: ${periodos.map((p) => rotuloPeriodo(p.periodo)).join(', ')}`}
                     >
@@ -890,7 +890,7 @@ export function TrainingPage() {
                     </div>
                   ) : (
                   <div
-                    className="tp-periodo" style={contentsSummaryStyle}
+                    className={`tp-periodo${ehTransicao(shown) ? ' tp-transicao' : ''}`} style={contentsSummaryStyle}
                     onMouseEnter={(e) => {
                       if (getDayPillarSummary(shown).length > 0) {
                         e.currentTarget.style.backgroundColor = `${colors.primary}20`;
@@ -1196,7 +1196,7 @@ export function TrainingPage() {
                   // distância nunca somem.
                   className="tp-total" style={{ ...durationBadgeStyle, flexWrap: 'nowrap', whiteSpace: 'nowrap', overflow: 'hidden', gap: '0.15rem', containerType: 'inline-size', paddingLeft: '0.25rem', paddingRight: '0.25rem', fontSize: isMobile ? '0.68rem' : '0.76rem' }}
                   title={[
-                    ...periodos.map((p) => (p.session_type === 'assessment' ? `${rotuloPeriodo(p.periodo)}: avaliação` : `${rotuloPeriodo(p.periodo)}: ${minutosDaSessao(p)} min`)),
+                    ...periodos.map((p) => (p.session_type === 'assessment' ? `${rotuloPeriodo(p.periodo)}: avaliação` : ehTransicao(p) ? `${rotuloPeriodo(p.periodo)}: transição (fora do total)` : `${rotuloPeriodo(p.periodo)}: ${minutosDaSessao(p)} min`)),
                     ...(distanciaDoDia(periodos) !== null ? [`Distância ideal do dia: ${formatKm(distanciaDoDia(periodos), 1)} km`] : []),
                   ].join(' · ')}
                 >

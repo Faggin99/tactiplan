@@ -137,7 +137,7 @@ async function semanaAtual(baseParams, clubId, semanaDe) {
   const params = [...baseParams, semanaDe];
   const ref = `COALESCE($${params.length}::date, CURRENT_DATE)`;
   const r = await query(`
-    SELECT s.id, s.date::text AS date, s.session_type, s.periodo, s.opponent_name,
+    SELECT s.id, s.date::text AS date, s.session_type, s.periodo, s.opponent_name, s.treino_transicao,
            b."order" AS ordem, b.name AS bloco, a.id AS atividade_id, a.duration_minutes AS minutos,
            COALESCE(NULLIF(t.title, ''), NULLIF(a.description, '')) AS titulo,
            (SELECT c.dimension FROM training_activity_contents tc JOIN contents c ON c.id = tc.content_id
@@ -157,14 +157,15 @@ async function semanaAtual(baseParams, clubId, semanaDe) {
     if (!dia) { dia = { date: row.date, periodos: [], minutos: 0 }; dias.set(row.date, dia); }
     let p = dia.periodos.find((x) => x.id === row.id);
     if (!p) {
-      p = { id: row.id, tipo: row.session_type || 'training', periodo: row.session_type === 'training' || row.session_type === 'assessment' ? periodoEfetivo(row) : row.periodo, adversario: row.opponent_name || null, atividades: [], minutos: 0 };
+      p = { id: row.id, tipo: row.session_type || 'training', transicao: !!row.treino_transicao, periodo: row.session_type === 'training' || row.session_type === 'assessment' ? periodoEfetivo(row) : row.periodo, adversario: row.opponent_name || null, atividades: [], minutos: 0 };
       dia.periodos.push(p);
     }
     if (row.atividade_id && (row.titulo || row.minutos)) {
       const min = Number(row.minutos) || 0;
       p.atividades.push({ titulo: row.titulo || row.bloco, bloco: row.bloco, minutos: min, pilar: row.pilar || null });
       p.minutos += min;
-      dia.minutos += min;
+      // treino de transição não soma no total do dia (não é carga do grupo)
+      if (!row.treino_transicao) dia.minutos += min;
     }
   }
   return Array.from(dias.values());

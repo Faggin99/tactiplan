@@ -324,3 +324,7 @@ html[data-theme="light"][data-estilo="placar"] .tp-folga { color: #71717a !impor
 html[data-theme="light"][data-estilo="placar"] .tp-folga-txt { color: #71717a; }
 html[data-theme="light"][data-estilo="placar"] .tp-jogo { background: #fff1f1 !important; color: #b91c1c !important; }
 html[data-theme="light"][data-estilo="placar"] .tp-jogo-txt { color: #b91c1c; }
+
+/* Treino de TRANSIÇÃO (migration 068): linha do período em amarelo em todos os estilos */
+.tp-periodo.tp-transicao { background: #fef3c7 !important; border-color: #f59e0b !important; color: #92400e !important; }
+html[data-theme="dark"] .tp-periodo.tp-transicao { background: rgba(250, 204, 21, 0.16) !important; color: #fde68a !important; }

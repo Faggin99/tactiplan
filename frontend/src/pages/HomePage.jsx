@@ -149,7 +149,8 @@ export function HomePage() {
   const logoUrl = logoPath ? getLogoUrl(logoPath) : null;
   const ctx = { colors, estilo, tk: estiloTokens, isMobile, isDark };
 
-  const disponiveis = Math.max(0, (summary.totalAthletes || 0) - (summary.activeInjuries || 0));
+  // prontos = fora do DM E fora da transição (quem está em transição treina à parte)
+  const disponiveis = Math.max(0, (summary.totalAthletes || 0) - (summary.activeInjuries || 0) - (summary.transicao || 0));
   const treinosAteJogo = nextMatch
     ? dias.filter((d) => d.data >= hojeStr && d.data < String(nextMatch.date).split('T')[0] && d.periodos.some((p) => p.tipo === 'training')).length
     : 0;
@@ -448,7 +449,9 @@ function Quadro({ ctx, clube, logoUrl, dias, hojeStr, numSemana, saudacao: ola, 
         const eHoje = d.data === hojeStr;
         const jogo = d.periodos.find((p) => p.tipo === 'match');
         const folga = d.periodos.length > 0 && d.periodos.every((p) => p.tipo === 'rest');
-        const atividades = d.periodos.filter((p) => p.tipo === 'training').flatMap((p) => p.atividades.map((a) => ({ ...a, periodo: d.periodos.length > 1 ? p.periodo : null })));
+        // treino de transição fica à parte (etiqueta amarela), não no meio das atividades do grupo
+        const atividades = d.periodos.filter((p) => p.tipo === 'training' && !p.transicao).flatMap((p) => p.atividades.map((a) => ({ ...a, periodo: d.periodos.length > 1 ? p.periodo : null })));
+        const transicoes = d.periodos.filter((p) => p.tipo === 'training' && p.transicao);
         const avaliacao = d.periodos.some((p) => p.tipo === 'assessment');
         const mostrar = atividades.slice(0, isMobile ? 3 : porDia);
         const resto = atividades.length - mostrar.length;
@@ -491,7 +494,12 @@ function Quadro({ ctx, clube, logoUrl, dias, hojeStr, numSemana, saudacao: ola, 
                 ))}
                 {resto > 0 && <span style={{ fontSize: '0.74rem', color: colors.textSecondary }}>+{resto} atividade{resto > 1 ? 's' : ''}</span>}
                 {avaliacao && <span style={{ fontSize: '0.76rem', fontWeight: 600, color: colors.textSecondary }}>Avaliação</span>}
-                {!atividades.length && !avaliacao && (
+                {transicoes.map((t) => (
+                  <span key={t.id} title="Treino de transição (fora do total do dia)" style={{ alignSelf: 'flex-start', fontSize: '0.72rem', fontWeight: 700, color: '#713f12', backgroundColor: '#fde68a', borderRadius: 4, padding: '1px 6px' }}>
+                    Transição{d.periodos.length > 1 && t.periodo ? ` · ${rotuloPeriodo(t.periodo)}` : ''}{t.minutos ? ` · ${t.minutos}'` : ''}
+                  </span>
+                ))}
+                {!atividades.length && !avaliacao && !transicoes.length && (
                   <span className={quadro ? 'tp-titulo' : undefined} style={{ fontFamily: quadro ? tk.fonteTitulo : 'inherit', fontWeight: 400, fontSize: quadro ? '1.05rem' : '0.78rem', color: colors.textMuted, textTransform: 'none' }}>
                     {passado ? '—' : quadro ? '+ a planejar' : 'a planejar'}
                   </span>
@@ -570,7 +578,7 @@ function Quadro({ ctx, clube, logoUrl, dias, hojeStr, numSemana, saudacao: ola, 
 
 function CartaoHoje({ ctx, hoje, nextSessions, hojeStr, onAbrir, max = 4 }) {
   const { colors, tk } = ctx;
-  const treinos = (hoje?.periodos || []).filter((p) => p.tipo === 'training' && p.atividades.length);
+  const treinos = (hoje?.periodos || []).filter((p) => p.tipo === 'training' && !p.transicao && p.atividades.length);
   const jogoHoje = (hoje?.periodos || []).find((p) => p.tipo === 'match');
   const proximo = nextSessions.find((s) => String(s.date).split('T')[0] > hojeStr && s.session_type === 'training');
   return (
@@ -727,11 +735,18 @@ function CartaoPlantel({ ctx, total, disponiveis, injuries, transicao = 0, podeV
         <span className="tp-titulo tp-num" style={{ fontFamily: estilo === 'classico' || estilo === 'gramado' ? 'inherit' : tk.fonteTitulo, fontWeight: 800, fontSize: estilo === 'prancheta' ? '2.6rem' : '2.1rem', lineHeight: 1, letterSpacing: estilo === 'classico' || estilo === 'gramado' ? '-0.03em' : 0, color: estilo === 'prancheta' ? colors.primary : colors.text, textTransform: 'none' }}>
           {disponiveis}<span style={{ fontSize: '0.5em', color: colors.textSecondary, fontWeight: 600 }}>/{total}</span>
         </span>
-        <span style={{ fontSize: '0.84rem', color: colors.textSecondary }}>prontos para jogar{transicao ? ` · ${transicao} em transição` : ''}</span>
+        <span style={{ fontSize: '0.84rem', color: colors.textSecondary }}>prontos para jogar</span>
       </div>
       {total > 0 && (
         <div aria-hidden="true" style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: '0.75rem' }}>
           {Array.from({ length: n }, (_, i) => <Ima key={i} cor={i >= n - noDm ? VERMELHO : i >= n - noDm - emTrans ? '#facc15' : colors.primary} tamanho={15} />)}
+        </div>
+      )}
+      {total > 0 && (
+        <div style={{ display: 'flex', gap: '0.85rem', flexWrap: 'wrap', fontSize: '0.76rem', color: colors.textSecondary, margin: '-0.3rem 0 0.6rem' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Ima cor={colors.primary} tamanho={10} />{disponiveis} disponíveis</span>
+          {transicao > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Ima cor="#facc15" tamanho={10} />{transicao} em transição</span>}
+          {injuries.length > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Ima cor={VERMELHO} tamanho={10} />{injuries.length} no DM</span>}
         </div>
       )}
       {injuries.length === 0 ? (

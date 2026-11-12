@@ -135,7 +135,7 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
 
   const tenantIds = workspaceIds || [];
   let sessionSql = `
-    SELECT s.id, s.date, s.session_type, s.avg_distance_km, s.periodo, s.workspace_id, m.club_id
+    SELECT s.id, s.date, s.session_type, s.avg_distance_km, s.periodo, s.workspace_id, m.club_id, s.treino_transicao
     FROM training_sessions s
     JOIN training_microcycles m ON s.microcycle_id = m.id
     WHERE s.workspace_id = ANY($1) AND s.date >= $2 AND s.date <= $3
@@ -150,12 +150,13 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
   // Avaliação (session_type 'assessment') NÃO entra nas estatísticas: nem minutos,
   // nem pilares, nem sessões (o dia que só teve avaliação não é sessão de treino).
   // Atividades que sobraram de quando o período era treino também ficam de fora.
-  const semAvaliacao = sessionsResult.rows.filter(s => !P.ehAvaliacao(s));
+  // Treino de TRANSIÇÃO (migration 068, atletas voltando do DM) também fica de fora: não é treino do grupo.
+  const semAvaliacao = sessionsResult.rows.filter(s => !P.ehAvaliacao(s) && !s.treino_transicao);
   const sessionIds = semAvaliacao.map(s => s.id);
   // Períodos (Manhã/Tarde/Noite): o DIA conta como 1 sessão. Cada período é
   // remapeado para o 1º período do dia; distância do dia = soma dos períodos.
   const diaDe = P.mapaDoDia(semAvaliacao);
-  const distance = buildDistanceStats(P.distanciaPorDia(sessionsResult.rows), start, end);
+  const distance = buildDistanceStats(P.distanciaPorDia(sessionsResult.rows.filter(s => !s.treino_transicao)), start, end);
 
   const empty = {
     range: { start, end },
@@ -1065,8 +1066,9 @@ async function getPeriodSessions({ workspaceIds, start, end, clubId = null, allo
            s.match_round, s.match_location, s.periodo, s.workspace_id, m.club_id,
            s.assessment_types, s.assessment_other,
            -- avaliação não soma minutos (mesmo com atividade antiga de quando era treino)
-           CASE WHEN s.session_type = 'assessment' THEN 0 ELSE COALESCE(SUM(a.duration_minutes), 0) END::int AS minutes,
-           CASE WHEN s.session_type = 'assessment' THEN 0 ELSE COUNT(a.id) END::int AS activities
+           s.treino_transicao,
+           CASE WHEN s.session_type = 'assessment' OR s.treino_transicao THEN 0 ELSE COALESCE(SUM(a.duration_minutes), 0) END::int AS minutes,
+           CASE WHEN s.session_type = 'assessment' OR s.treino_transicao THEN 0 ELSE COUNT(a.id) END::int AS activities
       FROM training_sessions s
       JOIN training_microcycles m ON s.microcycle_id = m.id
       LEFT JOIN training_activity_blocks b ON b.session_id = s.id
