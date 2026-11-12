@@ -20,6 +20,7 @@ const { renderSession } = require('./templates/session');
 const { renderConvocacao } = require('./templates/convocacao');
 const { renderClube } = require('./templates/clube');
 const { renderPlantel } = require('./templates/plantel');
+const { buildCampograma } = require('./campograma');
 const { renderJogo } = require('./templates/jogo');
 const { renderWeekProgram } = require('./templates/semana');
 const { renderAnalise } = require('./templates/analise');
@@ -613,7 +614,8 @@ async function buildPlantelReport(body, user, assets) {
   let athletes = [];
   if (!(Array.isArray(allowedCategoryIds) && allowedCategoryIds.length === 0)) {
     const params = [team.id, workspaceIds];
-    let sql = `SELECT id, name, position, jersey_number, "group", photo_url, birthdate, height_cm, preferred_foot, previous_club
+    let sql = `SELECT id, name, position, jersey_number, "group", photo_url, birthdate, height_cm, preferred_foot, previous_club,
+                      lado_preferido, status
                  FROM athletes WHERE club_id = $1 AND workspace_id = ANY($2)`;
     if (Array.isArray(allowedCategoryIds)) { params.push(allowedCategoryIds); sql += ` AND category_id = ANY($${params.length})`; }
     // Filtro da tela do web (opcional): categoria escolhida ou 'none' (sem categoria)
@@ -635,6 +637,9 @@ async function buildPlantelReport(body, user, assets) {
       }
     }
   }
+  // campograma (1ª página): mesmas fotos já reduzidas acima
+  const fotoDe = new Map(vm.groups.flatMap((g) => g.players).map((p) => [p.id, p.photoKey]));
+  vm.campo = buildCampograma(athletes.map((a) => ({ ...a, photoKey: fotoDe.get(a.id) || null })), team.modality);
   const hoje = F.toDateStr(new Date());
   const [y, m, d] = hoje.split('-');
   return {

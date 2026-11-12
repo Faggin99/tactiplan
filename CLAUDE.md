@@ -290,5 +290,7 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
 - Migration 067: `athletes.lado_preferido` ('direita'|'esquerda'|'ambos'); a ficha pergunta para ZAG ("Joga por qual
   lado?"), a lista mostra "ZAG · D". PUT só mexe no campo quando a chave vem (app antigo não apaga). No campograma os
   zagueiros se dividem por lado.
+- PDF do plantel: 1ª página = CAMPOGRAMA (campo em pé, `src/reports/campograma.js` + `campograma()` em templates/plantel.js;
+  zagueiros por lado, DM em vermelho, fotos); a lista por grupo começa na página 2. Teste: tests/campograma.test.js.
 - Relatórios: `teamPalette` escurece cor do clube clara demais até 3:1 no branco (#24eb45 → #18A330, igual à tela; amarelo
   vira dourado). Gráfico "Minutos por semana" mostra os minutos SEMPRE (antes sumiam com 10+ semanas; 25+ = em pé).
