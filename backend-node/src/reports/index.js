@@ -86,7 +86,7 @@ async function activitiesInfo(activityIds) {
   const map = new Map();
   if (!activityIds.length) return map;
   const r = await query(
-    `SELECT a.id, b.name AS block_name, t.title,
+    `SELECT a.id, b.name AS block_name, b."order" AS block_order, t.title,
             (SELECT string_agg(c.name, ', ' ORDER BY c.name) FROM training_activity_contents tac
                JOIN contents c ON c.id = tac.content_id WHERE tac.activity_id = a.id) AS conteudos
        FROM training_activities a
@@ -96,7 +96,7 @@ async function activitiesInfo(activityIds) {
     [activityIds],
   );
   // título da foto = a atividade (título; sem título, os conteúdos)
-  for (const row of r.rows) map.set(row.id, { blockName: row.block_name, title: row.title || row.conteudos || null });
+  for (const row of r.rows) map.set(row.id, { blockName: row.block_name, blockOrder: row.block_order, title: row.title || row.conteudos || null });
   return map;
 }
 
@@ -136,10 +136,23 @@ async function photoCandidates(sessions, workspaceIds) {
   if (!files.length) return [];
   const bySession = new Map(sessions.map((s) => [s.id, s]));
   const info = await activitiesInfo(Array.from(new Set(files.map((f) => f.activity_id).filter(Boolean))));
-  return B.selectSessionPhotos(files, info).map((f) => {
+  const ORD_PERIODO = { manha: 1, tarde: 2, noite: 3 };
+  // Ordem do TREINO (12/11/2026; antes era a ordem de envio e a Atividade 3 vinha antes da 2):
+  // dia → período → bloco (Aquecimento, Preparatório, Atividade 1…) → envio. Foto do dia sem
+  // atividade vem antes dos blocos. Na janela "Fotos do relatório" a pessoa ainda pode arrastar.
+  return B.selectSessionPhotos(files, info).map((f, envio) => {
     const sess = bySession.get(f.session_id);
-    return { ...f, id: String(f.id), date: sess ? F.toDateStr(sess.date) : null, periodo: sess?.periodo || null };
-  });
+    const bloco = f.activity_id ? info.get(f.activity_id)?.blockOrder : null;
+    return { ...f, id: String(f.id), date: sess ? F.toDateStr(sess.date) : null, periodo: sess?.periodo || null,
+      _ord: [sess ? F.toDateStr(sess.date) : '9999', ORD_PERIODO[sess?.periodo] || 1, bloco ?? 0, envio] };
+  }).sort((a, b) => {
+    for (let i = 0; i < 4; i++) {
+      const x = a._ord[i]; const y = b._ord[i];
+      if (x < y) return -1;
+      if (x > y) return 1;
+    }
+    return 0;
+  }).map(({ _ord, ...f }) => f);
 }
 
 const LIST_MAX = 60; // miniaturas no modal (o relatório aceita até PC.MAX_FOTOS)
