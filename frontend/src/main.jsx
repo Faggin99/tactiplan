@@ -6,8 +6,7 @@ import '@fontsource/poppins/latin-600.css'
 import '@fontsource/poppins/latin-700.css'
 import '@fontsource/poppins/latin-800.css'
 // Estilos (Quadro tático / Placar): fontes empacotadas, nada do Google em tempo de execução
-import '@fontsource/kalam/latin-400.css'
-import '@fontsource/kalam/latin-700.css'
+// (a letra de pincel do Quadro tático é a Caveat, declarada como 'Pincel' no index.css)
 import '@fontsource/hanken-grotesk/latin-400.css'
 import '@fontsource/hanken-grotesk/latin-500.css'
 import '@fontsource/hanken-grotesk/latin-600.css'

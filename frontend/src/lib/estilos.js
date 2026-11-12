@@ -36,7 +36,7 @@ export const ESTILOS = {
       text: '#ECEDEA', textSecondary: '#AEB2B6', textMuted: '#80868C',
     },
     tokens: {
-      fonteTitulo: "'Kalam', 'Comic Sans MS', cursive",
+      fonteTitulo: "'Pincel', 'Caveat', cursive",
       pesoTitulo: 700,
       caixaTitulo: 'none',
       fonteTexto: "'Hanken Grotesk', system-ui, sans-serif",

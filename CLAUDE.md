@@ -275,4 +275,8 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   antes do conteúdo, "+ a planejar", JOGO! em vermelho, total a pincel). Feito por CLASSES (tp-quadro-wrap, tp-grade, tp-dia-col,
   tp-dia-cab, tp-periodo, tp-bloco, tp-bloco-nome, tp-vazio, tp-ima, tp-total, tp-jogo, tp-folga…) no TrainingPage + regras
   `html[data-estilo="prancheta"] …` no index.css (variáveis --tp-* vindas do ThemeContext). Outros estilos: sem mudança.
+- 12/11 (tarde): letra de pincel = Caveat (fonte 'Pincel' no index.css, size-adjust 118%; a Kalam parecia infantil).
+  Programação também no GRAMADO (semana sobre o campo: faixas de grama, dias em placas brancas, atividades como cartões,
+  hoje em amarelo, total em pílula) e no PLACAR (painel preto com pontinhos de LED, dias em letra de placar com a cor do
+  clube embaixo, totais âmbar, JOGO em vermelho). Clássico sem mudança. Mesmas classes tp-*.
 - Ainda não: as demais telas (lá o estilo muda cores, fundo e títulos); apps nativos.
