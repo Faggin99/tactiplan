@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTheme } from '../../../../contexts/ThemeContext';
 import { useIsMobile } from '../../../../hooks/useIsMobile';
 import { useSportConfig } from '../../../../hooks/useSportConfig';
@@ -13,10 +13,10 @@ import { LADOS_PREFERIDOS } from '../../../../lib/sportConfig';
 // Coordenadas no campo DEITADO, em % (x = profundidade 0 → 100 rumo ao ataque; y = 0 lado esquerdo
 // do time, 100 lado direito). Códigos antigos (dado legado) caem no lugar do novo.
 const LUGAR_F11 = {
-  GOL: { x: 6, y: 50 },
-  'ZAG-E': { x: 25, y: 34 }, 'ZAG-A': { x: 25, y: 50 }, 'ZAG-D': { x: 25, y: 66 },
+  GOL: { x: 4, y: 50 },
+  'ZAG-E': { x: 26, y: 34 }, 'ZAG-A': { x: 26, y: 50 }, 'ZAG-D': { x: 26, y: 66 },
   LE: { x: 33, y: 9 }, LD: { x: 33, y: 91 },
-  VOL: { x: 44, y: 50 }, VOL2: { x: 55, y: 38 }, MEI: { x: 66, y: 54 },
+  VOL: { x: 45, y: 50 }, VOL2: { x: 56, y: 38 }, MEI: { x: 66, y: 54 },
   EE: { x: 77, y: 12 }, ED: { x: 77, y: 88 },
   CA: { x: 89, y: 50 },
 };
@@ -71,6 +71,18 @@ export default function Campograma({ athletes, onSelect }) {
   const linha = quadro ? colors.primary : '#ffffff';
   const linhaOp = quadro ? 0.5 : 0.75;
   const vertical = isMobile;
+  // Largura real do campo: estreito (tela pequena, menu aberto) = fichas compactas, para os grupos
+  // do goleiro, zagueiros e volantes não se encostarem.
+  const campoRef = useRef(null);
+  const [largura, setLargura] = useState(1200);
+  useEffect(() => {
+    const el = campoRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(([e]) => setLargura(e.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const compacto = vertical || largura < 1050;
   const W = vertical ? 68 : 105;
   const H = vertical ? 125 : 68;
 
@@ -105,7 +117,7 @@ export default function Campograma({ athletes, onSelect }) {
         </label>
       </div>
 
-      <div style={{ position: 'relative', width: '100%', maxWidth: vertical ? 520 : `calc((100vh - 300px) * ${W / H})`, margin: '0 auto', aspectRatio: `${W} / ${H}`, borderRadius: quadro ? 6 : 10, overflow: 'hidden', background: fundoCampo, border: quadro ? `7px solid ${colors.border}` : placar ? `1px solid #26262b` : 'none', boxShadow: '0 12px 26px -18px rgba(0,0,0,.6)' }}>
+      <div ref={campoRef} style={{ position: 'relative', width: '100%', maxWidth: vertical ? 520 : `calc((100vh - 250px) * ${W / H})`, margin: '0 auto', aspectRatio: `${W} / ${H}`, borderRadius: quadro ? 6 : 10, overflow: 'hidden', background: fundoCampo, border: quadro ? `7px solid ${colors.border}` : placar ? `1px solid #26262b` : 'none', boxShadow: '0 12px 26px -18px rgba(0,0,0,.6)' }}>
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
           <g fill="none" stroke={placar ? colors.primary : linha} strokeOpacity={placar ? 0.55 : linhaOp} strokeWidth="0.35" strokeDasharray={quadro ? '1.6 1.2' : undefined}>
             <rect x="1.5" y="1.5" width={W - 3} height={H - 3} />
@@ -129,11 +141,11 @@ export default function Campograma({ athletes, onSelect }) {
           const lista = grupos[k] || [];
           if (!lista.length) return null;
           return (
-            <div key={k} style={{ position: 'absolute', ...pos(p), display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 3, width: vertical ? '30%' : '17%', maxWidth: 200, minWidth: vertical ? 96 : 132, zIndex: 1 }}>
+            <div key={k} style={{ position: 'absolute', ...pos(p), display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 3, width: compacto ? 'max-content' : '17%', maxWidth: 200, minWidth: compacto ? 0 : 132, zIndex: 1 }}>
               <span style={{ alignSelf: 'center', fontSize: vertical ? '0.6rem' : '0.66rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: quadro ? colors.textSecondary : '#ffffffd9', textShadow: quadro ? 'none' : '0 1px 2px rgba(0,0,0,.5)', whiteSpace: 'nowrap' }}>
                 {rotulo(k)} · {lista.length}
               </span>
-              {lista.map((a) => <Ficha key={a.id} a={a} onSelect={onSelect} colors={colors} quadro={quadro} placar={placar} compacto={vertical} isDark={isDark} />)}
+              {lista.map((a) => <Ficha key={a.id} a={a} onSelect={onSelect} colors={colors} quadro={quadro} placar={placar} compacto={compacto} isDark={isDark} />)}
             </div>
           );
         })}
