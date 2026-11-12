@@ -37,6 +37,7 @@ function nomeCurto(n) {
 }
 
 const noDm = (a) => a.status === 'injured' || String(a.group) === 'DM';
+const emTransicao = (a) => !noDm(a) && String(a.group) === 'Transição';
 
 // Campo EM PÉ: left = y; top = 100 - x. Perto da linha, o grupo encosta na borda (não corta).
 function eixo(v) {
@@ -70,7 +71,7 @@ function buildCampograma(athletes, modality) {
     const v = eixo(100 - p.x);
     zonas.push({
       key: k, nome: NOMES[k] || k, left: h.pos, top: v.pos, tx: h.tr, ty: v.tr,
-      atletas: lista.map((a) => ({ id: a.id, nome: nomeCurto(a.name), numero: a.jersey_number ?? null, dm: noDm(a), photoKey: a.photoKey || null })),
+      atletas: lista.map((a) => ({ id: a.id, nome: nomeCurto(a.name), numero: a.jersey_number ?? null, dm: noDm(a), trans: emTransicao(a), photoKey: a.photoKey || null })),
     });
   }
   return { zonas, semLugar: semLugar.map((a) => ({ id: a.id, name: a.name, position: a.position || null })) };

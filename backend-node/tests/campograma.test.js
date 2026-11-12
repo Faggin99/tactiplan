@@ -11,12 +11,13 @@ test('campograma: zagueiros por lado, sinônimo antigo, DM por último e sem pos
     { id: 4, name: 'Thiago Ferreira', position: 'MC', jersey_number: 5, group: 'DM' },
     { id: 5, name: 'Felipe Andrade', position: 'VOL', jersey_number: 8 },
     { id: 6, name: 'Sem Posição', position: null },
+    { id: 7, name: 'Caio Martins', position: 'VOL', jersey_number: 20, group: 'Transição' },
   ], 'football_11');
   const zona = (k) => cg.zonas.find((z) => z.key === k);
   assert.deepStrictEqual(zona('ZAG-D').atletas.map((a) => a.id), [1]);
   assert.deepStrictEqual(zona('ZAG-E').atletas.map((a) => a.id), [2]);
   assert.deepStrictEqual(zona('ZAG-A').atletas.map((a) => a.id), [3]);
-  assert.deepStrictEqual(zona('VOL').atletas.map((a) => [a.id, a.dm]), [[5, false], [4, true]]);
+  assert.deepStrictEqual(zona('VOL').atletas.map((a) => [a.id, a.dm, a.trans]), [[5, false, false], [7, false, true], [4, true, false]]);
   assert.deepStrictEqual(cg.semLugar.map((a) => a.id), [6]);
   // campo em pé: ataque para cima, goleiro embaixo encostado na linha
   assert.ok(zona('ZAG-D').left > 50 && zona('ZAG-E').left < 50);

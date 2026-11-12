@@ -21,7 +21,7 @@ function campogramaHtml(cg, { futsal = false, largura = 132, altura = 204, card 
     const foto = a.photoKey
       ? `<img src="${esc(a.photoKey)}" alt="">`
       : `<i>${esc(a.nome.split(' ').map((x) => x[0]).join('').slice(0, 2).toUpperCase())}</i>`;
-    return `<div class="cg-f${a.dm ? ' dm' : ''}">${foto}${a.numero != null ? `<em>${esc(a.numero)}</em>` : ''}<span>${esc(a.nome)}</span></div>`;
+    return `<div class="cg-f${a.dm ? ' dm' : a.trans ? ' tr' : ''}">${foto}${a.numero != null ? `<em>${esc(a.numero)}</em>` : ''}<span>${esc(a.nome)}</span></div>`;
   };
   const zonas = cg.zonas.map((z) => `<div class="cg-z" style="left:${z.left}%;top:${z.top}%;transform:translate(${z.tx},${z.ty})">`
     + `<b>${esc(z.nome)} · ${z.atletas.length}</b>${z.atletas.map(ficha).join('')}</div>`).join('');
@@ -35,12 +35,13 @@ function campogramaHtml(cg, { futsal = false, largura = 132, altura = 204, card 
       .cg-z b{align-self:center;font:700 5.6pt Poppins;letter-spacing:.06em;text-transform:uppercase;color:#fff;text-shadow:0 .3mm .6mm rgba(0,0,0,.5);white-space:nowrap}
       .cg-f{display:flex;align-items:center;gap:1.2mm;padding:.5mm 2mm .5mm .5mm;border-radius:5mm;background:rgba(15,23,42,.9);color:#fff;font:600 6.6pt Poppins;white-space:nowrap}
       .cg-f.dm{background:#8f1d1d}
+      .cg-f.tr{background:#facc15;color:#1a1a1a}
       .cg-f img,.cg-f i{width:4.6mm;height:4.6mm;border-radius:50%;object-fit:cover;flex:none;background:var(--team);color:var(--on-team);font:700 5pt Poppins;display:inline-flex;align-items:center;justify-content:center;font-style:normal}
       .cg-f em{font-style:normal;font-weight:800;opacity:.75}
       .cg-fora{margin:2mm 0 0;font-size:7.5pt;color:var(--ink-2)}
     </style>`;
   // estilo DENTRO do bloco: o paginador mede cada bloco ao entrar na página
-  return card ? `<div class="card">${css}${C.sec('Campograma', 'elenco por posição · em vermelho, no departamento médico')}${campo}</div>` : css + campo;
+  return card ? `<div class="card">${css}${C.sec('Campograma', 'elenco por posição · vermelho = DM · amarelo = transição')}${campo}</div>` : css + campo;
 }
 
 

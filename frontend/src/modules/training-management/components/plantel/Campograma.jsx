@@ -43,6 +43,8 @@ const primeiroNome = (n) => {
   return p.length > 1 ? `${p[0]} ${p[p.length - 1][0]}.` : p[0] || '';
 };
 const noDm = (a) => a.status === 'injured' || String(a.group) === 'DM';
+// Transição (voltando do DM): amarelo
+const emTransicao = (a) => !noDm(a) && String(a.group) === 'Transição';
 
 export default function Campograma({ athletes, onSelect }) {
   const { colors, estilo, isDark } = useTheme();
@@ -110,7 +112,11 @@ export default function Campograma({ athletes, onSelect }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', minHeight: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap', fontSize: '0.82rem', color: colors.textSecondary }}>
-        <span>{athletes.length} atletas · clique num atleta para abrir a ficha</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {athletes.length} atletas · clique num atleta para abrir a ficha
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><i style={{ width: 10, height: 10, borderRadius: 3, background: '#7f1d1d' }} />DM</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><i style={{ width: 10, height: 10, borderRadius: 3, background: '#facc15' }} />Transição</span>
+        </span>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
           <input type="checkbox" checked={mostrarDm} onChange={(e) => setMostrarDm(e.target.checked)} />
           Mostrar quem está no DM
@@ -171,12 +177,13 @@ export default function Campograma({ athletes, onSelect }) {
 
 function Ficha({ a, onSelect, colors, quadro, placar, compacto }) {
   const dm = noDm(a);
+  const trans = emTransicao(a);
   const [falhou, setFalhou] = useState(false);
-  const fundo = dm ? '#7f1d1d' : quadro ? '#ffffff' : placar ? '#151517' : 'rgba(15,23,42,.88)';
-  const texto = quadro && !dm ? '#222' : '#fff';
+  const fundo = dm ? '#7f1d1d' : trans ? '#facc15' : quadro ? '#ffffff' : placar ? '#151517' : 'rgba(15,23,42,.88)';
+  const texto = trans ? '#1a1a1a' : quadro && !dm ? '#222' : '#fff';
   return (
-    <button type="button" onClick={() => onSelect?.(a)} title={`${a.name}${a.position ? ` · ${a.position}` : ''}${dm ? ' · no DM' : ''}`}
-      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: compacto ? '2px 6px 2px 2px' : '2px 8px 2px 2px', borderRadius: 999, border: quadro ? `1.5px solid ${dm ? '#7f1d1d' : '#222'}` : 'none', backgroundColor: fundo, color: texto, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', minWidth: 0, boxShadow: '0 2px 5px -2px rgba(0,0,0,.5)' }}>
+    <button type="button" onClick={() => onSelect?.(a)} title={`${a.name}${a.position ? ` · ${a.position}` : ''}${dm ? ' · no DM' : trans ? ' · em transição' : ''}`}
+      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: compacto ? '2px 6px 2px 2px' : '2px 8px 2px 2px', borderRadius: 999, border: quadro ? `1.5px solid ${dm ? '#7f1d1d' : trans ? '#a16207' : '#222'}` : 'none', backgroundColor: fundo, color: texto, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', minWidth: 0, boxShadow: '0 2px 5px -2px rgba(0,0,0,.5)' }}>
       {a.photo_url && !falhou
         ? <img src={a.photo_url} alt="" onError={() => setFalhou(true)} style={{ width: compacto ? 20 : 24, height: compacto ? 20 : 24, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, backgroundColor: '#e2e8f0' }} />
         : <span aria-hidden="true" style={{ width: compacto ? 20 : 24, height: compacto ? 20 : 24, borderRadius: '50%', flexShrink: 0, backgroundColor: colors.primary, color: colors.primaryText, fontSize: compacto ? '0.55rem' : '0.62rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{iniciais(a.name)}</span>}

@@ -138,7 +138,7 @@ function elencoEmCampo(vm) {
       ${lista('Mais minutos', d.minutos, (v) => `${F.int(v)}'`)}
       <div class="dq"><h5>Departamento médico</h5>${dm}</div>
     </div>`;
-  return `<div class="card">${C.sec('Elenco em campo', 'por posição · em vermelho, no departamento médico')}
+  return `<div class="card">${C.sec('Elenco em campo', 'por posição · vermelho = DM · amarelo = transição')}
     <div class="ec">${campogramaHtml(vm.campo, { futsal: vm.team.modality === 'futsal', largura: 96, altura: 148, card: false })}${lado}</div>
     <style>
       .ec{display:grid;grid-template-columns:100mm 1fr;gap:5mm;align-items:start}
