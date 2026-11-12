@@ -9,9 +9,9 @@ function kpis(vm) {
   const k = vm.kpis;
   return `<div class="grid g5">
     ${C.kpi({ label: 'Tempo total', value: F.duration(k.minutes), sub: `${F.int(k.minutes)} min`, variant: 'accent' })}
-    ${C.kpi({ label: 'Sessões', value: k.sessions, sub: k.matches ? `+ ${F.plural(k.matches, 'jogo', 'jogos')}` : '' })}
+    ${C.kpi({ label: 'Sessões', value: k.sessions, sub: [k.days != null && k.days !== k.sessions ? `em ${F.plural(k.days, 'dia', 'dias')}` : null, k.matches ? `+ ${F.plural(k.matches, 'jogo', 'jogos')}` : null].filter(Boolean).join(' · ') })}
     ${C.kpi({ label: 'Atividades', value: k.activities, sub: `${k.distinct} ${F.word(k.distinct, 'distinta', 'distintas')}` })}
-    ${k.avgPerSession == null ? C.kpi({ label: 'Média/sessão', value: '—', sub: 'minutos', variant: 'nil' }) : C.kpi({ label: 'Média/sessão', value: `${k.avgPerSession}'`, sub: 'minutos' })}
+    ${k.avgPerSession == null ? C.kpi({ label: 'Média/sessão', value: '—', sub: 'minutos', variant: 'nil' }) : C.kpi({ label: 'Média/sessão', value: `${k.avgPerSession}'`, sub: k.avgPerDay != null && k.avgPerDay !== k.avgPerSession ? `minutos · ${k.avgPerDay}' por dia` : 'minutos' })}
     ${k.distanceKm == null ? C.kpi({ label: 'Distância', value: '—', sub: 'sem registro', variant: 'nil' }) : C.kpi({ label: 'Distância', value: F.dec1(k.distanceKm), sub: 'km acumulados' })}
   </div>`;
 }

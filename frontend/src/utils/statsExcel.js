@@ -43,7 +43,8 @@ export function generateStatsExcel(stats, opts = {}) {
     totals: [
       ['Atividades', stats.totals?.activities || 0],
       ['Tempo total', formatMinutes(stats.totals?.minutes || 0)],
-      ['Sessões', stats.totals?.sessions || 0],
+      ['Sessões (treinos)', stats.totals?.sessions || 0],
+      ['Dias de treino', stats.totals?.days ?? (stats.totals?.sessions || 0)],
       ['Sessões com atividade', stats.sessionsWithActivity || 0],
       ['Atividades distintas', stats.totals?.uniqueTemplates || 0],
       ...(stats.distance?.daysWithData > 0 ? [

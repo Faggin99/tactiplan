@@ -51,7 +51,7 @@ function Sparkline({ values = [], color = '#3b82f6', width = 80, height = 24 }) 
 // ─────────────────────────────────────────────────────────────────
 // KPI Card com Sparkline
 // ─────────────────────────────────────────────────────────────────
-export function KpiCard({ label, value, icon, color, sparkline, colors }) {
+export function KpiCard({ label, value, icon, color, sparkline, colors, sub = null }) {
   return (
     <div style={{
       padding: '1rem',
@@ -79,6 +79,7 @@ export function KpiCard({ label, value, icon, color, sparkline, colors }) {
         <div style={{ fontSize: '1.5rem', fontWeight: 700, color: colors.text, lineHeight: 1.1 }}>
           {value}
         </div>
+        {sub && <div style={{ fontSize: '0.74rem', color: colors.textSecondary, marginTop: 2 }}>{sub}</div>}
       </div>
     </div>
   );
@@ -194,7 +195,8 @@ export function KpiCardsRow({ totals, sparklines, byContent, colors }) {
       <KpiCard label="Tempo total" value={formatMinutes(totals.minutes)} icon={<Clock size={18} strokeWidth={1.75} />}
         color="#a855f7" sparkline={sparklines.minutes} colors={colors} />
       <KpiCard label="Sessões" value={totals.sessions} icon={<Calendar size={18} strokeWidth={1.75} />}
-        color="#10b981" colors={colors} />
+        color="#10b981" colors={colors}
+        sub={totals.days != null ? `em ${totals.days} ${totals.days === 1 ? 'dia' : 'dias'} de treino${totals.sessions ? ` · média ${Math.round((totals.minutes || 0) / totals.sessions)}' por sessão` : ''}` : null} />
       <TopContentByPillarCard byContent={byContent || []} colors={colors} />
     </div>
   );

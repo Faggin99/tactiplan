@@ -38,7 +38,7 @@ function treinos(vm) {
   }
   const kpis = `<div class="grid g3">
     ${C.kpi({ label: 'Minutos trabalhados', value: F.duration(t.minutes), sub: `${F.int(t.minutes)} min`, variant: 'accent' })}
-    ${C.kpi({ label: 'Sessões', value: t.sessions, sub: t.avgPerSession != null ? `${t.avgPerSession} min por sessão` : '' })}
+    ${C.kpi({ label: 'Sessões', value: t.sessions, sub: [t.days != null && t.days !== t.sessions ? `em ${F.plural(t.days, 'dia', 'dias')}` : null, t.avgPerSession != null ? `${t.avgPerSession} min por sessão` : null].filter(Boolean).join(' · ') })}
     ${C.kpi({ label: 'Atividades', value: t.activities, sub: F.plural(t.distinctContents, 'conteúdo distinto', 'conteúdos distintos') })}
   </div>`;
   let pillars;

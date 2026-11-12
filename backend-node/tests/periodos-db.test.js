@@ -194,7 +194,8 @@ test('estatísticas somam os períodos e o dia conta como 1 sessão', async () =
   const q = { workspaceIds: [ctx.wsId], start: '2031-03-10', end: '2031-03-16', clubId: ctx.clubId };
   const s = await stats.getTrainingStats(q);
   assert.equal(s.totals.minutes, 180);
-  assert.equal(s.totals.sessions, 2, 'terça (2 períodos) = 1 sessão + segunda');
+  assert.equal(s.totals.sessions, 3, 'terça (2 períodos) = 2 sessões + segunda');
+  assert.equal(s.totals.days, 2, 'terça + segunda = 2 dias de treino');
   assert.equal(s.totals.activities, 3);
   assert.equal(s.sessionsWithActivity, 2);
   const tat = s.byDimensionPredominance.find((d) => d.dimension === 'tatico');

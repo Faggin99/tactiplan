@@ -452,6 +452,7 @@ function buildTrainingReport({ stats, sessions, gamesById, team, period, photos 
   const dayMax = Math.max(0, ...days.filter((d) => d.kind === 'treino').map((d) => d.minutes));
   const weeks = period.isSingleWeek ? null : buildWeeks({ period, sessions, sessionsByDate: s.sessionsByDate });
   const sessionsCount = totals.sessions || 0;
+  const daysCount = totals.days ?? sessionsCount;
   return {
     kind: 'treino',
     team,
@@ -464,10 +465,12 @@ function buildTrainingReport({ stats, sessions, gamesById, team, period, photos 
     kpis: {
       minutes: totals.minutes || 0,
       sessions: sessionsCount,
+      days: daysCount,
       matches: matchDays,
       activities: totals.activities || 0,
       distinct: totals.uniqueTemplates || 0,
       avgPerSession: sessionsCount ? Math.round((totals.minutes || 0) / sessionsCount) : null,
+      avgPerDay: daysCount ? Math.round((totals.minutes || 0) / daysCount) : null,
       distanceKm: s.distance && s.distance.daysWithData ? s.distance.totalKm : null,
     },
     days: period.isSingleWeek ? days : null,
@@ -1018,11 +1021,13 @@ function buildClubTraining(ts) {
     };
   });
   const sessions = totals.sessions || 0;
+  const days = totals.days ?? sessions;
   const minutes = totals.minutes || 0;
   return {
     empty: (totals.activities || 0) === 0,
     minutes,
     sessions,
+    days,
     activities: totals.activities || 0,
     distinctContents: contents.length,
     avgPerSession: sessions ? Math.round(minutes / sessions) : null,

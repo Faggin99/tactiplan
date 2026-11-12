@@ -159,7 +159,7 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
 
   const empty = {
     range: { start, end },
-    totals: { activities: 0, minutes: 0, sessions: 0, uniqueTemplates: 0 },
+    totals: { activities: 0, minutes: 0, sessions: 0, days: 0, uniqueTemplates: 0 },
     sparklines: { activities: Array(8).fill(0), minutes: Array(8).fill(0) },
     byDimension: [],
     byContent: [],
@@ -200,6 +200,9 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
   const activityIds = activities.map(a => a.id);
   const totalMinutes = minutosTrabalhados(activities);
   const sessionsWithActivities = new Set(activities.map(a => a.session_id));
+  // 12/11/2026 (opção B do dono): SESSÃO = cada treino (período); DIAS = dias com treino.
+  // Manhã + Tarde no mesmo dia = 2 sessões em 1 dia. Minutos/pilares seguem somando tudo.
+  const treinosComAtividade = new Set(activities.map(a => a.periodo_session_id || a.session_id));
   const uniqueTemplates = new Set(activities.filter(a => a.title_id).map(a => a.title_id));
 
   // Subconteúdos por atividade
@@ -532,7 +535,8 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
     totals: {
       activities: activities.filter(a => a.id).length === 0 ? 0 : new Set(activities.map(a => a.id)).size,
       minutes: totalMinutes,
-      sessions: sessionsWithActivities.size,
+      sessions: treinosComAtividade.size,
+      days: sessionsWithActivities.size,
       uniqueTemplates: uniqueTemplates.size,
     },
     sparklines: { activities: sparkActivities, minutes: sparkMinutes },
