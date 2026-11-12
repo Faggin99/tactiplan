@@ -597,10 +597,13 @@ async function buildClube(body, user, assets) {
     vm.campo = buildCampograma(athletes.map((a) => ({ ...a, photoKey: fotoDe.get(a.id) || null })), team.modality);
     vm.destaques = B.buildClubHighlights(vm.squad);
     const dm = await query(
-      `SELECT a.name, i.injury_type, i.body_part, i.started_at, i.expected_return
-         FROM athlete_injuries i JOIN athletes a ON a.id = i.athlete_id
-        WHERE a.club_id = $1 AND i.workspace_id = ANY($2) AND i.resolved_at IS NULL
-        ORDER BY i.started_at DESC LIMIT 6`, [team.id, workspaceIds]);
+      `SELECT a.name, COALESCE(i.injury_type, 'No grupo DM') AS injury_type, i.body_part, i.started_at, i.expected_return
+         FROM athletes a
+         LEFT JOIN LATERAL (SELECT * FROM athlete_injuries x WHERE x.athlete_id = a.id AND x.resolved_at IS NULL
+                             ORDER BY x.started_at DESC LIMIT 1) i ON TRUE
+        WHERE a.club_id = $1 AND a.workspace_id = ANY($2)
+          AND (a."group" = 'DM' OR a.status = 'injured' OR i.id IS NOT NULL)
+        ORDER BY i.started_at DESC NULLS LAST, a.name LIMIT 6`, [team.id, workspaceIds]);
     vm.dm = dm.rows;
   }
   // mesmo nome do PDF antigo (jsPDF): Relatorio_<Clube>_<ano>.pdf

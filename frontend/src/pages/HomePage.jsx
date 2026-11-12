@@ -205,7 +205,7 @@ export function HomePage() {
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr)', gap: isMobile ? '0.85rem' : '0.9rem', alignItems: 'stretch', ...(isMobile ? {} : { flexShrink: 0, height: altura >= 900 ? 268 : 236 }) }}>
           <CartaoHoje ctx={ctx} hoje={hoje} nextSessions={nextSessions} hojeStr={hojeStr} onAbrir={abrirDia} max={altura >= 1000 ? 4 : 3} />
           <CartaoJogo ctx={ctx} jogo={nextMatch} dias={diasJogo} treinos={treinosAteJogo} onAbrir={abrirJogo} onProgramacao={() => navigate('/training')} />
-          <CartaoPlantel ctx={ctx} total={summary.totalAthletes || 0} disponiveis={disponiveis} injuries={injuries}
+          <CartaoPlantel ctx={ctx} total={summary.totalAthletes || 0} disponiveis={disponiveis} injuries={injuries} transicao={summary.transicao || 0}
             podeVer={can('athletes:view')} onPlantel={() => navigate('/plantel')} max={altura >= 1000 ? 2 : 1} />
         </div>
       </div>
@@ -711,10 +711,11 @@ function CartaoJogo({ ctx, jogo, dias, treinos, onAbrir, onProgramacao }) {
 // Plantel: prontos × no departamento médico (um ímã por atleta)
 // ---------------------------------------------------------------------------------------------
 
-function CartaoPlantel({ ctx, total, disponiveis, injuries, podeVer, onPlantel, max = 2 }) {
+function CartaoPlantel({ ctx, total, disponiveis, injuries, transicao = 0, podeVer, onPlantel, max = 2 }) {
   const { colors, tk, estilo } = ctx;
   const n = Math.min(total, 30);
   const noDm = Math.min(injuries.length, n);
+  const emTrans = Math.min(transicao, n - noDm);
   return (
     <section aria-label="Plantel" style={cartaoStyle(ctx, { display: 'flex', flexDirection: 'column', transform: ctx.estilo === 'prancheta' && !ctx.isMobile ? 'rotate(0.35deg)' : 'none' })}>
       <Prende ctx={ctx} cor="#555" />
@@ -726,11 +727,11 @@ function CartaoPlantel({ ctx, total, disponiveis, injuries, podeVer, onPlantel, 
         <span className="tp-titulo tp-num" style={{ fontFamily: estilo === 'classico' || estilo === 'gramado' ? 'inherit' : tk.fonteTitulo, fontWeight: 800, fontSize: estilo === 'prancheta' ? '2.6rem' : '2.1rem', lineHeight: 1, letterSpacing: estilo === 'classico' || estilo === 'gramado' ? '-0.03em' : 0, color: estilo === 'prancheta' ? colors.primary : colors.text, textTransform: 'none' }}>
           {disponiveis}<span style={{ fontSize: '0.5em', color: colors.textSecondary, fontWeight: 600 }}>/{total}</span>
         </span>
-        <span style={{ fontSize: '0.84rem', color: colors.textSecondary }}>prontos para jogar</span>
+        <span style={{ fontSize: '0.84rem', color: colors.textSecondary }}>prontos para jogar{transicao ? ` · ${transicao} em transição` : ''}</span>
       </div>
       {total > 0 && (
         <div aria-hidden="true" style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: '0.75rem' }}>
-          {Array.from({ length: n }, (_, i) => <Ima key={i} cor={i >= n - noDm ? VERMELHO : colors.primary} tamanho={15} />)}
+          {Array.from({ length: n }, (_, i) => <Ima key={i} cor={i >= n - noDm ? VERMELHO : i >= n - noDm - emTrans ? '#facc15' : colors.primary} tamanho={15} />)}
         </div>
       )}
       {injuries.length === 0 ? (
@@ -742,7 +743,7 @@ function CartaoPlantel({ ctx, total, disponiveis, injuries, podeVer, onPlantel, 
               <Ima cor={VERMELHO} tamanho={12} style={{ marginTop: 4 }} />
               <span style={{ minWidth: 0, flex: 1 }}>
                 <span style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', lineHeight: 1.3 }}>{inj.athlete_name}</span>
-                <span style={{ display: 'block', fontSize: '0.74rem', lineHeight: 1.35, color: colors.textSecondary }}>{[inj.injury_type, inj.body_part].filter(Boolean).join(' · ')}{inj.expected_return ? ` · volta ${ddmm(inj.expected_return)}` : ''}</span>
+                <span style={{ display: 'block', fontSize: '0.74rem', lineHeight: 1.35, color: colors.textSecondary }}>{[inj.injury_type, inj.body_part].filter(Boolean).join(' · ') || 'No grupo DM'}{inj.expected_return ? ` · volta ${ddmm(inj.expected_return)}` : ''}</span>
               </span>
             </li>
           ))}

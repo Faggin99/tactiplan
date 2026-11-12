@@ -12,7 +12,7 @@ router.get('/home/dashboard', async (req, res) => {
     const workspaceIds = req.user.workspaceIds || [];
     const clubId = req.query.clubId || null;
     if (workspaceIds.length === 0) {
-      return res.json({ nextSessions: [], nextMatch: null, lastMatch: null, activeInjuries: [], announcements: [], summary: { totalAthletes: 0, activeInjuries: 0 } });
+      return res.json({ nextSessions: [], nextMatch: null, lastMatch: null, activeInjuries: [], announcements: [], summary: { totalAthletes: 0, activeInjuries: 0, transicao: 0 } });
     }
 
     const nextSessionSql = `
@@ -55,15 +55,19 @@ router.get('/home/dashboard', async (req, res) => {
        ORDER BY s.date DESC
        LIMIT 1`, nextSessionParams);
 
+    // DM = grupo DM, situação "Lesionado" ou lesão aberta na ficha (12/11/2026: antes só a lesão
+    // aberta contava e quem era posto no grupo DM não aparecia na Início).
     const activeInjuriesSql = `
-      SELECT i.id, i.athlete_id, i.injury_type, i.body_part, i.severity, i.started_at, i.expected_return,
-             a.name AS athlete_name, a.jersey_number, a.photo_url
-        FROM athlete_injuries i
-        JOIN athletes a ON a.id = i.athlete_id
-       WHERE i.workspace_id = ANY($1)
-         AND i.resolved_at IS NULL
+      SELECT COALESCE(i.id, a.id) AS id, a.id AS athlete_id, i.injury_type, i.body_part, i.severity,
+             i.started_at, i.expected_return, a.name AS athlete_name, a.jersey_number, a.photo_url
+        FROM athletes a
+        LEFT JOIN LATERAL (
+          SELECT * FROM athlete_injuries x WHERE x.athlete_id = a.id AND x.resolved_at IS NULL
+           ORDER BY x.started_at DESC LIMIT 1) i ON TRUE
+       WHERE a.workspace_id = ANY($1)
          ${clubId ? 'AND a.club_id = $2' : ''}
-       ORDER BY i.started_at DESC
+         AND (a."group" = 'DM' OR a.status = 'injured' OR i.id IS NOT NULL)
+       ORDER BY i.started_at DESC NULLS LAST, a.name
        LIMIT 20
     `;
     const activeInjuriesResult = await query(activeInjuriesSql, nextSessionParams);
@@ -92,9 +96,14 @@ router.get('/home/dashboard', async (req, res) => {
     const summaryRow = await query(
       `SELECT
          (SELECT COUNT(*) FROM athletes WHERE workspace_id = ANY($1) ${clubId ? 'AND club_id = $2' : ''}) AS total_athletes,
-         (SELECT COUNT(*) FROM athlete_injuries i
-            JOIN athletes a ON a.id = i.athlete_id
-           WHERE i.workspace_id = ANY($1) AND i.resolved_at IS NULL ${clubId ? 'AND a.club_id = $2' : ''}) AS active_injuries`,
+         (SELECT COUNT(*) FROM athletes a
+           WHERE a.workspace_id = ANY($1) ${clubId ? 'AND a.club_id = $2' : ''}
+             AND (a."group" = 'DM' OR a.status = 'injured'
+                  OR EXISTS (SELECT 1 FROM athlete_injuries i WHERE i.athlete_id = a.id AND i.resolved_at IS NULL))) AS active_injuries,
+         (SELECT COUNT(*) FROM athletes a
+           WHERE a.workspace_id = ANY($1) ${clubId ? 'AND a.club_id = $2' : ''} AND a."group" = 'Transição'
+             AND a.status <> 'injured'
+             AND NOT EXISTS (SELECT 1 FROM athlete_injuries i WHERE i.athlete_id = a.id AND i.resolved_at IS NULL)) AS transicao`,
       nextSessionParams
     );
 
@@ -113,6 +122,7 @@ router.get('/home/dashboard', async (req, res) => {
       summary: {
         totalAthletes: parseInt(summaryRow.rows[0]?.total_athletes || 0, 10),
         activeInjuries: parseInt(summaryRow.rows[0]?.active_injuries || 0, 10),
+        transicao: parseInt(summaryRow.rows[0]?.transicao || 0, 10),
       },
     });
   } catch (err) {
