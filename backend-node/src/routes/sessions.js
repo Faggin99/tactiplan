@@ -210,10 +210,10 @@ router.put('/:id/type', async (req, res) => {
     }
 
     const result = await query(
-      `UPDATE training_sessions SET session_type = $1, opponent_name = $2,
+      `UPDATE training_sessions SET session_type = $1::varchar, opponent_name = $2,
               assessment_types = $5, assessment_other = $6,
               -- treino de transição: só vale em treino; outro tipo zera. Sem a chave (app antigo), mantém.
-              treino_transicao = CASE WHEN COALESCE($1, 'training') <> 'training' THEN false
+              treino_transicao = CASE WHEN COALESCE($1::varchar, 'training') <> 'training' THEN false
                                       WHEN $7::boolean IS NULL THEN treino_transicao ELSE $7::boolean END,
               updated_at = NOW()
        WHERE id = $3 AND workspace_id = ANY($4)
