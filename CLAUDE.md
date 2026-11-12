@@ -136,7 +136,7 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
 - Estatísticas: o dia conta 1 sessão; minutos/pilares/conteúdos/predominância/distância somam os períodos.
   ⚠️ MUDOU 12/11/2026 (opção B do dono): `totals.sessions` = TREINOS (cada período com atividade) e `totals.days` = dias
   de treino (Manhã+Tarde = 2 sessões em 1 dia). Tela/PDFs mostram "Sessões" com "em N dias" e média por sessão (e por dia).
-  Predominância/presença ainda contam por DIA.
+  Predominância e presença (pilar, conteúdo, submomento) também por TREINO (período) desde 12/11.
   Relatórios: ficha com os períodos em sequência (`so_periodo: true` = só o de session_id), semana com "90+60".
 - Testes: `tests/periodos.test.js` e `tests/periodos-db.test.js` (Postgres descartável via `PERIODOS_TEST_DB`;
   banco `sports_periodos_test` = schema de prod + 057/058).

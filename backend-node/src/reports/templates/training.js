@@ -65,7 +65,7 @@ function weekGrid(vm) {
       : `<div class="fx">${esc(d.focus || '')}</div>${assessmentLine(d.assessment)}`;
     return `<div class="day">${head}<div class="tag">${tag}</div>${meio}`
       + `<div class="col pcol">${pillarBar(d.pillars, d.minutes, max)}</div><div class="mn">${d.minutes > 0 ? `${d.minutes}'` : '—'}</div>`
-      + `${d.split && d.minutes > 0 ? `<div class="pd" title="${esc(d.periods.map((p) => `${p.label} ${p.minutes}'`).join(' + '))}">${esc(d.split)}</div>` : ''}</div>`;
+      + `${d.split && d.minutes > 0 ? `<div class="pd" title="${esc(`${d.periods.filter((p) => p.minutes > 0).map((p) => `${p.label} ${p.minutes}'`).join(' + ')} = ${d.minutes}`)}">${esc(d.split)}</div>` : ''}</div>`;
   }).join('');
   const notes = vm.dayNotes.map((n) => `<div class="note">${esc(n)}</div>`).join('');
   // legenda das cores dos pilares que aparecem na semana

@@ -180,7 +180,7 @@ test('trocar o horário de um período', async () => {
   assert.equal(r.status, 400);
 });
 
-test('estatísticas somam os períodos e o dia conta como 1 sessão', async () => {
+test('estatísticas somam os períodos; sessão = cada treino (período), dias à parte', async () => {
   const m = await microciclo();
   const [manha, tarde] = m.sessions[1].periodos;
   await atividade(manha.blocks[0].id, 90, ctx.tatico);
@@ -197,11 +197,14 @@ test('estatísticas somam os períodos e o dia conta como 1 sessão', async () =
   assert.equal(s.totals.sessions, 3, 'terça (2 períodos) = 2 sessões + segunda');
   assert.equal(s.totals.days, 2, 'terça + segunda = 2 dias de treino');
   assert.equal(s.totals.activities, 3);
-  assert.equal(s.sessionsWithActivity, 2);
+  assert.equal(s.sessionsWithActivity, 3, 'treinos com conteúdo: seg, manhã e tarde de terça');
+  // predominância por TREINO (12/11/2026): manhã tática e tarde física contam cada uma
   const tat = s.byDimensionPredominance.find((d) => d.dimension === 'tatico');
-  assert.equal(tat.sessions, 1, 'terça: tático predomina por tempo (90 > 60)');
+  assert.equal(tat.sessions, 1, 'manhã de terça: tático');
+  const fisPred = s.byDimensionPredominance.find((d) => d.dimension === 'fisico');
+  assert.equal(fisPred.sessions, 2, 'segunda + tarde de terça: físico (antes a tarde sumia no dia)');
   const pres = s.byDimensionPresence.find((d) => d.dimension === 'fisico');
-  assert.equal(pres.sessions, 2, 'físico presente em 2 dias (seg + tarde de terça)');
+  assert.equal(pres.sessions, 2, 'físico presente em 2 treinos (seg + tarde de terça)');
   assert.equal(s.distance.daysWithData, 1);
   assert.equal(s.distance.byDay[0].km, 8.5, 'distância do dia = soma dos períodos');
   const terca = s.sessionsByDate.find((d) => d.date === '2031-03-11');

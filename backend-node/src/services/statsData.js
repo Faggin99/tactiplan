@@ -255,13 +255,15 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
   }
   const byContent = Array.from(contentAgg.values()).sort((a, b) => b.count - a.count);
 
-  // Predominância: agrupa atividades por sessão e pega conteúdo(s) com maior contagem.
-  // Empate marca todos. Cada dia contribui 1 (dividido se houver empate) pra cada predominante.
-  const sessionToContents = new Map(); // session_id → { content_id: { count, content_name, dimension } }
+  // Predominância: agrupa atividades por SESSÃO e pega conteúdo(s) com mais tempo.
+  // 12/11/2026 (decisão do dono): sessão = cada TREINO (período), não o dia — Manhã física e
+  // Tarde tática contam uma vez cada. Empate marca todos.
+  const sessionToContents = new Map(); // treino (período) → { content_id: { count, content_name, dimension } }
   for (const a of activities) {
-    if (!a.content_id || !a.session_id) continue;
-    if (!sessionToContents.has(a.session_id)) sessionToContents.set(a.session_id, new Map());
-    const m = sessionToContents.get(a.session_id);
+    const treino = a.periodo_session_id || a.session_id;
+    if (!a.content_id || !treino) continue;
+    if (!sessionToContents.has(treino)) sessionToContents.set(treino, new Map());
+    const m = sessionToContents.get(treino);
     if (!m.has(a.content_id)) {
       m.set(a.content_id, { content_id: a.content_id, name: a.content_name, dimension: a.dimension, count: 0, minutes: 0 });
     }
@@ -275,7 +277,7 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
     const items = Array.from(m.values());
     if (items.length === 0) continue;
     // Predominância POR TEMPO (decisão do Arthur, 19/10/2026): ganha o conteúdo com
-    // mais minutos no dia, de qualquer pilar (antes o tático tinha prioridade).
+    // mais minutos no treino, de qualquer pilar (antes o tático tinha prioridade).
     // Dia sem nenhum tempo preenchido: cai para o nº de atividades.
     const temTempo = items.some(i => i.minutes > 0);
     const peso = (i) => (temTempo ? i.minutes : i.count);
@@ -344,11 +346,12 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
   const sessionToSubsSet = new Map(); // session_id → Set(stage_id)
   const subMeta = new Map(); // stage_id → { name, content_id }
   for (const a of activities) {
-    if (!a.session_id) continue;
+    const treino = a.periodo_session_id || a.session_id; // por treino (período), como a predominância
+    if (!treino) continue;
     const subs = subsByActivity.get(a.id) || [];
     if (subs.length === 0) continue;
-    if (!sessionToSubsSet.has(a.session_id)) sessionToSubsSet.set(a.session_id, new Set());
-    const set = sessionToSubsSet.get(a.session_id);
+    if (!sessionToSubsSet.has(treino)) sessionToSubsSet.set(treino, new Set());
+    const set = sessionToSubsSet.get(treino);
     for (const s of subs) {
       set.add(s.stage_id);
       if (!subMeta.has(s.stage_id)) {
