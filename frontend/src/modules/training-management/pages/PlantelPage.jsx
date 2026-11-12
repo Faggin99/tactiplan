@@ -178,6 +178,12 @@ export default function PlantelPage() {
   const handleGeneratePDF = async () => {
     try {
       if (!selectedClub?.id) return;
+      // O PDF é feito no servidor: mudança de grupo ainda não salva (ex.: atleta arrastado para o DM)
+      // não sairia nele. Salva antes de gerar.
+      if (hasChanges) {
+        await handleSaveGroupChanges();
+        notify.success('Mudanças de grupo salvas antes de gerar o PDF.');
+      }
       // PDF no servidor (mesmo layout dos outros relatórios); respeita o filtro de categoria da tela
       await downloadReport('plantel', {
         club_id: selectedClub.id,
@@ -437,6 +443,15 @@ export default function PlantelPage() {
           Grupos de Treino
         </button>
       </div>
+
+      {hasChanges && activeTab !== 'groups' && (
+        <div role="status" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap', padding: '0.55rem 0.85rem', marginBottom: '0.6rem', borderRadius: '0.5rem', border: '1px solid #f59e0b66', backgroundColor: 'rgba(245,158,11,0.10)', color: colors.text, fontSize: '0.85rem' }}>
+          <span>Há mudanças de grupo ainda não salvas (feitas em Grupos de Treino).</span>
+          <Button icon={<Save size={16} strokeWidth={1.5} />} onClick={handleSaveGroupChanges} disabled={saving} size="sm">
+            {saving ? 'Salvando...' : 'Salvar agora'}
+          </Button>
+        </div>
+      )}
 
       <div style={contentSectionStyle}>
         {activeTab === 'table' ? (
