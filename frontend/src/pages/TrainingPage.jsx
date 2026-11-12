@@ -21,6 +21,7 @@ import { usePreference } from '../hooks/usePreference';
 import { usePlanFeatures } from '../hooks/usePlanFeatures';
 import { TourGuide } from '../components/common/TourGuide';
 import { useTour, useTourReplayListener } from '../hooks/useTour';
+import { COR_PILAR } from '../lib/estilos';
 import { notify } from '../lib/notify';
 import { useCan } from '../hooks/useCan';
 import { formatKm, toKm } from '../utils/distancia';
@@ -747,8 +748,8 @@ export function TrainingPage() {
         </div>
       )}
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }} data-tour="calendar">
-        <div style={calendarStyle}>
+      <div className="tp-quadro-wrap" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }} data-tour="calendar">
+        <div className="tp-grade" style={calendarStyle}>
           {(isMobile
             ? microcycle?.sessions?.filter((_, idx) => idx === selectedDayIndex)
             : microcycle?.sessions
@@ -762,6 +763,7 @@ export function TrainingPage() {
             return (
               <div
                 key={session.id || `empty-${session.date}`}
+                className={`tp-dia-col${isToday(session.date) ? ' tp-hoje-col' : ''}`}
                 style={dayColumnStyle}
                 data-periodos={periodos ? nPer : undefined}
                 onMouseEnter={periodos ? () => { carrossel.current.hover = session.date; } : undefined}
@@ -783,6 +785,7 @@ export function TrainingPage() {
                 } : undefined}
               >
                 <div
+                  className={`tp-dia-cab${currentDay ? ' tp-hoje' : ''}`}
                   style={dayHeaderStyle(currentDay)}
                   onClick={() => {
                     setSelectedSession(session);
@@ -849,7 +852,7 @@ export function TrainingPage() {
                   {periodos ? (
                     // 2+ períodos: nome do período + pilar dele, setas ‹ › e pontinhos
                     <div
-                      style={{ ...contentsSummaryStyle, position: 'relative', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '0.1rem', padding: isMobile ? '0.3rem 0.1rem' : '0.4rem 0.15rem' }}
+                      className="tp-periodo" style={{ ...contentsSummaryStyle, position: 'relative', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '0.1rem', padding: isMobile ? '0.3rem 0.1rem' : '0.4rem 0.15rem' }}
                       aria-roledescription="carrossel"
                       aria-label={`Períodos do dia: ${periodos.map((p) => rotuloPeriodo(p.periodo)).join(', ')}`}
                     >
@@ -887,7 +890,7 @@ export function TrainingPage() {
                     </div>
                   ) : (
                   <div
-                    style={contentsSummaryStyle}
+                    className="tp-periodo" style={contentsSummaryStyle}
                     onMouseEnter={(e) => {
                       if (getDayPillarSummary(shown).length > 0) {
                         e.currentTarget.style.backgroundColor = `${colors.primary}20`;
@@ -932,6 +935,7 @@ export function TrainingPage() {
                 if (sessionType === 'rest') {
                   return (
                     <div
+                      className="tp-bloco tp-folga"
                       style={{
                         ...blockStyle,
                         flex: 1,
@@ -945,8 +949,8 @@ export function TrainingPage() {
                         gap: isMobile ? '0.3rem' : '0.5rem',
                       }}
                     >
-                      <Moon size={isMobile ? 28 : 48} strokeWidth={1.5} />
-                      <div style={{ fontSize: isMobile ? '0.9rem' : '1.2rem' }}>Descanso</div>
+                      <Moon className="tp-esconde" size={isMobile ? 28 : 48} strokeWidth={1.5} />
+                      <div className="tp-folga-txt" style={{ fontSize: isMobile ? '0.9rem' : '1.2rem' }}>Descanso</div>
                     </div>
                   );
                 }
@@ -958,6 +962,7 @@ export function TrainingPage() {
                   return (
                     <div
                       data-testid="dia-avaliacao"
+                      className="tp-bloco"
                       style={{
                         ...blockStyle,
                         flex: 1,
@@ -995,6 +1000,7 @@ export function TrainingPage() {
                     <>
                       {/* Informação do Jogo - ocupa 5/6 do espaço */}
                       <div
+                        className="tp-bloco tp-jogo"
                         style={{
                           ...blockStyle,
                           flex: '5 1 0',
@@ -1025,8 +1031,8 @@ export function TrainingPage() {
                           e.currentTarget.style.boxShadow = 'none';
                         }}
                       >
-                        <Trophy size={isMobile ? 28 : 48} strokeWidth={1.5} />
-                        <div style={{ fontSize: isMobile ? '0.9rem' : '1.2rem' }}>JOGO</div>
+                        <Trophy className="tp-esconde" size={isMobile ? 28 : 48} strokeWidth={1.5} />
+                        <div className="tp-jogo-txt" style={{ fontSize: isMobile ? '0.9rem' : '1.2rem' }}>JOGO</div>
                         {shown.opponent_name && (
                           <div style={{ fontSize: isMobile ? '0.75rem' : '1rem', color: colors.textSecondary }}>
                             vs {shown.opponent_name}
@@ -1037,6 +1043,7 @@ export function TrainingPage() {
                       {/* Bloco "Não relacionados" - ocupa 1/6 do espaço */}
                       {shown.blocks && shown.blocks.length > 0 && (
                         <div
+                          className="tp-bloco"
                           style={{
                             ...blockStyle,
                             flex: '1 1 0',
@@ -1064,7 +1071,7 @@ export function TrainingPage() {
                             e.currentTarget.style.boxShadow = 'none';
                           }}
                         >
-                          <div style={blockNameStyle}>Não relacionados{anexosBadge(shown.blocks[0]?.activity)}</div>
+                          <div className="tp-bloco-nome" style={blockNameStyle}>Não relacionados{anexosBadge(shown.blocks[0]?.activity)}</div>
                           {shown.blocks[0]?.activity ? (
                             <div style={{ fontSize: '0.7rem', color: colors.text, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                               {/* Conteúdo em destaque; a atividade é o último nível (mais discreta) */}
@@ -1076,6 +1083,7 @@ export function TrainingPage() {
                                   maxWidth={180}
                                 >
                                   <div style={{ fontWeight: '600', display: 'block', width: '100%' }}>
+                                    <span className="tp-ima" style={{ backgroundColor: COR_PILAR[shown.blocks[0].activity.contents[0]?.dimension] || '#94a3b8' }} />
                                     {shown.blocks[0].activity.contents.map(c => abbreviateContent(c.name)).join(', ')}
                                   </div>
                                 </Tooltip>
@@ -1094,7 +1102,7 @@ export function TrainingPage() {
                               )}
                             </div>
                           ) : (
-                            <div style={blockContentStyle}>{podeEditarTreino ? 'Clique para editar' : 'Clique para ver'}</div>
+                            <div className="tp-vazio" style={blockContentStyle}>{podeEditarTreino ? 'Clique para editar' : 'Clique para ver'}</div>
                           )}
                         </div>
                       )}
@@ -1111,6 +1119,7 @@ export function TrainingPage() {
                   return (
                   <div
                     key={block.id || `empty-block-${shown.date}-${blockIndex}`}
+                    className="tp-bloco"
                     style={{
                       ...blockStyle,
                       ...(blockMatchesTheme ? { borderLeft: '3px solid #2563eb', paddingLeft: '0.3rem' } : {}),
@@ -1138,7 +1147,7 @@ export function TrainingPage() {
                       e.currentTarget.style.boxShadow = 'none';
                     }}
                   >
-                    <div style={blockNameStyle}>{block.name}{anexosBadge(block.activity)}</div>
+                    <div className="tp-bloco-nome" style={blockNameStyle}>{block.name}{anexosBadge(block.activity)}</div>
                     {block.activity ? (
                       <div style={{ fontSize: '0.7rem', color: colors.text, display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                         {/* Conteúdo em destaque; a atividade é o último nível (mais discreta) */}
@@ -1150,6 +1159,7 @@ export function TrainingPage() {
                             maxWidth={180}
                           >
                             <div style={{ fontWeight: '600', display: 'block', width: '100%' }}>
+                              <span className="tp-ima" style={{ backgroundColor: COR_PILAR[block.activity.contents[0]?.dimension] || '#94a3b8' }} />
                               {block.activity.contents.map(c => abbreviateContent(c.name)).join(', ')}
                             </div>
                           </Tooltip>
@@ -1168,7 +1178,7 @@ export function TrainingPage() {
                         )}
                       </div>
                     ) : (
-                      <div style={blockContentStyle}>{podeEditarTreino ? 'Clique para editar' : 'Clique para ver'}</div>
+                      <div className="tp-vazio" style={blockContentStyle}>{podeEditarTreino ? 'Clique para editar' : 'Clique para ver'}</div>
                     )}
                   </div>
                   );
@@ -1184,7 +1194,7 @@ export function TrainingPage() {
                   // containerType: a largura não vem do texto (a coluna não alarga). Se ainda
                   // faltar espaço, só a divisão (90+60) encolhe com reticências; total e
                   // distância nunca somem.
-                  style={{ ...durationBadgeStyle, flexWrap: 'nowrap', whiteSpace: 'nowrap', overflow: 'hidden', gap: '0.15rem', containerType: 'inline-size', paddingLeft: '0.25rem', paddingRight: '0.25rem', fontSize: isMobile ? '0.68rem' : '0.76rem' }}
+                  className="tp-total" style={{ ...durationBadgeStyle, flexWrap: 'nowrap', whiteSpace: 'nowrap', overflow: 'hidden', gap: '0.15rem', containerType: 'inline-size', paddingLeft: '0.25rem', paddingRight: '0.25rem', fontSize: isMobile ? '0.68rem' : '0.76rem' }}
                   title={[
                     ...periodos.map((p) => (p.session_type === 'assessment' ? `${rotuloPeriodo(p.periodo)}: avaliação` : `${rotuloPeriodo(p.periodo)}: ${minutosDaSessao(p)} min`)),
                     ...(distanciaDoDia(periodos) !== null ? [`Distância ideal do dia: ${formatKm(distanciaDoDia(periodos), 1)} km`] : []),
@@ -1203,7 +1213,7 @@ export function TrainingPage() {
                   )}
                 </div>
               ) : (
-              <div style={durationBadgeStyle}>
+              <div className="tp-total" style={durationBadgeStyle}>
                 <span>⏱</span>
                 <span>{getTotalDuration(shown)} min</span>
                 {toKm(shown.avg_distance_km) !== null && (shown.session_type || 'training') === 'training' && (

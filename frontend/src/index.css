@@ -160,3 +160,65 @@ html[data-estilo="placar"] h1, html[data-estilo="placar"] h2 { letter-spacing: 0
 .tp-cartao-link:focus-visible, .tp-dia:focus-visible { outline: 2px solid var(--cor-primaria, #2563eb); outline-offset: 2px; }
 .tp-dia { transition: background-color 150ms ease; }
 @media (prefers-reduced-motion: reduce) { .tp-cartao-link, .tp-cartao-link:hover { transform: none; transition: none; } }
+
+/* ===== Programação no estilo QUADRO TÁTICO (12/11/2026): a grade vira o quadro branco ===== */
+.tp-ima { display: none; }
+html[data-estilo="prancheta"] .tp-quadro-wrap {
+  background: var(--tp-sup); border: 9px solid var(--tp-borda); border-radius: 7px;
+  padding: 0.45rem 0.6rem 0.4rem; margin-bottom: 14px; position: relative;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.08), inset 0 2px 6px rgba(0,0,0,.06), 0 14px 26px -18px rgba(0,0,0,.6);
+}
+html[data-estilo="prancheta"] .tp-quadro-wrap::after {
+  content: ""; position: absolute; left: 18%; right: 18%; bottom: -23px; height: 13px; border-radius: 0 0 4px 4px;
+  background:
+    linear-gradient(#1A3E9C, #1A3E9C) 12% 0 / 64px 7px no-repeat,
+    linear-gradient(#C62D2D, #C62D2D) calc(12% + 80px) 0 / 64px 7px no-repeat,
+    linear-gradient(#222, #222) calc(12% + 160px) 0 / 64px 7px no-repeat,
+    linear-gradient(#a7aeb5, #858c93);
+  box-shadow: 0 4px 8px -4px rgba(0,0,0,.5);
+}
+html[data-estilo="prancheta"] .tp-grade { gap: 0 !important; }
+html[data-estilo="prancheta"] .tp-dia-col { gap: 0 !important; padding: 0 0.4rem; }
+html[data-estilo="prancheta"] .tp-dia-col + .tp-dia-col { border-left: 2px dashed var(--tp-tracejado); }
+html[data-estilo="prancheta"] .tp-hoje-col { background: repeating-linear-gradient(0deg, transparent 0 25px, color-mix(in srgb, var(--cor-primaria) 9%, transparent) 25px 26px); }
+html[data-estilo="prancheta"] .tp-dia-cab {
+  background: transparent !important; color: var(--tp-texto) !important; box-shadow: none !important; transform: none !important;
+  border-radius: 0 !important; border-bottom: 2px dashed var(--tp-tracejado);
+  font-family: var(--fonte-titulo) !important; font-size: 1.3rem !important; font-weight: 700 !important; line-height: 1.05;
+  padding: 0.15rem 0.2rem 0.35rem !important;
+}
+html[data-estilo="prancheta"] .tp-dia-cab > div:not(:first-child) { font-family: 'Red Hat Mono', ui-monospace, monospace; font-size: 0.72rem; font-weight: 500; color: var(--tp-texto2); }
+html[data-estilo="prancheta"] .tp-dia-cab.tp-hoje { color: var(--cor-primaria) !important; }
+html[data-estilo="prancheta"] .tp-periodo {
+  background: transparent !important; border: none !important; border-bottom: 2px dashed var(--tp-tracejado) !important; border-radius: 0 !important;
+  font-family: var(--fonte-titulo); font-size: 1rem !important; color: var(--tp-texto2) !important;
+}
+html[data-estilo="prancheta"] .tp-bloco {
+  background: transparent !important; border: none !important; border-bottom: 1.5px dashed var(--tp-tracejado2) !important;
+  border-radius: 0 !important; box-shadow: none !important; transform: none !important;
+}
+html[data-estilo="prancheta"] .tp-bloco:hover { background: color-mix(in srgb, var(--cor-primaria) 7%, transparent) !important; }
+html[data-estilo="prancheta"] .tp-bloco-nome { text-transform: lowercase; letter-spacing: 0.02em; }
+html[data-estilo="prancheta"] .tp-vazio { font-size: 0 !important; }
+html[data-estilo="prancheta"] .tp-vazio::after { content: "+ a planejar"; font-family: var(--fonte-titulo); font-size: 0.95rem; color: var(--tp-texto3); }
+html[data-estilo="prancheta"] .tp-ima {
+  display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 5px; vertical-align: -1px;
+  background-image: radial-gradient(circle at 35% 30%, rgba(255,255,255,.55) 0, rgba(255,255,255,0) 45%);
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,.25), 0 1px 2px rgba(0,0,0,.3);
+}
+html[data-estilo="prancheta"] .tp-total {
+  background: transparent !important; border: none !important; color: var(--cor-primaria) !important;
+  font-family: var(--fonte-titulo); font-size: 1.2rem !important; font-weight: 700 !important;
+}
+html[data-estilo="prancheta"] .tp-jogo {
+  border: 2.5px solid #C62D2D !important; border-radius: 3px !important; color: #C62D2D !important;
+  transform: rotate(-1deg) !important; margin: 0.7rem 0.45rem; text-align: center;
+}
+html[data-estilo="prancheta"] .tp-jogo-txt { font-family: var(--fonte-titulo); font-size: 1.9rem !important; font-weight: 700; }
+html[data-estilo="prancheta"] .tp-jogo-txt::after { content: "!"; }
+html[data-estilo="prancheta"] .tp-folga-txt { font-family: var(--fonte-titulo); font-size: 1.5rem !important; font-weight: 400; color: var(--tp-texto3); text-transform: lowercase; }
+html[data-estilo="prancheta"] .tp-esconde { display: none; }
+@media (max-width: 767px) {
+  html[data-estilo="prancheta"] .tp-quadro-wrap { border-width: 6px; margin-bottom: 4px; }
+  html[data-estilo="prancheta"] .tp-quadro-wrap::after { display: none; }
+}

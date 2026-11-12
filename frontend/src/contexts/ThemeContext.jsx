@@ -178,7 +178,18 @@ export function ThemeProvider({ children }) {
   const activeBranding = brandingDraft || clubBranding;
   const colors = useMemo(() => resolveThemeColors(theme, activeBranding, estilo), [theme, activeBranding, estilo]);
   // primária para CSS (seleção de texto, foco)
-  useEffect(() => { document.documentElement.style.setProperty('--cor-primaria', colors.primary); }, [colors.primary]);
+  useEffect(() => {
+    const st = document.documentElement.style;
+    st.setProperty('--cor-primaria', colors.primary);
+    // cores do tema para regras de CSS (Programação no Quadro tático etc.)
+    st.setProperty('--tp-sup', colors.surface);
+    st.setProperty('--tp-borda', colors.border);
+    st.setProperty('--tp-texto', colors.text);
+    st.setProperty('--tp-texto2', colors.textSecondary);
+    st.setProperty('--tp-texto3', colors.textMuted);
+    st.setProperty('--tp-tracejado', theme === 'dark' ? '#4a5157' : '#C3C8CC');
+    st.setProperty('--tp-tracejado2', theme === 'dark' ? '#353b41' : '#DADDE0');
+  }, [colors, theme]);
 
   const value = {
     theme,

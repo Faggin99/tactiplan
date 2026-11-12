@@ -271,4 +271,8 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   vermelho, etiquetas de atalho; os cartões viram folhas presas por ímã.
 - Primária ilegível (contraste < 3:1 com fundo/superfície, ex. #24eb45 do Uberlândia no claro) é escurecida/clareada na tela
   por `legivelSobre` em `resolveThemeColors` (o branding salvo não muda).
-- Ainda não: ímãs/pincel dentro da Programação e das outras telas (lá o estilo muda cores, fundo e títulos); apps nativos.
+- 12/11: PROGRAMAÇÃO no Quadro tático = quadro branco (moldura, calha, dias a pincel, colunas/linhas tracejadas, ímã do pilar
+  antes do conteúdo, "+ a planejar", JOGO! em vermelho, total a pincel). Feito por CLASSES (tp-quadro-wrap, tp-grade, tp-dia-col,
+  tp-dia-cab, tp-periodo, tp-bloco, tp-bloco-nome, tp-vazio, tp-ima, tp-total, tp-jogo, tp-folga…) no TrainingPage + regras
+  `html[data-estilo="prancheta"] …` no index.css (variáveis --tp-* vindas do ThemeContext). Outros estilos: sem mudança.
+- Ainda não: as demais telas (lá o estilo muda cores, fundo e títulos); apps nativos.
