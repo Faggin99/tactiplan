@@ -1213,7 +1213,7 @@ export function TrainingPage() {
                   )}
                 </div>
               ) : (
-              <div className="tp-total" style={durationBadgeStyle}>
+              <div className={`tp-total${getTotalDuration(shown) ? '' : ' tp-zero'}`} style={durationBadgeStyle}>
                 <span>⏱</span>
                 <span>{getTotalDuration(shown)} min</span>
                 {toKm(shown.avg_distance_km) !== null && (shown.session_type || 'training') === 'training' && (

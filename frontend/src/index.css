@@ -217,6 +217,7 @@ html[data-estilo="prancheta"] .tp-total {
   background: transparent !important; border: none !important; color: var(--cor-primaria) !important;
   font-family: var(--fonte-titulo); font-size: 1.2rem !important; font-weight: 700 !important;
 }
+html[data-estilo="prancheta"] .tp-total.tp-zero { color: var(--tp-texto3) !important; font-weight: 400 !important; }
 html[data-estilo="prancheta"] .tp-jogo {
   border: 2.5px solid #C62D2D !important; border-radius: 3px !important; color: #C62D2D !important;
   transform: rotate(-1deg) !important; margin: 0.7rem 0.45rem; text-align: center;
@@ -263,6 +264,7 @@ html[data-estilo="gramado"] .tp-total {
   background: rgba(255,255,255,.95) !important; color: #14532d !important; border: none !important; border-radius: 999px !important; font-weight: 800 !important;
 }
 html[data-theme="dark"][data-estilo="gramado"] .tp-total { background: rgba(10,25,16,.85) !important; color: #bbf7d0 !important; }
+html[data-estilo="gramado"] .tp-total.tp-zero { opacity: 0.6; }
 html[data-estilo="gramado"] .tp-ima { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
 
 /* ===== Programação no estilo PLACAR (12/11/2026): painel de placar de estádio ===== */
@@ -285,13 +287,16 @@ html[data-estilo="placar"] .tp-periodo {
   font-family: var(--fonte-titulo); text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.85rem !important;
 }
 html[data-estilo="placar"] .tp-bloco {
-  background: #141416 !important; border: 1px solid #26262b !important; border-radius: 2px !important; color: #e7e7e7 !important;
+  background: #111113 !important; border: 1px solid #1f1f23 !important; border-radius: 2px !important; color: #e7e7e7 !important;
   box-shadow: none !important; transform: none !important;
 }
 html[data-estilo="placar"] .tp-bloco:hover { border-color: var(--cor-primaria) !important; background: #1b1b1f !important; }
 html[data-estilo="placar"] .tp-bloco div { color: inherit !important; }
-html[data-estilo="placar"] .tp-bloco-nome { color: #8b8b93 !important; text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--fonte-titulo); font-size: 0.72rem !important; }
-html[data-estilo="placar"] .tp-vazio { color: #55555c !important; }
+html[data-estilo="placar"] .tp-bloco .tp-bloco-nome { color: #6b6b73 !important; text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--fonte-titulo); font-size: 0.72rem !important; }
+html[data-estilo="placar"] .tp-bloco .tp-vazio { font-size: 0 !important; }
+html[data-estilo="placar"] .tp-bloco .tp-vazio::after { content: "—"; font-size: 0.9rem; color: #3f3f46; }
+html[data-estilo="placar"] .tp-bloco:hover .tp-vazio::after { content: "+ ADICIONAR"; font-family: var(--fonte-titulo); letter-spacing: 0.08em; color: var(--cor-primaria); font-size: 0.85rem; }
+html[data-estilo="placar"] .tp-total.tp-zero { color: #3f3f46 !important; }
 html[data-estilo="placar"] .tp-ima { display: inline-block; width: 8px; height: 8px; border-radius: 1px; margin-right: 6px; vertical-align: 1px; }
 html[data-estilo="placar"] .tp-total {
   background: #151517 !important; border: 1px solid #26262b !important; border-radius: 2px !important; color: #fbbf24 !important;
