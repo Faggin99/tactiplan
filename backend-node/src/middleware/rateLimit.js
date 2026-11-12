@@ -28,10 +28,13 @@ const recoveryLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Geral: 200 reqs / 15min (proteção contra abuse de bots)
+// Geral: 1500 reqs / 15min por IP (proteção contra robôs). Era 200: o app faz ~15 chamadas por
+// tela e uma pessoa navegando (ou várias na mesma rede) passava do limite e não conseguia nem
+// entrar ("Request failed" no login, 12/11/2026).
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: 1500,
+  message: { error: 'Muitos acessos em pouco tempo. Aguarde alguns minutos e tente de novo.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
