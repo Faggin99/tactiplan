@@ -324,23 +324,33 @@ function escalacao(vm, n) {
   return { els: [...els, ...rodape(vm, n, 'escalacao')] };
 }
 
+// Análise individual: até 3 jogadores por página (17/11/2026; eram 2 e sobrava espaço). Em cada coluna, os
+// grupos (fortes, fracos, como neutralizar) ficam empilhados, cada um com a altura do seu texto.
+const POR_PAGINA_INDIVIDUAL = 3;
 function individuais(vm, n, parte, rotParte) {
   const els = cromo(vm, `Análise individual${rotParte}`, null, 'individuais');
-  colunas(2).forEach((col, i) => {
+  colunas(POR_PAGINA_INDIVIDUAL).forEach((col, i) => {
     const p = parte[i];
     if (!p) return;
     els.push(box(col.x, TOPO, col.w, ALT, C.claro, { raio: 0.25 }));
-    els.push(circ(col.x + 0.5, TOPO + 0.5, 1.7, C.verde, { txt: p.numero != null ? String(p.numero) : '·', size: 18, bold: true, color: C.branco }));
-    els.push(text(col.x + 2.5, TOPO + 0.45, col.w - 3, 1.0, p.nome, 20, { bold: true, color: C.escuro, valign: 'middle', font: 'titulo' }));
-    els.push(text(col.x + 2.5, TOPO + 1.4, col.w - 3, 0.7, [p.posicao, p.destaque].filter(Boolean).join(' · '), 11, { color: C.cinza }));
+    els.push(circ(col.x + 0.5, TOPO + 0.5, 1.6, C.verde, { txt: p.numero != null ? String(p.numero) : '·', size: 17, bold: true, color: C.branco }));
+    els.push(text(col.x + 2.4, TOPO + 0.45, col.w - 2.8, 1.0, p.nome, 18, { bold: true, color: C.escuro, valign: 'middle', font: 'titulo' }));
+    els.push(text(col.x + 2.4, TOPO + 1.4, col.w - 2.8, 0.7, [p.posicao, p.destaque].filter(Boolean).join(' · '), 10.5, { color: C.cinza }));
     const grupos = [['PONTOS FORTES', p.fortes, C.verde], ['PONTOS FRACOS', p.fracos, C.vermelho], ['COMO NEUTRALIZAR', p.neutralizar, C.azul]]
       .filter(([, l]) => l.length);
-    colunas(Math.max(grupos.length, 1), col.x + 0.5, col.w - 1, 0.4).forEach((g, j) => {
-      const gr = grupos[j];
-      if (!gr) return;
-      els.push(box(g.x, TOPO + 2.7, g.w, 0.12, gr[2]));
-      els.push(text(g.x, TOPO + 2.95, g.w, 0.7, gr[0], 9.5, { bold: true, color: gr[2] }));
-      els.push(bullets(g.x, TOPO + 3.7, g.w, ALT - 4.0, gr[1], 14));
+    const x = col.x + 0.5;
+    const w = col.w - 1;
+    let y = TOPO + 2.6;
+    const fim = TOPO + ALT - 0.3;
+    // altura de cada grupo proporcional ao texto (mínimo 1,8 cm), dentro do que sobra na coluna
+    const pede = grupos.map(([, l]) => Math.max(1.0, alturaBullets(l, w, 12.5)) + 1.0);
+    const fator = Math.min(1, (fim - y) / (pede.reduce((a, b) => a + b, 0) || 1));
+    grupos.forEach(([rot, lista, cor], j) => {
+      const h = Math.max(1.8, pede[j] * fator);
+      els.push(box(x, y, w, 0.1, cor));
+      els.push(text(x, y + 0.2, w, 0.6, rot, 9, { bold: true, color: cor }));
+      els.push(bullets(x, y + 0.85, w, h - 1.0, lista, 12.5));
+      y += h + 0.25;
     });
   });
   return { els: [...els, ...rodape(vm, n, 'individuais')] };
@@ -418,84 +428,175 @@ function transicoes(vm, n) {
   return { els: [...els, ...rodape(vm, n, 'transicoes')] };
 }
 
-function bpOfensiva(vm, n) {
-  const b = vm.a.bp_ofensiva;
-  const els = cromo(vm, AA.TITULOS.bp_ofensiva, null, 'bp_ofensiva');
-  let y = TOPO;
-  if (b.resumo) {
-    els.push(box(M, y, LARG, 2.2, C.destaque, { raio: 0.25 }));
-    els.push(text(M + 0.6, y + 0.15, LARG - 1.2, 1.9, b.resumo, 13, { color: C.escuro, valign: 'middle' }));
-    y += 2.8;
-  }
-  const cards = [['escanteios', 'Escanteios'], ['faltas', 'Faltas'], ['laterais', 'Laterais'], ['penaltis', 'Pênaltis']].filter(([k]) => b[k].length);
-  colunas(Math.max(cards.length, 1)).forEach((col, i) => {
-    if (!cards[i]) return;
-    const [e, yc] = cartao(col.x, y, col.w, TOPO + ALT - y, cards[i][1]);
-    els.push(...e, bullets(col.x + 0.5, yc, col.w - 1, TOPO + ALT - yc - 0.3, b[cards[i][0]], 15));
-  });
-  return { els: [...els, ...rodape(vm, n, 'bp_ofensiva')] };
+// As seções abaixo desenham numa REGIÃO (y0, alt): a página inteira ou metade dela, para juntar duas
+// seções curtas numa página só (17/11/2026: a análise tinha páginas com quase tudo vazio).
+function subtitulo(y0, txt) {
+  return [box(M, y0, 0.18, 0.75, C.verde), text(M + 0.45, y0, LARG - 0.5, 0.75, txt.toUpperCase(), 11, { bold: true, color: C.verde, valign: 'middle' })];
 }
 
-function bpDefensiva(vm, n) {
+function bpOfensivaEls(vm, y0, alt) {
+  const b = vm.a.bp_ofensiva;
+  const els = [];
+  let y = y0;
+  if (b.resumo) {
+    const h = Math.min(2.2, Math.max(1.2, alturaTexto(b.resumo, LARG - 1.2, 13) + 0.5));
+    els.push(box(M, y, LARG, h, C.destaque, { raio: 0.25 }));
+    els.push(text(M + 0.6, y + 0.1, LARG - 1.2, h - 0.2, b.resumo, 13, { color: C.escuro, valign: 'middle' }));
+    y += h + 0.5;
+  }
+  const cards = [['escanteios', 'Escanteios'], ['faltas', 'Faltas'], ['laterais', 'Laterais'], ['penaltis', 'Pênaltis']].filter(([k]) => b[k].length);
+  const cols = colunas(Math.max(cards.length, 1));
+  const h = alturaCartoes(cards.map(([k]) => b[k]), cols[0].w, 14, y0 + alt - y);
+  cols.forEach((col, i) => {
+    if (!cards[i]) return;
+    const [e, yc] = cartao(col.x, y, col.w, h, cards[i][1]);
+    els.push(...e, bullets(col.x + 0.5, yc, col.w - 1, y + h - yc - 0.3, b[cards[i][0]], 14));
+  });
+  return els;
+}
+const altBpOfensiva = (vm) => {
+  const b = vm.a.bp_ofensiva;
+  const cards = [['escanteios'], ['faltas'], ['laterais'], ['penaltis']].filter(([k]) => b[k].length);
+  const w = colunas(Math.max(cards.length, 1))[0].w;
+  return (b.resumo ? 2.0 : 0) + alturaCartoes(cards.map(([k]) => b[k]), w, 14, 99);
+};
+
+function bpDefensivaEls(vm, y0, alt) {
   const b = vm.a.bp_defensiva;
-  const els = cromo(vm, AA.TITULOS.bp_defensiva, null, 'bp_defensiva');
-  let y = TOPO;
+  const els = [];
+  let y = y0;
   const campos = [['Marcação', b.marcacao], ['Homens na área', b.homens_area], ['Jogador na trave', b.trave], ['Barreira', b.barreira]]
     .filter(([, v]) => v !== null && v !== '');
   if (campos.length) {
     colunas(campos.length).forEach((col, i) => {
-      els.push(box(col.x, y, col.w, 2.7, C.claro, { raio: 0.25 }));
-      els.push(text(col.x + 0.45, y + 0.3, col.w - 0.9, 0.6, campos[i][0].toUpperCase(), 9.5, { bold: true, color: C.cinza }));
-      els.push(text(col.x + 0.45, y + 0.95, col.w - 0.9, 1.5, String(campos[i][1]), 18, { bold: true, color: C.escuro, valign: 'middle' }));
+      els.push(box(col.x, y, col.w, 2.2, C.claro, { raio: 0.25 }));
+      els.push(text(col.x + 0.45, y + 0.25, col.w - 0.9, 0.55, campos[i][0].toUpperCase(), 9, { bold: true, color: C.cinza }));
+      els.push(text(col.x + 0.45, y + 0.8, col.w - 0.9, 1.2, String(campos[i][1]), 16, { bold: true, color: C.escuro, valign: 'middle' }));
     });
-    y += 3.3;
+    y += 2.7;
   }
+  const cards = cartoesBpDef(b);
+  const cols = colunas(Math.max(cards.length, 1));
+  const h = alturaCartoes(cards.map((c) => c[1]), cols[0].w, 14, y0 + alt - y);
+  cols.forEach((col, i) => {
+    if (!cards[i]) return;
+    const [e, yc] = cartao(col.x, y, col.w, h, cards[i][0], { cor: cards[i][2] });
+    els.push(...e, bullets(col.x + 0.5, yc, col.w - 1, y + h - yc - 0.3, cards[i][1], 14));
+  });
+  return els;
+}
+function cartoesBpDef(b) {
   const cards = [];
   if (b.contra_ataque) cards.push(['Quem fica na frente', [b.contra_ataque], C.verde]);
   if (b.goleiro.length) cards.push(['Goleiro', b.goleiro, C.amarelo]);
   if (b.itens.length) cards.push(['Observações', b.itens, C.escuro]);
-  colunas(Math.max(cards.length, 1)).forEach((col, i) => {
-    if (!cards[i]) return;
-    const [e, yc] = cartao(col.x, y, col.w, TOPO + ALT - y, cards[i][0], { cor: cards[i][2] });
-    els.push(...e, bullets(col.x + 0.5, yc, col.w - 1, TOPO + ALT - yc - 0.3, cards[i][1], 15));
-  });
-  return { els: [...els, ...rodape(vm, n, 'bp_defensiva')] };
+  return cards;
+}
+const altBpDefensiva = (vm) => {
+  const b = vm.a.bp_defensiva;
+  const temCampos = [b.marcacao, b.homens_area, b.trave, b.barreira].some((v) => v !== null && v !== '');
+  const cards = cartoesBpDef(b);
+  const w = colunas(Math.max(cards.length, 1))[0].w;
+  return (temCampos ? 2.7 : 0) + (cards.length ? alturaCartoes(cards.map((c) => c[1]), w, 14, 99) : 0);
+};
+
+function bpOfensiva(vm, n) {
+  return { els: [...cromo(vm, AA.TITULOS.bp_ofensiva, null, 'bp_ofensiva'), ...bpOfensivaEls(vm, TOPO, ALT), ...rodape(vm, n, 'bp_ofensiva')] };
+}
+function bpDefensiva(vm, n) {
+  return { els: [...cromo(vm, AA.TITULOS.bp_defensiva, null, 'bp_defensiva'), ...bpDefensivaEls(vm, TOPO, ALT), ...rodape(vm, n, 'bp_defensiva')] };
+}
+// Ofensivas + defensivas numa página (quando as duas cabem na metade)
+function bolasParadas(vm, n, hOf) {
+  const els = cromo(vm, 'Bolas paradas', 'Ofensivas e defensivas', 'bp_ofensiva');
+  const yDef = TOPO + Math.max(hOf + 1.3, 3) + 0.4;
+  els.push(...subtitulo(TOPO, 'Ofensivas'), ...bpOfensivaEls(vm, TOPO + 1.0, yDef - TOPO - 1.4));
+  els.push(...subtitulo(yDef, 'Defensivas'), ...bpDefensivaEls(vm, yDef + 1.0, TOPO + ALT - yDef - 1.0));
+  return { els: [...els, ...rodape(vm, n, 'bp_ofensiva')] };
 }
 
-function pontos(vm, n) {
+function pontosEls(vm, y0, alt) {
   const p = vm.a.pontos;
-  const lados = [['positivos', 'Pontos positivos', 'O que fazem bem e precisa ser neutralizado', C.verde],
+  const lados = ladosPontos(p);
+  const els = [];
+  const cols = colunas(lados.length);
+  const h = Math.min(alt, Math.max(4.0, Math.max(...lados.map(([k]) => alturaBullets(p[k], cols[0].w - 1.3, 14))) + 3.0));
+  cols.forEach((col, i) => {
+    const [k, rot, sub, cor] = lados[i];
+    els.push(box(col.x, y0, col.w, h, C.claro, { raio: 0.25 }));
+    els.push(box(col.x, y0, 0.3, h, cor));
+    els.push(text(col.x + 0.8, y0 + 0.4, col.w - 1.3, 0.9, rot, 17, { bold: true, color: C.escuro, valign: 'middle' }));
+    els.push(text(col.x + 0.8, y0 + 1.3, col.w - 1.3, 0.6, sub, 10.5, { color: C.cinza }));
+    els.push(bullets(col.x + 0.8, y0 + 2.2, col.w - 1.3, h - 2.5, p[k], 14));
+  });
+  return { els, h };
+}
+function ladosPontos(p) {
+  return [['positivos', 'Pontos positivos', 'O que fazem bem e precisa ser neutralizado', C.verde],
     ['solucoes', 'Soluções', 'Como anular os pontos positivos', C.amarelo],
     ['explorar', 'Pontos a serem explorados', 'Fragilidades que podem ser atacadas', C.vermelho]].filter(([k]) => p[k].length);
-  const els = cromo(vm, AA.TITULOS.pontos, null, 'pontos');
-  colunas(lados.length).forEach((col, i) => {
-    const [k, rot, sub, cor] = lados[i];
-    els.push(box(col.x, TOPO, col.w, ALT, C.claro, { raio: 0.25 }));
-    els.push(box(col.x, TOPO, 0.3, ALT, cor));
-    els.push(text(col.x + 0.8, TOPO + 0.5, col.w - 1.3, 1.0, rot, 18, { bold: true, color: C.escuro, valign: 'middle' }));
-    els.push(text(col.x + 0.8, TOPO + 1.5, col.w - 1.3, 0.7, sub, 11, { color: C.cinza }));
-    els.push(bullets(col.x + 0.8, TOPO + 2.5, col.w - 1.3, ALT - 2.8, p[k], 15));
-  });
+}
+const altPontos = (vm) => {
+  const p = vm.a.pontos;
+  const lados = ladosPontos(p);
+  if (!lados.length) return 0;
+  const w = colunas(lados.length)[0].w - 1.3;
+  return Math.max(4.0, Math.max(...lados.map(([k]) => alturaBullets(p[k], w, 14))) + 3.0);
+};
+
+function finalEls(vm, y0, alt, { comTitulo = false } = {}) {
+  const f = vm.a.final;
+  const els = [];
+  let y = y0;
+  const hMsg = f.mensagem ? Math.min(4.6, Math.max(2.6, alturaTexto(f.mensagem, LARG - 1.6, 18) + 1.6)) : 0;
+  if (f.observacoes.length) {
+    const h = Math.min(alt - (hMsg ? hMsg + 0.5 : 0), Math.max(2.0, alturaBullets(f.observacoes, LARG - 1.2, 16) + 0.9));
+    const t = comTitulo ? 0.75 : 0; // na "Conclusão" o bloco ganha o próprio título
+    els.push(box(M, y, LARG, h + t, C.claro, { raio: 0.25 }));
+    if (comTitulo) els.push(text(M + 0.6, y + 0.3, LARG - 1.2, 0.6, 'OBSERVAÇÕES FINAIS', 10, { bold: true, color: C.cinza }));
+    els.push(bullets(M + 0.6, y + 0.45 + t, LARG - 1.2, h - 0.7, f.observacoes, 16));
+    y += h + t + 0.5;
+  }
+  if (f.mensagem) {
+    els.push(box(M, y, LARG, hMsg, C.escuro, { raio: 0.25 }));
+    els.push(text(M + 0.8, y + 0.4, LARG - 1.6, 0.6, 'MENSAGEM PRINCIPAL PARA O JOGO', 11, { bold: true, color: C.amarelo }));
+    els.push(text(M + 0.8, y + 1.1, LARG - 1.6, hMsg - 1.4, f.mensagem, 18, { bold: true, color: C.branco, valign: 'middle' }));
+  }
+  return els;
+}
+const altFinal = (vm) => {
+  const f = vm.a.final;
+  const hMsg = f.mensagem ? Math.min(4.6, Math.max(2.6, alturaTexto(f.mensagem, LARG - 1.6, 18) + 1.6)) : 0;
+  const hObs = f.observacoes.length ? Math.max(2.0, alturaBullets(f.observacoes, LARG - 1.2, 16) + 0.9) : 0;
+  return hObs + hMsg + (hObs && hMsg ? 0.5 : 0) + (hObs ? 0.75 : 0);
+};
+
+function pontos(vm, n) {
+  return { els: [...cromo(vm, AA.TITULOS.pontos, null, 'pontos'), ...pontosEls(vm, TOPO, ALT).els, ...rodape(vm, n, 'pontos')] };
+}
+function final(vm, n) {
+  return { els: [...cromo(vm, AA.TITULOS.final, null, 'final'), ...finalEls(vm, TOPO, ALT), ...rodape(vm, n, 'final')] };
+}
+// Pontos + observações finais numa página (o fechamento da análise)
+function fechamento(vm, n) {
+  const els = cromo(vm, 'Conclusão', 'Pontos do adversário e mensagem para o jogo', 'pontos');
+  const pt = pontosEls(vm, TOPO, ALT - altFinal(vm) - 0.6);
+  els.push(...pt.els, ...finalEls(vm, TOPO + pt.h + 0.6, ALT - pt.h - 0.6, { comTitulo: true }));
   return { els: [...els, ...rodape(vm, n, 'pontos')] };
 }
 
-function final(vm, n) {
-  const f = vm.a.final;
-  const els = cromo(vm, AA.TITULOS.final, null, 'final');
-  let y = TOPO;
-  const hMsg = f.mensagem ? 5.0 : 0;
-  if (f.observacoes.length) {
-    const h = ALT - (hMsg ? hMsg + 0.6 : 0);
-    els.push(box(M, y, LARG, h, C.claro, { raio: 0.25 }));
-    els.push(bullets(M + 0.6, y + 0.5, LARG - 1.2, h - 0.8, f.observacoes, 18));
-    y += h + 0.6;
-  }
-  if (f.mensagem) {
-    els.push(box(M, y, LARG, TOPO + ALT - y, C.escuro, { raio: 0.25 }));
-    els.push(text(M + 0.8, y + 0.5, LARG - 1.6, 0.7, 'MENSAGEM PRINCIPAL PARA O JOGO', 11, { bold: true, color: C.amarelo }));
-    els.push(text(M + 0.8, y + 1.3, LARG - 1.6, TOPO + ALT - y - 1.6, f.mensagem, 19, { bold: true, color: C.branco, valign: 'middle' }));
-  }
-  return { els: [...els, ...rodape(vm, n, 'final')] };
+// Altura (cm) de uma lista de tópicos / texto com a fonte dada (mesma estimativa do `caber`)
+function alturaBullets(lista, w, size) {
+  const n = (lista || []).reduce((t, b) => t + linhas(b, w, size, 0.55), 0);
+  return n * size * PT * 1.22 + (lista || []).length * size * PT * 0.35;
+}
+function alturaTexto(txt, w, size) {
+  return linhas(txt || '', w, size) * size * PT * 1.22;
+}
+// Cartões lado a lado: todos com a altura do mais cheio (título + texto), sem passar do limite
+function alturaCartoes(listas, w, size, limite) {
+  const maior = Math.max(1.2, ...listas.map((l) => alturaBullets(l, w - 1, size)));
+  return Math.min(limite, Math.max(3.2, maior + 2.3));
 }
 
 // Vídeo da seção (só PowerPoint): um slide por vídeo, depois da seção.
@@ -563,6 +664,13 @@ function montarDeck(vm) {
     for (const vid of v.videosPorSecao[secao] || []) slides.push(slideVideo(v, n(), vid));
   };
   const preenchidas = new Set(AA.secoesPreenchidas(v.a));
+  // Juntar seções curtas numa página só (sem mídia própria no meio, para a ordem não embaralhar)
+  const semMidia = (k) => !(v.videosPorSecao[k] || []).length && !(v.fotosPorSecao[k] || []).length;
+  const ESPACO = ALT - 2.4; // título interno de cada metade + respiro
+  const juntarBp = preenchidas.has('bp_ofensiva') && preenchidas.has('bp_defensiva') && semMidia('bp_ofensiva')
+    && altBpOfensiva(v) + altBpDefensiva(v) <= ESPACO;
+  const juntarFim = preenchidas.has('pontos') && preenchidas.has('final') && semMidia('pontos')
+    && altPontos(v) + altFinal(v) + 0.6 <= ALT;
   // seção vazia com foto/vídeo: a mídia entra mesmo assim (slide próprio; vídeo só no PowerPoint)
   for (const k of AA.SECOES.filter((x) => preenchidas.has(x) || (v.videosPorSecao[x] || []).length || (v.fotosPorSecao[x] || []).length)) {
     if (!preenchidas.has(k)) {
@@ -574,8 +682,17 @@ function montarDeck(vm) {
       for (let i = 0; i < vs.length; i += 3) slides.push(variacoes(v, n(), vs.slice(i, i + 3)));
     } else if (k === 'individuais') {
       const ps = v.a.individuais;
-      const total = Math.ceil(ps.length / 2);
-      for (let i = 0; i < ps.length; i += 2) slides.push(individuais(v, n(), ps.slice(i, i + 2), total > 1 ? ` (${i / 2 + 1}/${total})` : ''));
+      const N = POR_PAGINA_INDIVIDUAL;
+      const total = Math.ceil(ps.length / N);
+      for (let i = 0; i < ps.length; i += N) slides.push(individuais(v, n(), ps.slice(i, i + N), total > 1 ? ` (${i / N + 1}/${total})` : ''));
+    } else if (k === 'bp_ofensiva' && juntarBp) {
+      slides.push(bolasParadas(v, n(), altBpOfensiva(v)));
+    } else if (k === 'bp_defensiva' && juntarBp) {
+      // já saiu junto com as ofensivas
+    } else if (k === 'pontos' && juntarFim) {
+      slides.push(fechamento(v, n()));
+    } else if (k === 'final' && juntarFim) {
+      // já saiu junto com os pontos
     } else {
       const f = { campanha, sistema, escalacao, ataque, defesa, transicoes, bp_ofensiva: bpOfensiva, bp_defensiva: bpDefensiva, pontos, final }[k];
       slides.push(f(v, n()));

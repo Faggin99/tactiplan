@@ -312,3 +312,9 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
 - Fica FORA das estatísticas do grupo (como a avaliação: statsData filtra; getPeriodSessions devolve 0 min) e fora do total do
   dia (lib/periodos `minutosDaSessao`, Início, PDF da semana). Aparece: Programação ("Tarde · Transição", linha amarela
   `.tp-transicao`), Início (etiqueta amarela no quadro), PDFs ("· Transição"). App nativo ainda não conhece o campo.
+
+## Análise do adversário — exportação compacta (17/11/2026)
+- `analiseDeck.js`: análise individual 3 jogadores por página (grupos empilhados); bolas paradas ofensivas + defensivas viram
+  1 página "Bolas paradas" e pontos + observações finais viram "Conclusão" quando as duas cabem (estimativa `alturaBullets`/
+  `altBp*`/`altPontos`/`altFinal`) e a 1ª não tem foto/vídeo próprio. Cartões com a altura do conteúdo (`alturaCartoes`).
+  Exemplo da paridade: 14 → 11 páginas (PDF e PowerPoint iguais). Teste em tests/analise-adversario.test.js.

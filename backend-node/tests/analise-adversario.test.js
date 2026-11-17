@@ -58,10 +58,13 @@ function vmDe(a, extra = {}) {
 test('deck: capa + um slide por seção preenchida, na ordem nova (individual logo após a escalação)', () => {
   const a = AA.normalizar(FLA);
   const deck = montarDeck(vmDe(a));
-  // 12 seções; individuais (3 jogadores) em 2 slides; variações cabem em 1
-  assert.equal(deck.slides.length, 1 + 12 + 1);
+  // 12 seções, compactadas (17/11/2026): individuais (3 jogadores) num slide só; bolas paradas ofensivas +
+  // defensivas juntas; pontos + observações finais juntos ("Conclusão")
+  assert.equal(deck.slides.length, 1 + 12 - 2);
   const titulos = deck.slides.slice(1).map((s) => s.els[0].txt);
-  assert.deepEqual(titulos.slice(0, 6), ['Campanha', 'Sistema inicial', 'Variações do sistema', 'Provável escalação', 'Análise individual (1/2)', 'Análise individual (2/2)']);
+  assert.deepEqual(titulos.slice(0, 5), ['Campanha', 'Sistema inicial', 'Variações do sistema', 'Provável escalação', 'Análise individual']);
+  assert.ok(titulos.includes('Bolas paradas') && titulos.includes('Conclusão'), titulos.join(' | '));
+  assert.ok(!titulos.includes('Observações finais'));
   assert.ok(titulos.includes('Organização ofensiva') && titulos.includes('Organização defensiva'));
   const html = renderAnalise(deck, { titulo: 'x', imagens: {} });
   assert.equal((html.match(/<section class="s"/g) || []).length, deck.slides.length);
