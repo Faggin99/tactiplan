@@ -11,6 +11,8 @@ import { useClub } from '../../contexts/ClubContext';
 import { competitionService } from '../../services/competitionService';
 import { LineupField } from './LineupField';
 import { OpponentAnalysisModal } from './OpponentAnalysisModal';
+import { EscudoAdversario } from './EscudoAdversario';
+import { useCan } from '../../hooks/useCan';
 import { VideoAnalysisModal } from './VideoAnalysisModal';
 import { startLineupDrag } from '../../lib/lineupDrag';
 import { SlotAthletePicker } from './SlotAthletePicker';
@@ -37,6 +39,7 @@ export function GameModal({ isOpen, onClose, session, onSave, abrir = null }) {
   const { athletes } = useAthletes();
   const sport = useSportConfig();
   const { selectedClub } = useClub();
+  const { can } = useCan();
   const isMobile = useIsMobile(820);
 
   const [opponentName, setOpponentName] = useState('');
@@ -733,8 +736,12 @@ export function GameModal({ isOpen, onClose, session, onSave, abrir = null }) {
                       alignItems: 'end',
                     }}>
                       <div>
-                        <label style={labelStyle}>Adversário</label>
-                        <input type="text" value={opponentName} onChange={(e) => setOpponentName(e.target.value)} placeholder="Nome do adversário" style={compactInput} />
+                        <label style={labelStyle}>Adversário · escudo</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <EscudoAdversario sessionId={session?.id} opponentName={opponentName} podeEditar={can('games:edit')} tamanho={34}
+                            onMudou={() => onSave?.({})} />
+                          <input type="text" value={opponentName} onChange={(e) => setOpponentName(e.target.value)} placeholder="Nome do adversário" style={{ ...compactInput, flex: 1, minWidth: 0 }} />
+                        </div>
                       </div>
                       <div>
                         <label style={labelStyle}>Mando</label>

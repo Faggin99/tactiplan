@@ -1,4 +1,5 @@
 const express = require('express');
+const { escudosDosJogos } = require('../services/escudoAdversario');
 const { query, pool } = require('../config/database');
 const authMiddleware = require('../middleware/auth');
 const { validarEscalacao } = require('../utils/formacao');
@@ -85,6 +86,21 @@ router.put('/:sessionId/analise', async (req, res) => {
   } catch (err) {
     console.error('Put analise error:', err);
     res.status(500).json({ error: 'Falha ao salvar a análise' });
+  }
+});
+
+// GET /api/games/:sessionId/escudo — escudo do adversário deste jogo (próprio ou herdado de outro jogo
+// contra o mesmo adversário): { url|null, midia_id, herdado, de_data }. Enviar/remover = rotas de mídia da análise (tipo escudo).
+router.get('/:sessionId/escudo', async (req, res) => {
+  try {
+    if (!req.user.can('games:view')) return res.status(403).json({ error: 'Sem permissão' });
+    const jogo = await jogoDoUsuario(req.params.sessionId, req.user.workspaceIds || []);
+    if (!jogo) return res.status(404).json({ error: 'Jogo não encontrado' });
+    const e = (await escudosDosJogos([jogo.id])).get(jogo.id);
+    res.json(e || { url: null, midia_id: null, herdado: false, de_data: null });
+  } catch (err) {
+    console.error('Get escudo error:', err);
+    res.status(500).json({ error: 'Falha ao carregar o escudo' });
   }
 });
 

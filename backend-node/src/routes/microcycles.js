@@ -1,4 +1,5 @@
 const express = require('express');
+const { escudosDosJogos } = require('../services/escudoAdversario');
 const { query, pool } = require('../config/database');
 const authMiddleware = require('../middleware/auth');
 const { ordemSql, montarDias } = require('../services/periodos');
@@ -94,6 +95,10 @@ async function getFullMicrocycle(microcycleId, workspaceIds, allowedCategoryIds 
     session.blocks = blocks;
     sessions.push(session);
   }
+
+  // jogos: escudo do adversário (próprio ou herdado de outro jogo contra o mesmo time)
+  const escudos = await escudosDosJogos(sessions.filter((x) => x.session_type === 'match').map((x) => x.id));
+  for (const x of sessions) if (escudos.has(x.id)) x.opponent_logo = escudos.get(x.id).url;
 
   // 1 por dia (o 1º período); dia com 2+ períodos traz todos em `periodos`.
   microcycle.sessions = montarDias(sessions);

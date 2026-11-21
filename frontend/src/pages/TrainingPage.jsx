@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Plus, Moon, Trophy, Paperclip, ClipboardCheck } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Moon, Paperclip, ClipboardCheck } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useClub } from '../contexts/ClubContext';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -12,6 +12,7 @@ import { UnifiedTrainingModal } from '../components/training/UnifiedTrainingModa
 import { TrainingSummaryModal } from '../components/training/TrainingSummaryModal';
 import { CreateTitleModal } from '../components/training/CreateTitleModal';
 import { SessionTypeModal } from '../components/training/SessionTypeModal';
+import { LogosDoJogo } from '../components/training/LogosDoJogo';
 import { GameModal } from '../components/training/GameModal';
 import { WeekSelector } from '../components/stats/WeekSelector';
 import { trainingService } from '../services/trainingService';
@@ -38,7 +39,7 @@ export function TrainingPage() {
   // e recebe um aviso de como pedir a permissão (em vez de erro ao salvar).
   const { can } = useCan();
   const podeEditarTreino = can('training:edit');
-  const { selectedClub } = useClub();
+  const { selectedClub, getLogoUrl } = useClub();
   const isMobile = useIsMobile();
   const [monthlyThemePref] = usePreference('pref_monthly_theme', 'disabled');
   const plan = usePlanFeatures();
@@ -1033,11 +1034,20 @@ export function TrainingPage() {
                           e.currentTarget.style.boxShadow = 'none';
                         }}
                       >
-                        <Trophy className="tp-esconde" size={isMobile ? 28 : 48} strokeWidth={1.5} />
+                        {/* os dois escudos: mandante primeiro × visitante */}
+                        <LogosDoJogo clube={selectedClub}
+                          logoUrl={selectedClub?.logo_path ? getLogoUrl(selectedClub.logo_path) : null}
+                          adversario={shown.opponent_name} adversarioLogo={shown.opponent_logo} mando={shown.match_location}
+                          tamanho={isMobile ? 26 : 42} corX={colors.textSecondary} />
                         <div className="tp-jogo-txt" style={{ fontSize: isMobile ? '0.9rem' : '1.2rem' }}>JOGO</div>
                         {shown.opponent_name && (
-                          <div style={{ fontSize: isMobile ? '0.75rem' : '1rem', color: colors.textSecondary }}>
+                          <div style={{ fontSize: isMobile ? '0.75rem' : '1rem', color: colors.textSecondary, textAlign: 'center', lineHeight: 1.25 }}>
                             vs {shown.opponent_name}
+                            {(shown.match_location === 'home' || shown.match_location === 'away') && (
+                              <span style={{ display: 'block', fontSize: isMobile ? '0.65rem' : '0.78rem', fontWeight: 500, marginTop: 2 }}>
+                                {shown.match_location === 'home' ? 'em casa' : 'fora de casa'}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>

@@ -354,3 +354,9 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   direito no dia segue com salvar/usar. No catálogo de atividades virou só um atalho para a página.
 - Uberlândia (21/11): 3 dias (19 tarde, 20, 21 manhã) tinham as atividades nas posições antigas (Atividade 1 vazia depois
   da troca de nomes; o 7x7 de 20/11 caiu em "Treino de goleiro"): subidas 1 posição a pedido do dono (backup antes).
+- ESCUDO DO ADVERSÁRIO (21/11): vaga "ESCUDO" ao lado do nome no modal do jogo (`components/training/EscudoAdversario.jsx`,
+  grava na hora como mídia 'escudo' da análise). Jogo sem escudo HERDA o último do mesmo adversário (mesmo nome, mesma conta):
+  `services/escudoAdversario.js` `escudosDosJogos`, `GET /api/games/:id/escudo`, e `opponent_logo` em cada jogo do
+  `GET /api/microcycles`. Programação: dia de jogo mostra os dois escudos, MANDANTE primeiro × visitante
+  (`components/training/LogosDoJogo.jsx`; mando 'away' = adversário primeiro; sem imagem = iniciais).
+- Início: atalho "Sessões salvas" (2º, depois da Programação).

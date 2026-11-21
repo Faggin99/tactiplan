@@ -4,6 +4,7 @@ import {
   Calendar, BarChart3, Users, Waypoints, Target, ArrowRight,
   ChevronRight, AlertTriangle, Info, Check, X, Clock, MapPin,
   FileText, Loader2, Binoculars,
+  BookmarkCheck,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -157,6 +158,7 @@ export function HomePage() {
 
   const atalhos = [
     { key: 'prog', label: 'Programação', sub: `Semana ${numSemana}`, icon: Calendar, ilu: 'semana', onClick: () => navigate('/training') },
+    { key: 'sessoes', label: 'Sessões salvas', sub: 'Treinos prontos', icon: BookmarkCheck, ilu: 'salvas', onClick: () => navigate('/sessoes-salvas') },
     can('athletes:view') && { key: 'plantel', label: 'Plantel', sub: `${summary.totalAthletes || 0} atletas`, icon: Users, ilu: 'pessoas', onClick: () => navigate('/plantel') },
     { key: 'stats', label: 'Estatísticas', sub: 'Treinos, jogos e atletas', icon: BarChart3, ilu: 'barras', onClick: () => navigate('/training-stats') },
     { key: 'quadro', label: 'Quadro tático', sub: 'Jogadas e vídeos', icon: Waypoints, ilu: 'campo', onClick: () => navigate('/tactical-board') },
@@ -783,7 +785,7 @@ function CartaoPlantel({ ctx, total, disponiveis, injuries, transicao = 0, podeV
 // pastilhas coloridas (Clássico e Gramado). O primeiro (Programação) vai na cor do clube.
 // ---------------------------------------------------------------------------------------------
 
-const COR_ATALHO = { semana: null, pessoas: '#1e3a8a', barras: '#9a3412', campo: '#0f172a', alvo: '#5b21b6' };
+const COR_ATALHO = { semana: null, salvas: '#0f766e', pessoas: '#1e3a8a', barras: '#9a3412', campo: '#0f172a', alvo: '#5b21b6' };
 
 function AtalhoCompacto({ ctx, label, icon: Icon, ilu, onClick, principal, largo }) {
   const { colors, tk, estilo } = ctx;
