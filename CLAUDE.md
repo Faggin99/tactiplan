@@ -327,8 +327,9 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
 - Início: DM mostra TODOS os nomes (etiquetas; motivo no title). Plantel abre no Campograma (1ª aba).
 - Convite: `GET /api/invites/:token` traz `tem_conta`; sem conta, a página do convite pede nome + senha, cria a conta,
   aceita e entra no clube. api.js agora repassa `error` do servidor em 4xx/5xx genéricos (antes "HTTP 400").
-- Fotos dos PDFs: layout **'lado'** (foto à esquerda; título, bloco, conteúdo · minutos e descrição à direita) — padrão da
-  ficha do dia (`gridOptions(..., {semana})`); semana segue em grade. Preferência do modal virou v2.
+- Fotos da FICHA (corrigido 21/11 à noite): a opção "Ao lado de cada bloco" (`posicao: 'blocos'`, padrão do modal desde a
+  preferência v3) põe a foto numa coluna à DIREITA do bloco da atividade (`.blk.com-foto`, `--fw` = 40–80 mm pelo "Tamanho"
+  50–100%); antes ia abaixo. O layout 'lado' (foto + texto numa página de fotos) foi REMOVIDO. Legenda só se editada.
 - PDF da semana: os 6 blocos em posições fixas (`seisBlocos`, alinhados entre os dias e esticados até o pé), jogo/avaliação
   ocupam a coluna, pé com "Semana: N'" + barra por pilar (sem transição/avaliação).
 - SESSÕES SALVAS (migration 070 `treinos_modelo`): rotas `/api/treinos-modelo` (GET lista com resumo; POST {nome, session_id};
@@ -351,3 +352,5 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   "Usar em um dia" (data → período se houver 2+ treinos → aviso de substituir; cria a semana se não existir).
   Salvar: Programação › clique no dia (resumo) › "Salvar sessão" (`TrainingSummaryModal` `onSalvarSessao`); o botão
   direito no dia segue com salvar/usar. No catálogo de atividades virou só um atalho para a página.
+- Uberlândia (21/11): 3 dias (19 tarde, 20, 21 manhã) tinham as atividades nas posições antigas (Atividade 1 vazia depois
+  da troca de nomes; o 7x7 de 20/11 caiu em "Treino de goleiro"): subidas 1 posição a pedido do dono (backup antes).

@@ -139,8 +139,7 @@ test('seção: padrão mantém a regra antiga; escolha sem "+N" e lista corrida'
   const cfg = PC.parseFotosConfig({ ids: ['a', 'b', 'c'], layout: 'mosaico', agrupar: false }, new Set(['a', 'b', 'c']));
   const sel = B.buildPhotoSection({ items: ph, hidden: 5, config: cfg, sessionsById: byDay });
   assert.deepStrictEqual([sel.hidden, sel.total, sel.groups, sel.grid.layout], [0, 3, null, 'mosaico']);
-  // ficha do dia (sem dias = não é semana): padrão "lado a lado" desde 21/11/2026
-  assert.strictEqual(B.buildPhotoSection({ items: items(6) }).grid.layout, 'lado');
+  assert.strictEqual(B.buildPhotoSection({ items: items(6) }).grid.layout, 'compacto');
 });
 
 // ---------------------------------------------------------------- lista, prévia e PDF (fluxo do index)
@@ -183,8 +182,11 @@ test('PDF: ids = [] sai sem a seção; escolha na semana em lista corrida', asyn
   assert.ok(!semFotos.html.includes('Registro fotográfico'));
   const padrao = await R.BUILDERS.sessao({ session_id: S1 }, USER, new Map(), 'pdf');
   assert.ok(padrao.html.includes('Registro fotográfico'), 'sem config continua com fotos');
-  assert.ok(padrao.html.includes('photos lado'), 'ficha: padrão lado a lado (foto + atividade)');
-  assert.ok(padrao.html.includes('class="ph-row"'));
+  assert.ok(padrao.html.includes('photos c2'), 'ficha sem escolha: grade no final');
+  // "ao lado de cada bloco": a foto vai numa coluna à direita do bloco, largura pelo tamanho
+  const lado = await R.BUILDERS.sessao({ session_id: S1, fotos: { ids: [id(1), id(2), id(3)], posicao: 'blocos', tamanho: 50 } }, USER, new Map(), 'pdf');
+  if (lado.html.includes('class="blk com-foto"')) assert.ok(lado.html.includes('--fw:40mm'), 'tamanho 50% = 40 mm');
+  assert.ok(!lado.html.includes('blk-photos'), 'não vai mais abaixo do bloco');
   const assets = new Map();
   const wk = await R.BUILDERS.treino({
     club_id: CLUB, start_date: '2026-10-19', end_date: '2026-10-25', filter_type: '1-micro',

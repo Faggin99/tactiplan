@@ -715,7 +715,7 @@ function buildPhotoSection({ items, hidden = 0, config = null, sessionsById = nu
     groups: grouped ? groupPhotosByDay(items, sessionsById) : null,
     hidden: hid,
     total: items.length + hid,
-    grid: gridOptions(config, items.length, { semana: !!sessionsById }),
+    grid: gridOptions(config, items.length),
     posicao: (config && config.posicao) || 'fim',
   };
 }

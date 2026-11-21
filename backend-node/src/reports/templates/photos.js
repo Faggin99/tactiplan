@@ -12,7 +12,6 @@ const RATIO_CLASS = { '4:3': 'r43', '1:1': 'r11', original: 'rorig' };
 // items: [{ src, caption: { title, context } }]
 function photoGrid(items, { layout = 'compacto', proporcao = null, legendas = true, showContext = true, tamanho = 100 } = {}) {
   const lay = effectiveLayout(layout, items.length); // mosaico com 1–2 fotos vira grande/médio
-  if (lay === 'lado') return photoRows(items, { proporcao, legendas, tamanho });
   const hero = lay === 'mosaico';
   const fig = (p, extra = '', unit = true) => {
     const t = legendas && p.caption?.title ? `<b>${esc(p.caption.title)}</b>` : '';
@@ -32,25 +31,6 @@ function photoGrid(items, { layout = 'compacto', proporcao = null, legendas = tr
     .filter(Boolean).join(' ');
   const largura = tamanho && tamanho < 100 ? ` style="width:${Math.round(tamanho)}%"` : '';
   return `<div class="${cls}"${largura}>${cells}</div>`;
-}
-
-// "Lado a lado": cada foto numa linha, a imagem à esquerda e a atividade à direita
-// (título, bloco/legenda, conteúdos · minutos e a descrição). Cada linha é uma unidade do paginador.
-function photoRows(items, { proporcao = null, legendas = true, tamanho = 100 } = {}) {
-  const linha = (p) => {
-    const d = p.caption?.detalhe || {};
-    const meta = [d.conteudos, d.minutos ? `${d.minutos} min` : null].filter(Boolean).join(' · ');
-    const texto = legendas
-      ? `<div class="ph-txt">${p.caption?.title ? `<b>${esc(p.caption.title)}</b>` : ''}`
-        + `${p.caption?.context ? `<span class="ctx">${esc(p.caption.context)}</span>` : ''}`
-        + `${meta ? `<span class="meta">${esc(meta)}</span>` : ''}`
-        + `${d.descricao ? `<p>${esc(d.descricao)}</p>` : ''}</div>`
-      : '<div class="ph-txt"></div>';
-    return `<figure class="ph-row" data-unit style="margin:0"><div class="img"><img src="${esc(p.src)}" alt=""></div>${texto}</figure>`;
-  };
-  const cls = ['photos', 'lado', RATIO_CLASS[proporcao] || ''].filter(Boolean).join(' ');
-  const largura = tamanho && tamanho < 100 ? ` style="width:${Math.round(tamanho)}%"` : '';
-  return `<div class="${cls}"${largura}>${items.map(linha).join('')}</div>`;
 }
 
 // Corpo da página de fotos. photos = { items, groups|null, hidden, total, grid }

@@ -1,7 +1,7 @@
 // Relatório 3 — Ficha de sessão (1 página; + "Registro fotográfico" se houver fotos).
 const F = require('../format');
 const C = require('./components');
-const { photoPageBody, photoGrid } = require('./photos');
+const { photoPageBody } = require('./photos');
 
 const esc = F.esc;
 
@@ -43,7 +43,15 @@ function blockCard(b, fotos = null) {
   if (b.contents.length) metaParts.push(`<em>Conteúdo</em>${esc(b.contents.join(', '))}`);
   if (b.subMoments.length) metaParts.push(`<em>Submomentos</em>${b.subMoments.map((s) => C.chip(s)).join('')}`);
   const range = b.goleiro ? '<div class="rg">paralelo</div>' : b.minutes > 0 && b.from != null ? `<div class="rg">${b.from}'–${b.to}'</div>` : '';
-  return `<div class="blk" style="--p:${info.color}">
+  // fotos da atividade AO LADO do texto (coluna à direita; largura = "Tamanho" do modal: 50% → 40 mm … 100% → 80 mm)
+  const temFoto = !!(fotos && fotos.items.length);
+  const ratio = { '1:1': ' r11', original: ' rorig' }[fotos?.grid?.proporcao] || '';
+  const fw = temFoto ? Math.round(80 * (Math.min(100, Math.max(50, fotos.grid.tamanho || 100)) / 100)) : 0;
+  const colFotos = temFoto
+    ? `<div class="bf${ratio}">${fotos.items.map((p) => `<div class="img"><img src="${esc(p.src)}" alt=""></div>`
+      + (fotos.grid.legendas !== false && p.caption?.custom ? `<small>${esc(p.caption.title)}</small>` : '')).join('')}</div>`
+    : '';
+  return `<div class="blk${temFoto ? ' com-foto' : ''}" style="--p:${info.color}${temFoto ? `;--fw:${fw}mm` : ''}">
     <div class="tm"><b>${b.minutes > 0 ? b.minutes : '—'}</b><small>min</small>${range}</div>
     <div class="ct">
       <div class="ph">${esc(b.phase)}${b.pillarLabel ? ` <span class="pill${info.light ? ' lt' : ''}">${esc(b.pillarLabel)}</span>` : ''}</div>
@@ -51,8 +59,7 @@ function blockCard(b, fotos = null) {
       <div class="grp">${groups}</div>
       ${metaParts.length ? `<div class="meta">${metaParts.join(' &nbsp;·&nbsp; ')}</div>` : ''}
       ${b.description ? `<div class="desc">${esc(b.description)}</div>` : ''}
-      ${fotos && fotos.items.length ? `<div class="blk-photos">${photoGrid(fotos.items, fotos.grid)}</div>` : ''}
-    </div></div>`;
+    </div>${colFotos}</div>`;
 }
 
 // Período de avaliação: card "Avaliação · Física, Técnica" (sem blocos nem minutos)
@@ -86,7 +93,7 @@ function renderSession(vm, { now, onlyPhotos = false }) {
   const header1 = C.fullHeader({
     team, eyebrow: vm.eyebrow, title: vm.title, metaHtml: metaParts.join(' · '), badgeTop: vm.badgeTop, badgeSub: vm.badgeSub,
   });
-  // Fotos junto dos blocos (opção do modal): cada foto vai abaixo do bloco da sua
+  // Fotos junto dos blocos (opção do modal): cada foto vai AO LADO do bloco da sua
   // atividade; as que não têm bloco (anexo do dia) seguem para a página do final.
   const ph0 = vm.photos;
   const inline = !!(ph0 && ph0.items.length && ph0.posicao === 'blocos');
@@ -105,9 +112,7 @@ function renderSession(vm, { now, onlyPhotos = false }) {
   const fotosDo = (b) => {
     const items = inline ? porBloco.get(b.activityId) : null;
     if (!items || !items.length) return null;
-    // ao lado do bloco a foto fica menor: no máx. 3 por linha
-    const grid = { ...ph0.grid, layout: ph0.grid.layout === 'grande' && items.length > 1 ? 'medio' : (ph0.grid.layout === 'mosaico' ? 'compacto' : ph0.grid.layout) };
-    return { items, grid };
+    return { items, grid: ph0.grid };
   };
   const blocksDe = (lista) => (lista.length ? `<div class="blocks" data-split=".blk">${lista.map((b) => blockCard(b, fotosDo(b))).join('')}</div>` : '');
   const blocksHtml = blocksDe(vm.blocks);

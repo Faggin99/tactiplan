@@ -266,24 +266,17 @@ body{font-family:Inter,sans-serif;color:var(--ink);font-size:8.5pt;line-height:1
 .photos.mosaic .ph-item.hero .img{flex:1;min-height:0;position:relative;aspect-ratio:auto}
 .photos.mosaic .ph-item.hero img{position:absolute;inset:0}
 
-/* "lado a lado" (21/11/2026): foto à esquerda, atividade à direita */
-.photos.lado{grid-template-columns:1fr;gap:4mm}
-.ph-row{display:grid;grid-template-columns:58% 1fr;gap:5mm;align-items:start;break-inside:avoid;padding-bottom:4mm;border-bottom:1px solid var(--line)}
-.ph-row:last-child{border-bottom:0;padding-bottom:0}
-.ph-row .img{width:100%;aspect-ratio:4/3;border-radius:2.5mm;overflow:hidden;background:var(--surface);border:1px solid var(--line)}
-.ph-row img{width:100%;height:100%;object-fit:cover;display:block}
-.photos.lado.r11 .ph-row .img{aspect-ratio:1/1}
-.photos.lado.rorig .ph-row img{object-fit:contain}
-.ph-txt{min-width:0;display:flex;flex-direction:column;gap:1.2mm;padding-top:1mm}
-.ph-txt b{font:700 11pt Poppins;color:var(--ink);line-height:1.25}
-.ph-txt .ctx{font-size:8pt;color:var(--team-ink);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
-.ph-txt .meta{font-size:8.5pt;color:var(--ink-2)}
-.ph-txt p{margin:1.5mm 0 0;font-size:8.8pt;line-height:1.5;color:var(--ink-2);white-space:pre-line}
-.blk-photos .ph-row{grid-template-columns:45% 1fr}
+/* ficha: fotos AO LADO do bloco (21/11/2026) — coluna à direita com a largura do "Tamanho" (--fw) */
+.blk.com-foto{grid-template-columns:17mm minmax(0,1fr) var(--fw,60mm)}
+.blk.com-foto .ct{align-content:start}
+.blk .bf{padding:2.6mm 2.6mm 2.6mm 0;display:flex;flex-direction:column;gap:2mm;min-width:0}
+.blk .bf .img{width:100%;aspect-ratio:4/3;border-radius:2mm;overflow:hidden;background:var(--surface);border:1px solid var(--line)}
+.blk .bf img{width:100%;height:100%;object-fit:cover;display:block}
+.blk .bf.r11 .img{aspect-ratio:1/1}
+.blk .bf.rorig img{object-fit:contain}
+.blk .bf small{font-size:6.5pt;color:var(--muted);line-height:1.3;margin-top:-1mm}
 
-/* ficha: fotos logo abaixo do bloco + observações em texto */
-.blk-photos{margin-top:2.5mm}
-.blk-photos .photos{gap:2mm}
+/* ficha: observações em texto */
 .notes-txt{font-size:8.5pt;line-height:1.5;color:var(--ink-2);white-space:pre-wrap;border:1px solid var(--line);border-radius:3mm;padding:3mm 4mm}
 
 /* ============ RELATÓRIO DO CLUBE ============ */
