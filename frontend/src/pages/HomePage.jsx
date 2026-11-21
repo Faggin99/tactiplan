@@ -207,7 +207,7 @@ export function HomePage() {
           <CartaoHoje ctx={ctx} hoje={hoje} nextSessions={nextSessions} hojeStr={hojeStr} onAbrir={abrirDia} max={altura >= 1000 ? 4 : 3} />
           <CartaoJogo ctx={ctx} jogo={nextMatch} dias={diasJogo} treinos={treinosAteJogo} onAbrir={abrirJogo} onProgramacao={() => navigate('/training')} />
           <CartaoPlantel ctx={ctx} total={summary.totalAthletes || 0} disponiveis={disponiveis} injuries={injuries} transicao={summary.transicao || 0}
-            podeVer={can('athletes:view')} onPlantel={() => navigate('/plantel')} max={altura >= 1000 ? 2 : 1} />
+            podeVer={can('athletes:view')} onPlantel={() => navigate('/plantel')} />
         </div>
       </div>
     </Layout>
@@ -719,7 +719,7 @@ function CartaoJogo({ ctx, jogo, dias, treinos, onAbrir, onProgramacao }) {
 // Plantel: prontos × no departamento médico (um ímã por atleta)
 // ---------------------------------------------------------------------------------------------
 
-function CartaoPlantel({ ctx, total, disponiveis, injuries, transicao = 0, podeVer, onPlantel, max = 2 }) {
+function CartaoPlantel({ ctx, total, disponiveis, injuries, transicao = 0, podeVer, onPlantel }) {
   const { colors, tk, estilo } = ctx;
   const n = Math.min(total, 30);
   const noDm = Math.min(injuries.length, n);
@@ -752,18 +752,19 @@ function CartaoPlantel({ ctx, total, disponiveis, injuries, transicao = 0, podeV
       {injuries.length === 0 ? (
         <p style={{ margin: 0, fontSize: '0.84rem', color: colors.textSecondary }}>{total ? 'Ninguém no departamento médico.' : 'Nenhum atleta cadastrado ainda.'}</p>
       ) : (
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-          {injuries.slice(0, max).map((inj, k, arr) => (
-            <li key={inj.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '0.45rem 0', borderBottom: k < arr.length - 1 ? `1px ${estilo === 'prancheta' ? 'dashed' : 'solid'} ${colors.border}` : 'none' }}>
-              <Ima cor={VERMELHO} tamanho={12} style={{ marginTop: 4 }} />
-              <span style={{ minWidth: 0, flex: 1 }}>
-                <span style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', lineHeight: 1.3 }}>{inj.athlete_name}</span>
-                <span style={{ display: 'block', fontSize: '0.74rem', lineHeight: 1.35, color: colors.textSecondary }}>{[inj.injury_type, inj.body_part].filter(Boolean).join(' · ') || 'No grupo DM'}{inj.expected_return ? ` · volta ${ddmm(inj.expected_return)}` : ''}</span>
+        // DM: TODOS os nomes (21/11/2026: antes 1–2 nomes + "+N"), em etiquetas; o motivo fica no title
+        <div style={{ minHeight: 0, overflowY: 'auto' }}>
+          <div style={{ fontSize: '0.74rem', fontWeight: 600, color: colors.textSecondary, marginBottom: 5 }}>No departamento médico</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+            {injuries.map((inj) => (
+              <span key={inj.id}
+                title={`${[inj.injury_type, inj.body_part].filter(Boolean).join(' · ') || 'No grupo DM'}${inj.expected_return ? ` · volta ${ddmm(inj.expected_return)}` : ''}`}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 8px 2px 4px', borderRadius: 99, fontSize: '0.78rem', fontWeight: 600, backgroundColor: `${VERMELHO}14`, color: colors.text, border: `1px solid ${VERMELHO}40` }}>
+                <Ima cor={VERMELHO} tamanho={10} />{inj.athlete_name}
               </span>
-            </li>
-          ))}
-          {injuries.length > max && <li style={{ fontSize: '0.78rem', color: colors.textSecondary, paddingTop: 4 }}>+{injuries.length - max} no departamento médico</li>}
-        </ul>
+            ))}
+          </div>
+        </div>
       )}
       {!podeVer && <span style={{ marginTop: 'auto' }} />}
       {total === 0 && podeVer && <div style={{ marginTop: '0.8rem' }}><LinkAcao ctx={ctx} onClick={onPlantel}>Cadastrar atletas</LinkAcao></div>}

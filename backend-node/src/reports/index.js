@@ -139,7 +139,7 @@ async function photoCandidates(sessions, workspaceIds) {
   const info = await activitiesInfo(Array.from(new Set(files.map((f) => f.activity_id).filter(Boolean))));
   const ORD_PERIODO = { manha: 1, tarde: 2, noite: 3 };
   // Ordem do TREINO (12/11/2026; antes era a ordem de envio e a Atividade 3 vinha antes da 2):
-  // dia → período → bloco (Aquecimento, Preparatório, Atividade 1…) → envio. Foto do dia sem
+  // dia → período → bloco (Ativação, Preparatório, Atividade 1…) → envio. Foto do dia sem
   // atividade vem antes dos blocos. Na janela "Fotos do relatório" a pessoa ainda pode arrastar.
   return B.selectSessionPhotos(files, info).map((f, envio) => {
     const sess = bySession.get(f.session_id);

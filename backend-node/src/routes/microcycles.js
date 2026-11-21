@@ -7,7 +7,8 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
-const BLOCK_NAMES = ['Aquecimento', 'Preparatório', 'Atividade 1', 'Atividade 2', 'Atividade 3', 'Complementos'];
+// 21/11/2026: Aquecimento → Ativação e Complementos → Treino de goleiro (migration 069 renomeou os gravados)
+const BLOCK_NAMES = ['Ativação', 'Preparatório', 'Atividade 1', 'Atividade 2', 'Atividade 3', 'Treino de goleiro'];
 const DAY_NAMES = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 
 function getWeekDates(weekIdentifier) {

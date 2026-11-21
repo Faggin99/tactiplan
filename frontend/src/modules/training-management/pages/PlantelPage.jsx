@@ -31,7 +31,7 @@ export default function PlantelPage() {
   const [editingPlayer, setEditingPlayer] = useState(null);
   const [groupChanges, setGroupChanges] = useState({});
   const [hasChanges, setHasChanges] = useState(false);
-  const [activeTab, setActiveTab] = useState('table'); // 'table' | 'campo' | 'groups'
+  const [activeTab, setActiveTab] = useState('campo'); // 'campo' (padrão, 21/11/2026) | 'table' | 'groups'
   const [currentPage, setCurrentPage] = useState(1);
   const [sortBy, setSortBy] = useState('name'); // 'name' or 'position'
   const itemsPerPage = 10;
@@ -422,18 +422,18 @@ export default function PlantelPage() {
 
       <div style={tabsContainerStyle} data-tour="plantel-tabs">
         <button
-          style={tabStyle(activeTab === 'table')}
-          onClick={() => setActiveTab('table')}
-        >
-          <List size={20} strokeWidth={1.5} />
-          Lista de Atletas
-        </button>
-        <button
           style={tabStyle(activeTab === 'campo')}
           onClick={() => setActiveTab('campo')}
         >
           <Shirt size={20} strokeWidth={1.5} />
           Campograma
+        </button>
+        <button
+          style={tabStyle(activeTab === 'table')}
+          onClick={() => setActiveTab('table')}
+        >
+          <List size={20} strokeWidth={1.5} />
+          Lista de Atletas
         </button>
         <button
           style={tabStyle(activeTab === 'groups')}

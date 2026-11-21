@@ -151,7 +151,8 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
   // nem pilares, nem sessões (o dia que só teve avaliação não é sessão de treino).
   // Atividades que sobraram de quando o período era treino também ficam de fora.
   // Treino de TRANSIÇÃO (migration 068, atletas voltando do DM) também fica de fora: não é treino do grupo.
-  const semAvaliacao = sessionsResult.rows.filter(s => !P.ehAvaliacao(s) && !s.treino_transicao);
+  // 21/11/2026: só TREINO conta (jogo e descanso guardam um bloco/atividade vazio que inflava "Atividades").
+  const semAvaliacao = sessionsResult.rows.filter(s => (s.session_type || 'training') === 'training' && !s.treino_transicao);
   const sessionIds = semAvaliacao.map(s => s.id);
   // Períodos (Manhã/Tarde/Noite): o DIA conta como 1 sessão. Cada período é
   // remapeado para o 1º período do dia; distância do dia = soma dos períodos.
@@ -180,7 +181,7 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
 
   // Atividades com content (snapshot via junction) + subconteúdos
   const activitiesResult = await query(
-    `SELECT a.id, a.duration_minutes, a.title_id, b.session_id, s.date AS session_date,
+    `SELECT a.id, a.duration_minutes, a.title_id, a.description, b.session_id, s.date AS session_date,
             t.title AS title_name,
             c.id AS content_id, c.name AS content_name, c.dimension
      FROM training_activities a
@@ -193,7 +194,9 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
     [sessionIds, tenantIds]
   );
 
-  const activities = activitiesResult.rows;
+  // Atividade vazia (sem título, conteúdo, minutos nem descrição) não é atividade: não conta.
+  const activities = activitiesResult.rows.filter(a => a.title_id || a.content_id || Number(a.duration_minutes) > 0
+    || String(a.description || '').trim());
   for (const a of activities) {
     a.periodo_session_id = a.session_id;
     a.session_id = diaDe.get(a.session_id) || a.session_id;

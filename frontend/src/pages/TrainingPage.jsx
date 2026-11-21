@@ -92,7 +92,7 @@ export function TrainingPage() {
     {
       selector: '[data-tour="unified-modal-body"]',
       title: 'Estrutura do dia',
-      content: 'Aqui dentro você vê os blocos da sessão (Aquecimento, Preparatório, Atividade 1, 2, 3, Complementar). Clique nas abas pra trocar entre blocos.',
+      content: 'Aqui dentro você vê os blocos da sessão (Ativação, Preparatório, Atividade 1, 2, 3, Treino de goleiro). Clique nas abas pra trocar entre blocos.',
       placement: 'auto',
     },
     {

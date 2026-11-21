@@ -13,7 +13,7 @@ import kotlin.math.roundToLong
 // (TrainingPage.jsx): semana ISO "YYYY-WW" no fuso de Brasília; pilar predominante POR TEMPO;
 // dia que não existe vira o dia "vazio" com os 6 blocos. Paridade: TactiPlanKit/Semana.swift.
 
-val NOMES_BLOCOS = listOf("Aquecimento", "Preparatório", "Atividade 1", "Atividade 2", "Atividade 3", "Complementos")
+val NOMES_BLOCOS = listOf("Ativação", "Preparatório", "Atividade 1", "Atividade 2", "Atividade 3", "Treino de goleiro")
 val NOMES_DIAS = listOf("Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo")
 val SIGLAS_DIAS = listOf("SEG", "TER", "QUA", "QUI", "SEX", "SÁB", "DOM")
 private val MESES_CURTOS = listOf("jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez")
