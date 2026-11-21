@@ -183,6 +183,45 @@ function TopContentByPillarCard({ byContent, colors }) {
   );
 }
 
+// Treino de goleiro (21/11/2026): bloco PARALELO ao do grupo — fica fora dos minutos, sessões, atividades e pilares
+// acima e é contado aqui à parte (GET /api/stats/training → goleiros).
+export function GoleirosCard({ goleiros, colors }) {
+  if (!goleiros || !goleiros.activities) return null;
+  const maxMin = Math.max(1, ...(goleiros.byContent || []).map((c) => c.minutes || 0));
+  const num = (v, rot) => (
+    <div style={{ minWidth: 0 }}>
+      <div style={{ fontSize: '1.35rem', fontWeight: 700, color: colors.text, lineHeight: 1.1 }}>{v}</div>
+      <div style={{ fontSize: '0.72rem', color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: '0.03em', fontWeight: 600 }}>{rot}</div>
+    </div>
+  );
+  return (
+    <section aria-label="Treino de goleiro" style={{ backgroundColor: colors.surface, borderRadius: '0.625rem', border: `1px solid ${colors.border}`, padding: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+        <span style={{ fontSize: '0.95rem', fontWeight: 600, color: colors.text }}>Treino de goleiro</span>
+        <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>Paralelo ao treino do grupo: não entra nos números acima.</span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '0.75rem', marginBottom: (goleiros.byContent || []).length ? '0.9rem' : 0 }}>
+        {num(formatMinutes(goleiros.minutes || 0), 'Tempo')}
+        {num(goleiros.sessions || 0, goleiros.sessions === 1 ? 'Sessão' : 'Sessões')}
+        {num(goleiros.activities || 0, goleiros.activities === 1 ? 'Atividade' : 'Atividades')}
+      </div>
+      {(goleiros.byContent || []).length > 0 && (
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+          {goleiros.byContent.slice(0, 8).map((c) => (
+            <li key={c.content_id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: '0.2rem 0.75rem', fontSize: '0.82rem' }}>
+              <span style={{ color: colors.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</span>
+              <span style={{ color: colors.textSecondary, fontVariantNumeric: 'tabular-nums' }}>{c.count}× · {formatMinutes(c.minutes || 0)}</span>
+              <span aria-hidden="true" style={{ gridColumn: '1 / -1', height: 4, borderRadius: 2, backgroundColor: colors.background, overflow: 'hidden' }}>
+                <span style={{ display: 'block', height: '100%', width: `${Math.round(((c.minutes || 0) / maxMin) * 100)}%`, backgroundColor: DIM_COLORS[c.dimension] || colors.textSecondary }} />
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 export function KpiCardsRow({ totals, sparklines, byContent, colors }) {
   return (
     <div style={{
@@ -771,7 +810,12 @@ export function TrainingDashboard({ stats, colors }) {
         <Activity size={48} strokeWidth={1.5} style={{ opacity: 0.3 }} />
         <h3 style={{ margin: 0, fontSize: '1.1rem', color: colors.text }}>Nenhum dado encontrado</h3>
         <p style={{ margin: 0, fontSize: '0.875rem' }}>Não há treinos registrados no período selecionado.</p>
-        {/* Só a distância do dia foi preenchida (sem atividades): mostra ela mesmo assim */}
+        {/* Só treino de goleiro / distância (sem atividades do grupo): mostra mesmo assim */}
+        {stats?.goleiros?.activities > 0 && (
+          <div style={{ width: '100%', marginTop: '1.5rem', textAlign: 'left' }}>
+            <GoleirosCard goleiros={stats.goleiros} colors={colors} />
+          </div>
+        )}
         {stats?.distance?.daysWithData > 0 && (
           <div style={{ width: '100%', marginTop: '1.5rem', textAlign: 'left' }}>
             <DistanceCard distance={stats.distance} colors={colors} />
@@ -1025,6 +1069,8 @@ export function TrainingDashboard({ stats, colors }) {
       </div>
 
       {/* Distância ideal (info do dia) — some quando não há registro */}
+      <GoleirosCard goleiros={stats.goleiros} colors={colors} />
+
       <DistanceCard distance={stats.distance} colors={colors} />
 
       {/* Top Atividades + Tendência lado a lado (altura independente) */}

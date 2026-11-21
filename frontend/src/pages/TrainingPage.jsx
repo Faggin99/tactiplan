@@ -28,7 +28,7 @@ import { formatKm, toKm } from '../utils/distancia';
 import { ExportMenu } from '../components/common/ExportMenu';
 import { safeFileName } from '../services/reportsService';
 import { useReportPhotosExport } from '../components/reports/useReportPhotosExport';
-import { periodosDoDia, rotuloPeriodo, periodoEfetivo, minutosDaSessao, distanciaDoDia, divisaoMinutos, rotuloLinhaPeriodo, rotulosAvaliacao, ehTransicao } from '../lib/periodos';
+import { periodosDoDia, rotuloPeriodo, periodoEfetivo, minutosDaSessao, minutosGoleiro, ehBlocoGoleiro, distanciaDoDia, divisaoMinutos, rotuloLinhaPeriodo, rotulosAvaliacao, ehTransicao } from '../lib/periodos';
 
 export function TrainingPage() {
   const { colors } = useTheme();
@@ -92,7 +92,7 @@ export function TrainingPage() {
     {
       selector: '[data-tour="unified-modal-body"]',
       title: 'Estrutura do dia',
-      content: 'Aqui dentro você vê os blocos da sessão (Ativação, Preparatório, Atividade 1, 2, 3, Treino de goleiro). Clique nas abas pra trocar entre blocos.',
+      content: 'Aqui dentro você vê os blocos da sessão (Ativação, Atividade 1, 2, 3, 4 e Treino de goleiro). Clique nas abas pra trocar entre blocos.',
       placement: 'auto',
     },
     {
@@ -428,7 +428,7 @@ export function TrainingPage() {
     const cnt = {};
     session.blocks.forEach((block) => {
       const a = block.activity;
-      if (!a?.contents?.length) return;
+      if (!a?.contents?.length || ehBlocoGoleiro(block.name)) return; // goleiro é paralelo: não define o pilar do dia
       const dims = Array.from(new Set(a.contents.map((c) => c.dimension).filter(Boolean)));
       const m = parseInt(a.duration_minutes) || 0;
       dims.forEach((d) => {
@@ -451,7 +451,7 @@ export function TrainingPage() {
     const contentCounts = {};
     const contentMinutes = {};
     session.blocks.forEach((block) => {
-      if (block.activity?.contents) {
+      if (block.activity?.contents && !ehBlocoGoleiro(block.name)) {
         const min = parseInt(block.activity.duration_minutes) || 0;
         block.activity.contents.forEach((content) => {
           contentCounts[content.name] = (contentCounts[content.name] || 0) + 1;
@@ -479,9 +479,11 @@ export function TrainingPage() {
   function getTotalDuration(session) {
     if (!session?.blocks || session.session_type === 'assessment') return 0;
 
+    // treino de goleiro é paralelo: fora do total (aparece à parte, "+N' gol")
     return session.blocks.reduce((total, block) => {
+      if (ehBlocoGoleiro(block.name)) return total;
       const duration = block.activity?.duration_minutes || 0;
-      return total + parseInt(duration);
+      return total + (parseInt(duration) || 0);
     }, 0);
   }
 
@@ -1204,6 +1206,9 @@ export function TrainingPage() {
                   <span style={{ flexShrink: 0 }}>{(divisaoMinutos(periodos) || distanciaDoDia(periodos) !== null)
                     ? `⏱${periodos.reduce((t, p) => t + minutosDaSessao(p), 0)}′`
                     : `⏱ ${periodos.reduce((t, p) => t + minutosDaSessao(p), 0)} min`}</span>
+                  {periodos.reduce((t, p) => t + minutosGoleiro(p), 0) > 0 && (
+                    <span title="Treino de goleiro (paralelo, fora do total do grupo)" style={{ flexShrink: 0, color: colors.textSecondary, fontWeight: 500 }}>· +{periodos.reduce((t, p) => t + minutosGoleiro(p), 0)}′ gol</span>
+                  )}
                   {/* "90+60" só quando 2+ períodos têm minutos (nunca "125+0") */}
                   {divisaoMinutos(periodos) && (
                     <span style={{ color: colors.textSecondary, fontWeight: 500, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>· {divisaoMinutos(periodos)}</span>
@@ -1216,6 +1221,9 @@ export function TrainingPage() {
               <div className={`tp-total${getTotalDuration(shown) ? '' : ' tp-zero'}`} style={durationBadgeStyle}>
                 <span>⏱</span>
                 <span>{getTotalDuration(shown)} min</span>
+                {shown.session_type !== 'assessment' && minutosGoleiro({ ...shown, treino_transicao: false }) > 0 && (
+                  <span title="Treino de goleiro (paralelo, fora do total do grupo)" style={{ color: colors.textSecondary, fontWeight: 500, marginLeft: '0.3rem' }}>+{minutosGoleiro({ ...shown, treino_transicao: false })}′ gol</span>
+                )}
                 {toKm(shown.avg_distance_km) !== null && (shown.session_type || 'training') === 'training' && (
                   <span title="Distância ideal do dia" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', marginLeft: '0.35rem', paddingLeft: '0.45rem', borderLeft: `1px solid ${colors.border}` }}>
                     <span>📍</span>

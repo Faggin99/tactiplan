@@ -335,3 +335,12 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   DELETE; POST /:id/aplicar {session_id, substituir} → 409 TEM_ATIVIDADES). Reusa createActivity/updateActivity de activities.js.
   Programação: janela do dia (clique direito) › "Modelos de treino" (salvar / usar). Catálogo de atividades: seção "Sessões
   salvas" (`components/training/SessoesSalvas.jsx`). Anexos não entram no modelo.
+- Blocos (21/11, migration 071): "Preparatório" virou **Atividade 1** e os blocos do meio são Atividade 1–4 → ordem
+  Ativação · Atividade 1 · 2 · 3 · 4 · Treino de goleiro (modelos salvos também renomeados).
+- **TREINO DE GOLEIRO = PARALELO** (decisão 21/11): o bloco "Treino de goleiro" fica FORA de todas as contas do grupo
+  (minutos, sessões, atividades, pilares, predominância do dia, total do dia, linha do tempo da ficha) e é contado à parte.
+  Regra única `ehBlocoGoleiro(nome)`: `services/periodos.js` (back), `lib/periodos.js` (`minutosDaSessao` exclui,
+  `minutosGoleiro` soma), Kotlin/Swift `ehBlocoGoleiro` no `resumoDoDia` (paridade `avaliacao.json` caso m4).
+  Onde aparece: Estatísticas → `stats.goleiros {minutes, sessions, activities, byContent}` (cartão `GoleirosCard`) e PDF de
+  treino (seção na pág. 2); Programação "+N′ gol" ao lado do total; Início etiqueta "Goleiros · N'" (`dia.goleiro`);
+  PDF da semana "+N' goleiros" no pé do dia; ficha do dia: bloco paralelo, fora do total.

@@ -9,7 +9,7 @@ import Foundation
 // Paridade: dados/treino/Semana.kt (Android).
 
 /// Nomes dos 6 blocos (backend-node/src/routes/microcycles.js).
-public let NOMES_BLOCOS = ["Ativação", "Preparatório", "Atividade 1", "Atividade 2", "Atividade 3", "Treino de goleiro"]
+public let NOMES_BLOCOS = ["Ativação", "Atividade 1", "Atividade 2", "Atividade 3", "Atividade 4", "Treino de goleiro"]
 /// Nomes dos dias, de segunda (1) a domingo (7).
 public let NOMES_DIAS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
 public let SIGLAS_DIAS = ["SEG", "TER", "QUA", "QUI", "SEX", "SÁB", "DOM"]
@@ -197,6 +197,11 @@ public struct ResumoDia: Equatable, Sendable {
     }
 }
 
+/// Bloco "Treino de goleiro": treino paralelo, fora das contas do grupo (web: lib/periodos.js ehBlocoGoleiro).
+public func ehBlocoGoleiro(_ nome: String?) -> Bool {
+    (nome ?? "").trimmingCharacters(in: .whitespaces).lowercased() == "treino de goleiro"
+}
+
 public func resumoDoDia(_ d: Dia) -> ResumoDia {
     // avaliação: sem blocos, sem minutos (não entra em nada das estatísticas)
     if d.tipo == .avaliacao {
@@ -209,9 +214,11 @@ public func resumoDoDia(_ d: Dia) -> ResumoDia {
     for b in d.blocos {
         guard let a = b.atividade else { continue }
         blocos += 1
+        anexos += max(0, a.anexos ?? 0)
+        // treino de goleiro é paralelo: fora do total do dia e dos pilares (igual ao web)
+        if ehBlocoGoleiro(b.nome) { continue }
         let m = max(0, a.minutos ?? 0)
         total += m
-        anexos += max(0, a.anexos ?? 0)
         let dims = Array(Set((a.conteudos ?? []).compactMap(\.dimensao).filter { !$0.isEmpty }))
         for dim in dims {
             minPorPilar[dim, default: 0] += m

@@ -57,6 +57,12 @@ const TIPOS_SESSAO = ['training', 'match', 'rest', 'assessment'];
 
 function ehAvaliacao(s) { return !!s && s.session_type === 'assessment'; }
 
+// Bloco "Treino de goleiro" (21/11/2026): treino PARALELO dos goleiros — fica fora das contas do grupo
+// (minutos, atividades, pilares, predominância, total do dia) e tem contagem própria nas Estatísticas.
+// Mesma regra em frontend/src/lib/periodos.js e nos apps.
+const BLOCO_GOLEIRO = 'Treino de goleiro';
+function ehBlocoGoleiro(nome) { return String(nome || '').trim().toLowerCase() === BLOCO_GOLEIRO.toLowerCase(); }
+
 // Normaliza o que veio do cliente: só tipos conhecidos, sem repetir, na ordem da
 // lista; "Outra" só com texto (texto aparado, até 60). Devolve { ok, tipos, outra, erro }.
 function normalizarAvaliacao({ tipos, outra } = {}) {
@@ -267,6 +273,8 @@ function proximasPorDia(rows, limite = 5) {
 }
 
 module.exports = {
+  BLOCO_GOLEIRO,
+  ehBlocoGoleiro,
   TIPOS_AVALIACAO,
   ROTULO_AVALIACAO,
   MAX_OUTRA,

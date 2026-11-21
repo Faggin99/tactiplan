@@ -131,7 +131,7 @@ export function HomePage() {
       const d = new Date(seg); d.setDate(seg.getDate() + i);
       const data = iso(d);
       const s = porData.get(data);
-      return { data, i, periodos: s?.periodos || [], minutos: s?.minutos || 0 };
+      return { data, i, periodos: s?.periodos || [], minutos: s?.minutos || 0, goleiro: s?.goleiro || 0 };
     });
   }, [dashboard?.semana, hojeStr]);
   const numSemana = semanaIso(dataDe(hojeStr));
@@ -450,7 +450,8 @@ function Quadro({ ctx, clube, logoUrl, dias, hojeStr, numSemana, saudacao: ola, 
         const jogo = d.periodos.find((p) => p.tipo === 'match');
         const folga = d.periodos.length > 0 && d.periodos.every((p) => p.tipo === 'rest');
         // treino de transição fica à parte (etiqueta amarela), não no meio das atividades do grupo
-        const atividades = d.periodos.filter((p) => p.tipo === 'training' && !p.transicao).flatMap((p) => p.atividades.map((a) => ({ ...a, periodo: d.periodos.length > 1 ? p.periodo : null })));
+        // treino de goleiro (paralelo) também: vira a etiqueta "Goleiros · N'"
+        const atividades = d.periodos.filter((p) => p.tipo === 'training' && !p.transicao).flatMap((p) => p.atividades.filter((a) => !a.goleiro).map((a) => ({ ...a, periodo: d.periodos.length > 1 ? p.periodo : null })));
         const transicoes = d.periodos.filter((p) => p.tipo === 'training' && p.transicao);
         const avaliacao = d.periodos.some((p) => p.tipo === 'assessment');
         const mostrar = atividades.slice(0, isMobile ? 3 : porDia);
@@ -499,7 +500,12 @@ function Quadro({ ctx, clube, logoUrl, dias, hojeStr, numSemana, saudacao: ola, 
                     Transição{d.periodos.length > 1 && t.periodo ? ` · ${rotuloPeriodo(t.periodo)}` : ''}{t.minutos ? ` · ${t.minutos}'` : ''}
                   </span>
                 ))}
-                {!atividades.length && !avaliacao && !transicoes.length && (
+                {d.goleiro > 0 && (
+                  <span title="Treino de goleiro (paralelo, fora do total do dia)" style={{ alignSelf: 'flex-start', fontSize: '0.72rem', fontWeight: 700, color: colors.textSecondary, border: `1px solid ${colors.border}`, borderRadius: 4, padding: '0 6px' }}>
+                    Goleiros · {d.goleiro}'
+                  </span>
+                )}
+                {!atividades.length && !avaliacao && !transicoes.length && !d.goleiro && (
                   <span className={quadro ? 'tp-titulo' : undefined} style={{ fontFamily: quadro ? tk.fonteTitulo : 'inherit', fontWeight: 400, fontSize: quadro ? '1.05rem' : '0.78rem', color: colors.textMuted, textTransform: 'none' }}>
                     {passado ? '—' : quadro ? '+ a planejar' : 'a planejar'}
                   </span>
@@ -589,7 +595,7 @@ function CartaoHoje({ ctx, hoje, nextSessions, hojeStr, onAbrir, max = 4 }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: '0.4rem' }}>
             <div>
               <Titulo ctx={ctx} tamanho="1.1rem">Treino de hoje{treinos.length === 1 && treinos[0].periodo ? ` · ${rotuloPeriodo(treinos[0].periodo)}` : ''}</Titulo>
-              <p className="tp-num" style={{ margin: '0.25rem 0 0', fontSize: '0.82rem', color: colors.textSecondary }}>{hoje.minutos} minutos · {treinos.reduce((s, p) => s + p.atividades.length, 0)} atividades</p>
+              <p className="tp-num" style={{ margin: '0.25rem 0 0', fontSize: '0.82rem', color: colors.textSecondary }}>{hoje.minutos} minutos{hoje.goleiro ? ` (+${hoje.goleiro}' goleiros)` : ''} · {treinos.reduce((s, p) => s + p.atividades.filter((x) => !x.goleiro).length, 0)} atividades</p>
             </div>
           </div>
           <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
@@ -600,7 +606,7 @@ function CartaoHoje({ ctx, hoje, nextSessions, hojeStr, onAbrir, max = 4 }) {
                   <span style={{ display: 'block', fontWeight: 600, fontSize: '0.86rem', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.titulo}</span>
                   <span style={{ display: 'block', fontSize: '0.74rem', lineHeight: 1.35, color: colors.textSecondary }}>{[a.bloco, NOME_PILAR[a.pilar], a.periodo && rotuloPeriodo(a.periodo)].filter(Boolean).join(' · ')}</span>
                 </span>
-                <span className="tp-num" style={{ fontWeight: 600, fontSize: '0.8rem', color: colors.textSecondary }}>{a.minutos ? `${a.minutos}'` : ''}</span>
+                <span className="tp-num" style={{ fontWeight: 600, fontSize: '0.8rem', color: colors.textSecondary }}>{a.goleiro ? 'GOL ' : ''}{a.minutos ? `${a.minutos}'` : ''}</span>
               </li>
             ))}
           </ol>

@@ -131,6 +131,27 @@ function minutosTrabalhados(activities) {
   return total;
 }
 
+// Treino de goleiro (paralelo): minutos, treinos em que houve, atividades e conteúdos trabalhados.
+function resumoGoleiros(rows) {
+  const ids = new Map(); // atividade → linha (a consulta repete a atividade por conteúdo)
+  for (const a of rows) if (!ids.has(a.id)) ids.set(a.id, a);
+  const treinos = new Set(rows.map(a => a.periodo_session_id || a.session_id));
+  const porConteudo = new Map();
+  for (const a of rows) {
+    if (!a.content_id) continue;
+    const c = porConteudo.get(a.content_id) || { content_id: a.content_id, name: a.content_name, dimension: a.dimension, count: 0, minutes: 0 };
+    c.count += 1;
+    c.minutes += Number(a.duration_minutes) || 0;
+    porConteudo.set(a.content_id, c);
+  }
+  return {
+    minutes: Array.from(ids.values()).reduce((t, a) => t + (Number(a.duration_minutes) || 0), 0),
+    sessions: treinos.size,
+    activities: ids.size,
+    byContent: Array.from(porConteudo.values()).sort((x, y) => y.minutes - x.minutes || y.count - x.count),
+  };
+}
+
 async function getTrainingStats({ workspaceIds, start, end, clubId = null, allowedCategoryIds = null }) {
 
   const tenantIds = workspaceIds || [];
@@ -172,6 +193,7 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
     byContentPredominance: [],
     bySubcontentPredominance: [],
     sessionsByDate: [],
+    goleiros: { minutes: 0, sessions: 0, activities: 0, byContent: [] },
     sessionsWithActivity: 0,
     topTitles: [],
     trend: [],
@@ -181,7 +203,7 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
 
   // Atividades com content (snapshot via junction) + subconteúdos
   const activitiesResult = await query(
-    `SELECT a.id, a.duration_minutes, a.title_id, a.description, b.session_id, s.date AS session_date,
+    `SELECT a.id, a.duration_minutes, a.title_id, a.description, b.session_id, b.name AS block_name, s.date AS session_date,
             t.title AS title_name,
             c.id AS content_id, c.name AS content_name, c.dimension
      FROM training_activities a
@@ -195,8 +217,11 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
   );
 
   // Atividade vazia (sem título, conteúdo, minutos nem descrição) não é atividade: não conta.
-  const activities = activitiesResult.rows.filter(a => a.title_id || a.content_id || Number(a.duration_minutes) > 0
+  const preenchidas = activitiesResult.rows.filter(a => a.title_id || a.content_id || Number(a.duration_minutes) > 0
     || String(a.description || '').trim());
+  // Treino de goleiro é paralelo: fica FORA das contas do grupo e ganha a seção própria `goleiros`.
+  const activities = preenchidas.filter(a => !P.ehBlocoGoleiro(a.block_name));
+  const goleiros = resumoGoleiros(preenchidas.filter(a => P.ehBlocoGoleiro(a.block_name)));
   for (const a of activities) {
     a.periodo_session_id = a.session_id;
     a.session_id = diaDe.get(a.session_id) || a.session_id;
@@ -556,6 +581,7 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
     byContentPredominance,
     bySubcontentPredominance,
     sessionsByDate,
+    goleiros,
     sessionsWithActivity: sessionsCount,
     topTitles,
     trend,
@@ -1070,8 +1096,13 @@ async function getPeriodSessions({ workspaceIds, start, end, clubId = null, allo
            s.assessment_types, s.assessment_other,
            -- avaliação não soma minutos (mesmo com atividade antiga de quando era treino)
            s.treino_transicao,
-           CASE WHEN s.session_type = 'assessment' OR s.treino_transicao THEN 0 ELSE COALESCE(SUM(a.duration_minutes), 0) END::int AS minutes,
-           CASE WHEN s.session_type = 'assessment' OR s.treino_transicao THEN 0 ELSE COUNT(a.id) END::int AS activities
+           -- treino de goleiro é paralelo: fora dos minutos do grupo, à parte em minutos_goleiro
+           CASE WHEN s.session_type = 'assessment' OR s.treino_transicao THEN 0
+                ELSE COALESCE(SUM(a.duration_minutes) FILTER (WHERE LOWER(b.name) <> 'treino de goleiro'), 0) END::int AS minutes,
+           CASE WHEN s.session_type = 'assessment' OR s.treino_transicao THEN 0
+                ELSE COUNT(a.id) FILTER (WHERE LOWER(b.name) <> 'treino de goleiro') END::int AS activities,
+           CASE WHEN s.session_type = 'assessment' OR s.treino_transicao THEN 0
+                ELSE COALESCE(SUM(a.duration_minutes) FILTER (WHERE LOWER(b.name) = 'treino de goleiro'), 0) END::int AS minutos_goleiro
       FROM training_sessions s
       JOIN training_microcycles m ON s.microcycle_id = m.id
       LEFT JOIN training_activity_blocks b ON b.session_id = s.id

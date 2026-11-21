@@ -62,10 +62,10 @@ export function createEmptyWeekStructure(weekIdentifier) {
         session_type: 'training',
         blocks: [
           { id: null, name: 'Ativação', order: 1, activity: null },
-          { id: null, name: 'Preparatório', order: 2, activity: null },
-          { id: null, name: 'Atividade 1', order: 3, activity: null },
-          { id: null, name: 'Atividade 2', order: 4, activity: null },
-          { id: null, name: 'Atividade 3', order: 5, activity: null },
+          { id: null, name: 'Atividade 1', order: 2, activity: null },
+          { id: null, name: 'Atividade 2', order: 3, activity: null },
+          { id: null, name: 'Atividade 3', order: 4, activity: null },
+          { id: null, name: 'Atividade 4', order: 5, activity: null },
           { id: null, name: 'Treino de goleiro', order: 6, activity: null },
         ]
       };

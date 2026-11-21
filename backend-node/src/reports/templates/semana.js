@@ -55,7 +55,7 @@ const CSS = `
 `;
 
 // Posição fixa de cada bloco (nomes de hoje e os antigos), para alinhar os dias: bloco sem atividade = vazio.
-const ORDEM_BLOCOS = [['Ativação', 'Aquecimento'], ['Preparatório'], ['Atividade 1'], ['Atividade 2'], ['Atividade 3'], ['Treino de goleiro', 'Complementos']];
+const ORDEM_BLOCOS = [['Ativação', 'Aquecimento'], ['Atividade 1', 'Preparatório'], ['Atividade 2'], ['Atividade 3'], ['Atividade 4'], ['Treino de goleiro', 'Complementos']];
 function seisBlocos(blocks) {
   const usados = new Set();
   const slots = ORDEM_BLOCOS.map((nomes) => {
@@ -107,7 +107,7 @@ function celulaDia(d) {
 
 function rodape(d) {
   if (d.kind !== 'dia' || !(d.minutes > 0 || d.km != null)) return '<div></div>';
-  return `<div class="ft">${d.minutes}'${d.km != null ? ` · ${esc(F.dec1(d.km))} km` : ''}${d.split ? `<small>${esc(d.split)}</small>` : ''}</div>`;
+  return `<div class="ft">${d.minutes}'${d.km != null ? ` · ${esc(F.dec1(d.km))} km` : ''}${d.split ? `<small>${esc(d.split)}</small>` : ''}${d.goleiro ? `<small>+${d.goleiro}' goleiros</small>` : ''}</div>`;
 }
 
 // Grade: linha 1 = dias; depois 1 linha por faixa (Manhã/Tarde/Noite) quando algum dia tem
@@ -149,6 +149,7 @@ function resumo(vm) {
     for (const p of d.periodos || []) {
       if (p.type !== 'training' || p.transicao) continue;
       for (const b of p.blocks || []) {
+        if (/^treino de goleiro$/i.test(String(b.phase || '').trim())) continue; // paralelo: fora do resumo do grupo
         const m = Number(b.minutes) || 0;
         if (!m) continue;
         const k = b.pillar || 'outros';

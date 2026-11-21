@@ -107,7 +107,7 @@ public struct Atividade: Codable, Equatable, Sendable {
     public var pilar: String? { conteudos?.compactMap(\.dimensao).first }
 }
 
-/// Bloco do dia (Ativação, Preparatório, Atividade 1–3, Treino de goleiro). `id` nil = ainda não
+/// Bloco do dia (Ativação, Atividade 1–4, Treino de goleiro). `id` nil = ainda não
 /// existe no banco (semana que ninguém abriu para editar).
 public struct Bloco: Codable, Equatable, Sendable {
     public var id: String?

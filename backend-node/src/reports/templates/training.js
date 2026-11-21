@@ -147,6 +147,22 @@ function distance(vm) {
     <div class="collab${dense ? ' dense' : ''}">${labs}</div></div>`;
 }
 
+// Treino de goleiro (paralelo): contado à parte, fora dos números do grupo.
+function goleiros(vm) {
+  const g = vm.goleiros;
+  if (!g) return '';
+  const rows = (g.byContent || []).slice(0, 5);
+  return `<div class="card">${C.sec('Treino de goleiro', 'paralelo ao grupo · não entra nos números acima')}
+    <div class="grid g${rows.length ? 4 : 3}" style="align-items:start">
+      ${C.kpi({ label: 'Tempo', value: F.duration(g.minutes), sub: `${F.int(g.minutes)} min` })}
+      ${C.kpi({ label: 'Sessões', value: g.sessions })}
+      ${C.kpi({ label: 'Atividades', value: g.activities })}
+      ${rows.length ? `<table class="tbl"><thead><tr><th>Conteúdo</th><th class="c">Ativ.</th><th class="r">Min</th></tr></thead><tbody>
+      ${rows.map((r) => `<tr><td>${esc(r.name)}</td><td class="c">${r.count}</td><td class="r"><b>${F.int(r.minutes)}</b></td></tr>`).join('')}
+      </tbody></table>` : ''}
+    </div></div>`;
+}
+
 function renderTraining(vm, { now, onlyPhotos = false }) {
   const team = vm.team;
   const foot = C.footer({ now });
@@ -174,7 +190,7 @@ function renderTraining(vm, { now, onlyPhotos = false }) {
     pages.push(C.page({
       header: C.compactHeader({ team, reportName, subtitle: 'Conteúdos e carga', right: vm.right }),
       subtitle: 'Conteúdos e carga',
-      body: topContents(vm) + distance(vm),
+      body: topContents(vm) + goleiros(vm) + distance(vm),
       foot,
     }));
   }

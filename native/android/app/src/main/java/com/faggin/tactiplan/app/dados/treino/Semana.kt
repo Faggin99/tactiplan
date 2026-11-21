@@ -13,7 +13,9 @@ import kotlin.math.roundToLong
 // (TrainingPage.jsx): semana ISO "YYYY-WW" no fuso de Brasília; pilar predominante POR TEMPO;
 // dia que não existe vira o dia "vazio" com os 6 blocos. Paridade: TactiPlanKit/Semana.swift.
 
-val NOMES_BLOCOS = listOf("Ativação", "Preparatório", "Atividade 1", "Atividade 2", "Atividade 3", "Treino de goleiro")
+val NOMES_BLOCOS = listOf("Ativação", "Atividade 1", "Atividade 2", "Atividade 3", "Atividade 4", "Treino de goleiro")
+/** Bloco "Treino de goleiro": treino paralelo, fora das contas do grupo (web: lib/periodos.js ehBlocoGoleiro). */
+fun ehBlocoGoleiro(nome: String?): Boolean = nome.orEmpty().trim().equals("Treino de goleiro", ignoreCase = true)
 val NOMES_DIAS = listOf("Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo")
 val SIGLAS_DIAS = listOf("SEG", "TER", "QUA", "QUI", "SEX", "SÁB", "DOM")
 private val MESES_CURTOS = listOf("jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez")
@@ -147,9 +149,11 @@ fun resumoDoDia(d: Dia): ResumoDia {
     for (b in d.blocos) {
         val a = b.atividade ?: continue
         blocos++
+        anexos += maxOf(0, a.anexos ?: 0)
+        // treino de goleiro é paralelo: fora do total do dia e dos pilares (igual ao web)
+        if (ehBlocoGoleiro(b.nome)) continue
         val m = maxOf(0, a.minutos ?: 0)
         total += m
-        anexos += maxOf(0, a.anexos ?: 0)
         val dims = a.conteudos.orEmpty().mapNotNull { it.dimensao }.filter { it.isNotEmpty() }.toSet()
         for (dim in dims) {
             minP[dim] = (minP[dim] ?: 0) + m

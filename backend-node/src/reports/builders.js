@@ -482,6 +482,7 @@ function buildTrainingReport({ stats, sessions, gamesById, team, period, photos 
     pillars,
     topContents: buildTopContents(s, pillars),
     distance: buildDistance(s, trainingDaysWithActivity),
+    goleiros: s.goleiros && s.goleiros.activities ? s.goleiros : null, // paralelo, fora dos números do grupo
     photos,
   };
 }
@@ -503,11 +504,14 @@ function buildSessionSheet({ session, team, weekNumber = null, game = null, phot
   // avaliação: sem blocos (atividades antigas de quando era treino não aparecem)
   const filled = type === 'assessment' ? [] : (session.blocks || []).filter(blockIsFilled);
   let acc = 0;
+  let goleiro = 0;
   const blocks = filled.map((b) => {
     const a = b.activity;
     const minutes = Number(a.duration_minutes) || 0;
-    const from = acc;
-    acc += minutes;
+    // treino de goleiro é paralelo: fora da linha do tempo e do total do grupo
+    const paralelo = type === 'training' && P.ehBlocoGoleiro(b.name);
+    const from = paralelo ? null : acc;
+    if (paralelo) goleiro += minutes; else acc += minutes;
     const contents = (a.contents || []).map((c) => c.name).filter(Boolean);
     const pillar = blockPillar(a);
     return {
@@ -515,7 +519,8 @@ function buildSessionSheet({ session, team, weekNumber = null, game = null, phot
       phase: type === 'match' ? 'Não relacionados' : (b.name || ''),
       minutes,
       from,
-      to: acc,
+      to: paralelo ? null : acc,
+      goleiro: paralelo,
       pillar,
       pillarLabel: DIM_LABELS[pillar] || null,
       title: (a.title && a.title.title) || contents.join(', ') || b.name || 'Atividade',
@@ -528,7 +533,7 @@ function buildSessionSheet({ session, team, weekNumber = null, game = null, phot
   const total = acc;
   const groupsAll = Array.from(new Set(blocks.flatMap((b) => b.groups))).sort();
   const focus = dayFocus(
-    Object.values(blocks.reduce((m, b) => {
+    Object.values(blocks.filter((b) => !b.goleiro).reduce((m, b) => {
       for (const c of b.contents) {
         m[c] = m[c] || { name: c, count: 0, minutes: 0 };
         m[c].count += 1;
@@ -554,10 +559,12 @@ function buildSessionSheet({ session, team, weekNumber = null, game = null, phot
     focus,
     distanceKm: km,
     total,
+    goleiro,
     badgeTop: type === 'rest' ? 'Descanso' : type === 'assessment' ? 'Avaliação' : (type === 'match' && total === 0 ? 'Jogo' : `${total} min`),
     badgeSub: type === 'rest' || type === 'assessment' || (type === 'match' && total === 0)
       ? F.ddmmyyyy(date)
-      : (type === 'match' ? `${F.plural(blocks.length, 'bloco', 'blocos')} · não relacionados` : badgeSubParts.join(' · ')),
+      : (type === 'match' ? `${F.plural(blocks.length, 'bloco', 'blocos')} · não relacionados`
+        : [...badgeSubParts, goleiro ? `+${goleiro}' goleiros` : null].filter(Boolean).join(' · ')),
     blocks,
     pillarsPresent,
     groupsAll,
@@ -595,7 +602,7 @@ function buildDaySheet({ sessions, team, weekNumber = null, gamesById = null, ph
   const blocks = periodos.flatMap((p) => p.blocks);
   const total = periodos.reduce((sum, p) => sum + p.total, 0);
   const focus = dayFocus(
-    Object.values(blocks.reduce((m, b) => {
+    Object.values(blocks.filter((b) => !b.goleiro).reduce((m, b) => {
       for (const c of b.contents) {
         m[c] = m[c] || { name: c, count: 0, minutes: 0 };
         m[c].count += 1;
@@ -874,11 +881,13 @@ function buildWeekProgram({ team, period, details = [], gamesById = null, weekNu
         pillar: vm.type === 'training' ? predominancia(vm.blocks) : null,
         blocks: vm.blocks.map((b) => ({ phase: b.phase, content: b.contents.join(' · '), title: b.title !== b.contents.join(', ') ? b.title : '', minutes: b.minutes, pillar: b.pillar })),
         total: vm.total,
+        goleiro: vm.goleiro || 0,
         game: vm.game,
         assessment: vm.assessment,
       };
     });
     const minutes = periodos.reduce((t, p) => t + (p.type === 'assessment' || p.transicao ? 0 : p.total), 0);
+    const goleiroDia = periodos.reduce((t, p) => t + (p.type === 'training' && !p.transicao ? (p.goleiro || 0) : 0), 0);
     totalMin += minutes;
     if (periodos.some((p) => p.type === 'match')) jogos++;
     else if (periodos.some((p) => p.type === 'training' && p.blocks.length)) treinos++;
@@ -889,6 +898,7 @@ function buildWeekProgram({ team, period, details = [], gamesById = null, weekNu
       kind: !list.length ? 'vazio' : (isRest ? 'descanso' : 'dia'),
       periodos: isRest ? [] : periodos,
       minutes,
+      goleiro: goleiroDia,
       km: km != null ? Number(km) : null,
       split: P.divisaoMinutos(periodos.map((p) => ({ minutes: p.type === 'assessment' ? 0 : p.total }))),
     });

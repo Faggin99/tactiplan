@@ -12,7 +12,7 @@ function pillarLegend(vm) {
 }
 
 function timeline(vm, titulo = 'Linha do tempo') {
-  const timed = vm.blocks.filter((b) => b.minutes > 0);
+  const timed = vm.blocks.filter((b) => b.minutes > 0 && !b.goleiro); // goleiro: paralelo, fora da linha do tempo
   if (!timed.length || vm.total <= 0) return '';
   const segs = timed.map((b) => {
     const info = C.dimInfo(b.pillar);

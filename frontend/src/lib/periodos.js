@@ -74,9 +74,20 @@ export function periodosDoDia(day) {
   return Array.isArray(day?.periodos) && day.periodos.length > 1 ? day.periodos : null;
 }
 
+// Bloco "Treino de goleiro" (21/11/2026): treino PARALELO dos goleiros — fora do total do dia, dos pilares e
+// das estatísticas do grupo; tem contagem própria (`minutosGoleiro`). Mesma regra no servidor (services/periodos.js).
+export const BLOCO_GOLEIRO = 'Treino de goleiro';
+export const ehBlocoGoleiro = (nome) => String(nome || '').trim().toLowerCase() === BLOCO_GOLEIRO.toLowerCase();
+
 export function minutosDaSessao(s) {
   if (ehAvaliacao(s) || ehTransicao(s)) return 0; // avaliação e treino de transição não somam no dia
-  return (s?.blocks || []).reduce((t, b) => t + (parseInt(b.activity?.duration_minutes, 10) || 0), 0);
+  return (s?.blocks || []).reduce((t, b) => t + (ehBlocoGoleiro(b.name) ? 0 : (parseInt(b.activity?.duration_minutes, 10) || 0)), 0);
+}
+
+// Minutos do treino de goleiro do período (paralelo; 0 em avaliação/transição).
+export function minutosGoleiro(s) {
+  if (ehAvaliacao(s) || ehTransicao(s)) return 0;
+  return (s?.blocks || []).reduce((t, b) => t + (ehBlocoGoleiro(b.name) ? (parseInt(b.activity?.duration_minutes, 10) || 0) : 0), 0);
 }
 
 // Distância do dia: soma dos períodos de TREINO com registro (null sem nenhum).

@@ -164,8 +164,11 @@ async function semanaAtual(baseParams, clubId, semanaDe) {
       const min = Number(row.minutos) || 0;
       p.atividades.push({ titulo: row.titulo || row.bloco, bloco: row.bloco, minutos: min, pilar: row.pilar || null });
       p.minutos += min;
-      // treino de transição não soma no total do dia (não é carga do grupo)
-      if (!row.treino_transicao) dia.minutos += min;
+      // treino de transição e treino de goleiro (paralelo) não somam no total do grupo
+      const goleiro = String(row.bloco || '').trim().toLowerCase() === 'treino de goleiro';
+      p.atividades[p.atividades.length - 1].goleiro = goleiro;
+      if (goleiro) { p.minutos -= min; dia.goleiro = (dia.goleiro || 0) + min; }
+      else if (!row.treino_transicao) dia.minutos += min;
     }
   }
   return Array.from(dias.values());

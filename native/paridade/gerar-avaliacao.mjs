@@ -61,6 +61,8 @@ const casosMinutos = [
   sessao('m1', 'assessment', 'manha', { blocks: [bloco(40)] }),
   sessao('m2', 'training', 'manha', { blocks: [bloco(40), bloco(20, 2)] }),
   sessao('m3', 'match', null, { blocks: [bloco(15)] }),
+  // treino de goleiro é paralelo: não soma no dia
+  sessao('m4', 'training', 'tarde', { blocks: [bloco(30), { id: 'b6', name: 'Treino de goleiro', order: 6, activity: { id: 'a6', duration_minutes: 25 } }] }),
 ];
 
 const dados = {
@@ -70,7 +72,7 @@ const dados = {
   rotulos: sessoesRotulo.map((s) => ({ sessao: s, rotulos: L.rotulosAvaliacao(s), texto: L.textoAvaliacao(s) })),
   linha: casosLinha.map(([s, pilares]) => ({ sessao: s, pilares, texto: L.rotuloLinhaPeriodo(s, pilares) })),
   divisao: casosDivisao.map((periodos) => ({ periodos, divisao: L.divisaoMinutos(periodos) })),
-  minutos: casosMinutos.map((s) => ({ sessao: s, minutos: L.minutosDaSessao(s) })),
+  minutos: casosMinutos.map((s) => ({ sessao: s, minutos: L.minutosDaSessao(s), goleiro: L.minutosGoleiro(s) })),
 };
 
 const texto = `${JSON.stringify(dados, null, 2)}\n`;
