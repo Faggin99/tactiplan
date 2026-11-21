@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Dribbble, Moon, Trophy, Plus, Trash2, Sun, Sunset, MoonStar, ClipboardCheck } from 'lucide-react';
+import { Dribbble, Moon, Trophy, Plus, Trash2, Sun, Sunset, MoonStar, ClipboardCheck, BookmarkPlus, CopyPlus } from 'lucide-react';
+import { trainingService } from '../../services/trainingService';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -42,7 +43,7 @@ function EscolhaAvaliacao({ tipos, setTipos, outra, setOutra, chip, inputStyle, 
 // Menu do dia (clique direito / toque longo): tipo do dia — ou do período, no
 // dia com 2+ períodos — e os períodos (Adicionar / Trocar horário / Remover).
 // session = o período em exibição; day = o dia (com `periodos` quando houver).
-export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave, onAddPeriod, onRemovePeriod, onRenamePeriod, podeApagar = true }) {
+export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave, onAddPeriod, onRemovePeriod, onRenamePeriod, podeApagar = true, onSalvarModelo = null, onAplicarModelo = null }) {
   const { colors } = useTheme();
   const [sessionType, setSessionType] = useState('training');
   const [opponentName, setOpponentName] = useState('');
@@ -294,6 +295,12 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
           {sessionType === 'assessment' && 'Período de avaliação - sem blocos de atividade. Não soma minutos nem entra nas estatísticas.'}
         </div>
 
+        {/* Modelos de treino (sessões salvas no catálogo) */}
+        {(session?.session_type || 'training') === 'training' && sessionType === 'training' && (onSalvarModelo || onAplicarModelo) && (
+          <ModelosDeTreino colors={colors} inputStyle={inputStyle} temAtividades={!!session?.blocks?.some((b) => b.activity)}
+            onSalvar={onSalvarModelo} onAplicar={onAplicarModelo} isOpen={isOpen} />
+        )}
+
         {/* Períodos do dia */}
         {(onAddPeriod || onRemovePeriod) && (
           <div style={{ borderTop: `1px solid ${colors.border}`, paddingTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
@@ -422,5 +429,89 @@ export function SessionTypeModal({ isOpen, onClose, session, day = null, onSave,
         document.body,
       )}
     </Modal>
+  );
+}
+
+// Salvar o treino do dia como modelo / usar um modelo salvo (aba "Sessões salvas" do catálogo de atividades)
+function ModelosDeTreino({ colors, inputStyle, temAtividades, onSalvar, onAplicar, isOpen }) {
+  const [modelos, setModelos] = useState(null);
+  const [nome, setNome] = useState('');
+  const [escolhido, setEscolhido] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [confirmar, setConfirmar] = useState(null); // { atividades } quando o dia já tem atividades
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setNome(''); setMsg(null); setConfirmar(null);
+    trainingService.listarModelos().then(setModelos).catch(() => setModelos([]));
+  }, [isOpen]);
+
+  const salvar = async () => {
+    if (!nome.trim() || ocupado) return;
+    setOcupado(true); setMsg(null);
+    try {
+      await onSalvar(nome.trim());
+      setMsg({ ok: true, texto: `Modelo "${nome.trim()}" salvo no catálogo de atividades.` });
+      setNome('');
+      setModelos(await trainingService.listarModelos());
+    } catch (e) {
+      setMsg({ ok: false, texto: e.message || 'Não foi possível salvar o modelo.' });
+    } finally { setOcupado(false); }
+  };
+
+  const aplicar = async (substituir = false) => {
+    if (!escolhido || ocupado) return;
+    setOcupado(true); setMsg(null);
+    try {
+      await onAplicar(escolhido, { substituir });
+      setConfirmar(null);
+    } catch (e) {
+      if (e.code === 'TEM_ATIVIDADES') setConfirmar({ texto: e.message });
+      else setMsg({ ok: false, texto: e.message || 'Não foi possível aplicar o modelo.' });
+    } finally { setOcupado(false); }
+  };
+
+  const lista = modelos || [];
+  return (
+    <div style={{ borderTop: `1px solid ${colors.border}`, paddingTop: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      <div style={{ fontWeight: 600, color: colors.text }}>Modelos de treino</div>
+      {onSalvar && temAtividades && (
+        <div>
+          <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.35rem' }}>Salvar este treino (os 6 blocos) para usar de novo:</div>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={80} placeholder="Nome do modelo (ex.: Pré-jogo MD-1)" style={{ ...inputStyle, flex: 1 }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); salvar(); } }} />
+            <Button size="sm" variant="secondary" onClick={salvar} disabled={!nome.trim() || ocupado} icon={<BookmarkPlus size={15} />}>Salvar</Button>
+          </div>
+        </div>
+      )}
+      {onAplicar && (
+        <div>
+          <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.35rem' }}>
+            {lista.length ? 'Preencher este treino com um modelo salvo:' : 'Nenhum modelo salvo ainda.'}
+          </div>
+          {lista.length > 0 && (
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <select value={escolhido} onChange={(e) => { setEscolhido(e.target.value); setConfirmar(null); }} style={{ ...inputStyle, flex: 1 }}>
+                <option value="">Escolha o modelo…</option>
+                {lista.map((m) => <option key={m.id} value={m.id}>{m.nome} · {m.atividades} {m.atividades === 1 ? 'atividade' : 'atividades'}{m.minutos ? ` · ${m.minutos} min` : ''}</option>)}
+              </select>
+              <Button size="sm" onClick={() => aplicar(false)} disabled={!escolhido || ocupado} icon={<CopyPlus size={15} />}>Usar</Button>
+            </div>
+          )}
+          {confirmar && (
+            <div role="alert" style={{ marginTop: '0.6rem', padding: '0.7rem 0.8rem', borderRadius: '0.45rem', border: '1px solid #f59e0b66', backgroundColor: 'rgba(245,158,11,0.10)', fontSize: '0.84rem', color: colors.text }}>
+              {confirmar.texto} Substituir pelas do modelo? (fotos e anexos das atividades ficam)
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.55rem', justifyContent: 'flex-end' }}>
+                <Button size="sm" variant="secondary" onClick={() => setConfirmar(null)}>Cancelar</Button>
+                <Button size="sm" onClick={() => aplicar(true)} disabled={ocupado}>Substituir</Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      {msg && <div style={{ fontSize: '0.82rem', color: msg.ok ? '#15803d' : '#dc2626' }}>{msg.texto}</div>}
+    </div>
   );
 }

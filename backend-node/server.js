@@ -100,6 +100,7 @@ app.use('/api/athletes', athletesRoutes);
 app.use('/api/microcycles', microcyclesRoutes);
 app.use('/api/sessions', sessionsRoutes);
 app.use('/api/activities', activitiesRoutes);
+app.use('/api/treinos-modelo', require('./src/routes/treinosModelo'));
 app.use('/api/titles', titlesRoutes);
 app.use('/api/games', gamesRoutes);
 app.use('/api/video-analise', videoAnaliseRoutes);

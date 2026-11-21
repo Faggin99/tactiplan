@@ -24,6 +24,21 @@ export const trainingService = {
     }
   },
 
+  // Sessões salvas / modelos de treino (migration 070)
+  async listarModelos() {
+    const r = await api.get('/treinos-modelo');
+    return r.data || [];
+  },
+  async salvarModelo(sessionId, nome) {
+    return await api.post('/treinos-modelo', { session_id: sessionId, nome });
+  },
+  async excluirModelo(id) {
+    return await api.delete(`/treinos-modelo/${id}`);
+  },
+  async aplicarModelo(id, sessionId, { substituir = false } = {}) {
+    return await api.post(`/treinos-modelo/${id}/aplicar`, { session_id: sessionId, ...(substituir ? { substituir: true } : {}) });
+  },
+
   async ensureMicrocycleStructure(weekIdentifier, clubId) {
     const data = await api.post('/microcycles/ensure', { week: weekIdentifier, club_id: clubId });
     return { data };

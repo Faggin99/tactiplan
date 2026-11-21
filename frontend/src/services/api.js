@@ -140,7 +140,11 @@ class ApiClient {
         throw err;
       }
       const error = await response.json().catch(() => ({ message: 'Request failed' }));
-      throw new Error(error.message || `HTTP ${response.status}`);
+      // o servidor manda a mensagem em `error` (antes só `message` era lido e a tela mostrava "HTTP 400")
+      const e2 = new Error(error.error || error.message || `HTTP ${response.status}`);
+      e2.statusCode = response.status;
+      e2.code = error.code;
+      throw e2;
     }
 
     const text = await response.text();

@@ -269,3 +269,5 @@ router.post('/upsert', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.createActivity = createActivity;
+module.exports.updateActivity = updateActivity;

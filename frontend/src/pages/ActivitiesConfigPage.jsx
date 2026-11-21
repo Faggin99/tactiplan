@@ -7,6 +7,7 @@ import { CreateTitleModal } from '../components/training/CreateTitleModal';
 import { EditActivityModal } from '../components/training/EditActivityModal';
 import { ActivityActionModal } from '../components/training/ActivityActionModal';
 import { Select } from '../components/common/Select';
+import { SessoesSalvas } from '../components/training/SessoesSalvas';
 
 export function ActivitiesConfigPage() {
   const { colors } = useTheme();
@@ -337,6 +338,8 @@ export function ActivitiesConfigPage() {
           Nova Atividade
         </button>
       </div>
+
+      <SessoesSalvas />
 
       <div style={filtersStyle}>
         <div style={searchBoxStyle}>

@@ -318,3 +318,20 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   1 página "Bolas paradas" e pontos + observações finais viram "Conclusão" quando as duas cabem (estimativa `alturaBullets`/
   `altBp*`/`altPontos`/`altFinal`) e a 1ª não tem foto/vídeo próprio. Cartões com a altura do conteúdo (`alturaCartoes`).
   Exemplo da paridade: 14 → 11 páginas (PDF e PowerPoint iguais). Teste em tests/analise-adversario.test.js.
+
+## Lista do treinador de 21/11/2026
+- Blocos: "Aquecimento" → **Ativação** e "Complementos" → **Treino de goleiro** (BLOCK_NAMES no servidor, microcycleService no web,
+  NOMES_BLOCOS nos apps; migration 069 renomeou os 540 blocos gravados).
+- Estatísticas: só períodos de TREINO contam (jogo/descanso guardavam um bloco vazio que inflava "Atividades") e atividade
+  vazia (sem título, conteúdo, minutos e descrição) não conta.
+- Início: DM mostra TODOS os nomes (etiquetas; motivo no title). Plantel abre no Campograma (1ª aba).
+- Convite: `GET /api/invites/:token` traz `tem_conta`; sem conta, a página do convite pede nome + senha, cria a conta,
+  aceita e entra no clube. api.js agora repassa `error` do servidor em 4xx/5xx genéricos (antes "HTTP 400").
+- Fotos dos PDFs: layout **'lado'** (foto à esquerda; título, bloco, conteúdo · minutos e descrição à direita) — padrão da
+  ficha do dia (`gridOptions(..., {semana})`); semana segue em grade. Preferência do modal virou v2.
+- PDF da semana: os 6 blocos em posições fixas (`seisBlocos`, alinhados entre os dias e esticados até o pé), jogo/avaliação
+  ocupam a coluna, pé com "Semana: N'" + barra por pilar (sem transição/avaliação).
+- SESSÕES SALVAS (migration 070 `treinos_modelo`): rotas `/api/treinos-modelo` (GET lista com resumo; POST {nome, session_id};
+  DELETE; POST /:id/aplicar {session_id, substituir} → 409 TEM_ATIVIDADES). Reusa createActivity/updateActivity de activities.js.
+  Programação: janela do dia (clique direito) › "Modelos de treino" (salvar / usar). Catálogo de atividades: seção "Sessões
+  salvas" (`components/training/SessoesSalvas.jsx`). Anexos não entram no modelo.

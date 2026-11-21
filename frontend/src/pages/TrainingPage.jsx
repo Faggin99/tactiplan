@@ -1440,6 +1440,23 @@ export function TrainingPage() {
         session={selectedSession}
         day={selectedDay}
         podeApagar={can('training:delete')}
+        onSalvarModelo={podeEditarTreino ? async (nome) => {
+          if (!selectedSession?.id) throw new Error('Esse treino ainda não tem atividades');
+          await trainingService.salvarModelo(selectedSession.id, nome);
+        } : null}
+        onAplicarModelo={podeEditarTreino ? async (modeloId, { substituir = false } = {}) => {
+          let sessionId = selectedSession?.id;
+          if (!sessionId) {
+            // dia ainda não criado no banco: cria a semana antes
+            const response = await trainingService.ensureMicrocycleStructure(currentWeek.identifier, selectedClub.id);
+            sessionId = response.data?.sessions?.find((s) => s.day_of_week === selectedSession?.day_of_week)?.id;
+            if (!sessionId) throw new Error('Falha ao criar o dia no banco de dados');
+          }
+          await trainingService.aplicarModelo(modeloId, sessionId, { substituir });
+          notify.success('Modelo aplicado no treino.');
+          setShowSessionTypeModal(false);
+          await recarregarSemana();
+        } : null}
         onAddPeriod={async ({ atual, novo, ...tipoNovo }) => {
           try {
             let sessionId = selectedSession?.id;
