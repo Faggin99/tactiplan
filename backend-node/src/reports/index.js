@@ -87,7 +87,7 @@ async function activitiesInfo(activityIds) {
   const map = new Map();
   if (!activityIds.length) return map;
   const r = await query(
-    `SELECT a.id, b.name AS block_name, b."order" AS block_order, t.title,
+    `SELECT a.id, b.name AS block_name, b."order" AS block_order, t.title, a.duration_minutes, a.description,
             (SELECT string_agg(c.name, ', ' ORDER BY c.name) FROM training_activity_contents tac
                JOIN contents c ON c.id = tac.content_id WHERE tac.activity_id = a.id) AS conteudos
        FROM training_activities a
@@ -97,7 +97,12 @@ async function activitiesInfo(activityIds) {
     [activityIds],
   );
   // título da foto = a atividade (título; sem título, os conteúdos)
-  for (const row of r.rows) map.set(row.id, { blockName: row.block_name, blockOrder: row.block_order, title: row.title || row.conteudos || null });
+  for (const row of r.rows) {
+    map.set(row.id, {
+      blockName: row.block_name, blockOrder: row.block_order, title: row.title || row.conteudos || null,
+      conteudos: row.title ? row.conteudos : null, minutos: row.duration_minutes, descricao: row.description,
+    });
+  }
   return map;
 }
 
@@ -181,7 +186,7 @@ async function photoList(cands, byDay, limit) {
     total: cands.length,
     semana: !!byDay,
     limite: PC.MAX_FOTOS,
-    padrao: { ids, layout: PC.gridOptions(null, ids.length).layout, proporcao: '4:3', legendas: true, agrupar: true },
+    padrao: { ids, layout: PC.gridOptions(null, ids.length, { semana: !!byDay }).layout, proporcao: '4:3', legendas: true, agrupar: true },
   };
 }
 

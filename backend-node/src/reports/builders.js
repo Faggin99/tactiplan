@@ -646,7 +646,13 @@ function captionFor(file, activityInfo) {
   if (activityInfo && (activityInfo.title || activityInfo.blockName)) {
     const title = activityInfo.title || activityInfo.blockName;
     const context = [activityInfo.title ? activityInfo.blockName : null, proprio || null].filter(Boolean).join(' · ');
-    return { title: F.truncate(title, 60), context: F.truncate(context, 80) };
+    // detalhe da atividade para o arranjo "lado a lado" (conteúdos, minutos, descrição)
+    const detalhe = {
+      conteudos: activityInfo.conteudos || null,
+      minutos: Number(activityInfo.minutos) || null,
+      descricao: activityInfo.descricao ? F.truncate(String(activityInfo.descricao).trim(), 700) : null,
+    };
+    return { title: F.truncate(title, 60), context: F.truncate(context, 80), detalhe };
   }
   return { title: F.truncate(proprio || semExt, 60), context: '' };
 }
@@ -702,7 +708,7 @@ function buildPhotoSection({ items, hidden = 0, config = null, sessionsById = nu
     groups: grouped ? groupPhotosByDay(items, sessionsById) : null,
     hidden: hid,
     total: items.length + hid,
-    grid: gridOptions(config, items.length),
+    grid: gridOptions(config, items.length, { semana: !!sessionsById }),
     posicao: (config && config.posicao) || 'fim',
   };
 }

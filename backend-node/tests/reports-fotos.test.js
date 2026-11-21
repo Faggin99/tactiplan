@@ -139,7 +139,8 @@ test('seção: padrão mantém a regra antiga; escolha sem "+N" e lista corrida'
   const cfg = PC.parseFotosConfig({ ids: ['a', 'b', 'c'], layout: 'mosaico', agrupar: false }, new Set(['a', 'b', 'c']));
   const sel = B.buildPhotoSection({ items: ph, hidden: 5, config: cfg, sessionsById: byDay });
   assert.deepStrictEqual([sel.hidden, sel.total, sel.groups, sel.grid.layout], [0, 3, null, 'mosaico']);
-  assert.strictEqual(B.buildPhotoSection({ items: items(6) }).grid.layout, 'compacto');
+  // ficha do dia (sem dias = não é semana): padrão "lado a lado" desde 21/11/2026
+  assert.strictEqual(B.buildPhotoSection({ items: items(6) }).grid.layout, 'lado');
 });
 
 // ---------------------------------------------------------------- lista, prévia e PDF (fluxo do index)
@@ -182,7 +183,8 @@ test('PDF: ids = [] sai sem a seção; escolha na semana em lista corrida', asyn
   assert.ok(!semFotos.html.includes('Registro fotográfico'));
   const padrao = await R.BUILDERS.sessao({ session_id: S1 }, USER, new Map(), 'pdf');
   assert.ok(padrao.html.includes('Registro fotográfico'), 'sem config continua com fotos');
-  assert.ok(padrao.html.includes('photos c2"'), 'padrão antigo: até 4 fotos = 2 por linha');
+  assert.ok(padrao.html.includes('photos lado'), 'ficha: padrão lado a lado (foto + atividade)');
+  assert.ok(padrao.html.includes('class="ph-row"'));
   const assets = new Map();
   const wk = await R.BUILDERS.treino({
     club_id: CLUB, start_date: '2026-10-19', end_date: '2026-10-25', filter_type: '1-micro',

@@ -7,7 +7,8 @@
 //   - ids só dos candidatos (anexos de imagem do dia/semana do clube do usuário)
 const MAX_FOTOS = 24;
 const MAX_LEGENDA = 120;
-const LAYOUTS = ['grande', 'medio', 'compacto', 'mosaico'];
+// 'lado' (21/11/2026) = foto à esquerda e a atividade (título, bloco, conteúdos, minutos, descrição) ao lado
+const LAYOUTS = ['lado', 'grande', 'medio', 'compacto', 'mosaico'];
 const PROPORCOES = ['4:3', '1:1', 'original'];
 // Ficha do dia: 'fim' = página própria no final (padrão); 'blocos' = cada foto logo abaixo
 // do bloco/atividade a que pertence (as sem bloco continuam no final).
@@ -80,8 +81,9 @@ function effectiveLayout(layout, count) {
 }
 
 // Opções da grade a partir do modo: padrão antigo (config null) ou escolhido.
-function gridOptions(config, count) {
-  if (!config) return { layout: count <= 4 ? 'medio' : 'compacto', proporcao: null, legendas: true };
+function gridOptions(config, count, { semana = false } = {}) {
+  // ficha do dia: padrão "lado a lado" (pedido do treinador); semana segue em grade
+  if (!config) return { layout: semana ? (count <= 4 ? 'medio' : 'compacto') : 'lado', proporcao: null, legendas: true };
   return { layout: effectiveLayout(config.layout, count), proporcao: config.proporcao, legendas: config.legendas, tamanho: config.tamanho || 100 };
 }
 

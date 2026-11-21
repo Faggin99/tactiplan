@@ -143,7 +143,7 @@ test('legenda e seleção das fotos da sessão (ordem de envio, contexto da ativ
   const sel = B.selectSessionPhotos(files, acts);
   assert.deepStrictEqual(sel.map((f) => f.id), [1, 2]);
   // título = a atividade; embaixo o bloco e o título digitado do anexo
-  assert.deepStrictEqual(sel[0].caption, { title: 'Escanteios', context: 'Atividade 1 · Marcação' });
+  assert.deepStrictEqual(sel[0].caption, { title: 'Escanteios', context: 'Atividade 1 · Marcação', detalhe: { conteudos: null, minutos: null, descricao: null } });
   assert.deepStrictEqual(sel[1].caption, { title: 'Treino', context: '' });
 });
 

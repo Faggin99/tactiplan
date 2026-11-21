@@ -18,6 +18,7 @@ const A4_H = 1123;
 const PREVIEW_DEBOUNCE_MS = 400;
 
 const LAYOUTS = [
+  { id: 'lado', label: 'Lado a lado', hint: 'foto + a atividade ao lado' },
   { id: 'grande', label: 'Grande', hint: '1 por linha' },
   { id: 'medio', label: 'Médio', hint: '2 por linha' },
   { id: 'compacto', label: 'Compacto', hint: '3 por linha' },
@@ -30,7 +31,8 @@ const PROPORCOES = [
 ];
 
 // Última escolha de layout/proporção/legendas por usuário, neste aparelho.
-const prefsKey = (userId) => `tp.relatorio.fotos.v1.${userId || 'anon'}`;
+// v2 (21/11/2026): entrou o "lado a lado" como padrão da ficha; a preferência antiga não vale mais
+const prefsKey = (userId) => `tp.relatorio.fotos.v2.${userId || 'anon'}`;
 function readPrefs(userId) {
   try {
     const v = JSON.parse(localStorage.getItem(prefsKey(userId)) || 'null');
@@ -47,7 +49,8 @@ function writePrefs(userId, prefs) {
 function LayoutGlyph({ id, color }) {
   const r = (x, y, w, h, k) => <rect key={k} x={x} y={y} width={w} height={h} rx="1.5" fill={color} />;
   let shapes;
-  if (id === 'grande') shapes = [r(10, 3, 36, 15, 1), r(10, 22, 36, 15, 2)];
+  if (id === 'lado') shapes = [r(4, 3, 22, 15, 1), r(29, 5, 23, 3, 'l1'), r(29, 10, 18, 2.5, 'l2'), r(4, 22, 22, 15, 2), r(29, 24, 23, 3, 'l3'), r(29, 29, 18, 2.5, 'l4')];
+  else if (id === 'grande') shapes = [r(10, 3, 36, 15, 1), r(10, 22, 36, 15, 2)];
   else if (id === 'medio') shapes = [r(4, 3, 23, 15, 1), r(29, 3, 23, 15, 2), r(4, 22, 23, 15, 3), r(29, 22, 23, 15, 4)];
   else if (id === 'compacto') shapes = [0, 1, 2].flatMap((c) => [r(4 + c * 16.5, 3, 15, 15, `a${c}`), r(4 + c * 16.5, 22, 15, 15, `b${c}`)]);
   else shapes = [r(4, 3, 31.5, 22, 1), r(37.5, 3, 14.5, 10, 2), r(37.5, 15, 14.5, 10, 3), r(4, 27, 15, 10, 4), r(20.5, 27, 15, 10, 5), r(37, 27, 15, 10, 6)];
