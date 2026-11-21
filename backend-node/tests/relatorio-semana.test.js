@@ -45,8 +45,17 @@ test('programação da semana: períodos, pilar predominante, jogo, descanso, av
   assert.deepEqual(vm.days.map((d) => d.span), [false, false, true, true, false, true, true]);
   const html = renderWeekProgram(vm, { now: new Date('2031-03-17T12:00:00Z') });
   assert.match(html, /Programação da semana/);
-  assert.match(html, /grid-row:2 \/ span 2/);
-  assert.match(html, /class="bd"[^>]*>Tarde</);
+  // planilha (21/11/2026): linhas = blocos, colunas = treinos; Terça com 2 colunas (Manhã/Tarde) sob o mesmo dia
+  assert.match(html, /class="pl"/);
+  assert.match(html, /<th colspan="2">Terça/);
+  assert.match(html, /<th>Treino de goleiro<\/th>/);
   assert.match(html, /vs Rival/);
-  assert.match(html, /AVALIAÇÃO/);
+  assert.match(html, /Avaliação/);
+  assert.match(html, /Descanso/);
+  assert.ok(!html.includes('continua na próxima página'), 'semana comum cabe em 1 página');
+  // semana com 2 treinos em TODOS os dias: continua na página seguinte, sem partir dia
+  const cheio = { ...vm, days: vm.days.map((d) => ({ ...d, kind: 'dia', periodos: [ter.periodos[0], ter.periodos[1]] })) };
+  const h2 = renderWeekProgram(cheio, { now: new Date('2031-03-17T12:00:00Z') });
+  assert.ok(h2.includes('continua na próxima página'));
+  assert.ok(h2.includes('Programação (continuação)'));
 });

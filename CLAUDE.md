@@ -330,8 +330,10 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
 - Fotos da FICHA (corrigido 21/11 à noite): a opção "Ao lado de cada bloco" (`posicao: 'blocos'`, padrão do modal desde a
   preferência v3) põe a foto numa coluna à DIREITA do bloco da atividade (`.blk.com-foto`, `--fw` = 40–80 mm pelo "Tamanho"
   50–100%); antes ia abaixo. O layout 'lado' (foto + texto numa página de fotos) foi REMOVIDO. Legenda só se editada.
-- PDF da semana: os 6 blocos em posições fixas (`seisBlocos`, alinhados entre os dias e esticados até o pé), jogo/avaliação
-  ocupam a coluna, pé com "Semana: N'" + barra por pilar (sem transição/avaliação).
+- PDF da semana = PLANILHA DE PERIODIZAÇÃO (21/11, escolhida entre 3 alternativas; a grade de 7 colunas com faixas
+  Manhã/Tarde sobrepunha texto): linhas = 6 blocos, colunas = cada treino (dia · período, dia com colspan); avaliação/jogo/
+  descanso/vazio = coluna cheia; pé com minutos (+goleiro, km). `paginasDeDias` (PESO_MAX 10,5: treino 1,25 · jogo/aval 0,85 ·
+  descanso 0,75) continua na página seguinte sem partir dia; resumo por pilar na última. `bandas`/`span` do vm não são mais usados.
 - SESSÕES SALVAS (migration 070 `treinos_modelo`): rotas `/api/treinos-modelo` (GET lista com resumo; POST {nome, session_id};
   DELETE; POST /:id/aplicar {session_id, substituir} → 409 TEM_ATIVIDADES). Reusa createActivity/updateActivity de activities.js.
   Programação: janela do dia (clique direito) › "Modelos de treino" (salvar / usar). Catálogo de atividades: seção "Sessões

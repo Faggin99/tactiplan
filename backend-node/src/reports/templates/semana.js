@@ -1,6 +1,8 @@
 // Programação da semana (A4 paisagem): o resumo da tela Programação, não as estatísticas.
-// 7 colunas (dias); cada dia com os períodos (Manhã · Tático) e os blocos (fase, conteúdo,
-// atividade); jogo, descanso e avaliação como na tela; no pé, minutos e distância.
+// 21/11/2026 (escolha do dono entre 3 alternativas): PLANILHA DE PERIODIZAÇÃO — linhas = os 6 blocos
+// (Ativação, Atividade 1–4, Treino de goleiro), colunas = cada treino (dia · período); avaliação, jogo,
+// descanso e dia vazio ocupam a coluna inteira. Semana com muitos dias duplos (colunas demais) continua
+// na página seguinte, sem partir um dia ao meio. Pé: total de cada treino e barra da semana por pilar.
 // Fotos dos anexos (modal "Fotos do relatório") nas páginas seguintes.
 const F = require('../format');
 const C = require('./components');
@@ -13,45 +15,42 @@ const CSS = `
 .page{width:297mm;height:210mm}
 .hdr{padding:6mm 10mm}
 .hdr h1{font-size:18pt}
-.body{padding:5mm 10mm 3mm}
-.wk{flex:1;min-height:0;display:grid;column-gap:2mm;row-gap:1.6mm}
-.dh{background:var(--team);color:var(--on-team);border-radius:2mm;padding:1.6mm 2mm;text-align:center}
-.dh b{display:block;font:700 8.5pt Poppins}
-.dh span{font-size:7pt;opacity:.85}
-.bd{writing-mode:vertical-rl;transform:rotate(180deg);display:flex;align-items:center;justify-content:center;
-  font:700 7pt Poppins;letter-spacing:.12em;text-transform:uppercase;color:var(--team-ink);background:var(--team-softer);border-radius:2mm}
-.cel{display:flex;flex-direction:column;gap:1.2mm;min-width:0;min-height:0;overflow:hidden}
-.cel.vz{border:1px dashed var(--line);border-radius:1.8mm}
-.pr{border:1px solid var(--line);border-radius:1.8mm;padding:1mm 1.6mm;text-align:center;font:600 7.2pt Poppins;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bl{border:1px solid var(--line);border-left:1.2mm solid var(--c,var(--line));border-radius:1.8mm;padding:1.2mm 1.8mm;min-width:0}
-.bl .ph{font-size:6.3pt;color:var(--muted);display:flex;justify-content:space-between;gap:1mm}
-.bl .ph i{font-style:normal;font-weight:600;color:var(--ink-2)}
-.bl .ct{font-size:7.8pt;font-weight:700;line-height:1.2;overflow-wrap:anywhere}
-.bl .tt{font-size:6.8pt;color:var(--ink-2);line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
-.box{border:1px solid var(--line);border-radius:1.8mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:3mm 2mm;gap:.8mm}
-.box b{font:700 10pt Poppins;letter-spacing:.02em}
-.box span{font-size:7.5pt;font-weight:600}
-.box small{font-size:6.5pt;color:var(--muted)}
-.box.game{background:var(--team-softer);border-color:var(--team-soft)}
-.box.av{background:var(--team-softer);border-color:var(--team-soft)}
-.box.rest{flex:1;background:repeating-linear-gradient(135deg,var(--surface) 0 2mm,#fff 2mm 4mm);color:var(--muted)}
-.box.none{flex:1;border-style:dashed;color:var(--faint)}
-.nada{font-size:6.5pt;color:var(--faint);text-align:center;padding:1.5mm 0}
-/* 21/11/2026: os 6 blocos ocupam sempre a mesma linha em todos os dias e esticam até o pé */
-.blocos{flex:1;min-height:0;display:grid;grid-template-rows:repeat(6,minmax(0,1fr));gap:1.2mm}
-.blocos .bl{min-height:0;overflow:hidden}
-.bl.vz{border-style:dashed;border-left-width:1px;background:none}
-.bl.vz .ct{color:var(--faint);font-weight:500}
-.cel > .box.game:only-child,.cel > .box.av:only-child{flex:1}
-.resumo{display:flex;align-items:center;gap:4mm;margin-top:2.5mm;padding-top:2mm;border-top:1px solid var(--line);font-size:7.5pt;color:var(--ink-2)}
+.body{padding:4.5mm 10mm 3mm}
+.mn{font-variant-numeric:tabular-nums}
+.cont{font:600 7pt Inter;color:var(--muted);text-align:right;margin-top:1.5mm}
+.resumo{display:flex;align-items:center;gap:4mm;margin-top:auto;padding-top:2mm;border-top:1px solid var(--line);font-size:7.5pt;color:var(--ink-2)}
 .resumo b{font:700 8.5pt Poppins;color:var(--ink);white-space:nowrap}
-.resumo .barra{flex:1;display:flex;height:3.2mm;border-radius:1.6mm;overflow:hidden;background:var(--surface)}
+.resumo b small{font:500 7pt Inter;color:var(--muted)}
+.resumo .barra{flex:1;display:flex;height:3mm;border-radius:1.5mm;overflow:hidden;background:var(--surface)}
 .resumo .barra i{display:block;height:100%}
 .resumo .leg{display:flex;gap:3mm;white-space:nowrap}
 .resumo .leg span{display:inline-flex;align-items:center;gap:1.2mm}
 .resumo .leg i{width:2.4mm;height:2.4mm;border-radius:50%;display:inline-block}
-.ft{border-top:1px solid var(--line);padding-top:1.2mm;text-align:center;font:700 8pt Poppins;color:var(--ink)}
-.ft small{display:block;font:500 6.3pt Inter;color:var(--muted)}
+.pl{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:6.8pt}
+.pl th,.pl td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:1.3mm 1.6mm;vertical-align:top;text-align:left;min-width:0;overflow-wrap:anywhere}
+.pl tr > :first-child{border-left:1px solid var(--line)}
+.pl thead th{background:var(--team);color:var(--on-team);border-color:rgba(255,255,255,.25);text-align:center;font:700 7.6pt Poppins;padding:1.5mm 1mm}
+.pl thead th small{display:block;font:500 6.3pt Inter;opacity:.85}
+.pl thead tr:first-child th:first-child{border-top-left-radius:2mm}
+.pl thead tr:first-child th:last-child{border-top-right-radius:2mm}
+.pl thead tr.sub th{background:var(--team-softer);color:var(--team-ink);font:700 6.8pt Poppins}
+.pl thead tr.sub th span{display:block;font:600 6.2pt Inter;color:var(--ink-2)}
+.pl tbody td,.pl tbody th{height:16mm}
+.pl tbody th{vertical-align:middle;background:var(--surface);font:600 6.6pt Inter;color:var(--ink-2);text-transform:uppercase;letter-spacing:.03em;width:21mm}
+.pl td{position:relative;padding-left:2.4mm}
+.pl td.f::before{content:"";position:absolute;left:0;top:1.2mm;bottom:1.2mm;width:.9mm;background:var(--c);border-radius:.5mm}
+.pl td b{display:block;font:700 7pt/1.2 Poppins;color:var(--ink)}
+.pl td span{display:block;color:var(--ink-2);line-height:1.25;margin-top:.3mm}
+.pl td em{font-style:normal;font-weight:700;color:var(--ink);float:right;margin-left:1mm}
+.pl td.vz{color:var(--faint);text-align:center}
+.pl td.full{vertical-align:middle;text-align:center;font:700 7pt Poppins;letter-spacing:0;color:var(--ink-2);overflow-wrap:normal;word-break:keep-all;padding:1.3mm .8mm}
+.pl td.full span{font:500 6.6pt Inter;letter-spacing:0}
+.pl td.jogo{background:var(--team-softer);color:var(--team-ink)}
+.pl td.rest{background:repeating-linear-gradient(135deg,var(--surface) 0 2mm,#fff 2mm 4mm);color:var(--muted)}
+.pl tr.gk th,.pl tr.gk td{background:var(--surface);border-top:1px dashed var(--line)}
+.pl tfoot td{font:700 8pt Poppins;color:var(--ink);text-align:center;border-bottom:0;padding-top:1.6mm}
+.pl tfoot td small{display:block;font:500 6.2pt Inter;color:var(--muted)}
+.pl tfoot td,.pl tfoot th{border:0!important;background:none}
 `;
 
 // Posição fixa de cada bloco (nomes de hoje e os antigos), para alinhar os dias: bloco sem atividade = vazio.
@@ -73,72 +72,84 @@ function seisBlocos(blocks) {
   return slots;
 }
 
-function blocoHtml(b) {
-  if (b.vazio) return `<div class="bl vz"><div class="ph"><span>${esc(b.phase)}</span></div><div class="ct">—</div></div>`;
-  const cor = b.pillar ? C.dimInfo(b.pillar).color : 'var(--line)';
-  return `<div class="bl" style="--c:${cor}"><div class="ph"><span>${esc(b.phase)}</span>${b.minutes ? `<i>${b.minutes}'</i>` : ''}</div>`
-    + `${b.content ? `<div class="ct">${esc(b.content)}</div>` : ''}${b.title ? `<div class="tt">${esc(b.title)}</div>` : ''}</div>`;
-}
+const ehGoleiro = (b) => /^(treino de goleiro|complementos)$/i.test(String(b.phase || '').trim());
+const cor = (pillar) => (pillar ? C.dimInfo(pillar).color : 'var(--line)');
+const tiposAv = (p) => (p.assessment?.types?.length ? p.assessment.types.join(' · ') : 'Tipo não informado');
+const jogoTxt = (p) => {
+  const g = p.game || {};
+  return { adv: g.opponent || 'Adversário', placar: g.score ? `${g.score}${g.result ? ` · ${g.result}` : ''}` : '' };
+};
+const seis = seisBlocos;
 
-// Um período (treino, jogo ou avaliação) dentro da célula. comRotulo: dia de período único
-// mostra "Manhã · Tático" em cima; nas faixas (Manhã/Tarde) o rótulo já está na linha.
-function periodoHtml(p, comRotulo) {
-  const rot = [comRotulo ? p.label : null, p.type === 'training' ? p.pillar : null].filter(Boolean).join(' · ');
-  if (p.type === 'match') {
-    const g = p.game || {};
-    const info = [g.round ? (/^\d+$/.test(String(g.round)) ? `Rodada ${g.round}` : g.round) : null, g.location].filter(Boolean).join(' · ');
-    return `<div class="box game"><b>JOGO</b><span>vs ${esc(g.opponent || 'Adversário')}</span>`
-      + `${g.score ? `<span>${esc(g.score)}${g.result ? ` · ${esc(g.result)}` : ''}</span>` : ''}${info ? `<small>${esc(info)}</small>` : ''}</div>`
-      + (p.blocks.length ? `<div class="pr">Não relacionados</div>${p.blocks.map((b) => blocoHtml({ ...b, phase: b.phase === 'Não relacionados' ? '' : b.phase })).join('')}` : '');
+// Colunas da semana: cada período de cada dia; dia sem período (descanso/vazio) = 1 coluna estreita.
+function colunasDe(days) {
+  const cols = [];
+  for (const d of days) {
+    if (d.kind !== 'dia' || !d.periodos.length) { cols.push({ d, kind: d.kind === 'dia' ? 'vazio' : d.kind, w: 0.75 }); continue; }
+    d.periodos.forEach((p, i) => cols.push({ d, p, primeiro: i === 0, n: d.periodos.length, kind: p.type, w: p.type === 'training' ? 1.25 : 0.85 }));
   }
-  if (p.type === 'assessment') {
-    const tipos = p.assessment?.types?.length ? p.assessment.types.join(' · ') : 'Tipo não informado';
-    return `<div class="box av"><b>AVALIAÇÃO</b><small>${esc(tipos)}</small></div>`;
+  return cols;
+}
+
+// Divide os dias em páginas pelo "peso" das colunas (treino 1,25 · jogo/avaliação 0,85 · descanso 0,75),
+// nunca partindo um dia: até ~8 colunas de treino por página.
+const PESO_MAX = 10.5;
+function paginasDeDias(days) {
+  const pags = [[]];
+  let peso = 0;
+  for (const d of days) {
+    const w = colunasDe([d]).reduce((t, c) => t + c.w, 0);
+    if (pags[pags.length - 1].length && peso + w > PESO_MAX) { pags.push([]); peso = 0; }
+    pags[pags.length - 1].push(d);
+    peso += w;
   }
-  const corpo = p.blocks.length ? `<div class="blocos">${seisBlocos(p.blocks).map(blocoHtml).join('')}</div>` : '<div class="nada">Nenhuma atividade</div>';
-  return `${rot ? `<div class="pr">${esc(rot)}</div>` : ''}${corpo}`;
+  return pags;
 }
 
-function celulaDia(d) {
-  if (d.kind === 'descanso') return '<div class="box rest"><b>Descanso</b></div>';
-  if (d.kind === 'vazio') return '<div class="box none"><small>Sem registro</small></div>';
-  return d.periodos.map((p) => periodoHtml(p, true)).join('');
+function planilha(days) {
+  // colunas: cada período de cada dia (dia sem período = 1 coluna estreita)
+  const cols = [];
+  cols.push(...colunasDe(days));
+  const somaW = cols.reduce((t, c) => t + c.w, 0);
+  const colgroup = `<colgroup><col style="width:21mm">${cols.map((c) => `<col style="width:${((c.w / somaW) * 100).toFixed(2)}%">`).join('')}</colgroup>`;
+  // cabeçalho: dia (com span pelos períodos) e linha dos períodos
+  const head1 = []; const head2 = [];
+  for (const c of cols) {
+    if (c.p && !c.primeiro) continue;
+    const span = c.p ? c.n : 1;
+    head1.push(`<th colspan="${span}">${esc(c.d.dn.replace('-feira', ''))}<small>${esc(c.d.dd)}</small></th>`);
+  }
+  for (const c of cols) {
+    if (!c.p) { head2.push('<th></th>'); continue; }
+    const tipo = c.p.type === 'match' ? 'Jogo' : c.p.type === 'assessment' ? 'Avaliação' : (c.p.transicao ? 'Transição' : (c.p.pillar || 'Treino'));
+    head2.push(`<th>${esc(c.p.label || '')}<span>${esc(tipo)}</span></th>`);
+  }
+  const NOMES = ['Ativação', 'Atividade 1', 'Atividade 2', 'Atividade 3', 'Atividade 4', 'Treino de goleiro'];
+  const slotsPorCol = cols.map((c) => (c.p && c.p.type === 'training' ? seis(c.p.blocks) : null));
+  const linhas = NOMES.map((nome, r) => {
+    const tds = cols.map((c, k) => {
+      if (r === 0 && !slotsPorCol[k]) {
+        if (c.kind === 'descanso') return '<td class="full rest" rowspan="6">Descanso</td>';
+        if (c.kind === 'vazio') return '<td class="full vz" rowspan="6">—</td>';
+        if (c.kind === 'match') { const j = jogoTxt(c.p); return `<td class="full jogo" rowspan="6">Jogo<span>vs ${esc(j.adv)}</span>${j.placar ? `<span>${esc(j.placar)}</span>` : ''}</td>`; }
+        if (c.kind === 'assessment') return `<td class="full" rowspan="6">Avaliação<span>${esc(tiposAv(c.p))}</span></td>`;
+      }
+      if (!slotsPorCol[k]) return '';
+      const b = slotsPorCol[k][r];
+      if (b.vazio) return '<td class="vz">—</td>';
+      return `<td class="f" style="--c:${cor(b.pillar)}">${b.minutes ? `<em class="mn">${b.minutes}'</em>` : ''}${b.content ? `<b>${esc(b.content)}</b>` : ''}${b.title ? `<span>${esc(b.title)}</span>` : ''}</td>`;
+    }).join('');
+    return `<tr${r === 5 ? ' class="gk"' : ''}><th>${esc(nome)}</th>${tds}</tr>`;
+  }).join('');
+  const pe = cols.map((c) => {
+    if (!c.p || c.p.type !== 'training') return '<td></td>';
+    const km = c.primeiro && c.d.km != null ? `<small>${esc(F.dec1(c.d.km))} km</small>` : '';
+    return `<td class="mn">${c.p.total ? `${c.p.total}'` : '—'}${c.p.goleiro ? `<small>+${c.p.goleiro}' gol</small>` : ''}${km}</td>`;
+  }).join('');
+  return `<table class="pl">${colgroup}<thead><tr><th rowspan="2" style="background:var(--team)"></th>${head1.join('')}</tr><tr class="sub">${head2.join('')}</tr></thead>`
+    + `<tbody>${linhas}</tbody><tfoot><tr><th></th>${pe}</tr></tfoot></table>`;
 }
 
-function rodape(d) {
-  if (d.kind !== 'dia' || !(d.minutes > 0 || d.km != null)) return '<div></div>';
-  return `<div class="ft">${d.minutes}'${d.km != null ? ` · ${esc(F.dec1(d.km))} km` : ''}${d.split ? `<small>${esc(d.split)}</small>` : ''}${d.goleiro ? `<small>+${d.goleiro}' goleiros</small>` : ''}</div>`;
-}
-
-// Grade: linha 1 = dias; depois 1 linha por faixa (Manhã/Tarde/Noite) quando algum dia tem
-// 2+ períodos — o dia dividido põe cada período na sua faixa e o dia de período único ocupa
-// a coluna inteira (como a tela); última linha = minutos e km.
-function grade(vm) {
-  const bandas = vm.bandas || [];
-  const nb = Math.max(1, bandas.length);
-  const off = bandas.length ? 1 : 0; // coluna do rótulo da faixa
-  const cols = `${bandas.length ? '6mm ' : ''}repeat(7,minmax(0,1fr))`;
-  const rows = `auto repeat(${nb},minmax(0,1fr)) auto`;
-  const at = (r, c, extra = '') => `style="grid-row:${r};grid-column:${c};${extra}"`;
-  const cells = [];
-  bandas.forEach((b, i) => cells.push(`<div class="bd" ${at(2 + i, 1)}>${esc(b)}</div>`));
-  vm.days.forEach((d, i) => {
-    const col = i + 1 + off;
-    cells.push(`<div class="dh" ${at(1, col)}><b>${esc(d.dn)}</b><span>${esc(d.dd)}</span></div>`);
-    if (d.span) {
-      cells.push(`<div class="cel" ${at(`2 / span ${nb}`, col)}>${celulaDia(d)}</div>`);
-    } else {
-      bandas.forEach((b, j) => {
-        const p = d.periodos.find((x) => x.label === b);
-        cells.push(p
-          ? `<div class="cel" ${at(2 + j, col)}>${periodoHtml(p, false)}</div>`
-          : `<div class="cel vz" ${at(2 + j, col)}></div>`);
-      });
-    }
-    cells.push(`<div ${at(nb + 2, col)}>${rodape(d)}</div>`);
-  });
-  return `<div class="wk" style="grid-template-columns:${cols};grid-template-rows:${rows}">${cells.join('')}</div>${resumo(vm)}`;
-}
 
 // Pé da página: total da semana + barra dos minutos por pilar (cor da borda dos blocos) e legenda.
 // Treino de transição e avaliação não entram (como nas estatísticas).
@@ -172,7 +183,14 @@ function renderWeekProgram(vm, { now, onlyPhotos = false }) {
   const header = C.fullHeader({
     team, eyebrow: reportName, title: team.name, metaHtml: esc(vm.meta), badgeTop: vm.badgeTop, badgeSub: vm.badgeSub,
   });
-  const pages = onlyPhotos ? [] : [C.page({ header, subtitle: 'Programação', body: grade(vm), foot })];
+  // a planilha pode ocupar mais de uma página (muitos dias com 2+ treinos): o resumo vai na última
+  const pags = paginasDeDias(vm.days);
+  const pages = onlyPhotos ? [] : pags.map((days, i) => C.page({
+    header: i === 0 ? header : C.compactHeader({ team, reportName, subtitle: 'Programação (continuação)', right: vm.right }),
+    subtitle: 'Programação',
+    body: planilha(days) + (i === pags.length - 1 ? resumo(vm) : '<div class="cont">continua na próxima página →</div>'),
+    foot,
+  }));
   if (vm.photos && vm.photos.items.length) {
     pages.push(C.page({
       header: C.compactHeader({ team, reportName, subtitle: 'Registro fotográfico', right: vm.right }),
