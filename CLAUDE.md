@@ -344,3 +344,10 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   Onde aparece: Estatísticas → `stats.goleiros {minutes, sessions, activities, byContent}` (cartão `GoleirosCard`) e PDF de
   treino (seção na pág. 2); Programação "+N′ gol" ao lado do total; Início etiqueta "Goleiros · N'" (`dia.goleiro`);
   PDF da semana "+N' goleiros" no pé do dia; ficha do dia: bloco paralelo, fora do total.
+- Contagem "Atividades" (21/11): só Atividade 1–4 — ATIVAÇÃO não conta como atividade (os minutos dela contam), nem o
+  goleiro (`ehBlocoAtivacao` em services/periodos.js). Sparkline de atividades deduplicada (a consulta repete por conteúdo).
+- SESSÕES SALVAS ganharam página própria `/sessoes-salvas` (`pages/SessoesSalvasPage.jsx`, menu Planejamento): cartão por
+  sessão (6 blocos, barra por pilar, minutos sem goleiro), renomear (`PATCH /api/treinos-modelo/:id`), excluir e
+  "Usar em um dia" (data → período se houver 2+ treinos → aviso de substituir; cria a semana se não existir).
+  Salvar: Programação › clique no dia (resumo) › "Salvar sessão" (`TrainingSummaryModal` `onSalvarSessao`); o botão
+  direito no dia segue com salvar/usar. No catálogo de atividades virou só um atalho para a página.

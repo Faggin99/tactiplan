@@ -15,6 +15,7 @@ import { BillingCallbackPage } from './pages/BillingCallbackPage';
 import { PWAUpdatePrompt } from './components/common/PWAUpdatePrompt';
 import { TrainingPage } from './pages/TrainingPage';
 import { TrainingStatsPage } from './pages/TrainingStatsPage';
+import { SessoesSalvasPage } from './pages/SessoesSalvasPage';
 import { ActivitiesConfigPage } from './pages/ActivitiesConfigPage';
 import { SubcontentsConfigPage } from './pages/SubcontentsConfigPage';
 import { ContentsConfigPage } from './pages/ContentsConfigPage';
@@ -165,6 +166,16 @@ function AppRoutes() {
           <ProtectedRoute>
             <Layout>
               <TrainingPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/sessoes-salvas"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <SessoesSalvasPage />
             </Layout>
           </ProtectedRoute>
         }

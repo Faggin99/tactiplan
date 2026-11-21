@@ -1440,6 +1440,7 @@ export function TrainingPage() {
         isOpen={showSummaryModal}
         onClose={() => setShowSummaryModal(false)}
         session={selectedSession}
+        onSalvarSessao={podeEditarTreino ? (sessionId, nome) => trainingService.salvarModelo(sessionId, nome) : null}
       />
 
       <SessionTypeModal
@@ -1461,7 +1462,7 @@ export function TrainingPage() {
             if (!sessionId) throw new Error('Falha ao criar o dia no banco de dados');
           }
           await trainingService.aplicarModelo(modeloId, sessionId, { substituir });
-          notify.success('Modelo aplicado no treino.');
+          notify.success('Sessão salva aplicada no treino.');
           setShowSessionTypeModal(false);
           await recarregarSemana();
         } : null}

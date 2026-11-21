@@ -32,6 +32,9 @@ export const trainingService = {
   async salvarModelo(sessionId, nome) {
     return await api.post('/treinos-modelo', { session_id: sessionId, nome });
   },
+  async renomearModelo(id, nome) {
+    return await api.patch(`/treinos-modelo/${id}`, { nome });
+  },
   async excluirModelo(id) {
     return await api.delete(`/treinos-modelo/${id}`);
   },

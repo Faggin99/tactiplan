@@ -462,7 +462,7 @@ function buildTrainingReport({ stats, sessions, gamesById, team, period, photos 
     right: periodRight(period),
     badgeTop: period.rangeShort,
     badgeSub: `${period.year} · ${F.plural(sessionsCount, 'sessão', 'sessões')}`,
-    empty: (totals.activities || 0) === 0 && !(s.distance && s.distance.daysWithData),
+    empty: (totals.activities || 0) === 0 && !(totals.minutes > 0) && !(s.distance && s.distance.daysWithData),
     kpis: {
       minutes: totals.minutes || 0,
       sessions: sessionsCount,
@@ -1043,7 +1043,7 @@ function buildClubTraining(ts) {
   const days = totals.days ?? sessions;
   const minutes = totals.minutes || 0;
   return {
-    empty: (totals.activities || 0) === 0,
+    empty: (totals.activities || 0) === 0 && !(totals.minutes > 0),
     minutes,
     sessions,
     days,

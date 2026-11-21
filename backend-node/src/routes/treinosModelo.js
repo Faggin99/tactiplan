@@ -3,6 +3,7 @@
 // resto da biblioteca. Anexos (fotos/arquivos) não vão para o modelo.
 //   GET    /api/treinos-modelo                 lista (training:view)
 //   POST   /api/treinos-modelo {nome, session_id}            salva o treino desse período (training:edit)
+//   PATCH  /api/treinos-modelo/:id {nome, descricao?}         renomear (training:edit)
 //   DELETE /api/treinos-modelo/:id                            (training:edit)
 //   POST   /api/treinos-modelo/:id/aplicar {session_id, substituir?}
 //          preenche o treino do período; se ele já tem atividades e substituir != true → 409 TEM_ATIVIDADES
@@ -10,6 +11,7 @@ const express = require('express');
 const { query, pool } = require('../config/database');
 const authMiddleware = require('../middleware/auth');
 const { createActivity, updateActivity } = require('./activities');
+const { ehBlocoGoleiro, ehBlocoAtivacao } = require('../services/periodos');
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -68,8 +70,11 @@ router.get('/', async (req, res) => {
         }));
         return {
           id: m.id, nome: m.nome, descricao: m.descricao, criado_por: m.criado_por, created_at: m.created_at,
-          blocos, atividades: blocos.filter((b) => b.titulo || b.conteudo || b.minutos || b.descricao).length,
-          minutos: blocos.reduce((t, b) => t + b.minutos, 0),
+          // atividades = Atividade 1–4 (ativação e treino de goleiro não entram, igual às Estatísticas)
+          blocos, atividades: blocos.filter((b) => (b.titulo || b.conteudo || b.minutos || b.descricao) && !ehBlocoGoleiro(b.nome) && !ehBlocoAtivacao(b.nome)).length,
+          // treino de goleiro é paralelo: fora do total (como na Programação)
+          minutos: blocos.reduce((t, b) => t + (ehBlocoGoleiro(b.nome) ? 0 : b.minutos), 0),
+          goleiro: blocos.reduce((t, b) => t + (ehBlocoGoleiro(b.nome) ? b.minutos : 0), 0),
         };
       }),
     });
@@ -114,6 +119,27 @@ router.post('/', async (req, res) => {
     res.status(500).json({ error: 'Falha ao salvar o modelo' });
   } finally {
     client.release();
+  }
+});
+
+// PATCH — renomear (e descrição)
+router.patch('/:id', async (req, res) => {
+  try {
+    if (!req.user.can('training:edit')) return res.status(403).json({ error: 'Sem permissão pra editar treinos' });
+    if (!UUID.test(req.params.id)) return res.status(400).json({ error: 'id inválido' });
+    const nome = String(req.body?.nome || '').trim().slice(0, 80);
+    if (!nome) return res.status(400).json({ error: 'Dê um nome à sessão' });
+    const temDesc = Object.prototype.hasOwnProperty.call(req.body || {}, 'descricao');
+    const desc = String(req.body?.descricao || '').trim().slice(0, 500) || null;
+    const r = await query(
+      `UPDATE treinos_modelo SET nome = $1, descricao = CASE WHEN $4 THEN $2 ELSE descricao END
+        WHERE id = $3 AND workspace_id = ANY($5) RETURNING id, nome, descricao`,
+      [nome, desc, req.params.id, temDesc, req.user.workspaceIds || []]);
+    if (!r.rows[0]) return res.status(404).json({ error: 'Sessão não encontrada' });
+    res.json(r.rows[0]);
+  } catch (err) {
+    console.error('Treinos modelo rename error:', err);
+    res.status(500).json({ error: 'Falha ao renomear' });
   }
 });
 

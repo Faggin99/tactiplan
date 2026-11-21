@@ -804,7 +804,7 @@ export function TrainingDashboard({ stats, colors }) {
   // Filtro: ao clicar num conteúdo tático, restringe submomentos a esse content_id
   const [selectedTaticContent, setSelectedTaticContent] = useState(null);
 
-  if (!stats || stats.totals.activities === 0) {
+  if (!stats || (stats.totals.activities === 0 && !stats.totals.minutes)) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem', color: colors.textSecondary, textAlign: 'center', gap: '0.5rem' }}>
         <Activity size={48} strokeWidth={1.5} style={{ opacity: 0.3 }} />

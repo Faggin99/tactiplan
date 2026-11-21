@@ -5,6 +5,7 @@ import {
   Home, Calendar, BarChart3, Waypoints, Building2, LayoutGrid, Users, User, Trophy, BookOpen, Target,
   ChevronDown, ChevronRight, LogOut, CreditCard, Settings, Lock, X, PanelLeft, HelpCircle, Menu,
   Check, Loader2, FolderCog, Paintbrush,
+  BookmarkCheck,
 } from 'lucide-react';
 import MenuAparencia from './MenuAparencia';
 import { CADASTROS_TABS, isCadastrosPath, CADASTROS_EXTRA } from '../../lib/cadastros';
@@ -32,6 +33,7 @@ const SECTIONS = [
   ] },
   { header: 'Planejamento', items: [
     { to: '/training', icon: Calendar, label: 'Programação' },
+    { to: '/sessoes-salvas', icon: BookmarkCheck, label: 'Sessões salvas' },
     { to: '/training-stats', icon: BarChart3, label: 'Estatísticas' },
     { to: '/tactical-board', icon: Waypoints, label: 'Quadro Tático', gated: 'quadro_tatico' },
   ] },

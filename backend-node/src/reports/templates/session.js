@@ -42,7 +42,7 @@ function blockCard(b, fotos = null) {
   const metaParts = [];
   if (b.contents.length) metaParts.push(`<em>Conteúdo</em>${esc(b.contents.join(', '))}`);
   if (b.subMoments.length) metaParts.push(`<em>Submomentos</em>${b.subMoments.map((s) => C.chip(s)).join('')}`);
-  const range = b.minutes > 0 ? `<div class="rg">${b.from}'–${b.to}'</div>` : '';
+  const range = b.goleiro ? '<div class="rg">paralelo</div>' : b.minutes > 0 && b.from != null ? `<div class="rg">${b.from}'–${b.to}'</div>` : '';
   return `<div class="blk" style="--p:${info.color}">
     <div class="tm"><b>${b.minutes > 0 ? b.minutes : '—'}</b><small>min</small>${range}</div>
     <div class="ct">

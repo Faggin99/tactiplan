@@ -63,6 +63,10 @@ function ehAvaliacao(s) { return !!s && s.session_type === 'assessment'; }
 const BLOCO_GOLEIRO = 'Treino de goleiro';
 function ehBlocoGoleiro(nome) { return String(nome || '').trim().toLowerCase() === BLOCO_GOLEIRO.toLowerCase(); }
 
+// Bloco de ATIVAÇÃO (aquecimento): os minutos contam, mas não é "atividade" na contagem (21/11/2026: o treinador
+// conta só Atividade 1–4 — "Atividades 11" com 2 ativações não batia com o que ele planejou).
+function ehBlocoAtivacao(nome) { const n = String(nome || '').trim().toLowerCase(); return n === 'ativação' || n === 'aquecimento'; }
+
 // Normaliza o que veio do cliente: só tipos conhecidos, sem repetir, na ordem da
 // lista; "Outra" só com texto (texto aparado, até 60). Devolve { ok, tipos, outra, erro }.
 function normalizarAvaliacao({ tipos, outra } = {}) {
@@ -275,6 +279,7 @@ function proximasPorDia(rows, limite = 5) {
 module.exports = {
   BLOCO_GOLEIRO,
   ehBlocoGoleiro,
+  ehBlocoAtivacao,
   TIPOS_AVALIACAO,
   ROTULO_AVALIACAO,
   MAX_OUTRA,

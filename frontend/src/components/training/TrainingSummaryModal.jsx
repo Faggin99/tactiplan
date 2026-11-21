@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, BookmarkPlus } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { newWorkbook, addSheet, saveWorkbook, addMetaSheet, formatMinutes } from '../../utils/excelTheme';
 import { ExportMenu } from '../common/ExportMenu';
@@ -9,7 +9,7 @@ import { notify } from '../../lib/notify';
 import { formatKm, toKm } from '../../utils/distancia';
 import { periodosDoDia, rotuloPeriodo, distanciaDoDia } from '../../lib/periodos';
 
-export function TrainingSummaryModal({ isOpen, onClose, session: day }) {
+export function TrainingSummaryModal({ isOpen, onClose, session: day, onSalvarSessao = null }) {
   const { colors } = useTheme();
   // Exportar PDF: com fotos no dia abre o modal "Fotos do relatório"
   const photoExport = useReportPhotosExport();
@@ -17,7 +17,9 @@ export function TrainingSummaryModal({ isOpen, onClose, session: day }) {
   const [usarAntiga, setUsarAntiga] = useState(false);
   // Dia com 2+ períodos: ver/exportar o dia inteiro (padrão) ou só um período
   const [escolha, setEscolha] = useState('dia');
-  useEffect(() => { setUsarAntiga(false); setEscolha('dia'); }, [day?.id]);
+  // "Salvar sessão" (21/11/2026): guarda o treino deste dia/período em Sessões salvas
+  const [salvando, setSalvando] = useState(null); // null fechado | { nome, ocupado, msg }
+  useEffect(() => { setUsarAntiga(false); setEscolha('dia'); setSalvando(null); }, [day?.id, isOpen]);
 
   if (!isOpen || !day) return null;
 
@@ -30,6 +32,23 @@ export function TrainingSummaryModal({ isOpen, onClose, session: day }) {
     avg_distance_km: distanciaDoDia(periodos),
     blocks: periodos.flatMap((p) => (p.blocks || []).map((b) => ({ ...b, name: `${rotuloPeriodo(p.periodo)} · ${b.name}` }))),
   } : day);
+
+  // Qual treino vira sessão salva: o período escolhido; no "Dia inteiro", o único período de treino com atividade
+  const temAtividade = (p) => (p?.session_type || 'training') === 'training' && !!p?.id && (p.blocks || []).some((b) => b.activity && (b.activity.title_id || b.activity.contents?.length || Number(b.activity.duration_minutes) > 0 || String(b.activity.description || '').trim()));
+  const candidatos = (periodos || [day]).filter(temAtividade);
+  const alvoSalvar = periodoEscolhido ? (temAtividade(periodoEscolhido) ? periodoEscolhido : null) : (candidatos.length === 1 ? candidatos[0] : null);
+  const motivoSemSalvar = alvoSalvar ? null : candidatos.length > 1 ? 'Escolha o período (Manhã/Tarde) que quer salvar' : 'Este dia ainda não tem atividades de treino';
+  const salvarSessao = async () => {
+    const nome = (salvando?.nome || '').trim();
+    if (!nome || !alvoSalvar || salvando?.ocupado) return;
+    setSalvando((x) => ({ ...x, ocupado: true, msg: null }));
+    try {
+      await onSalvarSessao(alvoSalvar.id, nome);
+      setSalvando({ nome: '', ocupado: false, msg: { ok: true, texto: `"${nome}" está em Sessões salvas.` } });
+    } catch (e) {
+      setSalvando((x) => ({ ...x, ocupado: false, msg: { ok: false, texto: e.message || 'Não foi possível salvar.' } }));
+    }
+  };
 
   const getTotalDuration = () => {
     if (!session?.blocks) return 0;
@@ -312,6 +331,13 @@ export function TrainingSummaryModal({ isOpen, onClose, session: day }) {
           </div>
         )}
         <div style={headerStyle} className="no-print">
+          {onSalvarSessao && (
+            <button type="button" onClick={() => setSalvando((x) => (x ? null : { nome: '', ocupado: false, msg: null }))}
+              disabled={!alvoSalvar} title={motivoSemSalvar || 'Guardar este treino para usar em outro dia'} aria-expanded={!!salvando}
+              style={{ ...buttonStyle, gap: 6, fontSize: '0.8rem', fontWeight: 600, padding: '0.5rem 0.7rem', opacity: alvoSalvar ? 1 : 0.55, cursor: alvoSalvar ? 'pointer' : 'not-allowed' }}>
+              <BookmarkPlus size={17} strokeWidth={1.75} /> Salvar sessão
+            </button>
+          )}
           <ExportMenu
             size="sm"
             variant="floating"
@@ -334,6 +360,24 @@ export function TrainingSummaryModal({ isOpen, onClose, session: day }) {
             <X size={22} strokeWidth={1.5} />
           </button>
         </div>
+
+        {salvando && alvoSalvar && (
+          <form className="no-print" onSubmit={(e) => { e.preventDefault(); salvarSessao(); }}
+            style={{ position: 'absolute', top: '3.6rem', right: '0.75rem', zIndex: 11, width: 'min(340px, calc(100% - 1.5rem))', background: '#fff', border: '1px solid #ddd', borderRadius: '0.5rem', boxShadow: '0 8px 24px rgba(15,23,42,0.16)', padding: '0.8rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', color: '#0f172a' }}>
+            <label style={{ fontSize: '0.8rem', fontWeight: 600 }}>
+              Nome da sessão{periodos && alvoSalvar.periodo ? ` · ${rotuloPeriodo(alvoSalvar.periodo)}` : ''}
+              <input autoFocus value={salvando.nome} maxLength={80} placeholder="ex.: Pré-jogo MD-1"
+                onChange={(e) => setSalvando((x) => ({ ...x, nome: e.target.value, msg: null }))}
+                onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setSalvando(null); } }}
+                style={{ display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 5, padding: '0.5rem 0.6rem', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.9rem', fontFamily: 'inherit', color: '#0f172a', background: '#fff' }} />
+            </label>
+            {salvando.msg && <span role="status" style={{ fontSize: '0.8rem', color: salvando.msg.ok ? '#15803d' : '#dc2626' }}>{salvando.msg.texto}</span>}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+              <button type="button" onClick={() => setSalvando(null)} style={{ border: '1px solid #cbd5e1', background: '#fff', color: '#334155', borderRadius: 6, padding: '0.4rem 0.8rem', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Fechar</button>
+              <button type="submit" disabled={!salvando.nome.trim() || salvando.ocupado} style={{ border: 'none', background: '#0f172a', color: '#fff', borderRadius: 6, padding: '0.4rem 0.9rem', fontSize: '0.82rem', fontWeight: 600, cursor: salvando.nome.trim() ? 'pointer' : 'not-allowed', opacity: salvando.nome.trim() ? 1 : 0.5, fontFamily: 'inherit' }}>{salvando.ocupado ? 'Salvando…' : 'Salvar'}</button>
+            </div>
+          </form>
+        )}
 
         {/* Scrollable Content */}
         <div style={scrollContainerStyle}>

@@ -1,0 +1,339 @@
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { BookmarkCheck, CopyPlus, Pencil, Search, Trash2, CalendarDays, Check } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
+import { useClub } from '../contexts/ClubContext';
+import { useCan } from '../hooks/useCan';
+import { useIsMobile } from '../hooks/useIsMobile';
+import { trainingService } from '../services/trainingService';
+import { Button } from '../components/common/Button';
+import { Modal } from '../components/common/Modal';
+import { COR_PILAR, NOME_PILAR } from '../lib/estilos';
+import { ehBlocoGoleiro, rotuloPeriodo, periodoEfetivo } from '../lib/periodos';
+import { notify } from '../lib/notify';
+
+// SESSÕES SALVAS (21/11/2026): o treino inteiro de um dia (os 6 blocos) guardado com um nome para repetir.
+// Salvar: Programação › clique no dia (resumo) › "Salvar sessão" — ou botão direito no dia.
+// Aqui: ver o que tem em cada sessão, usar em um dia (escolhe a data e o período), renomear e excluir.
+// API: /api/treinos-modelo (GET, PATCH, DELETE, POST /:id/aplicar).
+
+const ORDEM_PILAR = ['tatico', 'fisico', 'tecnico', 'mental'];
+const DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+
+const hojeISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+const dataLocal = (iso) => { const [a, m, d] = iso.split('-').map(Number); return new Date(a, m - 1, d); };
+const rotuloData = (iso) => { const d = dataLocal(iso); return `${DIAS[d.getDay()]}, ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`; };
+const dataCurta = (ts) => { if (!ts) return ''; const d = new Date(ts); return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`; };
+
+// Semana ISO "AAAA-SS" (mesma conta da Programação)
+function semanaISO(iso) {
+  const d = dataLocal(iso);
+  const dow = d.getDay() || 7;
+  const quinta = new Date(d); quinta.setDate(d.getDate() + (4 - dow));
+  const inicio = new Date(quinta.getFullYear(), 0, 1);
+  const n = Math.ceil((((quinta - inicio) / 86400000) + 1) / 7);
+  return `${quinta.getFullYear()}-${String(n).padStart(2, '0')}`;
+}
+
+const atividadePreenchida = (a) => !!a && (a.title_id || a.contents?.length || Number(a.duration_minutes) > 0 || String(a.description || '').trim());
+const contarAtividades = (s) => (s?.blocks || []).filter((b) => atividadePreenchida(b.activity)).length;
+const ROTULO_TIPO = { match: 'jogo', rest: 'descanso', assessment: 'avaliação' };
+
+export function SessoesSalvasPage() {
+  const { colors } = useTheme();
+  const { can } = useCan();
+  const isMobile = useIsMobile();
+  const podeEditar = can('training:edit');
+  const [modelos, setModelos] = useState(null);
+  const [erro, setErro] = useState(null);
+  const [busca, setBusca] = useState('');
+  const [usando, setUsando] = useState(null); // sessão salva escolhida para "Usar em um dia"
+
+  const carregar = () => trainingService.listarModelos()
+    .then((l) => { setModelos(l); setErro(null); })
+    .catch((e) => { setModelos([]); setErro(e.message || 'Não foi possível carregar as sessões salvas.'); });
+  useEffect(() => { carregar(); }, []);
+
+  const filtrados = useMemo(() => {
+    const t = busca.trim().toLowerCase();
+    if (!t) return modelos || [];
+    return (modelos || []).filter((m) => m.nome.toLowerCase().includes(t)
+      || m.blocos.some((b) => `${b.titulo || ''} ${b.conteudo || ''}`.toLowerCase().includes(t)));
+  }, [modelos, busca]);
+
+  return (
+    <div style={{ maxWidth: 1180, margin: '0 auto', padding: isMobile ? '1rem' : '1.5rem 1.75rem 2.5rem' }}>
+      <header style={{ display: 'flex', alignItems: isMobile ? 'stretch' : 'flex-end', justifyContent: 'space-between', gap: '1rem', flexDirection: isMobile ? 'column' : 'row', marginBottom: '1.25rem' }}>
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ margin: 0, fontSize: isMobile ? '1.4rem' : '1.65rem', fontWeight: 700, color: colors.text, display: 'flex', alignItems: 'baseline', gap: '0.6rem' }}>
+            Sessões salvas
+            {modelos && modelos.length > 0 && <span style={{ fontSize: '0.95rem', fontWeight: 500, color: colors.textSecondary }}>{modelos.length}</span>}
+          </h1>
+          <p style={{ margin: '0.35rem 0 0', fontSize: '0.9rem', color: colors.textSecondary, maxWidth: '62ch', lineHeight: 1.5 }}>
+            Treinos completos guardados com um nome para usar de novo em outro dia.
+            Para salvar, abra o dia na Programação e toque em <strong style={{ color: colors.text, fontWeight: 600 }}>Salvar sessão</strong>.
+          </p>
+        </div>
+        {modelos && modelos.length > 3 && (
+          <label style={{ position: 'relative', display: 'block', width: isMobile ? '100%' : 280, flexShrink: 0 }}>
+            <span className="sr-only">Buscar sessão</span>
+            <Search size={16} aria-hidden="true" style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: colors.textSecondary }} />
+            <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome ou atividade"
+              style={{ width: '100%', boxSizing: 'border-box', padding: '0.55rem 0.75rem 0.55rem 2.1rem', borderRadius: '0.5rem', border: `1px solid ${colors.border}`, backgroundColor: colors.surface, color: colors.text, fontSize: '0.88rem', fontFamily: 'inherit' }} />
+          </label>
+        )}
+      </header>
+
+      {modelos === null ? (
+        <p style={{ color: colors.textSecondary, fontSize: '0.9rem' }}>Carregando…</p>
+      ) : erro ? (
+        <p role="alert" style={{ color: '#dc2626', fontSize: '0.9rem' }}>{erro}</p>
+      ) : modelos.length === 0 ? (
+        <Vazio colors={colors} />
+      ) : filtrados.length === 0 ? (
+        <p style={{ color: colors.textSecondary, fontSize: '0.9rem' }}>Nenhuma sessão com "{busca}".</p>
+      ) : (
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1rem', alignItems: 'start' }}>
+          {filtrados.map((m) => (
+            <CartaoSessao key={m.id} m={m} colors={colors} podeEditar={podeEditar} onUsar={() => setUsando(m)} onMudou={carregar} />
+          ))}
+        </ul>
+      )}
+
+      {usando && <UsarEmUmDia modelo={usando} onClose={() => setUsando(null)} />}
+    </div>
+  );
+}
+
+function Vazio({ colors }) {
+  const navigate = useNavigate();
+  return (
+    <div style={{ border: `1px dashed ${colors.border}`, borderRadius: '0.75rem', padding: '2.25rem 1.5rem', textAlign: 'center', color: colors.textSecondary }}>
+      <BookmarkCheck size={28} strokeWidth={1.5} aria-hidden="true" style={{ color: colors.primary }} />
+      <p style={{ margin: '0.6rem 0 0.3rem', fontWeight: 600, color: colors.text }}>Nenhuma sessão salva ainda</p>
+      <p style={{ margin: '0 auto 1rem', fontSize: '0.88rem', maxWidth: '46ch', lineHeight: 1.5 }}>
+        Monte um treino na Programação, abra o dia e use <strong style={{ color: colors.text }}>Salvar sessão</strong>. Ele aparece aqui para repetir quando quiser.
+      </p>
+      <Button size="sm" onClick={() => navigate('/training')} icon={<CalendarDays size={15} />}>Ir para a Programação</Button>
+    </div>
+  );
+}
+
+function CartaoSessao({ m, colors, podeEditar, onUsar, onMudou }) {
+  const [renomeando, setRenomeando] = useState(false);
+  const [nome, setNome] = useState(m.nome);
+  const [apagando, setApagando] = useState(false);
+  const [ocupado, setOcupado] = useState(false);
+
+  // barra por pilar (minutos; sem minutos, nº de atividades) — sem o treino de goleiro, igual à Programação
+  const pilares = useMemo(() => {
+    const t = {};
+    for (const b of m.blocos) {
+      if (!b.pilar || ehBlocoGoleiro(b.nome)) continue;
+      t[b.pilar] = (t[b.pilar] || 0) + (m.minutos ? b.minutos : 1);
+    }
+    const total = Object.values(t).reduce((a, v) => a + v, 0);
+    return total ? ORDEM_PILAR.filter((p) => t[p]).map((p) => ({ p, v: t[p], pct: (t[p] / total) * 100 })) : [];
+  }, [m]);
+
+  const salvarNome = async () => {
+    const n = nome.trim();
+    if (!n || n === m.nome) { setRenomeando(false); setNome(m.nome); return; }
+    setOcupado(true);
+    try { await trainingService.renomearModelo(m.id, n); setRenomeando(false); onMudou(); }
+    catch (e) { notify.error(e.message || 'Não foi possível renomear.'); }
+    finally { setOcupado(false); }
+  };
+  const excluir = async () => {
+    setOcupado(true);
+    try { await trainingService.excluirModelo(m.id); notify.success(`Sessão "${m.nome}" excluída.`); onMudou(); }
+    catch (e) { notify.error(e.message || 'Não foi possível excluir.'); setOcupado(false); }
+  };
+
+  const iconBtn = { border: 'none', background: 'none', color: colors.textSecondary, cursor: 'pointer', padding: 6, borderRadius: 6, display: 'inline-flex' };
+  const meta = [
+    `${m.atividades} ${m.atividades === 1 ? 'atividade' : 'atividades'}`,
+    m.minutos ? `${m.minutos} min` : null,
+    m.goleiro ? `+${m.goleiro}′ goleiros` : null,
+  ].filter(Boolean).join(' · ');
+
+  return (
+    <li style={{ backgroundColor: colors.surface, border: `1px solid ${colors.border}`, borderRadius: '0.75rem', padding: '1rem 1.1rem', display: 'flex', flexDirection: 'column', gap: '0.8rem', minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {renomeando ? (
+            <form onSubmit={(e) => { e.preventDefault(); salvarNome(); }} style={{ display: 'flex', gap: 6 }}>
+              <input autoFocus value={nome} maxLength={80} onChange={(e) => setNome(e.target.value)} aria-label="Nome da sessão"
+                onKeyDown={(e) => { if (e.key === 'Escape') { setRenomeando(false); setNome(m.nome); } }}
+                style={{ flex: 1, minWidth: 0, padding: '0.35rem 0.55rem', borderRadius: 6, border: `1px solid ${colors.primary}`, backgroundColor: colors.background, color: colors.text, fontSize: '0.95rem', fontWeight: 600, fontFamily: 'inherit' }} />
+              <button type="submit" disabled={ocupado} aria-label="Salvar nome" style={{ ...iconBtn, color: colors.primary }}><Check size={18} /></button>
+            </form>
+          ) : (
+            <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: colors.text, overflowWrap: 'anywhere', lineHeight: 1.3 }}>{m.nome}</h2>
+          )}
+          <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: colors.textSecondary, fontVariantNumeric: 'tabular-nums' }}>{meta}</p>
+        </div>
+        {podeEditar && !renomeando && !apagando && (
+          <div style={{ display: 'flex', flexShrink: 0 }}>
+            <button type="button" onClick={() => setRenomeando(true)} title="Renomear" aria-label={`Renomear ${m.nome}`} style={iconBtn}><Pencil size={16} /></button>
+            <button type="button" onClick={() => setApagando(true)} title="Excluir" aria-label={`Excluir ${m.nome}`} style={iconBtn}><Trash2 size={16} /></button>
+          </div>
+        )}
+      </div>
+
+      {pilares.length > 0 && (
+        <div style={{ display: 'flex', height: 6, borderRadius: 3, overflow: 'hidden', gap: 2 }} role="img"
+          aria-label={pilares.map((x) => `${NOME_PILAR[x.p]} ${Math.round(x.pct)}%`).join(', ')}>
+          {pilares.map((x) => <span key={x.p} title={`${NOME_PILAR[x.p]} · ${Math.round(x.pct)}%`} style={{ width: `${x.pct}%`, backgroundColor: COR_PILAR[x.p] }} />)}
+        </div>
+      )}
+
+      <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
+        {m.blocos.map((b, i) => {
+          const texto = [b.conteudo, b.titulo].filter(Boolean).join(' · ') || (b.descricao ? b.descricao.slice(0, 70) : '');
+          return (
+            <li key={b.ordem} style={{ display: 'grid', gridTemplateColumns: '6.6rem minmax(0,1fr) auto', gap: '0.6rem', alignItems: 'baseline', padding: '0.36rem 0', borderTop: i ? `1px solid ${colors.border}` : 'none', fontSize: '0.83rem' }}>
+              <span style={{ color: colors.textSecondary, fontSize: '0.76rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.nome}</span>
+              <span style={{ display: 'flex', alignItems: 'baseline', gap: 7, minWidth: 0, color: texto ? colors.text : colors.textMuted }}>
+                {b.pilar && <i aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', background: COR_PILAR[b.pilar], flexShrink: 0, transform: 'translateY(-1px)' }} />}
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={texto}>{texto || 'vazio'}</span>
+              </span>
+              <span style={{ color: colors.textSecondary, fontVariantNumeric: 'tabular-nums', fontSize: '0.8rem' }}>{b.minutos ? `${b.minutos}′` : ''}</span>
+            </li>
+          );
+        })}
+      </ol>
+
+      {apagando ? (
+        <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: '0.85rem', color: colors.text, padding: '0.6rem 0.7rem', borderRadius: 8, backgroundColor: 'rgba(220,38,38,0.08)' }}>
+          <span style={{ flex: 1, minWidth: 160 }}>Excluir "{m.nome}"? Os treinos que já usaram esta sessão não mudam.</span>
+          <Button size="sm" variant="secondary" onClick={() => setApagando(false)} disabled={ocupado}>Cancelar</Button>
+          <Button size="sm" variant="danger" onClick={excluir} disabled={ocupado}>Excluir</Button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 'auto' }}>
+          <span style={{ fontSize: '0.74rem', color: colors.textMuted }}>
+            {m.criado_por ? `Salva por ${m.criado_por}` : 'Salva'}{m.created_at ? ` em ${dataCurta(m.created_at)}` : ''}
+          </span>
+          {podeEditar && <Button size="sm" onClick={onUsar} icon={<CopyPlus size={15} />}>Usar em um dia</Button>}
+        </div>
+      )}
+    </li>
+  );
+}
+
+// Janela "Usar em um dia": escolhe a data (e o período, se o dia tiver mais de um treino), mostra se o treino
+// já tem atividades (substitui) e aplica. Dia ainda não criado no banco: cria a semana antes.
+function UsarEmUmDia({ modelo, onClose }) {
+  const { colors } = useTheme();
+  const { selectedClub } = useClub();
+  const navigate = useNavigate();
+  const [data, setData] = useState(hojeISO());
+  const [dia, setDia] = useState(null); // { sessao (1º período/dia), periodos[] } | null carregando
+  const [periodoId, setPeriodoId] = useState(null);
+  const [ocupado, setOcupado] = useState(false);
+  const [erro, setErro] = useState(null);
+  const [feito, setFeito] = useState(false);
+
+  useEffect(() => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data) || !selectedClub?.id) return;
+    let vivo = true;
+    setDia(null); setErro(null); setPeriodoId(null);
+    trainingService.getMicrocycle(semanaISO(data), selectedClub.id).then(({ data: micro }) => {
+      if (!vivo) return;
+      const s = (micro?.sessions || []).find((x) => String(x.date).split('T')[0] === data) || { date: data, session_type: 'training', blocks: [] };
+      const periodos = Array.isArray(s.periodos) && s.periodos.length > 1 ? s.periodos : [s];
+      const treinos = periodos.filter((p) => (p.session_type || 'training') === 'training');
+      setDia({ periodos, treinos });
+      setPeriodoId(treinos[0] ? (treinos[0].id || 'novo') : null);
+    }).catch(() => vivo && setErro('Não foi possível ler esse dia.'));
+    return () => { vivo = false; };
+  }, [data, selectedClub?.id]);
+
+  const alvo = dia?.treinos.find((p) => (p.id || 'novo') === periodoId) || null;
+  const ocupadas = contarAtividades(alvo);
+
+  const aplicar = async () => {
+    if (!alvo || ocupado) return;
+    setOcupado(true); setErro(null);
+    try {
+      let sessionId = alvo.id;
+      if (!sessionId) {
+        const r = await trainingService.ensureMicrocycleStructure(semanaISO(data), selectedClub.id);
+        sessionId = r.data?.sessions?.find((x) => String(x.date).split('T')[0] === data)?.id;
+        if (!sessionId) throw new Error('Não foi possível criar o dia na Programação.');
+      }
+      await trainingService.aplicarModelo(modelo.id, sessionId, { substituir: ocupadas > 0 });
+      setFeito(true);
+    } catch (e) {
+      setErro(e.message || 'Não foi possível usar a sessão.');
+    } finally { setOcupado(false); }
+  };
+
+  const nomeTipo = dia && !dia.treinos.length ? ROTULO_TIPO[dia.periodos[0]?.session_type] || 'outro tipo' : null;
+  const chip = (ativo) => ({ border: `1px solid ${ativo ? colors.primary : colors.border}`, backgroundColor: ativo ? `${colors.primary}18` : 'transparent', color: ativo ? colors.primary : colors.text, borderRadius: 999, padding: '0.3rem 0.8rem', fontSize: '0.84rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' });
+
+  return (
+    <Modal isOpen onClose={onClose} title={feito ? 'Sessão aplicada' : `Usar "${modelo.nome}"`} size="sm"
+      footer={feito ? (
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <Button variant="secondary" onClick={onClose}>Fechar</Button>
+          <Button onClick={() => navigate(`/training?data=${data}`)} icon={<CalendarDays size={15} />}>Abrir na Programação</Button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+          <Button onClick={aplicar} disabled={!alvo || ocupado} icon={<CopyPlus size={15} />}>
+            {ocupado ? 'Aplicando…' : ocupadas ? 'Substituir o treino' : 'Usar neste dia'}
+          </Button>
+        </div>
+      )}>
+      {feito ? (
+        <p style={{ margin: 0, color: colors.text, lineHeight: 1.5 }}>
+          O treino de <strong>{rotuloData(data)}</strong>{alvo && dia.treinos.length > 1 ? ` (${rotuloPeriodo(periodoEfetivo(alvo))})` : ''} foi preenchido com a sessão "{modelo.nome}". Dá para ajustar qualquer bloco na Programação.
+        </p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: '0.84rem', fontWeight: 600, color: colors.text }}>
+            Dia
+            <input type="date" value={data} onChange={(e) => setData(e.target.value)} required
+              style={{ padding: '0.5rem 0.65rem', borderRadius: 8, border: `1px solid ${colors.border}`, backgroundColor: colors.background, color: colors.text, fontSize: '0.92rem', fontFamily: 'inherit', colorScheme: 'light dark' }} />
+            {/^\d{4}-\d{2}-\d{2}$/.test(data) && <span style={{ fontWeight: 400, color: colors.textSecondary, fontSize: '0.8rem' }}>{rotuloData(data)}{selectedClub?.name ? ` · ${selectedClub.name}` : ''}</span>}
+          </label>
+
+          {!dia && !erro && <p style={{ margin: 0, fontSize: '0.85rem', color: colors.textSecondary }}>Lendo o dia…</p>}
+
+          {dia && dia.treinos.length > 1 && (
+            <div>
+              <div style={{ fontSize: '0.84rem', fontWeight: 600, color: colors.text, marginBottom: 6 }}>Em qual treino?</div>
+              <div role="radiogroup" aria-label="Período" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {dia.treinos.map((p) => (
+                  <button key={p.id} type="button" role="radio" aria-checked={periodoId === p.id} onClick={() => setPeriodoId(p.id)} style={chip(periodoId === p.id)}>
+                    {rotuloPeriodo(periodoEfetivo(p))}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {nomeTipo && (
+            <p style={{ margin: 0, fontSize: '0.86rem', lineHeight: 1.5, color: colors.text, padding: '0.65rem 0.75rem', borderRadius: 8, backgroundColor: colors.background, border: `1px solid ${colors.border}` }}>
+              Esse dia está marcado como <strong>{nomeTipo}</strong>. Para usar a sessão, mude o dia para treino na Programação (ou adicione um período de treino).
+            </p>
+          )}
+
+          {alvo && ocupadas > 0 && (
+            <p role="status" style={{ margin: 0, fontSize: '0.86rem', lineHeight: 1.5, color: colors.text, padding: '0.65rem 0.75rem', borderRadius: 8, border: '1px solid #f59e0b66', backgroundColor: 'rgba(245,158,11,0.10)' }}>
+              Esse treino já tem {ocupadas} {ocupadas === 1 ? 'atividade' : 'atividades'}. Elas serão trocadas pelas da sessão; fotos e anexos continuam.
+            </p>
+          )}
+
+          {erro && <p role="alert" style={{ margin: 0, fontSize: '0.85rem', color: '#dc2626' }}>{erro}</p>}
+        </div>
+      )}
+    </Modal>
+  );
+}

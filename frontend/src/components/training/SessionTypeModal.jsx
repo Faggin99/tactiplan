@@ -452,11 +452,11 @@ function ModelosDeTreino({ colors, inputStyle, temAtividades, onSalvar, onAplica
     setOcupado(true); setMsg(null);
     try {
       await onSalvar(nome.trim());
-      setMsg({ ok: true, texto: `Modelo "${nome.trim()}" salvo no catálogo de atividades.` });
+      setMsg({ ok: true, texto: `"${nome.trim()}" está em Sessões salvas.` });
       setNome('');
       setModelos(await trainingService.listarModelos());
     } catch (e) {
-      setMsg({ ok: false, texto: e.message || 'Não foi possível salvar o modelo.' });
+      setMsg({ ok: false, texto: e.message || 'Não foi possível salvar a sessão.' });
     } finally { setOcupado(false); }
   };
 
@@ -468,19 +468,19 @@ function ModelosDeTreino({ colors, inputStyle, temAtividades, onSalvar, onAplica
       setConfirmar(null);
     } catch (e) {
       if (e.code === 'TEM_ATIVIDADES') setConfirmar({ texto: e.message });
-      else setMsg({ ok: false, texto: e.message || 'Não foi possível aplicar o modelo.' });
+      else setMsg({ ok: false, texto: e.message || 'Não foi possível usar a sessão.' });
     } finally { setOcupado(false); }
   };
 
   const lista = modelos || [];
   return (
     <div style={{ borderTop: `1px solid ${colors.border}`, paddingTop: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-      <div style={{ fontWeight: 600, color: colors.text }}>Modelos de treino</div>
+      <div style={{ fontWeight: 600, color: colors.text }}>Sessões salvas</div>
       {onSalvar && temAtividades && (
         <div>
           <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.35rem' }}>Salvar este treino (os 6 blocos) para usar de novo:</div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={80} placeholder="Nome do modelo (ex.: Pré-jogo MD-1)" style={{ ...inputStyle, flex: 1 }}
+            <input value={nome} onChange={(e) => setNome(e.target.value)} maxLength={80} placeholder="Nome da sessão (ex.: Pré-jogo MD-1)" style={{ ...inputStyle, flex: 1 }}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); salvar(); } }} />
             <Button size="sm" variant="secondary" onClick={salvar} disabled={!nome.trim() || ocupado} icon={<BookmarkPlus size={15} />}>Salvar</Button>
           </div>
@@ -489,12 +489,12 @@ function ModelosDeTreino({ colors, inputStyle, temAtividades, onSalvar, onAplica
       {onAplicar && (
         <div>
           <div style={{ fontSize: '0.8rem', color: colors.textSecondary, marginBottom: '0.35rem' }}>
-            {lista.length ? 'Preencher este treino com um modelo salvo:' : 'Nenhum modelo salvo ainda.'}
+            {lista.length ? 'Preencher este treino com uma sessão salva:' : 'Nenhuma sessão salva ainda.'}
           </div>
           {lista.length > 0 && (
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <select value={escolhido} onChange={(e) => { setEscolhido(e.target.value); setConfirmar(null); }} style={{ ...inputStyle, flex: 1 }}>
-                <option value="">Escolha o modelo…</option>
+                <option value="">Escolha a sessão…</option>
                 {lista.map((m) => <option key={m.id} value={m.id}>{m.nome} · {m.atividades} {m.atividades === 1 ? 'atividade' : 'atividades'}{m.minutos ? ` · ${m.minutos} min` : ''}</option>)}
               </select>
               <Button size="sm" onClick={() => aplicar(false)} disabled={!escolhido || ocupado} icon={<CopyPlus size={15} />}>Usar</Button>
@@ -502,7 +502,7 @@ function ModelosDeTreino({ colors, inputStyle, temAtividades, onSalvar, onAplica
           )}
           {confirmar && (
             <div role="alert" style={{ marginTop: '0.6rem', padding: '0.7rem 0.8rem', borderRadius: '0.45rem', border: '1px solid #f59e0b66', backgroundColor: 'rgba(245,158,11,0.10)', fontSize: '0.84rem', color: colors.text }}>
-              {confirmar.texto} Substituir pelas do modelo? (fotos e anexos das atividades ficam)
+              {confirmar.texto} Substituir pelas da sessão? (fotos e anexos das atividades ficam)
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.55rem', justifyContent: 'flex-end' }}>
                 <Button size="sm" variant="secondary" onClick={() => setConfirmar(null)}>Cancelar</Button>
                 <Button size="sm" onClick={() => aplicar(true)} disabled={ocupado}>Substituir</Button>

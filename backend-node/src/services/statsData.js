@@ -459,13 +459,16 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
   const sparkBuckets = makeBuckets(start, end, SPARK_BUCKETS);
   const sparkActivities = Array(SPARK_BUCKETS).fill(0);
   const sparkMinutes = Array(SPARK_BUCKETS).fill(0);
+  const vistasSpark = new Set(); // a consulta repete a atividade por conteúdo: conta 1 vez
   for (const a of activities) {
+    if (vistasSpark.has(a.id)) continue;
+    vistasSpark.add(a.id);
     const dateStr = a.session_date instanceof Date
       ? a.session_date.toISOString().split('T')[0]
       : String(a.session_date).split('T')[0];
     for (let i = 0; i < SPARK_BUCKETS; i++) {
       if (dateStr >= sparkBuckets[i].start && dateStr <= sparkBuckets[i].end) {
-        sparkActivities[i] += 1;
+        if (!P.ehBlocoAtivacao(a.block_name)) sparkActivities[i] += 1;
         sparkMinutes[i] += a.duration_minutes || 0;
         break;
       }
@@ -565,7 +568,8 @@ async function getTrainingStats({ workspaceIds, start, end, clubId = null, allow
   return {
     range: { start, end },
     totals: {
-      activities: activities.filter(a => a.id).length === 0 ? 0 : new Set(activities.map(a => a.id)).size,
+      // ativação não conta como atividade (os minutos dela contam)
+      activities: new Set(activities.filter(a => a.id && !P.ehBlocoAtivacao(a.block_name)).map(a => a.id)).size,
       minutes: totalMinutes,
       sessions: treinosComAtividade.size,
       days: sessionsWithActivities.size,
