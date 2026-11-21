@@ -37,11 +37,44 @@ const CSS = `
 .box.rest{flex:1;background:repeating-linear-gradient(135deg,var(--surface) 0 2mm,#fff 2mm 4mm);color:var(--muted)}
 .box.none{flex:1;border-style:dashed;color:var(--faint)}
 .nada{font-size:6.5pt;color:var(--faint);text-align:center;padding:1.5mm 0}
+/* 21/11/2026: os 6 blocos ocupam sempre a mesma linha em todos os dias e esticam até o pé */
+.blocos{flex:1;min-height:0;display:grid;grid-template-rows:repeat(6,minmax(0,1fr));gap:1.2mm}
+.blocos .bl{min-height:0;overflow:hidden}
+.bl.vz{border-style:dashed;border-left-width:1px;background:none}
+.bl.vz .ct{color:var(--faint);font-weight:500}
+.cel > .box.game:only-child,.cel > .box.av:only-child{flex:1}
+.resumo{display:flex;align-items:center;gap:4mm;margin-top:2.5mm;padding-top:2mm;border-top:1px solid var(--line);font-size:7.5pt;color:var(--ink-2)}
+.resumo b{font:700 8.5pt Poppins;color:var(--ink);white-space:nowrap}
+.resumo .barra{flex:1;display:flex;height:3.2mm;border-radius:1.6mm;overflow:hidden;background:var(--surface)}
+.resumo .barra i{display:block;height:100%}
+.resumo .leg{display:flex;gap:3mm;white-space:nowrap}
+.resumo .leg span{display:inline-flex;align-items:center;gap:1.2mm}
+.resumo .leg i{width:2.4mm;height:2.4mm;border-radius:50%;display:inline-block}
 .ft{border-top:1px solid var(--line);padding-top:1.2mm;text-align:center;font:700 8pt Poppins;color:var(--ink)}
 .ft small{display:block;font:500 6.3pt Inter;color:var(--muted)}
 `;
 
+// Posição fixa de cada bloco (nomes de hoje e os antigos), para alinhar os dias: bloco sem atividade = vazio.
+const ORDEM_BLOCOS = [['Ativação', 'Aquecimento'], ['Preparatório'], ['Atividade 1'], ['Atividade 2'], ['Atividade 3'], ['Treino de goleiro', 'Complementos']];
+function seisBlocos(blocks) {
+  const usados = new Set();
+  const slots = ORDEM_BLOCOS.map((nomes) => {
+    const b = blocks.find((x, i) => !usados.has(i) && nomes.includes(x.phase));
+    if (!b) return { phase: nomes[0], vazio: true };
+    usados.add(blocks.indexOf(b));
+    return b;
+  });
+  // bloco com nome fora da lista (renomeado à mão): ocupa a 1ª posição vazia
+  blocks.forEach((b, i) => {
+    if (usados.has(i)) return;
+    const k = slots.findIndex((x) => x.vazio);
+    if (k >= 0) slots[k] = b;
+  });
+  return slots;
+}
+
 function blocoHtml(b) {
+  if (b.vazio) return `<div class="bl vz"><div class="ph"><span>${esc(b.phase)}</span></div><div class="ct">—</div></div>`;
   const cor = b.pillar ? C.dimInfo(b.pillar).color : 'var(--line)';
   return `<div class="bl" style="--c:${cor}"><div class="ph"><span>${esc(b.phase)}</span>${b.minutes ? `<i>${b.minutes}'</i>` : ''}</div>`
     + `${b.content ? `<div class="ct">${esc(b.content)}</div>` : ''}${b.title ? `<div class="tt">${esc(b.title)}</div>` : ''}</div>`;
@@ -62,7 +95,7 @@ function periodoHtml(p, comRotulo) {
     const tipos = p.assessment?.types?.length ? p.assessment.types.join(' · ') : 'Tipo não informado';
     return `<div class="box av"><b>AVALIAÇÃO</b><small>${esc(tipos)}</small></div>`;
   }
-  const corpo = p.blocks.length ? p.blocks.map(blocoHtml).join('') : '<div class="nada">Nenhuma atividade</div>';
+  const corpo = p.blocks.length ? `<div class="blocos">${seisBlocos(p.blocks).map(blocoHtml).join('')}</div>` : '<div class="nada">Nenhuma atividade</div>';
   return `${rot ? `<div class="pr">${esc(rot)}</div>` : ''}${corpo}`;
 }
 
@@ -104,7 +137,31 @@ function grade(vm) {
     }
     cells.push(`<div ${at(nb + 2, col)}>${rodape(d)}</div>`);
   });
-  return `<div class="wk" style="grid-template-columns:${cols};grid-template-rows:${rows}">${cells.join('')}</div>`;
+  return `<div class="wk" style="grid-template-columns:${cols};grid-template-rows:${rows}">${cells.join('')}</div>${resumo(vm)}`;
+}
+
+// Pé da página: total da semana + barra dos minutos por pilar (cor da borda dos blocos) e legenda.
+// Treino de transição e avaliação não entram (como nas estatísticas).
+function resumo(vm) {
+  const por = {};
+  let total = 0;
+  for (const d of vm.days) {
+    for (const p of d.periodos || []) {
+      if (p.type !== 'training' || p.transicao) continue;
+      for (const b of p.blocks || []) {
+        const m = Number(b.minutes) || 0;
+        if (!m) continue;
+        const k = b.pillar || 'outros';
+        por[k] = (por[k] || 0) + m;
+        total += m;
+      }
+    }
+  }
+  if (!total) return '';
+  const ordem = ['tatico', 'fisico', 'tecnico', 'mental', 'outros'].filter((k) => por[k]);
+  const barra = ordem.map((k) => `<i style="width:${(por[k] / total) * 100}%;background:${C.dimInfo(k).color}"></i>`).join('');
+  const leg = ordem.map((k) => `<span><i style="background:${C.dimInfo(k).color}"></i>${esc(C.dimInfo(k).label)} ${Math.round((por[k] / total) * 100)}%</span>`).join('');
+  return `<div class="resumo"><b>Semana: ${total}'</b><div class="barra">${barra}</div><div class="leg">${leg}</div></div>`;
 }
 
 function renderWeekProgram(vm, { now, onlyPhotos = false }) {
