@@ -4,6 +4,8 @@ import { Crown, Shield, Eye, AlertCircle, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { membershipService } from '../services/membershipService';
+import { authService } from '../services/authService';
+import { formatarNome } from '../lib/formatarNome';
 import { Button } from '../components/common/Button';
 
 import { ROLE_LABELS as PAPEIS } from '../lib/memberPermissions';
@@ -22,6 +24,39 @@ export function AcceptInvitePage() {
   const [error, setError] = useState(null);
   const [accepting, setAccepting] = useState(false);
   const [accepted, setAccepted] = useState(false);
+  // cadastro direto no convite (e-mail sem conta): nome + senha
+  const [cad, setCad] = useState({ nome: '', senha: '', confirma: '', termos: false });
+  const [criando, setCriando] = useState(false);
+
+  // Cria a conta com o e-mail do convite, aceita e entra no clube de quem convidou
+  const criarEAceitar = async (e) => {
+    e.preventDefault();
+    setError(null);
+    if (!cad.nome.trim()) return setError('Informe seu nome.');
+    if (cad.senha.length < 6) return setError('A senha precisa ter ao menos 6 caracteres.');
+    if (cad.senha !== cad.confirma) return setError('As senhas não conferem.');
+    if (!cad.termos) return setError('Aceite os Termos de Uso e a Política de Privacidade para continuar.');
+    setCriando(true);
+    try {
+      const { token: t, user: u } = await authService.register({
+        email: String(invite.invited_email || '').trim().toLowerCase(),
+        password: cad.senha,
+        name: formatarNome(cad.nome),
+        accept_terms: true,
+      });
+      localStorage.setItem('auth_token', t);
+      localStorage.setItem('user', JSON.stringify(u));
+      const res = await membershipService.acceptInvite(token);
+      const wsId = res?.workspace_id || invite?.workspace_id;
+      if (wsId) localStorage.setItem('active_workspace_id', wsId);
+      setAccepted(true);
+      setTimeout(() => { window.location.hash = '#/home'; window.location.reload(); }, 1500);
+    } catch (err) {
+      setError(err?.message || 'Não foi possível criar a conta. Tente de novo.');
+    } finally {
+      setCriando(false);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -50,6 +85,8 @@ export function AcceptInvitePage() {
     }
   };
 
+  const rotulo = { display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.8rem', fontWeight: 600, color: colors.textSecondary };
+  const campo = { padding: '0.6rem 0.7rem', borderRadius: '0.45rem', border: `1px solid ${colors.border}`, backgroundColor: colors.background, color: colors.text, fontSize: '0.92rem', fontFamily: 'inherit' };
   const wrap = {
     minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
     padding: '2rem 1rem', backgroundColor: colors.background,
@@ -129,17 +166,45 @@ export function AcceptInvitePage() {
             )}
 
             <div style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {!isAuthenticated ? (
+              {!isAuthenticated && invite.tem_conta === false ? (
+                // e-mail ainda sem conta: cria a senha aqui mesmo e já entra no clube
+                <form onSubmit={criarEAceitar} style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  <p style={{ margin: 0, fontSize: '0.88rem', color: colors.text, textAlign: 'center', fontWeight: 600 }}>
+                    Crie sua senha para entrar
+                  </p>
+                  <label style={rotulo}>Seu nome
+                    <input style={campo} value={cad.nome} onChange={(e) => setCad({ ...cad, nome: e.target.value })} autoComplete="name" autoFocus />
+                  </label>
+                  <label style={rotulo}>E-mail
+                    <input style={{ ...campo, opacity: 0.75 }} value={invite.invited_email || ''} readOnly />
+                  </label>
+                  <label style={rotulo}>Senha
+                    <input style={campo} type="password" value={cad.senha} onChange={(e) => setCad({ ...cad, senha: e.target.value })} autoComplete="new-password" placeholder="Ao menos 6 caracteres" />
+                  </label>
+                  <label style={rotulo}>Confirmar senha
+                    <input style={campo} type="password" value={cad.confirma} onChange={(e) => setCad({ ...cad, confirma: e.target.value })} autoComplete="new-password" />
+                  </label>
+                  <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: '0.8rem', color: colors.textSecondary, lineHeight: 1.4 }}>
+                    <input type="checkbox" checked={cad.termos} onChange={(e) => setCad({ ...cad, termos: e.target.checked })} style={{ marginTop: 2 }} />
+                    <span>Li e aceito os <a href="https://tactiplan.faggin.com.br/termos.html" target="_blank" rel="noopener noreferrer" style={{ color: colors.primary }}>Termos de Uso</a> e a <a href="https://tactiplan.faggin.com.br/privacidade.html" target="_blank" rel="noopener noreferrer" style={{ color: colors.primary }}>Política de Privacidade</a>.</span>
+                  </label>
+                  <Button type="submit" disabled={criando} fullWidth>
+                    {criando ? 'Criando sua conta…' : 'Criar senha e entrar no clube'}
+                  </Button>
+                  <button type="button" onClick={() => navigate(`/login?redirect=${encodeURIComponent(`/accept-invite/${token}`)}`)}
+                    style={{ background: 'none', border: 'none', color: colors.textSecondary, fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    Já tenho conta TactiPlan
+                  </button>
+                </form>
+              ) : !isAuthenticated ? (
                 <>
                   <p style={{ margin: 0, fontSize: '0.85rem', color: colors.textSecondary, textAlign: 'center' }}>
-                    Entre com a conta TactiPlan correspondente ao e-mail acima:
+                    Este e-mail já tem conta. Entre com a sua senha para aceitar:
                   </p>
                   <Button onClick={() => navigate(`/login?redirect=${encodeURIComponent(`/accept-invite/${token}`)}`)} fullWidth>
-                    Entrar pra aceitar
+                    Entrar para aceitar
                   </Button>
-                  <Button variant="secondary" onClick={() => navigate(`/register?email=${encodeURIComponent(invite.invited_email || '')}&redirect=${encodeURIComponent(`/accept-invite/${token}`)}`)} fullWidth>
-                    Criar conta com {invite.invited_email}
-                  </Button>
+                  <Link to="/forgot-password" style={{ textAlign: 'center', fontSize: '0.8rem', color: colors.textSecondary }}>Esqueci minha senha</Link>
                 </>
               ) : (
                 <>

@@ -412,6 +412,11 @@ async function getInviteHandler(req, res) {
       invite.club_name = clubRow.rows[0].name;
     }
 
+    // 21/11/2026: a página do convite pede só nome + senha quando o e-mail ainda não tem conta
+    // (quem tem o link já provou ser dono do e-mail); com conta, só "Entrar".
+    const conta = await query('SELECT 1 FROM users WHERE LOWER(email) = LOWER($1) AND deleted_at IS NULL LIMIT 1', [invite.invited_email || '']);
+    invite.tem_conta = conta.rows.length > 0;
+
     res.json(invite);
   } catch (err) {
     console.error('Get invite error:', err);
