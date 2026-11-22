@@ -330,7 +330,9 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
 - Fotos da FICHA (corrigido 21/11 à noite): a opção "Ao lado de cada bloco" (`posicao: 'blocos'`, padrão do modal desde a
   preferência v3) põe a foto numa coluna à DIREITA do bloco da atividade (`.blk.com-foto`, `--fw` = 40–80 mm pelo "Tamanho"
   50–100%); antes ia abaixo. O layout 'lado' (foto + texto numa página de fotos) foi REMOVIDO. Legenda só se editada.
-- PDF da semana = PLANILHA DE PERIODIZAÇÃO (21/11, escolhida entre 3 alternativas; a grade de 7 colunas com faixas
+- PDF da semana = PLANILHA DE PERIODIZAÇÃO no VISUAL DA TELA Programação (22/11: grade CSS `.pg` — cabeçalho verde por dia
+  com span dos períodos, faixa "Manhã · Tático", blocos como cartões `.cd` alinhados por linha, jogo/avaliação/descanso em
+  cartão grande `.big` com ícone, total em pílula `.tot`) (21/11, escolhida entre 3 alternativas; a grade de 7 colunas com faixas
   Manhã/Tarde sobrepunha texto): linhas = 6 blocos, colunas = cada treino (dia · período, dia com colspan); avaliação/jogo/
   descanso/vazio = coluna cheia; pé com minutos (+goleiro, km). `paginasDeDias` (PESO_MAX 10,5: treino 1,25 · jogo/aval 0,85 ·
   descanso 0,75) continua na página seguinte sem partir dia; resumo por pilar na última. `bandas`/`span` do vm não são mais usados.

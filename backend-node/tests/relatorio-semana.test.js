@@ -46,11 +46,11 @@ test('programação da semana: períodos, pilar predominante, jogo, descanso, av
   const html = renderWeekProgram(vm, { now: new Date('2031-03-17T12:00:00Z') });
   assert.match(html, /Programação da semana/);
   // planilha (21/11/2026): linhas = blocos, colunas = treinos; Terça com 2 colunas (Manhã/Tarde) sob o mesmo dia
-  assert.match(html, /class="pl"/);
-  assert.match(html, /<th colspan="2">Terça/);
-  assert.match(html, /<th>Treino de goleiro<\/th>/);
+  assert.match(html, /class="pg"/);
+  assert.match(html, /grid-column:\d+ \/ span 2"><b>Terça/);
+  assert.match(html, /Treino de goleiro/);
   assert.match(html, /vs Rival/);
-  assert.match(html, /Avaliação/);
+  assert.match(html, /AVALIAÇÃO/);
   assert.match(html, /Descanso/);
   assert.ok(!html.includes('continua na próxima página'), 'semana comum cabe em 1 página');
   // semana com 2 treinos em TODOS os dias: continua na página seguinte, sem partir dia
