@@ -187,6 +187,13 @@ function LinhaSessao({ m, colors, isMobile, podeEditar, aberta, onAbrir, onUsar,
               {aberta ? <ChevronDown size={16} style={{ flexShrink: 0 }} /> : <ChevronRight size={16} style={{ flexShrink: 0 }} />}
               <span style={{ minWidth: 0 }}>
                 <span style={{ display: 'block', fontWeight: 700, fontSize: '0.95rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.nome}</span>
+                {/* treino de onde a sessão foi salva (23/11/2026) */}
+                {m.origem_data && (
+                  <span title="Data do treino de onde a sessão foi salva" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.76rem', fontWeight: 600, color: colors.text, marginTop: 1 }}>
+                    <CalendarDays size={12} aria-hidden="true" style={{ color: colors.primary, flexShrink: 0 }} />
+                    Treino de {rotuloData(m.origem_data)}{m.origem_periodo ? ` · ${rotuloPeriodo(m.origem_periodo)}` : ''}
+                  </span>
+                )}
                 <span style={{ display: 'block', fontSize: '0.76rem', color: colors.textSecondary, fontVariantNumeric: 'tabular-nums' }}>{meta}</span>
                 {pilares.length > 0 && (
                   <span role="img" aria-label={pilares.map((x) => `${NOME_PILAR[x.p]} ${Math.round(x.pct)}%`).join(', ')} style={{ display: 'flex', height: 4, borderRadius: 2, overflow: 'hidden', gap: 2, marginTop: 5, maxWidth: 220 }}>
@@ -281,6 +288,7 @@ function LinhaSessao({ m, colors, isMobile, podeEditar, aberta, onAbrir, onUsar,
             })}
           </div>
           <div style={{ marginTop: '0.6rem', fontSize: '0.74rem', color: colors.textMuted }}>
+            {m.origem_data ? `Do treino de ${rotuloData(m.origem_data)}${m.origem_periodo ? ` (${rotuloPeriodo(m.origem_periodo)})` : ''} · ` : ''}
             {m.criado_por ? `Salva por ${m.criado_por}` : 'Salva'}{m.created_at ? ` em ${dataCurta(m.created_at)}` : ''}
           </div>
         </div>

@@ -382,3 +382,5 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   title?} · DELETE /:id), até 30 por semana, 50 MB; aceita também planilha/Word/PowerPoint/CSV (`uploadArquivoSemana`, pasta
   uploads/semana-files). Web: botão "Arquivos da semana (N)" ao lado de Exportar semana → gaveta (`components/training/ArquivosSemana.jsx`).
   App nativo ainda não mostra.
+- Sessões salvas mostram o TREINO DE ORIGEM ("Treino de sexta, 20/11 · Manhã"): migration 073 `treinos_modelo.origem_session_id/
+  origem_data/origem_periodo`, gravados no POST; as 2 sessões antigas do Uberlândia foram preenchidas casando as atividades bloco a bloco.

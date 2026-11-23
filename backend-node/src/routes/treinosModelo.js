@@ -41,7 +41,7 @@ const UUID = /^[0-9a-f-]{36}$/i;
 // Período (sessão) da conta ativa, com os blocos e a atividade de cada um
 async function carregarSessao(client, sessionId, workspaceIds) {
   const s = await client.query(
-    `SELECT s.id, s.session_type, s.workspace_id FROM training_sessions s WHERE s.id = $1 AND s.workspace_id = ANY($2)`,
+    `SELECT s.id, s.session_type, s.workspace_id, s.date, s.periodo FROM training_sessions s WHERE s.id = $1 AND s.workspace_id = ANY($2)`,
     [sessionId, workspaceIds || []]);
   if (!s.rows[0]) return null;
   const b = await client.query(
@@ -65,7 +65,7 @@ router.get('/', async (req, res) => {
     const ws = req.user.workspaceId;
     if (!ws) return res.json({ data: [] });
     const r = await query(
-      `SELECT m.id, m.nome, m.descricao, m.blocos, m.created_at, u.name AS criado_por
+      `SELECT m.id, m.nome, m.descricao, m.blocos, m.created_at, to_char(m.origem_data, 'YYYY-MM-DD') AS origem_data, m.origem_periodo, u.name AS criado_por
          FROM treinos_modelo m LEFT JOIN users u ON u.id = m.created_by
         WHERE m.workspace_id = $1 ORDER BY m.nome`, [ws]);
     // nomes dos títulos e conteúdos para o resumo
@@ -91,6 +91,7 @@ router.get('/', async (req, res) => {
         }));
         return {
           id: m.id, nome: m.nome, descricao: m.descricao, criado_por: m.criado_por, created_at: m.created_at,
+          origem_data: m.origem_data || null, origem_periodo: m.origem_periodo || null, // treino de onde a sessão foi salva
           // atividades = Atividade 1–4 (ativação e treino de goleiro não entram, igual às Estatísticas)
           midias: blocos.reduce((t, b) => t + b.midias.length, 0),
           blocos, atividades: blocos.filter((b) => (b.titulo || b.conteudo || b.minutos || b.descricao) && !ehBlocoGoleiro(b.nome) && !ehBlocoAtivacao(b.nome)).length,
@@ -148,8 +149,10 @@ router.post('/', async (req, res) => {
       if (anexos.length) b.atividade.anexos = anexos;
     }
     const r = await client.query(
-      `INSERT INTO treinos_modelo (workspace_id, nome, descricao, blocos, created_by) VALUES ($1, $2, $3, $4, $5) RETURNING id, nome`,
-      [s.workspace_id, nome, String(req.body?.descricao || '').trim().slice(0, 500) || null, JSON.stringify(blocos), req.user.id]);
+      `INSERT INTO treinos_modelo (workspace_id, nome, descricao, blocos, created_by, origem_session_id, origem_data, origem_periodo)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, nome`,
+      [s.workspace_id, nome, String(req.body?.descricao || '').trim().slice(0, 500) || null, JSON.stringify(blocos), req.user.id,
+        s.id, s.date, s.periodo || null]);
     res.status(201).json(r.rows[0]);
   } catch (err) {
     console.error('Treinos modelo save error:', err);
