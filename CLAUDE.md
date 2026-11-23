@@ -364,3 +364,16 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   `GET /api/microcycles`. Programação: dia de jogo mostra os dois escudos, MANDANTE primeiro × visitante
   (`components/training/LogosDoJogo.jsx`; mando 'away' = adversário primeiro; sem imagem = iniciais).
 - Início: atalho "Sessões salvas" (2º, depois da Programação).
+
+## Ajustes de 23/11/2026
+- Programação, dia de jogo: embaixo dos escudos vai o HORÁRIO (`match_kickoff`, "19h30") em vez de "em casa/fora" (a ordem
+  dos escudos já diz o mando).
+- Fotos da FICHA: `posicao` = 'esquerda' (PADRÃO, também na visualização da tela e no PDF sem escolha) | 'direita' | 'fim'
+  ('blocos' antigo = direita). Esquerda: `.blk.com-foto.esq` (tempo | foto | texto). Modal: preferência v4, botões nessa ordem.
+- PDF da SEMANA: sem fotos por padrão (`padrao.ids = []` e sem config = sem fotos); o treinador marca no modal.
+- Visual GRAMADO nos PDFs: semana (`.campo` listrado, dias em placas brancas, período tracejado, cartões brancos, descanso/jogo
+  tracejados, pílulas) e ficha (`.blocks.campo`: blocos em cartões brancos sobre a grama). Badge da ficha não mostra "0,0 km".
+- SESSÕES SALVAS guardam as MÍDIAS: ao salvar, cada anexo da atividade é COPIADO (`uploads/session-files/<uuid>`) para
+  `blocos[].atividade.anexos`; ao usar, copia de novo para a atividade do dia (até MAX_FILES_PER_ACTIVITY; desfaz se der erro);
+  excluir a sessão apaga as cópias. Sessões salvas antes de 23/11 não têm mídia. Página virou LISTA COMPACTA em largura total
+  (`LinhaSessao`: nome/resumo/pilares · faixa com os 6 blocos · Usar; clique abre o detalhe com descrições e miniaturas).

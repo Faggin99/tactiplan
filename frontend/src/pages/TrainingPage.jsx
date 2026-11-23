@@ -1043,9 +1043,10 @@ export function TrainingPage() {
                         {shown.opponent_name && (
                           <div style={{ fontSize: isMobile ? '0.75rem' : '1rem', color: colors.textSecondary, textAlign: 'center', lineHeight: 1.25 }}>
                             vs {shown.opponent_name}
-                            {(shown.match_location === 'home' || shown.match_location === 'away') && (
-                              <span style={{ display: 'block', fontSize: isMobile ? '0.65rem' : '0.78rem', fontWeight: 500, marginTop: 2 }}>
-                                {shown.match_location === 'home' ? 'em casa' : 'fora de casa'}
+                            {/* a ordem dos escudos já diz o mando; aqui vai o horário do jogo, se marcado */}
+                            {shown.match_kickoff && (
+                              <span style={{ display: 'block', fontSize: isMobile ? '0.65rem' : '0.8rem', fontWeight: 600, marginTop: 2 }}>
+                                {String(shown.match_kickoff).slice(0, 5).replace(':', 'h')}
                               </span>
                             )}
                           </div>

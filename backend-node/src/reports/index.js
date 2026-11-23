@@ -186,7 +186,8 @@ async function photoList(cands, byDay, limit) {
     total: cands.length,
     semana: !!byDay,
     limite: PC.MAX_FOTOS,
-    padrao: { ids, layout: PC.gridOptions(null, ids.length, { semana: !!byDay }).layout, proporcao: '4:3', legendas: true, agrupar: true },
+    // semana: por padrão SEM fotos (23/11/2026) — o treinador marca as que quiser no modal
+    padrao: { ids: byDay ? [] : ids, layout: PC.gridOptions(null, ids.length, { semana: !!byDay }).layout, proporcao: '4:3', legendas: true, agrupar: true },
   };
 }
 
@@ -208,6 +209,7 @@ async function preparePhotos({ sessions, workspaceIds, body, mode, assets, week 
     throw new ReportError(400, e.message);
   }
   if (!cands.length || (config && !config.ids.length)) return null;
+  if (week && !config) return null; // semana sem escolha no modal = sem fotos
   let items;
   let hidden = 0;
   if (config) {
@@ -378,7 +380,7 @@ async function buildSessao(body, user, assets, mode = 'pdf') {
   if (mode === 'html') {
     if (!photos) return { html: null };
     // fotos junto dos blocos: a prévia precisa mostrar a ficha inteira
-    const inteira = photos.posicao === 'blocos';
+    const inteira = photos.posicao !== 'fim';
     return { html: renderSession(vm, { now: new Date(), onlyPhotos: !inteira }), count: photos.items.length };
   }
   if (mode === 'visualizar') return { html: renderSession(vm, { now: new Date() }) };

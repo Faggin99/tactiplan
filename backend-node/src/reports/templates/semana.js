@@ -1,5 +1,6 @@
 // Programação da semana (A4 paisagem): o resumo da tela Programação, não as estatísticas.
-// 22/11/2026: mesma estrutura da planilha, no VISUAL DA TELA (cabeçalho verde por dia, "Manhã · Tático", cartões, pílula de total).
+// 22–23/11/2026: mesma estrutura da planilha, no visual do estilo GRAMADO da tela (campo listrado, dias em placas brancas,
+// período tracejado, cartões brancos, descanso/jogo tracejados sobre a grama, total em pílula).
 // 21/11/2026 (escolha do dono entre 3 alternativas): PLANILHA DE PERIODIZAÇÃO — linhas = os 6 blocos
 // (Ativação, Atividade 1–4, Treino de goleiro), colunas = cada treino (dia · período); avaliação, jogo,
 // descanso e dia vazio ocupam a coluna inteira. Semana com muitos dias duplos (colunas demais) continua
@@ -27,40 +28,41 @@ const CSS = `
 .resumo .leg{display:flex;gap:3mm;white-space:nowrap}
 .resumo .leg span{display:inline-flex;align-items:center;gap:1.2mm}
 .resumo .leg i{width:2.4mm;height:2.4mm;border-radius:50%;display:inline-block}
-.pg{flex:1;min-height:0;display:grid;column-gap:2mm;row-gap:1.4mm}
-.dh{background:var(--team);color:var(--on-team);border-radius:2mm;padding:1.7mm 2mm;text-align:center}
-.dh b{display:block;font:700 8.6pt Poppins}
-.dh span{font-size:7pt;opacity:.85}
-.pr{background:var(--surface);border:1px solid var(--line);border-radius:1.6mm;padding:1mm 1.6mm;text-align:center;font:600 7.2pt Poppins;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pr.tr{background:#fef3c7;border-color:#fcd34d;color:#713f12}
+.campo{flex:1;min-height:0;display:flex;border-radius:4.5mm;padding:2.6mm;
+  background:repeating-linear-gradient(90deg,rgba(0,0,0,.07) 0 calc(100% / 14),transparent calc(100% / 14) calc(100% / 7)),linear-gradient(#2f8f4e,#1f7a3f);
+  box-shadow:inset 0 0 0 .9mm rgba(255,255,255,.55);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pg{flex:1;min-height:0;display:grid;column-gap:1.8mm;row-gap:1.5mm}
+.dh{background:rgba(255,255,255,.96);color:#10241A;border-radius:3mm;padding:1.6mm 2mm;text-align:center;box-shadow:0 .8mm 2mm -1mm rgba(0,0,0,.45)}
+.dh b{display:block;font:800 8.6pt Poppins}
+.dh span{font:600 7pt Inter;color:#4B6454}
+.pr{border:1.3px dashed rgba(255,255,255,.75);border-radius:2.6mm;padding:1mm 1.6mm;text-align:center;font:700 7.2pt Poppins;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pr.tr{background:#fef3c7;border:0;color:#713f12}
 .slot{display:flex;min-width:0}
 .slot > .cd{flex:1}
-.cd{background:#fff;border:1px solid var(--line);border-radius:2mm;padding:1.4mm 1.9mm 1.6mm;min-width:0;display:flex;flex-direction:column;gap:.5mm}
-.cd .ph{display:flex;justify-content:space-between;gap:1mm;font-size:6.3pt;color:var(--muted)}
-.cd .ph i{font-style:normal;font-weight:700;color:var(--ink);font-size:7pt}
-.cd .ct{font:700 7.6pt/1.2 Poppins;color:var(--ink);display:flex;gap:1.2mm;align-items:baseline}
-.cd .ct u{flex-shrink:0;width:1.8mm;height:1.8mm;border-radius:50%;background:var(--c);text-decoration:none;transform:translateY(-.2mm)}
-.cd .tt{font-size:6.8pt;line-height:1.3;color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
-.cd.vz{border-style:dashed;background:none}
-.cd.vz .ct{color:var(--faint);font:500 7pt Inter}
-.cd.gk{background:var(--surface)}
-.big{border:1px solid var(--line);border-radius:2mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1mm;padding:3mm 1.5mm;min-width:0}
-.big svg{width:7mm;height:7mm;color:var(--ink-2)}
-.big b{font:700 8.6pt Poppins;letter-spacing:.02em;color:var(--ink)}
-.big span{font-size:7.4pt;color:var(--ink-2);line-height:1.3;overflow-wrap:anywhere}
-.big small{font-size:6.6pt;color:var(--muted)}
-.big.jogo{background:var(--team-softer);border-color:var(--team-soft)}
-.big.jogo svg,.big.jogo b{color:var(--team-ink)}
-.big.av{background:#fff}
-.big.rest{background:var(--surface);border-color:transparent}
-.big.rest svg{color:var(--muted)}
-.big.rest b{font:600 10pt Poppins;color:var(--muted);letter-spacing:0}
-.big.none{border-style:dashed;background:none}
-.big.none small{color:var(--faint)}
-.tot{border:1px solid var(--line);border-radius:2mm;padding:1.1mm 1.4mm;display:flex;align-items:center;justify-content:center;gap:1.4mm;flex-wrap:wrap;font:700 7.8pt Poppins;color:var(--ink);background:#fff}
+.cd{background:#fff;border-radius:3mm;padding:1.4mm 1.9mm 1.6mm;min-width:0;display:flex;flex-direction:column;gap:.5mm;box-shadow:0 1mm 2.4mm -1.5mm rgba(0,0,0,.5)}
+.cd .ph{display:flex;justify-content:space-between;gap:1mm;font-size:6.3pt;color:#4B6454}
+.cd .ph i{font-style:normal;font-weight:700;color:#10241A;font-size:7pt}
+.cd .ct{font:700 7.6pt/1.2 Poppins;color:#10241A;display:flex;gap:1.2mm;align-items:baseline}
+.cd .ct u{flex-shrink:0;width:1.9mm;height:1.9mm;border-radius:50%;background:var(--c);text-decoration:none;transform:translateY(-.2mm)}
+.cd .tt{font-size:6.8pt;line-height:1.3;color:#4B6454;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.cd.vz{background:rgba(255,255,255,.7);box-shadow:none}
+.cd.vz .ct{color:#7D9585;font:500 7pt Inter}
+.cd.gk{background:#F1F6EF}
+.big{border-radius:3mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1mm;padding:3mm 1.5mm;min-width:0;
+  background:rgba(255,255,255,.12);border:1.6px dashed rgba(255,255,255,.75);color:#fff}
+.big svg{width:7mm;height:7mm;color:#fff}
+.big b{font:800 8.6pt Poppins;letter-spacing:.02em;color:#fff}
+.big span{font-size:7.4pt;color:rgba(255,255,255,.92);line-height:1.3;overflow-wrap:anywhere}
+.big small{font-size:6.6pt;color:rgba(255,255,255,.85)}
+.big.av{background:#fff;border:0;box-shadow:0 1mm 2.4mm -1.5mm rgba(0,0,0,.5)}
+.big.av svg,.big.av b{color:#10241A}
+.big.av span{color:#4B6454}
+.big.rest b{font:700 8.6pt Poppins;letter-spacing:0}
+.big.none small{color:rgba(255,255,255,.8)}
+.tot{background:rgba(255,255,255,.96);border-radius:999px;padding:1.1mm 1.4mm;display:flex;align-items:center;justify-content:center;gap:1.4mm;flex-wrap:wrap;font:800 7.8pt Poppins;color:#14532d}
 .tot svg{width:3mm;height:3mm}
-.tot small{font:500 6.5pt Inter;color:var(--muted)}
-.tot.z{color:var(--faint);font-weight:500}
+.tot small{font:500 6.5pt Inter;color:#4B6454}
+.tot.z{opacity:.6}
 `;
 
 // Posição fixa de cada bloco (nomes de hoje e os antigos), para alinhar os dias: bloco sem atividade = vazio.
@@ -169,7 +171,7 @@ function planilha(days) {
       out.push(`<div class="tot mn${p.total ? '' : ' z'}" ${at(R.pe, col)}>${IC.relogio}${p.total ? `${p.total} min` : '0 min'}${p.goleiro ? `<small>+${p.goleiro}′ gol</small>` : ''}${km}</div>`);
     }
   });
-  return `<div class="pg" style="grid-template-columns:${tpl};grid-template-rows:auto auto repeat(6,minmax(auto,1fr)) auto">${out.join('')}</div>`;
+  return `<div class="campo"><div class="pg" style="grid-template-columns:${tpl};grid-template-rows:auto auto repeat(6,minmax(auto,1fr)) auto">${out.join('')}</div></div>`;
 }
 
 // Pé da página: total da semana + barra dos minutos por pilar (cor da borda dos blocos) e legenda.

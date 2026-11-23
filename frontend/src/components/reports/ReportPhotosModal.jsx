@@ -30,8 +30,8 @@ const PROPORCOES = [
 ];
 
 // Última escolha de layout/proporção/legendas por usuário, neste aparelho.
-// v3 (21/11/2026): na ficha o padrão é a foto AO LADO de cada bloco; preferências antigas não valem mais
-const prefsKey = (userId) => `tp.relatorio.fotos.v3.${userId || 'anon'}`;
+// v4 (23/11/2026): ficha = foto ao lado do bloco, à ESQUERDA por padrão (ou direita, ou no final); semana sem fotos por padrão
+const prefsKey = (userId) => `tp.relatorio.fotos.v4.${userId || 'anon'}`;
 function readPrefs(userId) {
   try {
     const v = JSON.parse(localStorage.getItem(prefsKey(userId)) || 'null');
@@ -77,7 +77,7 @@ export function ReportPhotosModal({ tipo, body, filename, list, onClose }) {
       proporcao: PROPORCOES.some((x) => x.id === p.proporcao) ? p.proporcao : (padrao.proporcao || '4:3'),
       legendas: typeof p.legendas === 'boolean' ? p.legendas : true,
       agrupar: typeof p.agrupar === 'boolean' ? p.agrupar : true,
-      posicao: p.posicao === 'fim' ? 'fim' : 'blocos', // ficha: padrão = ao lado de cada bloco
+      posicao: ['esquerda', 'direita', 'fim'].includes(p.posicao) ? p.posicao : 'esquerda', // ficha: padrão = ao lado, à esquerda
       tamanho: Number.isFinite(p.tamanho) ? Math.min(100, Math.max(50, p.tamanho)) : 100,
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -292,7 +292,7 @@ export function ReportPhotosModal({ tipo, body, filename, list, onClose }) {
   const spin = <Loader2 size={15} style={{ animation: 'tp-spin 0.9s linear infinite' }} />;
 
   const selCount = config.ids.length;
-  const rotuloPrevia = !semana && posicao === 'blocos' ? 'Ficha' : 'Fotos';
+  const rotuloPrevia = !semana && posicao !== 'fim' ? 'Ficha' : 'Fotos';
   const pagesLabel = !selCount ? 'Sem fotos' : (pageInfo.pages ? `${rotuloPrevia}: ${pageInfo.pages} ${pageInfo.pages === 1 ? 'página' : 'páginas'}` : `${rotuloPrevia}: …`);
 
   // ------------------------------------------------------------ partes
@@ -302,15 +302,16 @@ export function ReportPhotosModal({ tipo, body, filename, list, onClose }) {
         <section>
           <p style={label}>Onde ficam as fotos</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+            <button type="button" style={chipBtn(posicao === 'esquerda')} onClick={() => setPosicao('esquerda')} aria-pressed={posicao === 'esquerda'}>Ao lado do bloco · esquerda</button>
+            <button type="button" style={chipBtn(posicao === 'direita')} onClick={() => setPosicao('direita')} aria-pressed={posicao === 'direita'}>Ao lado do bloco · direita</button>
             <button type="button" style={chipBtn(posicao === 'fim')} onClick={() => setPosicao('fim')} aria-pressed={posicao === 'fim'}>No final da ficha</button>
-            <button type="button" style={chipBtn(posicao === 'blocos')} onClick={() => setPosicao('blocos')} aria-pressed={posicao === 'blocos'}>Ao lado de cada bloco</button>
           </div>
-          {posicao === 'blocos' && <p style={{ fontSize: '0.72rem', color: sub, margin: '0.35rem 0 0' }}>Cada foto fica ao lado da atividade a que pertence; o tamanho define a largura dela. Fotos do dia sem bloco ficam no final.</p>}
+          {posicao !== 'fim' && <p style={{ fontSize: '0.72rem', color: sub, margin: '0.35rem 0 0' }}>Cada foto fica ao lado da atividade a que pertence; o tamanho define a largura dela. Fotos do dia sem bloco ficam no final.</p>}
         </section>
       )}
 
       <section>
-        <p style={label}>{!semana && posicao === 'blocos' ? 'Layout das fotos sem bloco (no final)' : 'Layout'}</p>
+        <p style={label}>{!semana && posicao !== 'fim' ? 'Layout das fotos sem bloco (no final)' : 'Layout'}</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '0.45rem' }}>
           {LAYOUTS.map((l) => (
             <button key={l.id} type="button" style={card(layout === l.id)} onClick={() => setLayout(l.id)} aria-pressed={layout === l.id} title={l.hint}>
@@ -343,7 +344,7 @@ export function ReportPhotosModal({ tipo, body, filename, list, onClose }) {
             aria-label="Tamanho das fotos" style={{ flex: 1, accentColor: colors.primary }} />
           <span style={{ fontSize: '0.72rem', color: sub }}>Maior</span>
         </div>
-        <p style={{ fontSize: '0.72rem', color: sub, margin: '0.35rem 0 0' }}>{!semana && posicao === 'blocos' ? 'Largura da foto ao lado da atividade.' : 'Fotos menores cabem mais por página.'}</p>
+        <p style={{ fontSize: '0.72rem', color: sub, margin: '0.35rem 0 0' }}>{!semana && posicao !== 'fim' ? 'Largura da foto ao lado da atividade.' : 'Fotos menores cabem mais por página.'}</p>
       </section>
 
       <section style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>

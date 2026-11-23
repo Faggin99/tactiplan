@@ -153,7 +153,7 @@ test('lista do modal: só fotos do dia/semana do clube, com miniatura e seleçã
   assert.strictEqual(semana.semana, true);
   assert.deepStrictEqual(semana.fotos.map((f) => f.id), [id(1), id(2), id(3), id(4)]);
   assert.ok(!semana.fotos.some((f) => f.id === OUTRA));
-  assert.deepStrictEqual(semana.padrao.ids.slice(0, 2), [id(1), id(4)], 'padrão em rodízio entre os dias');
+  assert.deepStrictEqual(semana.padrao.ids, [], 'semana: sem fotos por padrão (23/11/2026)');
   const mes = await R.listReportPhotos('treino', { club_id: CLUB, start_date: '2026-10-01', end_date: '2026-10-31' }, USER);
   assert.strictEqual(mes.fotos.length, 0, 'período longo não tem fotos');
   assert.strictEqual((await R.listReportPhotos('jogos', {}, USER)).fotos.length, 0);

@@ -9,9 +9,9 @@ const MAX_FOTOS = 24;
 const MAX_LEGENDA = 120;
 const LAYOUTS = ['grande', 'medio', 'compacto', 'mosaico'];
 const PROPORCOES = ['4:3', '1:1', 'original'];
-// Ficha do dia: 'fim' = página própria no final (padrão); 'blocos' = cada foto AO LADO do bloco/atividade
-// a que pertence, na largura escolhida em `tamanho` (21/11/2026; antes ia abaixo). As sem bloco vão para o final.
-const POSICOES = ['fim', 'blocos'];
+// Ficha do dia (23/11/2026): 'esquerda' (padrão) / 'direita' = cada foto AO LADO do bloco/atividade a que pertence,
+// na largura escolhida em `tamanho`; 'fim' = página própria no final. As sem bloco vão sempre para o final.
+const POSICOES = ['esquerda', 'direita', 'fim'];
 
 class PhotoConfigError extends Error {
   constructor(message) { super(message); this.status = 400; }
@@ -55,7 +55,8 @@ function parseFotosConfig(raw, candidateIds) {
     // tamanho das fotos na página (% da largura útil): 50–100, de 10 em 10
     tamanho: Math.min(100, Math.max(50, Math.round((Number(raw.tamanho) || 100) / 10) * 10)),
     agrupar: raw.agrupar !== false,
-    posicao: POSICOES.includes(raw.posicao) ? raw.posicao : 'fim',
+    // 'blocos' (até 22/11) = ao lado, à direita
+    posicao: raw.posicao === 'blocos' ? 'direita' : (POSICOES.includes(raw.posicao) ? raw.posicao : 'esquerda'),
     legendasCustom,
   };
 }

@@ -546,7 +546,7 @@ function buildSessionSheet({ session, team, weekNumber = null, game = null, phot
   const km = type === 'training' && session.avg_distance_km != null ? Number(session.avg_distance_km) : null;
   const pillarsPresent = DIM_ORDER.filter((d) => blocks.some((b) => b.pillar === d));
   const badgeSubParts = [];
-  if (km != null) badgeSubParts.push(`${F.dec1(km)} km`);
+  if (km != null && km > 0) badgeSubParts.push(`${F.dec1(km)} km`);
   badgeSubParts.push(F.plural(blocks.length, 'bloco', 'blocos'));
   return {
     kind: 'sessao',
@@ -616,7 +616,7 @@ function buildDaySheet({ sessions, team, weekNumber = null, gamesById = null, ph
   // "90+60" só quando 2+ períodos têm minutos (avaliação/jogo sem tempo não vira "+0")
   const split = P.divisaoMinutos(periodos.map((p) => ({ minutes: p.total })));
   const badgeSubParts = [];
-  if (km != null) badgeSubParts.push(`${F.dec1(km)} km`);
+  if (km != null && km > 0) badgeSubParts.push(`${F.dec1(km)} km`);
   badgeSubParts.push(`${periodos.length} períodos${split ? ` · ${split}` : ''}`);
   return {
     kind: 'sessao',
@@ -716,7 +716,8 @@ function buildPhotoSection({ items, hidden = 0, config = null, sessionsById = nu
     hidden: hid,
     total: items.length + hid,
     grid: gridOptions(config, items.length),
-    posicao: (config && config.posicao) || 'fim',
+    // ficha: padrão = foto ao lado do bloco, à esquerda (semana não usa)
+    posicao: (config && config.posicao) || (sessionsById ? 'fim' : 'esquerda'),
   };
 }
 

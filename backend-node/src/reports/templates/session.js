@@ -51,15 +51,16 @@ function blockCard(b, fotos = null) {
     ? `<div class="bf${ratio}">${fotos.items.map((p) => `<div class="img"><img src="${esc(p.src)}" alt=""></div>`
       + (fotos.grid.legendas !== false && p.caption?.custom ? `<small>${esc(p.caption.title)}</small>` : '')).join('')}</div>`
     : '';
-  return `<div class="blk${temFoto ? ' com-foto' : ''}" style="--p:${info.color}${temFoto ? `;--fw:${fw}mm` : ''}">
-    <div class="tm"><b>${b.minutes > 0 ? b.minutes : '—'}</b><small>min</small>${range}</div>
+  const esq = temFoto && fotos.lado !== 'direita';
+  return `<div class="blk${temFoto ? ` com-foto${esq ? ' esq' : ''}` : ''}" style="--p:${info.color}${temFoto ? `;--fw:${fw}mm` : ''}">
+    <div class="tm"><b>${b.minutes > 0 ? b.minutes : '—'}</b><small>min</small>${range}</div>${esq ? colFotos : ''}
     <div class="ct">
       <div class="ph">${esc(b.phase)}${b.pillarLabel ? ` <span class="pill${info.light ? ' lt' : ''}">${esc(b.pillarLabel)}</span>` : ''}</div>
       <h3>${esc(b.title)}</h3>
       <div class="grp">${groups}</div>
       ${metaParts.length ? `<div class="meta">${metaParts.join(' &nbsp;·&nbsp; ')}</div>` : ''}
       ${b.description ? `<div class="desc">${esc(b.description)}</div>` : ''}
-    </div>${colFotos}</div>`;
+    </div>${esq ? '' : colFotos}</div>`;
 }
 
 // Período de avaliação: card "Avaliação · Física, Técnica" (sem blocos nem minutos)
@@ -96,7 +97,7 @@ function renderSession(vm, { now, onlyPhotos = false }) {
   // Fotos junto dos blocos (opção do modal): cada foto vai AO LADO do bloco da sua
   // atividade; as que não têm bloco (anexo do dia) seguem para a página do final.
   const ph0 = vm.photos;
-  const inline = !!(ph0 && ph0.items.length && ph0.posicao === 'blocos');
+  const inline = !!(ph0 && ph0.items.length && ph0.posicao !== 'fim');
   const porBloco = new Map();
   let sobra = ph0 ? ph0.items : [];
   if (inline) {
@@ -112,9 +113,9 @@ function renderSession(vm, { now, onlyPhotos = false }) {
   const fotosDo = (b) => {
     const items = inline ? porBloco.get(b.activityId) : null;
     if (!items || !items.length) return null;
-    return { items, grid: ph0.grid };
+    return { items, grid: ph0.grid, lado: ph0.posicao === 'direita' ? 'direita' : 'esquerda' };
   };
-  const blocksDe = (lista) => (lista.length ? `<div class="blocks" data-split=".blk">${lista.map((b) => blockCard(b, fotosDo(b))).join('')}</div>` : '');
+  const blocksDe = (lista) => (lista.length ? `<div class="blocks campo" data-split=".blk">${lista.map((b) => blockCard(b, fotosDo(b))).join('')}</div>` : '');
   const blocksHtml = blocksDe(vm.blocks);
   let body;
   if (vm.type === 'periodos') {
