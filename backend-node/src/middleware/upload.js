@@ -81,7 +81,21 @@ const uploadAnaliseMidia = multer({
     ? cb(null, true) : cb(new Error('Envie uma imagem (JPG, PNG, WEBP) ou um vídeo (MP4, MOV, WEBM).'), false)),
 }).single('file');
 
+// Arquivos da SEMANA (comissão): além de imagem/vídeo/PDF, planilhas, Word e PowerPoint.
+const TIPOS_SEMANA = ALLOWED_MIME_TYPES.concat([
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'text/csv',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/vnd.ms-powerpoint',
+]);
+const uploadArquivoSemana = multer({
+  storage: createStorage('semana-files'),
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter: (req, file, cb) => (TIPOS_SEMANA.includes(file.mimetype)
+    ? cb(null, true) : cb(new Error('Tipo de arquivo não aceito. Envie PDF, planilha, Word, PowerPoint, imagem ou vídeo.'), false)),
+}).single('file');
+
 module.exports = {
+  uploadArquivoSemana,
   uploadAnaliseMidia,
   uploadProfilePhoto,
   uploadClubLogo,

@@ -13,6 +13,7 @@ import { TrainingSummaryModal } from '../components/training/TrainingSummaryModa
 import { CreateTitleModal } from '../components/training/CreateTitleModal';
 import { SessionTypeModal } from '../components/training/SessionTypeModal';
 import { LogosDoJogo } from '../components/training/LogosDoJogo';
+import { ArquivosSemana } from '../components/training/ArquivosSemana';
 import { GameModal } from '../components/training/GameModal';
 import { WeekSelector } from '../components/stats/WeekSelector';
 import { trainingService } from '../services/trainingService';
@@ -715,6 +716,9 @@ export function TrainingPage() {
               onExportPDF={handleExportWeek}
               onExportExcel={null}
             />
+          )}
+          {selectedClub?.id && currentWeek?.identifier && (
+            <ArquivosSemana week={currentWeek.identifier} clubId={selectedClub.id} isMobile={isMobile} />
           )}
         </div>
 

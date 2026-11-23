@@ -377,3 +377,8 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   `blocos[].atividade.anexos`; ao usar, copia de novo para a atividade do dia (até MAX_FILES_PER_ACTIVITY; desfaz se der erro);
   excluir a sessão apaga as cópias. Sessões salvas antes de 23/11 não têm mídia. Página virou LISTA COMPACTA em largura total
   (`LinhaSessao`: nome/resumo/pilares · faixa com os 6 blocos · Usar; clique abre o detalhe com descrições e miniaturas).
+- ARQUIVOS DA SEMANA (migration 072 `training_microcycle_files`): material da comissão ligado ao MICROCICLO (não a atividade);
+  NÃO entra em estatísticas/relatórios. Rotas `/api/arquivos-semana` (GET ?week&club_id · POST multipart {week, club_id, file,
+  title?} · DELETE /:id), até 30 por semana, 50 MB; aceita também planilha/Word/PowerPoint/CSV (`uploadArquivoSemana`, pasta
+  uploads/semana-files). Web: botão "Arquivos da semana (N)" ao lado de Exportar semana → gaveta (`components/training/ArquivosSemana.jsx`).
+  App nativo ainda não mostra.
