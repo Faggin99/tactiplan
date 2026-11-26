@@ -126,7 +126,7 @@ export function ArquivosSemana({ week, clubId, isMobile }) {
             })}
           </ul>
         )}
-        <input ref={input} type="file" multiple accept={ACEITA} hidden onChange={(e) => enviar(e.target.files)} />
+        <input ref={input} type="file" multiple accept={ACEITA} hidden aria-label="Enviar arquivos da semana" onChange={(e) => enviar(e.target.files)} />
       </SideSheet>
     </>
   );

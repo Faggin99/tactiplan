@@ -94,7 +94,7 @@ export function TrainingPage() {
     {
       selector: '[data-tour="unified-modal-body"]',
       title: 'Estrutura do dia',
-      content: 'Aqui dentro você vê os blocos da sessão (Ativação, Atividade 1, 2, 3, 4 e Treino de goleiro). Clique nas abas pra trocar entre blocos.',
+      content: 'Aqui dentro você vê os blocos da sessão (Academia, Ativação, Atividade 1, 2, 3 e Treino de goleiro). Clique nas abas pra trocar entre blocos.',
       placement: 'auto',
     },
     {

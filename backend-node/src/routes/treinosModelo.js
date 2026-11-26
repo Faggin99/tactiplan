@@ -67,7 +67,7 @@ router.get('/', async (req, res) => {
     const r = await query(
       `SELECT m.id, m.nome, m.descricao, m.blocos, m.created_at, to_char(m.origem_data, 'YYYY-MM-DD') AS origem_data, m.origem_periodo, u.name AS criado_por
          FROM treinos_modelo m LEFT JOIN users u ON u.id = m.created_by
-        WHERE m.workspace_id = $1 ORDER BY m.nome`, [ws]);
+        WHERE m.workspace_id = $1 ORDER BY COALESCE(m.origem_data, m.created_at::date) DESC, m.origem_periodo DESC NULLS LAST, m.created_at DESC`, [ws]); // pelo dia do treino (26/11)
     // nomes dos títulos e conteúdos para o resumo
     const titulos = new Set();
     const conteudos = new Set();

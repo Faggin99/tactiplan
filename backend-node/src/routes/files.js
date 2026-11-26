@@ -29,6 +29,18 @@ async function activityContext(activityId, workspaceIds) {
   return r.rows[0] || null;
 }
 
+// ANEXOS DA SESSÃO (26/11/2026): material extra do treino que não é de uma atividade (activity_id NULL).
+// Mesmo contexto da atividade, a partir do período (training_sessions). Não entram nas estatísticas.
+const MAX_FILES_PER_SESSION = 15;
+async function sessionContext(sessionId, workspaceIds) {
+  if (!sessionId || !UUID_RE.test(String(sessionId))) return null;
+  const r = await query(
+    `SELECT NULL::uuid AS activity_id, s.workspace_id, s.id AS session_id, NULL AS block_name, m.category_id, m.club_id
+       FROM training_sessions s JOIN training_microcycles m ON m.id = s.microcycle_id
+      WHERE s.id = $1 AND s.workspace_id = ANY($2)`, [sessionId, workspaceIds]);
+  return r.rows[0] || null;
+}
+
 // Pode escrever nos anexos dessa atividade? (workspace não-viewer + categoria)
 function canWriteActivity(user, ctx) {
   if (!ctx) return false;
@@ -54,22 +66,25 @@ router.post('/upload', (req, res) => {
     };
 
     try {
-      const { activity_id, title } = req.body;
-      if (!activity_id) return recusar(400, 'activity_id é obrigatório: o anexo pertence a uma atividade');
+      const { activity_id, session_id, title } = req.body;
+      if (!activity_id && !session_id) return recusar(400, 'Informe a atividade (activity_id) ou a sessão (session_id)');
 
-      const ctx = await activityContext(activity_id, req.user.workspaceIds || []);
-      if (!ctx) return recusar(404, 'Atividade não encontrada');
+      // sem activity_id = anexo da SESSÃO (fora das atividades)
+      const ctx = activity_id
+        ? await activityContext(activity_id, req.user.workspaceIds || [])
+        : await sessionContext(session_id, req.user.workspaceIds || []);
+      if (!ctx) return recusar(404, activity_id ? 'Atividade não encontrada' : 'Sessão não encontrada');
       if (!canWriteActivity(req.user, ctx)) return recusar(403, 'Sem permissão de escrita nesta atividade');
       // Clube arquivado = só leitura (o corpo multipart só existe aqui, depois do multer).
       const arquivado = (await clubesArquivados([ctx.club_id]))[0];
       if (arquivado) return recusar(409, mensagemArquivado(arquivado.name));
 
-      const count = await query(
-        'SELECT COUNT(*)::int AS n FROM training_activity_files WHERE activity_id = $1',
-        [ctx.activity_id]
-      );
-      if ((count.rows[0]?.n || 0) >= MAX_FILES_PER_ACTIVITY) {
-        return recusar(409, `Máximo de ${MAX_FILES_PER_ACTIVITY} anexos por atividade`);
+      const count = ctx.activity_id
+        ? await query('SELECT COUNT(*)::int AS n FROM training_activity_files WHERE activity_id = $1', [ctx.activity_id])
+        : await query('SELECT COUNT(*)::int AS n FROM training_activity_files WHERE session_id = $1 AND activity_id IS NULL', [ctx.session_id]);
+      const max = ctx.activity_id ? MAX_FILES_PER_ACTIVITY : MAX_FILES_PER_SESSION;
+      if ((count.rows[0]?.n || 0) >= max) {
+        return recusar(409, `Máximo de ${max} anexos por ${ctx.activity_id ? 'atividade' : 'sessão'}`);
       }
 
       const filePath = `/uploads/session-files/${req.file.filename}`;
@@ -142,11 +157,13 @@ router.patch('/:id', async (req, res) => {
     const title = String(req.body?.title || '').trim().slice(0, 255);
     if (!title) return res.status(400).json({ error: 'Título obrigatório' });
     const found = await query(
-      'SELECT id, activity_id FROM training_activity_files WHERE id = $1 AND workspace_id = ANY($2)',
+      'SELECT id, activity_id, session_id FROM training_activity_files WHERE id = $1 AND workspace_id = ANY($2)',
       [req.params.id, req.user.workspaceIds || []]
     );
     if (found.rows.length === 0) return res.status(404).json({ error: 'File not found' });
-    const ctx = await activityContext(found.rows[0].activity_id, req.user.workspaceIds || []);
+    const ctx = found.rows[0].activity_id
+      ? await activityContext(found.rows[0].activity_id, req.user.workspaceIds || [])
+      : await sessionContext(found.rows[0].session_id, req.user.workspaceIds || []);
     if (!canWriteActivity(req.user, ctx)) return res.status(403).json({ error: 'Sem permissão de escrita neste arquivo' });
     const result = await query(
       'UPDATE training_activity_files SET title = $1, updated_at = NOW() WHERE id = $2 RETURNING *',

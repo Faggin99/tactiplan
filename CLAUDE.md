@@ -384,3 +384,21 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   App nativo ainda não mostra.
 - Sessões salvas mostram o TREINO DE ORIGEM ("Treino de sexta, 20/11 · Manhã"): migration 073 `treinos_modelo.origem_session_id/
   origem_data/origem_periodo`, gravados no POST; as 2 sessões antigas do Uberlândia foram preenchidas casando as atividades bloco a bloco.
+
+## Ajustes de 26/11/2026
+- BLOCOS (migration 074): sai a "Atividade 4", entra **Academia** ANTES da Ativação → Academia · Ativação · Atividade 1 · 2 · 3 ·
+  Treino de goleiro (BLOCK_NAMES, microcycleService, semana.js ORDEM_BLOCOS, NOMES_BLOCOS dos apps, ABREV das sessões salvas).
+  A atividade que estava na Atividade 4 foi ADEQUADA antes de renumerar: Ativação vazia → tudo sobe uma posição (Uberlândia
+  20/11: "Abordagem e corridas intermitentes" virou a Ativação); senão sobe até o buraco; sem vaga só na DEMO (apagada) — em
+  conta real a migração aborta. Sessões salvas (JSON) com a mesma regra. Academia: minutos contam, mas NÃO entra na contagem
+  de "Atividades" (`ehBlocoAtivacao` inclui academia; Início idem).
+- Bug: abrir anexo (/uploads) numa aba nova caía na Início — o service worker (workbox navigateFallback) devolvia o index.html.
+  `navigateFallbackDenylist: [/uploads, /api, /ota]` no vite.config.js. Quem tem o SW antigo recebe o aviso de nova versão.
+- Sessões salvas em ordem do DIA do treino de origem (mais recente primeiro; sem origem = data de criação).
+- Início mais leve: cada dia do quadro vira RESUMO (pilar principal, barra dos pilares, nº de atividades, total); "Treino de hoje"
+  com 1 linha por atividade; plantel sem a fileira de bolinhas.
+- ANEXOS DA SESSÃO (fora das atividades): `training_activity_files` com `activity_id NULL`. `POST /api/files/upload` aceita
+  `session_id` sem `activity_id` (até 15 por treino; PATCH também). Uploads de anexo aceitam planilha/Word/PowerPoint/CSV.
+  Web: botão "Anexos da sessão (N)" no topo do resumo do dia → gaveta por período (`components/training/AnexosSessao.jsx`).
+  Não entram nas estatísticas; as fotos saem no fim da ficha (como "anexo do dia").
+

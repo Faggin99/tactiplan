@@ -3,6 +3,7 @@ import { X, BookmarkPlus } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { newWorkbook, addSheet, saveWorkbook, addMetaSheet, formatMinutes } from '../../utils/excelTheme';
 import { ExportMenu } from '../common/ExportMenu';
+import { AnexosSessao } from './AnexosSessao';
 import { useReportPhotosExport } from '../reports/useReportPhotosExport';
 import { ReportSheetView } from '../reports/ReportSheetView';
 import { notify } from '../../lib/notify';
@@ -331,6 +332,9 @@ export function TrainingSummaryModal({ isOpen, onClose, session: day, onSalvarSe
           </div>
         )}
         <div style={headerStyle} className="no-print">
+          {/* anexos extras da sessão (fora das atividades) — 26/11/2026 */}
+          <AnexosSessao periodos={(periodos || [day]).filter((x) => x?.id).map((x) => ({ id: x.id, label: rotuloPeriodo(x.periodo) || 'Treino' }))}
+            estiloBotao={{ ...buttonStyle, gap: 6, fontSize: '0.8rem', fontWeight: 600, padding: '0.5rem 0.7rem' }} />
           {onSalvarSessao && (
             <button type="button" onClick={() => setSalvando((x) => (x ? null : { nome: '', ocupado: false, msg: null }))}
               disabled={!alvoSalvar} title={motivoSemSalvar || 'Guardar este treino para usar em outro dia'} aria-expanded={!!salvando}

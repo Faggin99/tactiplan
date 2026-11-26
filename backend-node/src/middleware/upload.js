@@ -60,11 +60,7 @@ const uploadClubLogo = multer({
   fileFilter
 }).single('logo');
 
-const uploadSessionFile = multer({
-  storage: createStorage('session-files'),
-  limits: { fileSize: MAX_FILE_SIZE },
-  fileFilter
-}).single('file');
+
 
 const uploadAthletePhoto = multer({
   storage: createStorage('athlete-photos'),
@@ -87,6 +83,13 @@ const TIPOS_SEMANA = ALLOWED_MIME_TYPES.concat([
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword',
   'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/vnd.ms-powerpoint',
 ]);
+// Anexos de atividade e da SESSÃO (26/11/2026: também planilha/Word/PowerPoint, como os arquivos da semana)
+const uploadSessionFile = multer({
+  storage: createStorage('session-files'),
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter: (req, file, cb) => (TIPOS_SEMANA.includes(file.mimetype)
+    ? cb(null, true) : cb(new Error('Tipo de arquivo não aceito. Envie PDF, planilha, Word, PowerPoint, imagem ou vídeo.'), false)),
+}).single('file');
 const uploadArquivoSemana = multer({
   storage: createStorage('semana-files'),
   limits: { fileSize: MAX_FILE_SIZE },

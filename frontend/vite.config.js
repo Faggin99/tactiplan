@@ -43,6 +43,9 @@ export default defineConfig({
       },
       workbox: {
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024, // 6 MiB — comporta exceljs (~2.7MB)
+        // 26/11/2026: arquivos (/uploads), API e OTA NÃO são páginas do app — sem isto o SW devolvia o index.html ao
+        // abrir um anexo numa aba nova e a pessoa caía na Início (Arquivos da semana, análise do adversário).
+        navigateFallbackDenylist: [/^\/uploads\//, /^\/api\//, /^\/ota\//],
         runtimeCaching: [
           {
             urlPattern: /\/api\/.*/i,

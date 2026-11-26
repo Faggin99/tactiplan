@@ -10,7 +10,8 @@ router.use(authMiddleware);
 
 // 21/11/2026: Aquecimento → Ativação e Complementos → Treino de goleiro (migration 069 renomeou os gravados)
 // 21/11/2026 (2): Preparatório virou Atividade 1 e as atividades vão até a 4 (migration 071)
-const BLOCK_NAMES = ['Ativação', 'Atividade 1', 'Atividade 2', 'Atividade 3', 'Atividade 4', 'Treino de goleiro'];
+// 26/11/2026 (migration 074): sai a Atividade 4, entra Academia antes da Ativação
+const BLOCK_NAMES = ['Academia', 'Ativação', 'Atividade 1', 'Atividade 2', 'Atividade 3', 'Treino de goleiro'];
 const DAY_NAMES = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 
 function getWeekDates(weekIdentifier) {

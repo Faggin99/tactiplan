@@ -9,7 +9,7 @@ import Foundation
 // Paridade: dados/treino/Semana.kt (Android).
 
 /// Nomes dos 6 blocos (backend-node/src/routes/microcycles.js).
-public let NOMES_BLOCOS = ["Ativação", "Atividade 1", "Atividade 2", "Atividade 3", "Atividade 4", "Treino de goleiro"]
+public let NOMES_BLOCOS = ["Academia", "Ativação", "Atividade 1", "Atividade 2", "Atividade 3", "Treino de goleiro"]
 /// Nomes dos dias, de segunda (1) a domingo (7).
 public let NOMES_DIAS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
 public let SIGLAS_DIAS = ["SEG", "TER", "QUA", "QUI", "SEX", "SÁB", "DOM"]

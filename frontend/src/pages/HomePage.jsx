@@ -486,16 +486,35 @@ function Quadro({ ctx, clube, logoUrl, dias, hojeStr, numSemana, saudacao: ola, 
               <span className="tp-titulo" style={{ fontFamily: quadro ? tk.fonteTitulo : 'inherit', fontWeight: 400, color: colors.textMuted, fontSize: quadro ? '1.2rem' : '0.82rem', marginTop: isMobile ? 0 : 14, alignSelf: isMobile ? 'flex-start' : 'center', textTransform: 'none' }}>folga</span>
             ) : (
               <>
-                {mostrar.map((a, k) => (
-                  <span key={k} style={{ display: 'flex', gap: 7, alignItems: 'flex-start', fontSize: '0.8rem', lineHeight: 1.25, minWidth: 0 }}>
-                    <Ima cor={COR_PILAR[a.pilar] || colors.textMuted} tamanho={quadro ? 15 : 12} style={{ marginTop: quadro ? 1 : 2 }} />
-                    <span style={{ minWidth: 0 }}>
-                      <span style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', fontWeight: 600 }} title={NOME_PILAR[a.pilar] || ''}>{a.titulo}</span>
-                      <span className="tp-num" style={{ fontSize: '0.72rem', color: colors.textSecondary }}>{a.minutos ? `${a.minutos} min` : ''}{a.periodo ? `${a.minutos ? ' · ' : ''}${rotuloPeriodo(a.periodo)}` : ''}</span>
-                    </span>
-                  </span>
-                ))}
-                {resto > 0 && <span style={{ fontSize: '0.74rem', color: colors.textSecondary }}>+{resto} atividade{resto > 1 ? 's' : ''}</span>}
+                {/* 26/11/2026 (Início mais leve): o dia vira um RESUMO — pilar principal, barra dos pilares e nº de
+                    atividades; o detalhe fica no "Treino de hoje" e na Programação */}
+                {atividades.length > 0 && (() => {
+                  const por = {};
+                  for (const a of atividades) if (a.pilar) por[a.pilar] = (por[a.pilar] || 0) + (Number(a.minutos) || 1);
+                  const ordem = ['tatico', 'fisico', 'tecnico', 'mental'].filter((k) => por[k]);
+                  const soma = ordem.reduce((t, k) => t + por[k], 0);
+                  const pred = ordem.slice().sort((x, y) => por[y] - por[x])[0];
+                  const n = atividades.filter((a) => !/^(ativação|academia)$/i.test(String(a.bloco || '').trim())).length;
+                  const treinosDia = d.periodos.filter((p) => p.tipo === 'training' && !p.transicao).length;
+                  return (
+                    <>
+                      {pred && (
+                        <span className={quadro ? 'tp-titulo' : undefined} title={ordem.map((k) => `${NOME_PILAR[k]} ${Math.round((por[k] / soma) * 100)}%`).join(' · ')}
+                          style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: quadro ? tk.fonteTitulo : 'inherit', fontWeight: 700, fontSize: quadro ? '1.15rem' : '0.9rem', color: colors.text, textTransform: 'none' }}>
+                          <Ima cor={COR_PILAR[pred]} tamanho={quadro ? 14 : 11} />{NOME_PILAR[pred]}
+                        </span>
+                      )}
+                      {ordem.length > 0 && (
+                        <span aria-hidden="true" style={{ display: 'flex', height: 5, borderRadius: 3, overflow: 'hidden', gap: 2, width: '100%' }}>
+                          {ordem.map((k) => <i key={k} style={{ width: `${(por[k] / soma) * 100}%`, background: COR_PILAR[k] }} />)}
+                        </span>
+                      )}
+                      <span className="tp-num" style={{ fontSize: '0.76rem', color: colors.textSecondary }}>
+                        {n} {n === 1 ? 'atividade' : 'atividades'}{treinosDia > 1 ? ` · ${treinosDia} treinos` : ''}
+                      </span>
+                    </>
+                  );
+                })()}
                 {avaliacao && <span style={{ fontSize: '0.76rem', fontWeight: 600, color: colors.textSecondary }}>Avaliação</span>}
                 {transicoes.map((t) => (
                   <span key={t.id} title="Treino de transição (fora do total do dia)" style={{ alignSelf: 'flex-start', fontSize: '0.72rem', fontWeight: 700, color: '#713f12', backgroundColor: '#fde68a', borderRadius: 4, padding: '1px 6px' }}>
@@ -597,17 +616,15 @@ function CartaoHoje({ ctx, hoje, nextSessions, hojeStr, onAbrir, max = 4 }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: '0.4rem' }}>
             <div>
               <Titulo ctx={ctx} tamanho="1.1rem">Treino de hoje{treinos.length === 1 && treinos[0].periodo ? ` · ${rotuloPeriodo(treinos[0].periodo)}` : ''}</Titulo>
-              <p className="tp-num" style={{ margin: '0.25rem 0 0', fontSize: '0.82rem', color: colors.textSecondary }}>{hoje.minutos} minutos{hoje.goleiro ? ` (+${hoje.goleiro}' goleiros)` : ''} · {treinos.reduce((s, p) => s + p.atividades.filter((x) => !x.goleiro).length, 0)} atividades</p>
+              <p className="tp-num" style={{ margin: '0.25rem 0 0', fontSize: '0.82rem', color: colors.textSecondary }}>{hoje.minutos} minutos{hoje.goleiro ? ` (+${hoje.goleiro}' goleiros)` : ''} · {treinos.reduce((s, p) => s + p.atividades.filter((x) => !x.goleiro && !/^(ativação|academia)$/i.test(String(x.bloco || '').trim())).length, 0)} atividades</p>
             </div>
           </div>
           <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
             {treinos.flatMap((p) => p.atividades.map((a, k) => ({ ...a, k: `${p.id}-${k}`, periodo: treinos.length > 1 ? p.periodo : null }))).slice(0, max).map((a, k, arr) => (
-              <li key={a.k} style={{ display: 'grid', gridTemplateColumns: '14px 1fr auto', gap: 10, alignItems: 'start', padding: '0.32rem 0', borderBottom: k < arr.length - 1 ? `1px ${ctx.estilo === 'prancheta' ? 'dashed' : 'solid'} ${colors.border}` : 'none' }}>
+              <li key={a.k} style={{ display: 'grid', gridTemplateColumns: '14px 1fr auto', gap: 10, alignItems: 'center', padding: '0.3rem 0', borderBottom: k < arr.length - 1 ? `1px ${ctx.estilo === 'prancheta' ? 'dashed' : 'solid'} ${colors.border}` : 'none' }}>
                 <Ima cor={COR_PILAR[a.pilar] || colors.textMuted} tamanho={12} style={{ marginTop: 3 }} />
-                <span style={{ minWidth: 0 }}>
-                  <span style={{ display: 'block', fontWeight: 600, fontSize: '0.86rem', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.titulo}</span>
-                  <span style={{ display: 'block', fontSize: '0.74rem', lineHeight: 1.35, color: colors.textSecondary }}>{[a.bloco, NOME_PILAR[a.pilar], a.periodo && rotuloPeriodo(a.periodo)].filter(Boolean).join(' · ')}</span>
-                </span>
+                <span style={{ minWidth: 0, display: 'block', fontWeight: 600, fontSize: '0.86rem', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                  title={[a.bloco, NOME_PILAR[a.pilar], a.periodo && rotuloPeriodo(a.periodo)].filter(Boolean).join(' · ')}>{a.titulo}</span>
                 <span className="tp-num" style={{ fontWeight: 600, fontSize: '0.8rem', color: colors.textSecondary }}>{a.goleiro ? 'GOL ' : ''}{a.minutos ? `${a.minutos}'` : ''}</span>
               </li>
             ))}
@@ -745,11 +762,7 @@ function CartaoPlantel({ ctx, total, disponiveis, injuries, transicao = 0, podeV
         </span>
         <span style={{ fontSize: '0.84rem', color: colors.textSecondary }}>prontos para jogar</span>
       </div>
-      {total > 0 && (
-        <div aria-hidden="true" style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: '0.75rem' }}>
-          {Array.from({ length: n }, (_, i) => <Ima key={i} cor={i >= n - noDm ? VERMELHO : i >= n - noDm - emTrans ? '#facc15' : colors.primary} tamanho={15} />)}
-        </div>
-      )}
+
       {total > 0 && (
         <div style={{ display: 'flex', gap: '0.85rem', flexWrap: 'wrap', fontSize: '0.76rem', color: colors.textSecondary, margin: '-0.3rem 0 0.6rem' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Ima cor={colors.primary} tamanho={10} />{disponiveis} disponíveis</span>

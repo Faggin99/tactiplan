@@ -128,7 +128,7 @@ function Vazio({ colors }) {
 // Uma sessão = UMA LINHA na largura toda (23/11/2026: com muitas sessões os cartões ficavam gigantes e espremidos no
 // centro). Fechada: nome + resumo · os 6 blocos lado a lado (conteúdo e minutos) · Usar. Clique abre o detalhe:
 // cada bloco numa coluna com título, descrição e as mídias salvas junto.
-const ABREV = { 'Ativação': 'Ativ.', 'Atividade 1': 'A1', 'Atividade 2': 'A2', 'Atividade 3': 'A3', 'Atividade 4': 'A4', 'Treino de goleiro': 'Gol' };
+const ABREV = { 'Academia': 'Acad.', 'Ativação': 'Ativ.', 'Atividade 1': 'A1', 'Atividade 2': 'A2', 'Atividade 3': 'A3', 'Treino de goleiro': 'Gol' };
 
 function LinhaSessao({ m, colors, isMobile, podeEditar, aberta, onAbrir, onUsar, onMudou }) {
   const [renomeando, setRenomeando] = useState(false);

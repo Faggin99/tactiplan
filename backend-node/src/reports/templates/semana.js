@@ -66,7 +66,7 @@ const CSS = `
 `;
 
 // Posição fixa de cada bloco (nomes de hoje e os antigos), para alinhar os dias: bloco sem atividade = vazio.
-const ORDEM_BLOCOS = [['Ativação', 'Aquecimento'], ['Atividade 1', 'Preparatório'], ['Atividade 2'], ['Atividade 3'], ['Atividade 4'], ['Treino de goleiro', 'Complementos']];
+const ORDEM_BLOCOS = [['Academia'], ['Ativação', 'Aquecimento'], ['Atividade 1', 'Preparatório'], ['Atividade 2'], ['Atividade 3'], ['Treino de goleiro', 'Complementos']];
 function seisBlocos(blocks) {
   const usados = new Set();
   const slots = ORDEM_BLOCOS.map((nomes) => {

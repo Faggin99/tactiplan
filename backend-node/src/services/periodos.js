@@ -65,7 +65,8 @@ function ehBlocoGoleiro(nome) { return String(nome || '').trim().toLowerCase() =
 
 // Bloco de ATIVAÇÃO (aquecimento): os minutos contam, mas não é "atividade" na contagem (21/11/2026: o treinador
 // conta só Atividade 1–4 — "Atividades 11" com 2 ativações não batia com o que ele planejou).
-function ehBlocoAtivacao(nome) { const n = String(nome || '').trim().toLowerCase(); return n === 'ativação' || n === 'aquecimento'; }
+// 26/11/2026: ACADEMIA também (os minutos contam, mas a contagem de "Atividades" é só Atividade 1–3)
+function ehBlocoAtivacao(nome) { const n = String(nome || '').trim().toLowerCase(); return n === 'ativação' || n === 'aquecimento' || n === 'academia'; }
 
 // Normaliza o que veio do cliente: só tipos conhecidos, sem repetir, na ordem da
 // lista; "Outra" só com texto (texto aparado, até 60). Devolve { ok, tipos, outra, erro }.
