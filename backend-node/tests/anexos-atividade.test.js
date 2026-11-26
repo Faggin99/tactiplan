@@ -17,16 +17,24 @@ const ACT_A = '11111111-1111-4111-8111-111111111111';
 const ACT_B = '22222222-2222-4222-8222-222222222222';
 const ACT_OUTRO = '33333333-3333-4333-8333-333333333333';
 const SESS = 'sess-1';
+// anexo da SESSÃO (26/11/2026): período válido da workspace
+const SESS_UUID = '55555555-5555-4555-8555-555555555555';
+const SESS_OUTRA = '66666666-6666-4666-8666-666666666666';
 
 // ---------- banco simulado ----------
-const db = { activities: {}, files: [], log: [] };
+const db = { activities: {}, sessions: {}, files: [], log: [] };
 async function query(sql, params = []) {
   db.log.push({ sql, params });
   if (/FROM training_activities a\s+JOIN training_activity_blocks b/.test(sql)) {
     const a = db.activities[params[0]];
     return { rows: a && params[1].includes(a.workspace_id) ? [{ activity_id: params[0], ...a }] : [] };
   }
+  if (/FROM training_sessions s JOIN training_microcycles m/.test(sql)) {
+    const s = db.sessions[params[0]];
+    return { rows: s && params[1].includes(s.workspace_id) ? [{ activity_id: null, session_id: params[0], block_name: null, ...s }] : [] };
+  }
   if (/SELECT COUNT\(\*\)::int AS n FROM training_activity_files/.test(sql)) {
+    if (/activity_id IS NULL/.test(sql)) return { rows: [{ n: db.files.filter((f) => f.session_id === params[0] && !f.activity_id).length }] };
     return { rows: [{ n: db.files.filter((f) => f.activity_id === params[0]).length }] };
   }
   if (/INSERT INTO training_activity_files/.test(sql)) {
@@ -77,6 +85,10 @@ function cenario(opts) {
     [ACT_B]: { workspace_id: WS, session_id: SESS, block_id: 'blk-2', block_name: 'Atividade 2', category_id: CAT, club_id: 'club-1' },
     [ACT_OUTRO]: { workspace_id: OUTRO_WS, session_id: 'sess-x', block_id: 'blk-x', block_name: 'Atividade 1', category_id: 'cat-x', club_id: 'club-x' },
   };
+  db.sessions = {
+    [SESS_UUID]: { workspace_id: WS, category_id: CAT, club_id: 'club-1' },
+    [SESS_OUTRA]: { workspace_id: OUTRO_WS, category_id: 'cat-x', club_id: 'club-x' },
+  };
   db.files = [];
   db.log = [];
   usuario = criarUsuario(opts);
@@ -95,14 +107,35 @@ const houveInsert = () => db.log.some((l) => /INSERT INTO training_activity_file
 
 test.after(() => fs.rmSync(TMP, { recursive: true, force: true }));
 
-test('upload sem activity_id → 400 e o arquivo gravado é descartado', async () => {
+test('upload sem activity_id nem session_id → 400 e o arquivo gravado é descartado', async () => {
   cenario();
   const antes = arquivosNoDisco();
-  const r = await enviar({ session_id: SESS, title: 'x' }); // formato antigo
+  const r = await enviar({ title: 'x' });
   assert.strictEqual(r.status, 400);
-  assert.match(r.body.error, /activity_id/);
+  assert.match(r.body.error, /activity_id|session_id/);
   assert.strictEqual(houveInsert(), false);
   assert.strictEqual(arquivosNoDisco(), antes);
+});
+
+// 26/11/2026: só session_id = ANEXO DA SESSÃO (activity_id NULL), fora das atividades
+test('anexo da sessão: período inexistente/inválido/de outra workspace → 404 e arquivo descartado', async () => {
+  for (const id of [SESS, SESS_OUTRA, '77777777-7777-4777-8777-777777777777']) {
+    cenario();
+    const antes = arquivosNoDisco();
+    const r = await enviar({ session_id: id });
+    assert.strictEqual(r.status, 404, `sessão ${id}`);
+    assert.strictEqual(houveInsert(), false);
+    assert.strictEqual(arquivosNoDisco(), antes);
+  }
+});
+
+test('anexo da sessão válido grava session_id e activity_id NULL', async () => {
+  cenario();
+  const r = await enviar({ session_id: SESS_UUID, title: 'Plano de carga' });
+  assert.strictEqual(r.status, 201);
+  assert.strictEqual(r.body.session_id, SESS_UUID);
+  assert.strictEqual(r.body.activity_id, null);
+  assert.strictEqual(r.body.title, 'Plano de carga');
 });
 
 test('upload com activity_id inexistente, inválido ou de outra workspace → 404', async () => {
