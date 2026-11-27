@@ -205,9 +205,10 @@ export function HomePage() {
           onDia={abrirDia} onAbrir={() => navigate(semanaDe ? `/training?data=${hojeStr}` : '/training')}
           loading={loading && !dashboard} porDia={porDia} atalhos={atalhos} />
 
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr)', gap: isMobile ? '0.85rem' : '0.9rem', alignItems: 'stretch', ...(isMobile ? {} : { flexShrink: 0, height: altura >= 900 ? 268 : 236 }) }}>
-          <CartaoHoje ctx={ctx} hoje={hoje} nextSessions={nextSessions} hojeStr={hojeStr} onAbrir={abrirDia} max={altura >= 1000 ? 4 : 3} />
-          <CartaoJogo ctx={ctx} jogo={nextMatch} dias={diasJogo} treinos={treinosAteJogo} onAbrir={abrirJogo} onProgramacao={() => navigate('/training')} />
+        {/* 27/11/2026: sem o cartão "Próximo jogo" — o jogo aparece no quadro da semana e, no dia, no "Hoje" */}
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0,1.4fr) minmax(0,1fr)', gap: isMobile ? '0.85rem' : '0.9rem', alignItems: 'stretch', ...(isMobile ? {} : { flexShrink: 0, height: altura >= 900 ? 268 : 236 }) }}>
+          <CartaoHoje ctx={ctx} hoje={hoje} nextSessions={nextSessions} hojeStr={hojeStr} onAbrir={abrirDia} max={altura >= 1000 ? 4 : 3}
+            jogo={nextMatch && String(nextMatch.date).split('T')[0] === hojeStr ? nextMatch : null} onAbrirJogo={abrirJogo} />
           <CartaoPlantel ctx={ctx} total={summary.totalAthletes || 0} disponiveis={disponiveis} injuries={injuries} transicao={summary.transicao || 0}
             podeVer={can('athletes:view')} onPlantel={() => navigate('/plantel')} />
         </div>
@@ -603,7 +604,7 @@ function Quadro({ ctx, clube, logoUrl, dias, hojeStr, numSemana, saudacao: ola, 
 // Hoje (do "Vestiário"): o treino do dia, atividade a atividade
 // ---------------------------------------------------------------------------------------------
 
-function CartaoHoje({ ctx, hoje, nextSessions, hojeStr, onAbrir, max = 4 }) {
+function CartaoHoje({ ctx, hoje, nextSessions, hojeStr, onAbrir, max = 4, jogo = null, onAbrirJogo }) {
   const { colors, tk } = ctx;
   const treinos = (hoje?.periodos || []).filter((p) => p.tipo === 'training' && !p.transicao && p.atividades.length);
   const jogoHoje = (hoje?.periodos || []).find((p) => p.tipo === 'match');
@@ -637,13 +638,15 @@ function CartaoHoje({ ctx, hoje, nextSessions, hojeStr, onAbrir, max = 4 }) {
         <>
           <Titulo ctx={ctx} tamanho="1.15rem">Hoje</Titulo>
           <p style={{ margin: '0.45rem 0 0.9rem', fontSize: '0.88rem', color: colors.textSecondary, lineHeight: 1.5 }}>
-            {jogoHoje ? `Dia de jogo contra ${jogoHoje.adversario || 'o adversário'}.`
+            {jogoHoje ? `Dia de jogo contra ${jogoHoje.adversario || 'o adversário'}${jogo?.match_kickoff ? `, ${String(jogo.match_kickoff).slice(0, 5).replace(':', 'h')}` : ''}${jogo?.match_venue ? ` · ${jogo.match_venue}` : ''}.`
               : (hoje?.periodos || []).some((p) => p.tipo === 'rest') ? 'Dia de folga do grupo.'
                 : 'Nenhum treino montado para hoje.'}
             {proximo ? ` Próximo treino: ${DIAS_LONGOS[(dataDe(proximo.date).getDay() + 6) % 7]}, ${ddmm(proximo.date)}.` : ''}
           </p>
           <div style={{ marginTop: 'auto' }}>
-            <LinkAcao ctx={ctx} onClick={() => onAbrir(proximo ? String(proximo.date).split('T')[0] : hojeStr)}>{proximo ? 'Ver o próximo treino' : 'Montar o treino de hoje'}</LinkAcao>
+            {jogoHoje
+              ? <LinkAcao ctx={ctx} onClick={() => onAbrirJogo(jogo || { id: jogoHoje.id, date: hojeStr })}>Abrir o jogo</LinkAcao>
+              : <LinkAcao ctx={ctx} onClick={() => onAbrir(proximo ? String(proximo.date).split('T')[0] : hojeStr)}>{proximo ? 'Ver o próximo treino' : 'Montar o treino de hoje'}</LinkAcao>}
           </div>
         </>
       )}

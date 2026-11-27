@@ -38,7 +38,7 @@ test('programação da semana: períodos, pilar predominante, jogo, descanso, av
   assert.equal(sex.minutes, 0);
   assert.equal(sab.kind, 'vazio');
   assert.equal(dom.kind, 'vazio');
-  assert.equal(vm.badgeSub, '2 treinos · 1 jogo');
+  assert.equal(vm.badgeSub, '3 sessões · 2 dias · 1 jogo'); // 27/11: conta SESSÕES (Ter tem Manhã + Tarde)
   // faixas: só a Terça tem 2 períodos → Manhã e Tarde; Seg (Manhã) entra na faixa dela;
   // jogo de período único, descanso e dia vazio ocupam a coluna inteira
   assert.deepEqual(vm.bandas, ['Manhã', 'Tarde']);

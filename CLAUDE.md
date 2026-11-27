@@ -402,3 +402,9 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
   Web: botão "Anexos da sessão (N)" no topo do resumo do dia → gaveta por período (`components/training/AnexosSessao.jsx`).
   Não entram nas estatísticas; as fotos saem no fim da ficha (como "anexo do dia").
 
+## Ajustes de 27/11/2026
+- PDF da SEMANA: o canto direito conta SESSÕES (cada período de treino com atividade, sem transição), como nas Estatísticas:
+  "6 sessões · 4 dias · 1 jogo" (antes contava dias como "treinos" e deu 4 numa semana de 6 sessões).
+- Início SEM o cartão "Próximo jogo" (2 cartões: Hoje + Plantel). O jogo aparece no quadro da semana (JOGO!) e, no dia, no
+  "Hoje" ("Dia de jogo contra X, 17h00 · local" + "Abrir o jogo", que abre o modal do jogo). `CartaoJogo` ficou sem uso.
+

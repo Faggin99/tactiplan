@@ -864,7 +864,8 @@ function buildWeekProgram({ team, period, details = [], gamesById = null, weekNu
     byDate.get(d).push(s);
   }
   let totalMin = 0;
-  let treinos = 0;
+  let treinos = 0; // SESSÕES de treino (cada período com atividade), como nas Estatísticas — 27/11/2026
+  let diasTreino = 0;
   let jogos = 0;
   const days = [];
   for (let i = 0; i < 7; i++) {
@@ -891,7 +892,9 @@ function buildWeekProgram({ team, period, details = [], gamesById = null, weekNu
     const goleiroDia = periodos.reduce((t, p) => t + (p.type === 'training' && !p.transicao ? (p.goleiro || 0) : 0), 0);
     totalMin += minutes;
     if (periodos.some((p) => p.type === 'match')) jogos++;
-    else if (periodos.some((p) => p.type === 'training' && p.blocks.length)) treinos++;
+    const sessoesDia = periodos.filter((p) => p.type === 'training' && !p.transicao && p.blocks.length).length;
+    treinos += sessoesDia;
+    if (sessoesDia) diasTreino++;
     const km = P.distanciaDoDia(list);
     const isRest = list.length > 0 && list.every((s) => (s.session_type || 'training') === 'rest');
     days.push({
@@ -923,7 +926,8 @@ function buildWeekProgram({ team, period, details = [], gamesById = null, weekNu
     meta,
     right: weekNumber ? `Semana ${weekNumber} · ${period.rangeShort}` : period.rangeShort,
     badgeTop: totalMin > 0 ? F.duration(totalMin) : '—',
-    badgeSub: [F.plural(treinos, 'treino', 'treinos'), jogos ? F.plural(jogos, 'jogo', 'jogos') : null].filter(Boolean).join(' · '),
+    // "6 sessões · 4 dias" (antes contava dias como "treinos": 4 em vez de 6)
+    badgeSub: [F.plural(treinos, 'sessão', 'sessões'), diasTreino && diasTreino !== treinos ? F.plural(diasTreino, 'dia', 'dias') : null, jogos ? F.plural(jogos, 'jogo', 'jogos') : null].filter(Boolean).join(' · '),
     days,
     photos,
   };
