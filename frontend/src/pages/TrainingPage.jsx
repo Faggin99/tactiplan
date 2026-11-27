@@ -30,7 +30,7 @@ import { formatKm, toKm } from '../utils/distancia';
 import { ExportMenu } from '../components/common/ExportMenu';
 import { safeFileName } from '../services/reportsService';
 import { useReportPhotosExport } from '../components/reports/useReportPhotosExport';
-import { periodosDoDia, rotuloPeriodo, periodoEfetivo, minutosDaSessao, minutosGoleiro, ehBlocoGoleiro, distanciaDoDia, divisaoMinutos, rotuloLinhaPeriodo, rotulosAvaliacao, ehTransicao } from '../lib/periodos';
+import { periodosDoDia, rotuloPeriodo, periodoEfetivo, minutosDaSessao, ehBlocoGoleiro, distanciaDoDia, divisaoMinutos, rotuloLinhaPeriodo, rotulosAvaliacao, ehTransicao } from '../lib/periodos';
 
 export function TrainingPage() {
   const { colors } = useTheme();
@@ -1221,9 +1221,6 @@ export function TrainingPage() {
                   <span style={{ flexShrink: 0 }}>{(divisaoMinutos(periodos) || distanciaDoDia(periodos) !== null)
                     ? `⏱${periodos.reduce((t, p) => t + minutosDaSessao(p), 0)}′`
                     : `⏱ ${periodos.reduce((t, p) => t + minutosDaSessao(p), 0)} min`}</span>
-                  {periodos.reduce((t, p) => t + minutosGoleiro(p), 0) > 0 && (
-                    <span title="Treino de goleiro (paralelo, fora do total do grupo)" style={{ flexShrink: 0, color: colors.textSecondary, fontWeight: 500 }}>· +{periodos.reduce((t, p) => t + minutosGoleiro(p), 0)}′ gol</span>
-                  )}
                   {/* "90+60" só quando 2+ períodos têm minutos (nunca "125+0") */}
                   {divisaoMinutos(periodos) && (
                     <span style={{ color: colors.textSecondary, fontWeight: 500, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>· {divisaoMinutos(periodos)}</span>
@@ -1236,9 +1233,6 @@ export function TrainingPage() {
               <div className={`tp-total${getTotalDuration(shown) ? '' : ' tp-zero'}`} style={durationBadgeStyle}>
                 <span>⏱</span>
                 <span>{getTotalDuration(shown)} min</span>
-                {shown.session_type !== 'assessment' && minutosGoleiro({ ...shown, treino_transicao: false }) > 0 && (
-                  <span title="Treino de goleiro (paralelo, fora do total do grupo)" style={{ color: colors.textSecondary, fontWeight: 500, marginLeft: '0.3rem' }}>+{minutosGoleiro({ ...shown, treino_transicao: false })}′ gol</span>
-                )}
                 {toKm(shown.avg_distance_km) !== null && (shown.session_type || 'training') === 'training' && (
                   <span title="Distância ideal do dia" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', marginLeft: '0.35rem', paddingLeft: '0.45rem', borderLeft: `1px solid ${colors.border}` }}>
                     <span>📍</span>
