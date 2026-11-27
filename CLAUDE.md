@@ -408,3 +408,18 @@ Frontend totalmente migrado para a API Node.js. Sem referencias ativas ao Supaba
 - Início SEM o cartão "Próximo jogo" (2 cartões: Hoje + Plantel). O jogo aparece no quadro da semana (JOGO!) e, no dia, no
   "Hoje" ("Dia de jogo contra X, 17h00 · local" + "Abrir o jogo", que abre o modal do jogo). `CartaoJogo` ficou sem uso.
 
+
+## App nativo: paridade com o web (27/11/2026) — antes da 1ª versão oficial
+Spec única: `native/PARIDADE-27-11.md`. Android e iOS (Kit + telas) ganharam:
+- TREINO DE TRANSIÇÃO: `Dia.transicao` (`treino_transicao`, só em treino) fora do total, da divisão "90+60", dos pilares e do
+  goleiro; linha "Manhã · Transição"; interruptor no Dia (PUT /sessions/:id/type com `treino_transicao`).
+- "Atividades" sem Academia/Ativação/Aquecimento nem goleiro (`ehBlocoAtivacao`); `minutosGoleiro` e "+N′ gol" no dia.
+- SESSÕES SALVAS (Mais › Treino; Dia › menu "Salvar sessão"/"Usar sessão salva"; 409 TEM_ATIVIDADES → confirmar substituir),
+  ANEXOS DA SESSÃO (cartão depois dos blocos; PDF/planilha/Word/PowerPoint/CSV), ARQUIVOS DA SEMANA (clipe na barra da Semana).
+- Fotos da ficha: esquerda (padrão) | direita | fim ("blocos" antigo = direita); chave de preferência v2.
+- Escudos do jogo na Semana/Dia (mandante primeiro, `opponent_logo`/`match_location`/`match_kickoff`, "19h30").
+- Estatísticas › Treino: cartão do treino de goleiro (`goleiros`). Elenco: lado do zagueiro ("ZAG · D/E") e aba Campograma.
+- Mais › Conta › "Excluir minha conta" (DELETE /api/auth/me; 401 "Senha incorreta" NÃO derruba a sessão) — exigência da Apple.
+- Paridade: `native/paridade/avaliacao.json` (casos de transição) e `campograma.json` (gerar-campograma.js, do
+  reports/campograma.js); `backend-node/tests/paridade-app-27-11.test.js` falha se ficarem velhos.
+- Testes: Android 231, Kit iOS 227. As telas SwiftUI só passaram em `swiftc -parse` → 1º build real no Codemagic.

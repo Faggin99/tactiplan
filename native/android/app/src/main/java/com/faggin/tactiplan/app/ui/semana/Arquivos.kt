@@ -27,6 +27,9 @@ import com.faggin.tactiplan.app.dados.treino.AnexoNovo
 import com.faggin.tactiplan.app.dados.treino.ArquivoUpload
 import com.faggin.tactiplan.app.dados.treino.EnvioAnexo
 import com.faggin.tactiplan.app.dados.treino.problemaDoArquivo
+import com.faggin.tactiplan.app.dados.treino.problemaDoArquivoExtra
+import com.faggin.tactiplan.app.dados.treino.tipoPeloNome
+import com.faggin.tactiplan.app.dados.treino.TIPOS_ARQUIVO_ACEITOS
 import java.io.ByteArrayOutputStream
 import java.io.File
 import kotlin.math.max
@@ -125,11 +128,13 @@ sealed interface Preparado {
 }
 
 /** Lê o que veio da câmera/galeria/arquivos e deixa pronto para subir (fora da thread principal). */
-suspend fun prepararAnexo(context: Context, uri: Uri, tipoSugerido: String? = null): Preparado = withContext(Dispatchers.IO) {
+/** `documentos` = aceita também planilha/Word/PowerPoint/CSV (anexos da sessão e arquivos da semana). */
+suspend fun prepararAnexo(context: Context, uri: Uri, tipoSugerido: String? = null, documentos: Boolean = false): Preparado = withContext(Dispatchers.IO) {
     val r = context.contentResolver
-    val tipo = (r.getType(uri) ?: tipoSugerido ?: "application/octet-stream").lowercase()
     val (nome0, tamanho) = nomeETamanho(r, uri)
     val nome = nome0 ?: "anexo"
+    val tipo0 = (r.getType(uri) ?: tipoSugerido ?: "application/octet-stream").lowercase()
+    val tipo = if (documentos) tipoPeloNome(nome, tipo0) else tipo0
     if (tipo.startsWith("image/")) {
         val bytes = try { reduzirFoto(r, uri) } catch (_: OutOfMemoryError) {
             return@withContext Preparado.Falhou(MSG_FOTO_MEMORIA)
@@ -139,12 +144,12 @@ suspend fun prepararAnexo(context: Context, uri: Uri, tipoSugerido: String? = nu
         return@withContext Preparado.Ok(EnvioAnexo(AnexoNovo.de(nomeJpg, "image/jpeg", bytes.size.toLong()),
             ArquivoUpload.deBytes(nomeJpg, "image/jpeg", bytes)))
     }
-    problemaDoArquivo(tipo, tamanho)?.let { return@withContext Preparado.Falhou(it) }
+    (if (documentos) problemaDoArquivoExtra(tipo, tamanho) else problemaDoArquivo(tipo, tamanho))?.let { return@withContext Preparado.Falhou(it) }
     Preparado.Ok(EnvioAnexo(AnexoNovo.de(nome, tipo, tamanho),
         ArquivoUpload(nome, tipo, tamanho) { r.openInputStream(uri) ?: throw java.io.IOException("sem arquivo") }))
 }
 
-class AcoesAnexo(val camera: () -> Unit, val galeria: () -> Unit, val pdf: () -> Unit)
+class AcoesAnexo(val camera: () -> Unit, val galeria: () -> Unit, val pdf: () -> Unit, val documento: () -> Unit = pdf)
 
 /** Os três seletores do sistema. `aoEscolher(uri, tipoSugerido)`; `aoAviso` quando não há app. */
 @Composable
@@ -163,6 +168,10 @@ fun rememberAcoesAnexo(aoEscolher: (Uri, String?) -> Unit, aoAviso: (String) -> 
     }
     val pdf = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) escolher(uri, "application/pdf")
+    }
+    // PDF, planilha, Word, PowerPoint (anexos da sessão e arquivos da semana)
+    val documento = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) escolher(uri, null)
     }
     return remember(context) {
         AcoesAnexo(
@@ -188,6 +197,10 @@ fun rememberAcoesAnexo(aoEscolher: (Uri, String?) -> Unit, aoAviso: (String) -> 
             },
             pdf = {
                 try { pdf.launch(arrayOf("application/pdf")) } catch (_: ActivityNotFoundException) { aviso(MSG_SEM_GALERIA) }
+            },
+            documento = {
+                try { documento.launch((TIPOS_ARQUIVO_ACEITOS.filter { !it.startsWith("image/") && !it.startsWith("video/") } + "application/octet-stream").toTypedArray()) }
+                catch (_: ActivityNotFoundException) { aviso(MSG_SEM_GALERIA) }
             },
         )
     }

@@ -86,6 +86,18 @@ fun MaisTela(amb: AmbienteClube) {
         CoresDoClubeTela(amb) { vendoCores = false }
         return
     }
+    var vendoSessoes by rememberSaveable { mutableStateOf(false) }
+    val treinoMais = amb.treino
+    if (vendoSessoes && treinoMais != null) {
+        com.faggin.tactiplan.app.ui.semana.SessoesSalvasTela(amb, treinoMais) { vendoSessoes = false }
+        return
+    }
+    var excluindoConta by rememberSaveable { mutableStateOf(false) }
+    if (excluindoConta && treinoMais != null) {
+        BackHandler { excluindoConta = false }
+        ExcluirContaTela(amb, treinoMais) { excluindoConta = false }
+        return
+    }
     var cadastro by rememberSaveable { mutableStateOf<Cadastro?>(null) }
     val t3 = amb.t3
     cadastro?.let { qual ->
@@ -126,6 +138,13 @@ fun MaisTela(amb: AmbienteClube) {
             if (ctx.clube != null) {
                 Divisoria()
                 LinhaAgrupada(Icones.paleta, "Cores e logo do clube", "Ver · a edição fica no TactiPlan web", aoTocar = { vendoCores = true })
+            }
+        }
+
+        if (treinoMais != null && ctx.pode("training:view")) {
+            ListaAgrupada("Treino") {
+                LinhaAgrupada(Icones.prancheta, "Sessões salvas", "Treinos guardados para usar em outro dia",
+                    aoTocar = { vendoSessoes = true })
             }
         }
 
@@ -188,6 +207,10 @@ fun MaisTela(amb: AmbienteClube) {
             Divisoria()
             LinhaAgrupada(Icones.mensagem, "Suporte", "WhatsApp $SUPORTE_TELEFONE_ROTULO",
                 aoTocar = { abrir.abrir("https://wa.me/$SUPORTE_TELEFONE") })
+            if (treinoMais != null) {
+                Divisoria()
+                LinhaAgrupada(Icones.lixeira, "Excluir minha conta", perigo = true, aoTocar = { excluindoConta = true })
+            }
         }
 
         Botao("Sair", { confirmarSair = true }, variante = VarianteBotao.NEUTRO, icone = Icones.sair,
@@ -251,3 +274,53 @@ fun CoresDoClubeTela(amb: AmbienteClube, voltar: () -> Unit) {
         Text(TEXTO_CORES_CLUBE, style = TactiPlan.tipos.corpo13, color = c.tinta2)
     }
 }
+
+/** Excluir a conta (exigência das lojas): aviso claro, senha e botão destrutivo. Depois sai do app. */
+@Composable
+fun ExcluirContaTela(amb: AmbienteClube, treino: com.faggin.tactiplan.app.dados.treino.ServicoTreino, voltar: () -> Unit) {
+    val c = TactiPlan.cores
+    val escopo = rememberCoroutineScope()
+    var senha by remember { mutableStateOf("") }
+    var erro by remember { mutableStateOf<String?>(null) }
+    var excluindo by remember { mutableStateOf(false) }
+    var confirmar by remember { mutableStateOf(false) }
+    TelaRaiz("Excluir minha conta", aoVoltar = voltar, pequena = true) {
+        com.faggin.tactiplan.app.ui.comum.FaixaTom(TEXTO_EXCLUIR_CONTA, Tom.ERRO, Icones.alerta)
+        Text("Conta: ${amb.email}", style = TactiPlan.tipos.corpo13, color = c.tinta2)
+        androidx.compose.material3.OutlinedTextField(
+            senha, { senha = it; erro = null }, singleLine = true, label = { Text("Sua senha") },
+            supportingText = { Text(erro ?: "Entrou só com Google ou Apple? Deixe em branco.", color = if (erro != null) c.erroTinta else c.tinta2) },
+            isError = erro != null,
+            visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth().testTag("excluir:senha"),
+        )
+        Botao(if (excluindo) "Excluindo…" else "Excluir minha conta", { confirmar = true }, Modifier.testTag("excluir:botao"),
+            VarianteBotao.PERIGO, habilitado = !excluindo, icone = Icones.lixeira)
+    }
+    if (confirmar) {
+        AlertDialog(
+            onDismissRequest = { confirmar = false },
+            title = { Text("Excluir a conta de vez?") },
+            text = { Text("Não dá para desfazer.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmar = false; excluindo = true
+                    escopo.launch {
+                        try {
+                            treino.api.excluirConta(senha.takeIf { it.isNotEmpty() })
+                            amb.sair()
+                        } catch (e: Exception) {
+                            if (!amb.tratarErro(e)) erro = com.faggin.tactiplan.app.dados.mensagemDeErro(e)
+                        }
+                        excluindo = false
+                    }
+                }, modifier = Modifier.testTag("excluir:confirmar")) { Text("Excluir", color = c.erro, fontWeight = FontWeight.SemiBold) }
+            },
+            dismissButton = { TextButton(onClick = { confirmar = false }) { Text("Cancelar", color = c.tinta) } },
+            containerColor = c.superficie, titleContentColor = c.tinta, textContentColor = c.tinta2,
+        )
+    }
+}
+
+const val TEXTO_EXCLUIR_CONTA = "Isso apaga sua conta e, se você for o dono, todos os clubes, atletas, treinos e jogos dela. " +
+    "Se você foi convidado, só sai das equipes. Não dá para desfazer."

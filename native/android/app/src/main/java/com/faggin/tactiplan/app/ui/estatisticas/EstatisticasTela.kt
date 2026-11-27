@@ -293,6 +293,7 @@ private fun ConteudoTreino(s: StatsTreino) {
     if (s.totals.activities == 0) {
         EstadoVazio(Icones.grafico, "Nenhum dado encontrado", "Não há treinos registrados no período selecionado.")
         Distancia(s)
+        Goleiros(s)
         return
     }
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -371,6 +372,7 @@ private fun ConteudoTreino(s: StatsTreino) {
         }
     }
     Distancia(s)
+    Goleiros(s)
     // Top atividades
     RotuloSecao("Top atividades · mais usadas")
     Cartao {
@@ -393,6 +395,37 @@ private fun ConteudoTreino(s: StatsTreino) {
                     Text(if (modo == ModoPilar.TEMPO) formatarMinutos(t.minutes) else "${t.count}x", style = TactiPlan.tipos.corpo13,
                         fontWeight = FontWeight.SemiBold, color = c.tinta)
                 }
+            }
+        }
+    }
+}
+
+/** Treino de goleiro: paralelo, contado à parte (web: GoleirosCard). */
+@Composable
+private fun Goleiros(s: StatsTreino) {
+    val g = s.goleiros?.takeIf { it.temDados } ?: return
+    val c = TactiPlan.cores
+    RotuloSecao("Treino de goleiro · paralelo")
+    Cartao(Modifier.testTag("stats:goleiros")) {
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            listOf("Tempo" to formatarMinutos(g.minutes), "Treinos" to "${g.sessions}", "Atividades" to "${g.activities}").forEach { (r, v) ->
+                Column(Modifier.weight(1f)) {
+                    Text(r, style = TactiPlan.tipos.legenda11, color = c.tinta2)
+                    Text(v, style = TactiPlan.tipos.corpo17, fontWeight = FontWeight.SemiBold, color = c.tinta)
+                }
+            }
+        }
+        Text("Fica fora das contas do grupo (minutos, sessões e pilares).", style = TactiPlan.tipos.legenda11, color = c.tinta2,
+            modifier = Modifier.padding(top = 4.dp))
+        val itens = g.principais
+        val max = (itens.maxOfOrNull { it.minutes } ?: 0).coerceAtLeast(1)
+        itens.forEach { i ->
+            Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                Row {
+                    Text(i.name ?: "—", style = TactiPlan.tipos.corpo15, color = c.tinta, modifier = Modifier.weight(1f))
+                    Text(formatarMinutos(i.minutes), style = TactiPlan.tipos.corpo13, color = c.tinta2)
+                }
+                Barra(i.minutes.toFloat() / max, corHex(pilarDe(i.dimension)?.corHex ?: "#64748b"), Modifier.padding(top = 3.dp))
             }
         }
     }

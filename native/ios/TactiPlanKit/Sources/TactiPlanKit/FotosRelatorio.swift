@@ -2,8 +2,8 @@ import Foundation
 
 // "Fotos do relatório" (a tela nativa equivalente ao ReportPhotosModal do web): antes de gerar a
 // ficha do dia ou o relatório da semana, escolher quais fotos entram, a ordem, a legenda, o
-// layout, a proporção, o tamanho (50–100%), a posição ("no final" ou "abaixo de cada bloco", só
-// na ficha) e se agrupa por dia (só na semana). O servidor valida tudo de novo
+// layout, a proporção, o tamanho (50–100%), a posição (ao lado do bloco à esquerda — o padrão —,
+// à direita ou no final da ficha; só na ficha) e se agrupa por dia (só na semana). O servidor valida tudo de novo
 // (backend-node/src/reports/photoConfig.js); aqui é a MESMA regra do modal, pura.
 // Paridade: dados/treino/FotosRelatorio.kt (Android).
 
@@ -24,6 +24,18 @@ public let PROPORCOES_FOTOS: [(id: String, rotulo: String)] = [
     ("4:3", "Paisagem 4:3"), ("1:1", "Quadrada 1:1"), ("original", "Original"),
 ]
 
+/// Onde ficam as fotos na FICHA (preferência v4 do web, photoConfig.js do servidor). A semana não tem posição.
+public let POSICOES_FOTOS: [(id: String, rotulo: String)] = [
+    ("esquerda", "Ao lado do bloco · esquerda"), ("direita", "Ao lado do bloco · direita"), ("fim", "No final da ficha"),
+]
+public let POSICAO_FOTOS_PADRAO = "esquerda"
+
+/// Posição válida: "blocos" antigo (preferência salva até 22/11) = "direita"; desconhecida/ausente = "esquerda".
+public func normalizarPosicaoFotos(_ p: String?) -> String {
+    if p == "blocos" { return "direita" }
+    return POSICOES_FOTOS.contains { $0.id == p } ? p! : POSICAO_FOTOS_PADRAO
+}
+
 public let MAX_LEGENDA_FOTO = 120
 public let TAMANHO_FOTO_MIN = 50
 public let TAMANHO_FOTO_MAX = 100
@@ -43,7 +55,8 @@ public struct PreferenciasFotos: Codable, Equatable, Sendable {
     }
 }
 
-public func chavePreferenciasFotos(_ usuarioId: String?) -> String { "tp.relatorio.fotos.v1.\(usuarioId ?? "anon")" }
+/// v2 (27/11/2026): posição esquerda/direita/fim — a v1 guardava "fim" como padrão e ele não pode ficar.
+public func chavePreferenciasFotos(_ usuarioId: String?) -> String { "tp.relatorio.fotos.v2.\(usuarioId ?? "anon")" }
 
 public struct GrupoFotos: Equatable, Sendable, Identifiable {
     public let id: String
@@ -77,7 +90,7 @@ public struct EscolhaFotos: Equatable, Sendable {
         proporcao = PROPORCOES_FOTOS.contains { $0.id == p?.proporcao } ? p!.proporcao! : (padrao?.proporcao ?? "4:3")
         legendas = p?.legendas ?? true
         agrupar = p?.agrupar ?? true
-        posicao = p?.posicao == "blocos" ? "blocos" : "fim"
+        posicao = normalizarPosicaoFotos(p?.posicao)
         tamanho = min(TAMANHO_FOTO_MAX, max(TAMANHO_FOTO_MIN, p?.tamanho ?? TAMANHO_FOTO_MAX))
         ordem = lista.fotos.map(\.id)
         let ids = Set(lista.fotos.map(\.id))
@@ -195,12 +208,12 @@ public struct EscolhaFotos: Equatable, Sendable {
             "legendas": .booleano(legendas), "agrupar": .booleano(agrupar), "tamanho": .numero(Double(tamanho)),
             "legendasCustom": .objeto(custom),
         ]
-        if !semana { o["posicao"] = .texto(posicao) }
+        if !semana { o["posicao"] = .texto(normalizarPosicaoFotos(posicao)) }
         return .objeto(o)
     }
 
     /// "Fotos: 2 páginas" / "Ficha: …" / "Sem fotos" (rótulo da prévia).
-    public var rotuloPrevia: String { !semana && posicao == "blocos" ? "Ficha" : "Fotos" }
+    public var rotuloPrevia: String { !semana && normalizarPosicaoFotos(posicao) != "fim" ? "Ficha" : "Fotos" }
 
     /// Tamanho em passos de 10 (o slider do web).
     public mutating func mudarTamanho(_ v: Double) {

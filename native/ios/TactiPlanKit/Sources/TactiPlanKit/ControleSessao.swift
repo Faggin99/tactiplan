@@ -85,6 +85,18 @@ public final class ControleSessao {
         if let token { try? await api.sair(token: token) }
     }
 
+    /// Excluir a conta: o servidor apaga (senha confere; conta sem senha manda vazio) e o app sai para o login.
+    /// "Senha incorreta" (401) NÃO derruba a sessão: volta como erro para a tela mostrar.
+    public func excluirConta(senha: String?) async throws {
+        guard let token = sessao?.token else { return }
+        do {
+            try await api.excluirConta(token: token, senha: senha)
+        } catch let e as ErroApi where e.status == 401 {
+            throw ErroApi(status: 400, codigo: "SENHA_INCORRETA", mensagem: e.mensagem == ErroApi.MSG_FALHA ? MSG_SENHA_INCORRETA : e.mensagem)
+        }
+        encerrarLocal()
+    }
+
     private func encerrarLocal() {
         cofre.limpar()
         semConexao = false

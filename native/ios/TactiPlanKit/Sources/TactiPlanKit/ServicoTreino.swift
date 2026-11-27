@@ -130,12 +130,71 @@ public struct ServicoTreino: Sendable {
     /// Adiciona um período ao dia (cria o dia antes, se preciso). Devolve o id do período novo.
     @discardableResult
     public func adicionarPeriodo(_ dia: Dia, novo: Periodo, atual: Periodo?, avaliacao: EscolhaAvaliacao? = nil,
-                                 semana: SemanaISO, clubeId: String) async throws -> String {
+                                 transicao: Bool = false, semana: SemanaISO, clubeId: String) async throws -> String {
         if let erro = erroNovoPeriodo(dia, atual: atual, novo: novo) { throw ErroApi(status: 0, codigo: "PERIODO_INVALIDO", mensagem: erro) }
         if let av = avaliacao, !av.ok { throw ErroApi(status: 0, codigo: "AVALIACAO_INVALIDA", mensagem: av.erro ?? ErroApi.MSG_FALHA) }
         let real = try await diaReal(dia, semana: semana, clubeId: clubeId)
         guard let id = real.id else { throw ErroApi(status: 0, codigo: nil, mensagem: ErroApi.MSG_FALHA) }
-        return try await api.adicionarPeriodo(id, novo: novo, atual: dia.temPeriodos ? nil : atual, avaliacao: avaliacao)
+        let atualReal = dia.temPeriodos ? nil : atual
+        if transicao && avaliacao == nil {
+            return try await api.adicionarPeriodo(id, novo: novo, atual: atualReal, avaliacao: nil, transicao: true)
+        }
+        return try await api.adicionarPeriodo(id, novo: novo, atual: atualReal, avaliacao: avaliacao)
+    }
+
+    // MARK: paridade de 27/11/2026
+
+    /// Marca/desmarca o treino de transição do período (cria o dia antes, se preciso). Só em treino.
+    @discardableResult
+    public func marcarTransicao(_ dia: Dia, _ transicao: Bool, semana: SemanaISO, clubeId: String) async throws -> String {
+        guard dia.tipo == .treino else {
+            throw ErroApi(status: 0, codigo: "TIPO_INVALIDO", mensagem: "Treino de transição só vale em dia de treino.")
+        }
+        let real = try await diaReal(dia, semana: semana, clubeId: clubeId)
+        guard let id = real.id else { throw ErroApi(status: 0, codigo: nil, mensagem: ErroApi.MSG_FALHA) }
+        try await api.marcarTransicao(id, transicao)
+        return id
+    }
+
+    /// Salva o treino do período como sessão salva. Devolve o id.
+    @discardableResult
+    public func salvarSessao(_ periodo: Dia, nome: String) async throws -> String {
+        let n = String(nome.trimmingCharacters(in: .whitespacesAndNewlines).prefix(MAX_NOME_SESSAO))
+        guard !n.isEmpty else { throw ErroApi(status: 0, codigo: "NOME", mensagem: MSG_NOME_SESSAO) }
+        guard podeSalvarSessao(periodo), let id = periodo.id else {
+            throw ErroApi(status: 0, codigo: "SEM_ATIVIDADES", mensagem: "Esse treino ainda não tem atividades")
+        }
+        return try await api.salvarSessao(nome: n, sessaoId: id)
+    }
+
+    /// Usa a sessão salva no período de TREINO (cria a semana antes, se o dia não existe). Sem `substituir` e com
+    /// atividades no treino → ErroApi TEM_ATIVIDADES (ver `atividadesQueSeraoTrocadas`).
+    public func aplicarSessao(_ sessaoSalvaId: String, em periodo: Dia, substituir: Bool, semana: SemanaISO, clubeId: String) async throws {
+        if let e = erroDiaSemTreino(periodo) { throw ErroApi(status: 0, codigo: "TIPO_INVALIDO", mensagem: e) }
+        let real = try await diaReal(periodo, semana: semana, clubeId: clubeId)
+        guard let id = real.id else { throw ErroApi(status: 0, codigo: nil, mensagem: ErroApi.MSG_FALHA) }
+        try await api.aplicarSessao(sessaoSalvaId, sessaoId: id, substituir: substituir)
+    }
+
+    /// Envia um arquivo da semana; a semana que ainda não existe (404) é criada pelo ensure e o envio repete.
+    public func enviarArquivoSemana(_ semana: SemanaISO, clubeId: String, arquivo: ArquivoUpload, titulo: String?,
+                                    progresso: @escaping @Sendable (Double) -> Void = { _ in }) async throws -> ArquivoSemana {
+        do {
+            return try await api.enviarArquivoSemana(semana: semana.identificador, clubeId: clubeId, arquivo: arquivo,
+                                                     titulo: titulo, progresso: progresso)
+        } catch let e as ErroApi where e.status == 404 {
+            _ = try await api.garantirMicrociclo(semana: semana.identificador, clubeId: clubeId)
+            return try await api.enviarArquivoSemana(semana: semana.identificador, clubeId: clubeId, arquivo: arquivo,
+                                                     titulo: titulo, progresso: progresso)
+        }
+    }
+
+    /// Envia um anexo da SESSÃO (cria o dia antes, se preciso). Devolve o anexo.
+    public func enviarAnexoDaSessao(_ periodo: Dia, arquivo: ArquivoUpload, titulo: String?, semana: SemanaISO, clubeId: String,
+                                    progresso: @escaping @Sendable (Double) -> Void = { _ in }) async throws -> Anexo {
+        let real = try await diaReal(periodo, semana: semana, clubeId: clubeId)
+        guard let id = real.id else { throw ErroApi(status: 0, codigo: nil, mensagem: ErroApi.MSG_FALHA) }
+        return try await api.enviarAnexoDaSessao(sessaoId: id, arquivo: arquivo, titulo: titulo, progresso: progresso)
     }
 
     /// Remove um período (só no dia com 2+). Devolve os anexos apagados.

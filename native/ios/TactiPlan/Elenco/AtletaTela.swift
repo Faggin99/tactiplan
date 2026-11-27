@@ -65,6 +65,10 @@ struct AtletaTela: View {
             ListaAgrupada("Cadastro") {
                 LinhaInfo(rotulo: "Posição", valor: nomeDaPosicao(a.posicao, modalidade: contexto.clube?.modalidade).map { n in
                     a.posicao.map { "\(n) (\($0))" } ?? n } ?? "—")
+                if perguntaLado(a.posicao) {
+                    Divisoria()
+                    LinhaInfo(rotulo: "Lado", valor: LADOS_PREFERIDOS.first(where: { $0.valor == a.ladoPreferido })?.rotulo ?? ROTULO_LADO_NAO_INFORMADO)
+                }
                 Divisoria()
                 LinhaInfo(rotulo: "Status", valor: ROTULO_STATUS[a.status ?? "active"] ?? "Ativo")
                 Divisoria()

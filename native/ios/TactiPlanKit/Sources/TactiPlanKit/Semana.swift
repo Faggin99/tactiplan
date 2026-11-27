@@ -181,11 +181,16 @@ public struct ResumoDia: Equatable, Sendable {
     public let adversario: String?
     /// Tipos de avaliação do dia ("Física, Técnica"); nil sem período de avaliação.
     public var avaliacao: String? = nil
+    /// Minutos do bloco Treino de goleiro (paralelo, fora do total; 0 em avaliação/transição): "+20′ gol".
+    public var minutosGoleiro: Int = 0
+    /// Tem treino de TRANSIÇÃO (fora do total do dia, dos pilares e das estatísticas)?
+    public var transicao: Bool = false
 
     public static func == (a: ResumoDia, b: ResumoDia) -> Bool {
         a.tipo == b.tipo && a.pilares == b.pilares && a.minutos == b.minutos && a.atividades == b.atividades
             && a.blocosComAtividade == b.blocosComAtividade && a.anexos == b.anexos && a.distanciaKm == b.distanciaKm
             && a.adversario == b.adversario && a.avaliacao == b.avaliacao
+            && a.minutosGoleiro == b.minutosGoleiro && a.transicao == b.transicao
             && a.minutosPorPilar.map { "\($0.pilar):\($0.minutos)" } == b.minutosPorPilar.map { "\($0.pilar):\($0.minutos)" }
     }
 
@@ -202,22 +207,37 @@ public func ehBlocoGoleiro(_ nome: String?) -> Bool {
     (nome ?? "").trimmingCharacters(in: .whitespaces).lowercased() == "treino de goleiro"
 }
 
+/// Blocos que não contam como "atividade" (os minutos contam): Ativação e Academia — igual ao servidor
+/// (services/periodos.js ehBlocoAtivacao) e às sessões salvas.
+public func ehBlocoAtivacao(_ nome: String?) -> Bool {
+    let n = (nome ?? "").trimmingCharacters(in: .whitespaces).lowercased()
+    return n == "ativação" || n == "aquecimento" || n == "academia"
+}
+
 public func resumoDoDia(_ d: Dia) -> ResumoDia {
     // avaliação: sem blocos, sem minutos (não entra em nada das estatísticas)
     if d.tipo == .avaliacao {
         return ResumoDia(tipo: .avaliacao, pilares: [], minutosPorPilar: [], minutos: 0, blocosComAtividade: 0,
                          atividades: 0, anexos: 0, distanciaKm: nil, adversario: nil, avaliacao: textoAvaliacao(d))
     }
+    // transição: as atividades aparecem, mas ficam fora do total do dia, dos pilares e do goleiro
+    let transicao = ehTransicao(d)
     var minPorPilar: [String: Int] = [:]
     var cntPorPilar: [String: Int] = [:]
-    var total = 0, blocos = 0, anexos = 0
+    var total = 0, blocos = 0, anexos = 0, atividades = 0, goleiro = 0
     for b in d.blocos {
         guard let a = b.atividade else { continue }
         blocos += 1
         anexos += max(0, a.anexos ?? 0)
-        // treino de goleiro é paralelo: fora do total do dia e dos pilares (igual ao web)
-        if ehBlocoGoleiro(b.nome) { continue }
         let m = max(0, a.minutos ?? 0)
+        // treino de goleiro é paralelo: fora do total do dia, dos pilares e da contagem (igual ao web)
+        if ehBlocoGoleiro(b.nome) {
+            if !transicao { goleiro += m }
+            continue
+        }
+        // Academia e Ativação: os minutos contam, mas não são "atividade"
+        if !ehBlocoAtivacao(b.nome) { atividades += 1 }
+        if transicao { continue }
         total += m
         let dims = Array(Set((a.conteudos ?? []).compactMap(\.dimensao).filter { !$0.isEmpty }))
         for dim in dims {
@@ -241,8 +261,18 @@ public func resumoDoDia(_ d: Dia) -> ResumoDia {
         return (k, minPorPilar[k] ?? 0)
     }
     return ResumoDia(tipo: d.tipo, pilares: predominantes, minutosPorPilar: barra, minutos: total,
-                     blocosComAtividade: blocos, atividades: blocos, anexos: anexos,
-                     distanciaKm: d.tipo == .treino ? d.distanciaKm : nil, adversario: d.adversario)
+                     blocosComAtividade: blocos, atividades: atividades, anexos: anexos,
+                     distanciaKm: d.tipo == .treino ? d.distanciaKm : nil, adversario: d.adversario,
+                     minutosGoleiro: goleiro, transicao: transicao)
+}
+
+/// "+20′ gol" (nil sem treino de goleiro) — fica ao lado do total do dia.
+public func textoGoleiro(_ r: ResumoDia) -> String? { r.minutosGoleiro > 0 ? "+\(r.minutosGoleiro)′ gol" : nil }
+
+/// Total com o goleiro ao lado: "88 min +20′ gol" · "88 min" · "+20′ gol" (nil sem nenhum dos dois).
+public func textoTotalComGoleiro(_ r: ResumoDia) -> String? {
+    let p = [r.minutos > 0 ? "\(r.minutos) min" : nil, textoGoleiro(r)].compactMap { $0 }
+    return p.isEmpty ? nil : p.joined(separator: " ")
 }
 
 /// Texto da linha do dia na Semana: "Treino · Tático" · "Jogo vs Rival FC" · "Descanso" · "Treino".
@@ -260,9 +290,10 @@ public func tituloDaLinha(_ r: ResumoDia) -> String {
 /// Detalhes da linha: "88 min · 5,8 km" (só o que existe). Jogo/descanso sem atividade: "".
 public func detalheDaLinha(_ r: ResumoDia) -> String {
     var p: [String] = []
-    if r.minutos > 0 { p.append("\(r.minutos) min") }
+    if let t = textoTotalComGoleiro(r) { p.append(t) }
     if let km = r.distanciaKm { p.append("\(formatarKm(km)) km") }
-    if r.tipo == .treino && r.atividades == 0 { p.append("Sem atividades") }
+    if r.tipo == .treino && r.blocosComAtividade == 0 { p.append("Sem atividades") }
+    if r.transicao { p.append("Transição · fora do total") }
     if let av = r.avaliacao { p.append(av.isEmpty ? "Avaliação" : (r.tipo == .avaliacao ? av : "Avaliação: \(av)")) }
     return p.joined(separator: " · ")
 }
@@ -276,7 +307,7 @@ public func fraseDoHeroi(_ r: ResumoDia) -> String {
         let a = (r.adversario ?? "").trimmingCharacters(in: .whitespaces)
         return a.isEmpty ? "Dia de jogo" : "Jogo vs \(a)"
     case .treino:
-        guard r.atividades > 0 else { return "Nenhuma atividade planejada" }
+        guard r.blocosComAtividade > 0 else { return "Nenhuma atividade planejada" }
         var p: [String] = []
         if !r.pilares.isEmpty { p.append("Pilar predominante \(r.rotuloPilares)") }
         p.append(contagem(r.atividades, "atividade", "atividades"))

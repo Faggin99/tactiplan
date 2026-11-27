@@ -48,6 +48,9 @@ const casosLinha = [
   [sessao('l4', 'training', null), ['Tático']],
   [sessao('l5', 'training', 'noite'), ['Tático', 'Físico']],
   [sessao('l6', 'training', 'manha'), []],
+  // treino de transição (migration 068): a linha diz "Transição" no lugar dos pilares
+  [sessao('l7', 'training', 'tarde', { treino_transicao: true }), ['Tático']],
+  [sessao('l8', 'training', null, { treino_transicao: true }), []],
 ];
 
 const casosDivisao = [
@@ -55,6 +58,8 @@ const casosDivisao = [
   [sessao('d3', 'training', 'manha', { blocks: [bloco(90)] }), sessao('d4', 'training', 'tarde', { blocks: [bloco(60)] })],
   [sessao('d5', 'training', 'manha', { blocks: [bloco(125)] }), sessao('d6', 'match', 'tarde')],
   [sessao('d7', 'training', 'manha', { blocks: [bloco(90)] }), sessao('d8', 'assessment', 'tarde'), sessao('d9', 'training', 'noite', { blocks: [bloco(30)] })],
+  // transição não soma: "90" sozinho não vira divisão
+  [sessao('d10', 'training', 'manha', { blocks: [bloco(90)] }), sessao('d11', 'training', 'tarde', { treino_transicao: true, blocks: [bloco(45)] })],
 ];
 
 const casosMinutos = [
@@ -63,6 +68,10 @@ const casosMinutos = [
   sessao('m3', 'match', null, { blocks: [bloco(15)] }),
   // treino de goleiro é paralelo: não soma no dia
   sessao('m4', 'training', 'tarde', { blocks: [bloco(30), { id: 'b6', name: 'Treino de goleiro', order: 6, activity: { id: 'a6', duration_minutes: 25 } }] }),
+  // treino de transição: fora do total do dia (e o goleiro dele também)
+  sessao('m5', 'training', 'manha', { treino_transicao: true, blocks: [bloco(50), { id: 'b6', name: 'Treino de goleiro', order: 6, activity: { id: 'a6', duration_minutes: 20 } }] }),
+  // treino_transicao só vale em treino
+  sessao('m6', 'match', null, { treino_transicao: true, blocks: [bloco(15)] }),
 ];
 
 const dados = {
@@ -72,7 +81,7 @@ const dados = {
   rotulos: sessoesRotulo.map((s) => ({ sessao: s, rotulos: L.rotulosAvaliacao(s), texto: L.textoAvaliacao(s) })),
   linha: casosLinha.map(([s, pilares]) => ({ sessao: s, pilares, texto: L.rotuloLinhaPeriodo(s, pilares) })),
   divisao: casosDivisao.map((periodos) => ({ periodos, divisao: L.divisaoMinutos(periodos) })),
-  minutos: casosMinutos.map((s) => ({ sessao: s, minutos: L.minutosDaSessao(s), goleiro: L.minutosGoleiro(s) })),
+  minutos: casosMinutos.map((s) => ({ sessao: s, minutos: L.minutosDaSessao(s), goleiro: L.minutosGoleiro(s), transicao: L.ehTransicao(s) })),
 };
 
 const texto = `${JSON.stringify(dados, null, 2)}\n`;

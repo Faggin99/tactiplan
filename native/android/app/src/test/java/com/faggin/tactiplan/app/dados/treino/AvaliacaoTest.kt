@@ -90,7 +90,11 @@ class AvaliacaoTest {
             assertEquals(c.o()["divisao"].s(), divisaoMinutos(dia))
         }
         d["minutos"].l().forEach { c ->
-            assertEquals((c.o()["minutos"] as JsonPrimitive).doubleOrNull!!.toInt(), minutosDoPeriodo(diaDe(c.o()["sessao"]!!)))
+            val dia = diaDe(c.o()["sessao"]!!)
+            assertEquals((c.o()["minutos"] as JsonPrimitive).doubleOrNull!!.toInt(), minutosDoPeriodo(dia))
+            // goleiro (paralelo) e transição: mesmas regras do web (minutosGoleiro / ehTransicao)
+            assertEquals("${c.o()["sessao"]}", (c.o()["goleiro"] as JsonPrimitive).doubleOrNull!!.toInt(), resumoDoDia(dia).minutosGoleiro)
+            assertEquals((c.o()["transicao"] as JsonPrimitive).booleanOrNull, dia.transicao)
         }
     }
 

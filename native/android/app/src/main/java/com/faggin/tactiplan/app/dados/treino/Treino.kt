@@ -128,7 +128,15 @@ data class Dia(
     /** Período de avaliação: os tipos ("fisica", "tecnica"…, "outra") e o texto da "Outra". */
     @SerialName("assessment_types") val tiposAvaliacao: List<String>? = null,
     @SerialName("assessment_other") val outraAvaliacao: String? = null,
+    /** Treino de transição (migration 068): só vale em treino; fora do total do dia e das estatísticas. */
+    @SerialName("treino_transicao") val transicaoBruta: Boolean? = null,
+    /** Jogo: escudo do adversário (próprio ou herdado), mando ('home'|'away'|'neutral') e horário ("19:30"). */
+    @SerialName("opponent_logo") val escudoAdversario: String? = null,
+    @SerialName("match_location") val mando: String? = null,
+    @SerialName("match_kickoff") val horarioJogo: String? = null,
 ) {
+    /** Treino de transição (igual ao ehTransicao do web): só em período de treino. */
+    val transicao: Boolean get() = tipo == TipoDia.TREINO && transicaoBruta == true
     val diaDaSemana: Int get() = diaDaSemanaBruto ?: 0
     val tipo: TipoDia get() = TipoDia.de(tipoBruto)
 

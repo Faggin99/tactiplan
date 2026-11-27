@@ -75,7 +75,8 @@ private func ok(_ s: String) -> Resposta { Resposta(status: 200, corpo: Data(s.u
         #expect(c["category_id"] == .nulo)
         #expect(c["club_id"] == "c1")
         #expect(Set(c.objeto!.keys) == ["name", "position", "jersey_number", "status", "observation", "group", "photo_url", "club_id",
-                                         "category_id", "birthdate", "height_cm", "preferred_foot", "previous_club"])
+                                         "category_id", "birthdate", "height_cm", "preferred_foot", "previous_club", "lado_preferido"])
+        #expect(c["lado_preferido"] == .nulo, "só zagueiro tem lado")
     }
 
     @Test func `atleta decodifica camisa em texto e grupo numerico`() throws {

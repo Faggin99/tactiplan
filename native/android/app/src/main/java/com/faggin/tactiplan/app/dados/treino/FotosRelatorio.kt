@@ -36,7 +36,7 @@ data class PreferenciasFotos(
     val tamanho: Int? = null,
 )
 
-fun chavePreferenciasFotos(usuarioId: String?): String = "tp.relatorio.fotos.v1.${usuarioId ?: "anon"}"
+fun chavePreferenciasFotos(usuarioId: String?): String = "tp.relatorio.fotos.v2.${usuarioId ?: "anon"}" // v2 (27/11): padrão virou "ao lado, à esquerda"
 
 data class GrupoFotos(val id: String, val rotulo: String?, val ids: List<String>)
 
@@ -147,7 +147,7 @@ data class EscolhaFotos(
             return JsonObject(o)
         }
 
-    val rotuloPrevia: String get() = if (!semana && posicao == "blocos") "Ficha" else "Fotos"
+    val rotuloPrevia: String get() = if (!semana && posicao != "fim") "Ficha" else "Fotos"
 
     fun mudarTamanho(v: Double) =
         copy(tamanho = ((v / 10).roundToInt() * 10).coerceIn(TAMANHO_FOTO_MIN, TAMANHO_FOTO_MAX))
@@ -165,12 +165,22 @@ data class EscolhaFotos(
                 legendas = p?.legendas ?: true,
                 tamanho = (p?.tamanho ?: TAMANHO_FOTO_MAX).coerceIn(TAMANHO_FOTO_MIN, TAMANHO_FOTO_MAX),
                 agrupar = p?.agrupar ?: true,
-                posicao = if (p?.posicao == "blocos") "blocos" else "fim",
+                posicao = normalizarPosicaoFotos(p?.posicao),
                 ordem = lista.fotos.map { it.id },
                 selecionadas = padrao?.ids.orEmpty().filter { it in ids }.toSet(),
             )
         }
     }
+}
+
+/** Onde as fotos ficam na FICHA (web, preferência v4): ao lado do bloco à esquerda (padrão), à direita, ou no fim. */
+val POSICOES_FOTOS = listOf("esquerda" to "Ao lado do bloco · esquerda", "direita" to "Ao lado do bloco · direita", "fim" to "No final da ficha")
+
+/** "blocos" (preferência antiga) = direita; vazio/desconhecido = esquerda (o padrão do web). */
+fun normalizarPosicaoFotos(p: String?): String = when (p) {
+    "esquerda", "direita", "fim" -> p
+    "blocos" -> "direita"
+    else -> "esquerda"
 }
 
 enum class ModoExportarFotos { ESCOLHIDAS, AUTOMATICO, SEM_FOTOS }

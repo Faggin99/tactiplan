@@ -64,10 +64,18 @@ fun resumoDoDiaInteiro(d: Dia): ResumoDia {
     val jogo = ps.firstOrNull { it.tipo == TipoDia.JOGO }
     // avaliação não soma blocos nem minutos
     val avaliacoes = ps.filter { it.tipo == TipoDia.AVALIACAO }
-    val r = resumoDoDia(d.copy(tipoBruto = TipoDia.TREINO.bruto,
-        blocos = ps.filter { it.tipo != TipoDia.AVALIACAO }.flatMap { it.blocos }, periodos = null))
+    // treino de transição: atividades e anexos contam na lista, mas minutos/pilares/goleiro não (igual ao web)
+    val transicoes = ps.filter { it.transicao }
+    val r = resumoDoDia(d.copy(tipoBruto = TipoDia.TREINO.bruto, transicaoBruta = false,
+        blocos = ps.filter { it.tipo != TipoDia.AVALIACAO && !it.transicao }.flatMap { it.blocos }, periodos = null))
+    val rt = transicoes.map { resumoDoDia(it) }
     val tiposAv = avaliacoes.flatMap { rotulosAvaliacao(it) }.distinct()
+    val treinos = ps.filter { it.tipo == TipoDia.TREINO }
     return r.copy(
+        blocosComAtividade = r.blocosComAtividade + rt.sumOf { it.blocosComAtividade },
+        atividades = r.atividades + rt.sumOf { it.atividades },
+        anexos = r.anexos + rt.sumOf { it.anexos },
+        transicao = treinos.isNotEmpty() && treinos.all { it.transicao } && jogoOuNada(ps),
         tipo = when {
             jogo != null -> TipoDia.JOGO
             avaliacoes.size == ps.size -> TipoDia.AVALIACAO
@@ -78,6 +86,9 @@ fun resumoDoDiaInteiro(d: Dia): ResumoDia {
         avaliacao = if (avaliacoes.isEmpty()) null else tiposAv.joinToString(", "),
     )
 }
+
+/** Dia sem jogo (o dia com jogo aparece como jogo, nunca como transição). */
+private fun jogoOuNada(ps: List<Dia>): Boolean = ps.none { it.tipo == TipoDia.JOGO }
 
 /** Os nomes que ainda cabem (vazio = não dá: descanso ou já tem 3). Dia de 1 período: os 3. */
 fun periodosDisponiveis(d: Dia): List<Periodo> {
@@ -97,8 +108,8 @@ fun periodoEfetivo(d: Dia): Periodo? = if (d.tipo == TipoDia.DESCANSO) null else
 /** Título da linha na Semana: treino de 1 período = "Manhã · Tático" (ou "Manhã · Treino"); o resto como antes. */
 fun tituloDaLinhaDoDia(d: Dia): String {
     if (d.temPeriodos) {
-        // com avaliação: cada período na linha ("Manhã · Avaliação + Tarde · Tático")
-        if (d.listaPeriodos.any { it.tipo == TipoDia.AVALIACAO }) {
+        // com avaliação ou transição: cada período na linha ("Manhã · Avaliação + Tarde · Tático", "… + Tarde · Transição")
+        if (d.listaPeriodos.any { it.tipo == TipoDia.AVALIACAO || it.transicao }) {
             return d.listaPeriodos.joinToString(" + ") { p ->
                 val r = resumoDoDia(p)
                 rotuloLinhaPeriodo(p, if (p.tipo == TipoDia.TREINO) listOf(if (r.pilares.isEmpty()) "Treino" else r.rotuloPilares) else emptyList())
@@ -110,7 +121,7 @@ fun tituloDaLinhaDoDia(d: Dia): String {
     if (r.tipo == TipoDia.AVALIACAO) return rotuloLinhaPeriodo(d)
     val p = periodoEfetivo(d)
     if (r.tipo != TipoDia.TREINO || p == null) return tituloDaLinha(r)
-    return "${p.rotulo} · ${if (r.pilares.isEmpty()) "Treino" else r.rotuloPilares}"
+    return "${p.rotulo} · ${if (r.transicao) "Transição" else if (r.pilares.isEmpty()) "Treino" else r.rotuloPilares}"
 }
 
 /** Sugestão ao abrir "Adicionar período": dia único → (o horário dele, o 1º outro); senão (null, 1º livre). */

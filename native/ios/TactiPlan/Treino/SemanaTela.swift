@@ -4,6 +4,8 @@ import TactiPlanKit
 // Aba Semana (T1): a grade 7 × 6 do web vira lista de 7 dias. Pílulas da semana (‹ 19–25 out ›,
 // "Hoje"), herói do dia de hoje (tempo, pilar predominante POR TEMPO, tema do mês), uma linha por
 // dia (tipo, pilar, barra dos pilares, minutos, distância ideal, 📎) e o PDF da semana.
+// 27/11: clipe "Arquivos da semana" (com o número) na barra; dia de jogo com os dois escudos (mandante primeiro)
+// e o horário; "+N′ gol" ao lado do total; treino de transição "Manhã · Transição".
 // Puxar para atualizar. A regra toda vem do Kit (Semana.swift).
 //
 // Categoria: o planejamento do web é POR CLUBE (microciclo sem categoria — 0 de 22 em produção
@@ -18,6 +20,8 @@ final class SemanaModelo: ObservableObject {
     @Published private(set) var dias: [Dia] = []
     @Published private(set) var estado: Estado = .carregando
     @Published private(set) var tema: TemaDoMes?
+    /// Arquivos da semana (material da comissão; o número vai no clipe da barra).
+    @Published private(set) var arquivosSemana: [ArquivoSemana] = []
 
     let servico: ServicoTreino
     let clubeId: String
@@ -40,6 +44,7 @@ final class SemanaModelo: ObservableObject {
         if !forcar, let m = cache[s.identificador] {
             dias = diasDaSemana(m, s)
             estado = .pronto
+            await carregarArquivos()
             return
         }
         if dias.allSatisfy({ $0.id == nil }) || !forcar { estado = .carregando }
@@ -56,13 +61,22 @@ final class SemanaModelo: ObservableObject {
             guard s == semana else { return }
             estado = .erro(mensagemDeErro(error))
         }
-        // Tema do mês: melhor esforço (some se falhar).
+        // Tema do mês e arquivos da semana: melhor esforço (somem se falhar).
         let mes = String(s.segunda.prefix(7))
         tema = try? await servico.api.temaDoMes(mes: mes, clubeId: clubeId)
+        await carregarArquivos()
+    }
+
+    /// Arquivos da semana em uso (melhor esforço; a folha recarrega depois de enviar/apagar).
+    func carregarArquivos() async {
+        let s = semana
+        guard let l = try? await servico.api.arquivosDaSemana(semana: s.identificador, clubeId: clubeId), s == semana else { return }
+        arquivosSemana = l
     }
 
     func ir(_ n: Int) {
         semana = n == 0 ? SemanaISO(data: hoje) : semana.somando(semanas: n)
+        arquivosSemana = []
         dias = diasDaSemana(cache[semana.identificador] ?? nil, semana)
         Task { await carregar() }
     }
@@ -83,6 +97,7 @@ struct SemanaTela: View {
     @StateObject private var modelo: SemanaModelo
     @StateObject private var exportar: ExportadorRelatorio
     @Environment(\.tema) private var tema
+    @State private var verArquivos = false
 
     init(sessao: Sessao, contexto: ContextoClube, servico: ServicoTreino, aoSessaoAcabar: @escaping (Error) -> Bool) {
         self.sessao = sessao
@@ -105,6 +120,23 @@ struct SemanaTela: View {
                             .frame(width: ALVO_TOQUE, height: ALVO_TOQUE)
                     }
                     .accessibilityLabel("Estatísticas de treino")
+                }
+                if contexto.clube != nil && contexto.pode("training:view") {
+                    Button { verArquivos = true } label: {
+                        Image(systemName: "paperclip").font(.system(size: 18, weight: .semibold))
+                            .frame(width: ALVO_TOQUE, height: ALVO_TOQUE)
+                            .overlay(alignment: .topTrailing) {
+                                if !modelo.arquivosSemana.isEmpty {
+                                    Text("\(modelo.arquivosSemana.count)")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundColor(tema.cores.sobreAcao.color)
+                                        .padding(.horizontal, 4).frame(minWidth: 16, minHeight: 16)
+                                        .background(Capsule().fill(tema.cores.acao.color))
+                                        .offset(x: -4, y: 6)
+                                }
+                            }
+                    }
+                    .accessibilityLabel(rotuloArquivosSemana(modelo.arquivosSemana.count))
                 }
                 if podeExportarSemana {
                     Button { exportarSemana() } label: {
@@ -131,6 +163,11 @@ struct SemanaTela: View {
         }
         .task { await modelo.carregar() }
         .modifier(ApresentacaoRelatorio(exportar: exportar))
+        .sheet(isPresented: $verArquivos) {
+            ArquivosSemanaFolha(modelo: modelo, podeEditar: contexto.podeEditar("training:edit"), base: app.base)
+                .environment(\.tema, tema)
+                .environmentObject(app)
+        }
     }
 
     private var podeExportarSemana: Bool {
@@ -201,7 +238,7 @@ struct SemanaTela: View {
                 ForEach(Array(modelo.dias.enumerated()), id: \.element.data) { i, d in
                     if i > 0 { Divisoria() }
                     NavigationLink { destino(d) } label: {
-                        LinhaDoDia(dia: d, hoje: d.data == modelo.hoje)
+                        LinhaDoDia(dia: d, hoje: d.data == modelo.hoje, clube: contexto.clube)
                     }
                     .buttonStyle(.plain)
                 }
@@ -224,9 +261,9 @@ struct HeroiDoDia: View {
         // "2 períodos · 90+60" — sem a divisão quando só um período tem minutos (nunca "125+0")
         let selo = seloPeriodos(dia).map { sl in divisaoMinutos(dia).map { "\(sl) · \($0)" } ?? sl }
         let frase = [fraseDoHeroi(r), selo, tema?.frase].compactMap { $0 }.joined(separator: "\n")
+        let valorTreino = textoTotalComGoleiro(r) ?? (r.transicao && r.blocosComAtividade > 0 ? "Transição" : "Sem atividades")
         CartaoHeroi(rotulo: "Hoje · \(rotuloDiaMinusculo(dia.data))", selo: r.tipo.rotulo,
-                    valor: r.tipo == .treino ? (r.minutos > 0 ? "\(r.minutos) min" : "Sem atividades")
-                        : tituloDaLinha(r),
+                    valor: r.tipo == .treino ? valorTreino : tituloDaLinha(r),
                     frase: frase)
             .accessibilityHint("Abre o dia")
     }
@@ -236,11 +273,13 @@ struct HeroiDoDia: View {
 struct LinhaDoDia: View {
     let dia: Dia
     let hoje: Bool
+    var clube: Clube? = nil
     @Environment(\.tema) private var tema
 
     var body: some View {
         let c = tema.cores
         let r = resumoDoDiaInteiro(dia)
+        let jogo = periodoDeJogo(dia)
         let sd = siglaEDia(dia.data)
         HStack(spacing: 12) {
             VStack(spacing: 0) {
@@ -252,8 +291,17 @@ struct LinhaDoDia: View {
             .background(RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(hoje ? c.acao.color : c.neutroFundo.color))
             VStack(alignment: .leading, spacing: 4) {
+                // dia de jogo: os dois escudos (mandante primeiro) e o horário embaixo
+                if let jogo {
+                    HStack(spacing: 8) {
+                        EscudosDoJogo(clube: clube, jogo: jogo, tamanho: 24)
+                        if let h = horarioDoJogo(jogo.horario) {
+                            Text(h).tipo(Tipos.corpo13.comPeso(.seminegrito)).foregroundColor(c.tinta2.color)
+                        }
+                    }
+                }
                 HStack(spacing: 6) {
-                    if r.tipo == .jogo { Image(systemName: "trophy.fill").foregroundColor(c.avisoTinta.color) }
+                    if r.tipo == .jogo && jogo == nil { Image(systemName: "trophy.fill").foregroundColor(c.avisoTinta.color) }
                     if r.tipo == .descanso { Image(systemName: "moon.fill").foregroundColor(c.tinta2.color) }
                     if r.tipo == .avaliacao || r.avaliacao != nil { Image(systemName: "checklist").foregroundColor(c.acaoTinta.color) }
                     Text(tituloDaLinhaDoDia(dia))
@@ -288,6 +336,7 @@ struct LinhaDoDia: View {
 
     private func rotuloAcessivel(_ r: ResumoDia) -> String {
         var p = [rotuloDiaCurto(dia.data) + (hoje ? ", hoje" : ""), tituloDaLinhaDoDia(dia)]
+        if let h = periodoDeJogo(dia).flatMap({ horarioDoJogo($0.horario) }) { p.append("às \(h)") }
         if let selo = seloPeriodos(dia) { p.append(divisaoMinutos(dia).map { "\(selo): \($0) minutos" } ?? selo) }
         let d = detalheDaLinha(r)
         if !d.isEmpty { p.append(d) }

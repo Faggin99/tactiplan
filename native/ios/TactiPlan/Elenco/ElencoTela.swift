@@ -6,6 +6,7 @@ import TactiPlanKit
 // posição (GOL, LD, ZAG, LE, VOL, MEI, ED, EE, CA) — as regras do PlantelPage do web, no Kit.
 // Segurar a linha = "Mover para…" (PUT /api/athletes/batch-groups, como o arrastar do web).
 // "+" cadastra; o PDF do plantel sai do servidor (POST /api/reports/plantel).
+// 27/11: alternar Lista | Campograma (o elenco no campo em pé; zagueiros por lado; DM em vermelho; toque abre a ficha).
 
 @MainActor
 final class ElencoModelo: ObservableObject {
@@ -75,6 +76,8 @@ struct ElencoTela: View {
     @Environment(\.tema) private var tema
     @State private var parte = 0
     @State private var novo = false
+    /// 0 = Lista, 1 = Campograma.
+    @State private var vista = 0
 
     init(sessao: Sessao, contexto: ContextoClube, servico: ServicoElenco, treino: ServicoTreino,
          aoSessaoAcabar: @escaping (Error) -> Bool) {
@@ -152,9 +155,16 @@ struct ElencoTela: View {
     @ViewBuilder
     private var atletas: some View {
         let c = tema.cores
-        Campo(dica: "Buscar atleta (nome ou camisa)", valor: $modelo.busca, envio: .search)
-            .accessibilityLabel("Buscar atleta")
-        filtros
+        Picker("Ver como", selection: $vista) {
+            Text("Lista").tag(0)
+            Text("Campograma").tag(1)
+        }
+        .pickerStyle(.segmented)
+        if vista == 0 {
+            Campo(dica: "Buscar atleta (nome ou camisa)", valor: $modelo.busca, envio: .search)
+                .accessibilityLabel("Buscar atleta")
+            filtros
+        }
         switch modelo.estado {
         case .carregando:
             ForEach(0..<4, id: \.self) { _ in EsqueletoLinha() }
@@ -170,6 +180,9 @@ struct ElencoTela: View {
                                 texto: podeEditar ? TEXTO_ELENCO_VAZIO_EDITA : TEXTO_ELENCO_VAZIO_LE,
                                 acao: podeEditar ? ("Novo atleta", { novo = true }) : nil)
                 }
+            } else if vista == 1 {
+                CampogramaVista(atletas: modelo.pacote.atletas, lesoesAtivas: modelo.pacote.lesoesAtivas,
+                                modalidade: contexto.clube?.modalidade) { a in fichaDo(a) }
             } else {
                 Text(resumoElenco(modelo.pacote.atletas))
                     .tipo(Tipos.corpo13.comPeso(.medio))
@@ -226,13 +239,17 @@ struct ElencoTela: View {
         }
     }
 
+    private func fichaDo(_ a: Atleta) -> some View {
+        AtletaTela(atleta: a, sessao: sessao, contexto: contexto, servico: modelo.servico,
+                   categorias: modelo.pacote.categorias, aoSessaoAcabar: modelo.aoSessaoAcabar,
+                   aoMudar: { Task { await modelo.carregar() } })
+    }
+
     private func linha(_ a: Atleta) -> some View {
         let c = tema.cores
         let lesao = modelo.pacote.lesoesAtivas.first { $0.atletaId == a.id }
         return NavigationLink {
-            AtletaTela(atleta: a, sessao: sessao, contexto: contexto, servico: modelo.servico,
-                       categorias: modelo.pacote.categorias, aoSessaoAcabar: modelo.aoSessaoAcabar,
-                       aoMudar: { Task { await modelo.carregar() } })
+            fichaDo(a)
         } label: {
             HStack(spacing: 12) {
                 Text(a.camisa.map(String.init) ?? "—")

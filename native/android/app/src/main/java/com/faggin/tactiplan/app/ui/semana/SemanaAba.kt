@@ -145,6 +145,8 @@ sealed interface TelaSemana {
     class Fotos(val pedido: PedidoFotos, val volta: TelaSemana) : TelaSemana
     /** T2: o jogo do dia (a mesma tela da aba Jogos). */
     data class Jogo(val sessaoId: String, val data: String) : TelaSemana
+    /** Arquivos da comissão da semana (27/11). */
+    data object Arquivos : TelaSemana
 }
 
 const val TAG_DIA = "semana:dia:"
@@ -169,6 +171,7 @@ fun SemanaAba(amb: AmbienteClube, treino: ServicoTreino) {
     var versao by remember { mutableIntStateOf(0) }
     var aviso by remember { mutableStateOf<String?>(null) }
     var exportando by remember { mutableStateOf(false) }
+    var nArquivos by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(semana, clubeId, versao) {
         if (clubeId == null) return@LaunchedEffect
@@ -187,6 +190,7 @@ fun SemanaAba(amb: AmbienteClube, treino: ServicoTreino) {
         }
         carregando = false
         tema = try { treino.api.temaDoMes(semana.segunda.take(7), clubeId) } catch (_: Exception) { null }
+        nArquivos = try { treino.api.arquivosDaSemana(semana.identificador, clubeId).size } catch (_: Exception) { 0 }
     }
     val dias = remember(microciclo, semana) { diasDaSemana(microciclo?.takeIf { it.semana == null || it.semana == semana.identificador }, semana) }
     val recarregar: () -> Unit = { versao++ }
@@ -214,7 +218,14 @@ fun SemanaAba(amb: AmbienteClube, treino: ServicoTreino) {
             irParaHoje = { segunda = SemanaISO.de(hojeBrasilia()).segunda; carregou = false; microciclo = null },
             atualizar = recarregar, abrirDia = { tela = TelaSemana.DoDia(it.data) },
             exportarSemana = clubeId?.let { id -> { exportar("semana", corpoRelatorioSemana(semana, id), nomePdfDaSemana(semana, ctx.nome)) } },
+            abrirArquivos = if (clubeId != null && ctx.pode("training:view")) ({ tela = TelaSemana.Arquivos }) else null,
+            nArquivos = nArquivos,
         )
+        TelaSemana.Arquivos -> {
+            BackHandler { tela = TelaSemana.Lista; recarregar() }
+            if (clubeId == null) LaunchedEffect(Unit) { tela = TelaSemana.Lista }
+            else ArquivosDaSemanaTela(amb, treino, semana, clubeId, voltar = { tela = TelaSemana.Lista; recarregar() })
+        }
         is TelaSemana.DoDia -> {
             val dia = dias.firstOrNull { it.data == t.data }
             if (dia == null || clubeId == null) {
@@ -273,6 +284,8 @@ fun SemanaTela(
     atualizar: () -> Unit,
     abrirDia: (Dia) -> Unit,
     exportarSemana: (() -> Unit)?,
+    abrirArquivos: (() -> Unit)? = null,
+    nArquivos: Int = 0,
 ) {
     val ctx = amb.contexto
     val c = TactiPlan.cores
@@ -283,6 +296,11 @@ fun SemanaTela(
         TelaRaiz("Semana", acoes = {
             if (abrirStats != null) IconButton(onClick = { abrirStats(true) }, modifier = Modifier.testTag("semana:estatisticas")) {
                 Icon(Icones.grafico, contentDescription = "Estatísticas de treino")
+            }
+            if (abrirArquivos != null) IconButton(onClick = abrirArquivos, modifier = Modifier.testTag("semana:arquivos")) {
+                androidx.compose.material3.BadgedBox(badge = { if (nArquivos > 0) androidx.compose.material3.Badge { Text("$nArquivos") } }) {
+                    Icon(Icones.clipe, contentDescription = if (nArquivos > 0) "Arquivos da semana: $nArquivos" else "Arquivos da semana")
+                }
             }
             if (podeExportar) {
                 IconButton(onClick = { exportarSemana?.invoke() }, enabled = !exportando, modifier = Modifier.testTag(TAG_EXPORTAR_SEMANA)) {
@@ -314,7 +332,7 @@ fun SemanaTela(
                     RotuloSecao("Dias")
                     Cartao(preenchimento = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp, vertical = 4.dp)) {
                         dias.forEachIndexed { i, d ->
-                            LinhaDia(d, hoje = d.data == hoje) { abrirDia(d) }
+                            LinhaDia(amb, d, hoje = d.data == hoje) { abrirDia(d) }
                             if (i < dias.lastIndex) androidx.compose.material3.HorizontalDivider(color = c.borda)
                         }
                     }
@@ -357,7 +375,7 @@ private fun Esqueleto() {
 }
 
 @Composable
-private fun LinhaDia(d: Dia, hoje: Boolean, aoTocar: () -> Unit) {
+private fun LinhaDia(amb: AmbienteClube, d: Dia, hoje: Boolean, aoTocar: () -> Unit) {
     val c = TactiPlan.cores
     val r = resumoDoDiaInteiro(d)
     val selo = seloPeriodos(d)
@@ -389,6 +407,10 @@ private fun LinhaDia(d: Dia, hoje: Boolean, aoTocar: () -> Unit) {
                 Text(titulo, style = TactiPlan.tipos.corpo15, fontWeight = FontWeight.SemiBold, color = c.tinta,
                     maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                 if (selo != null) Box(Modifier.padding(start = 6.dp).testTag("dia:selo-periodos")) { Pastilha(selo, Tom.NEUTRO) }
+            }
+            // jogo: os dois escudos (mandante primeiro) e o horário, como na Programação do web
+            d.listaPeriodos.firstOrNull { it.tipo == TipoDia.JOGO }?.let { j ->
+                Box(Modifier.padding(top = 4.dp)) { EscudosDoJogo(amb, j, tamanho = 24.dp) }
             }
             if (r.minutosPorPilar.isNotEmpty()) BarraPilares(r.minutosPorPilar)
             if (detalhe.isNotEmpty() || r.anexos > 0) {
@@ -464,6 +486,29 @@ fun DiaTela(
     var editando by remember { mutableStateOf<Int?>(null) }
     // Período de avaliação: a folha dos tipos (trocar o tipo para Avaliação / editar os tipos)
     var escolhendoAvaliacao by remember { mutableStateOf(false) }
+    // Sessões salvas (27/11): salvar este período / usar uma salva nele
+    var pedirNomeSessao by remember { mutableStateOf(false) }
+    var salvandoSessao by remember { mutableStateOf(false) }
+    var escolhendoSessao by remember { mutableStateOf(false) }
+    var sessaoParaUsar by remember { mutableStateOf<com.faggin.tactiplan.app.dados.treino.SessaoSalva?>(null) }
+    var substituirN by remember { mutableStateOf<Int?>(null) }
+    var mudandoTransicao by remember { mutableStateOf(false) }
+
+    fun usarSessao(sessao: com.faggin.tactiplan.app.dados.treino.SessaoSalva, substituir: Boolean) {
+        avisar(null)
+        escopo.launch {
+            try {
+                treino.usarSessaoSalva(sessao.id, dia, semana, clubeId, substituir)
+                sessaoParaUsar = null
+                avisar("Sessão \"${sessao.nome}\" aplicada neste treino.")
+                mudou()
+            } catch (e: Exception) {
+                val n = com.faggin.tactiplan.app.dados.treino.atividadesQueSeraoSubstituidas(e)
+                if (n != null) { sessaoParaUsar = sessao; substituirN = n }
+                else if (!amb.tratarErro(e)) avisar(mensagemErroTreino(e))
+            }
+        }
+    }
 
     fun trocarTipo(tipo: TipoDia, adversario: String?, avaliacao: EscolhaAvaliacao? = null) {
         mudandoTipo = true
@@ -483,6 +528,8 @@ fun DiaTela(
     val podeRemover = diaInteiro.temPeriodos && ctx.podeEditar("training:delete")
     val horariosLivres = if (podeEditar) periodosParaTrocar(diaInteiro, dia) else emptyList()
     val podeExportarPeriodo = diaInteiro.temPeriodos && ctx.conta.somenteLeitura != true && dia.id != null
+    val podeSalvarSessao = podeEditar && dia.tipo == TipoDia.TREINO && dia.id != null && r.blocosComAtividade > 0
+    val podeUsarSessao = podeEditar && dia.tipo == TipoDia.TREINO
     TelaRaiz(rotuloDiaCurto(dia.data), aoVoltar = voltar, pequena = true, acoes = {
         val idDia = diaInteiro.id
         if (idDia != null && ctx.pode("training:view")) {
@@ -496,7 +543,7 @@ fun DiaTela(
                 }
             }
         }
-        if (podeAdicionar || podeRemover || podeExportarPeriodo || horariosLivres.isNotEmpty()) {
+        if (podeAdicionar || podeRemover || podeExportarPeriodo || horariosLivres.isNotEmpty() || podeSalvarSessao || podeUsarSessao) {
             Box {
                 IconButton(onClick = { menuAberto = true }, modifier = Modifier.testTag("dia:menu-periodos")) {
                     Icon(Icones.mais, contentDescription = "Períodos do dia")
@@ -510,6 +557,10 @@ fun DiaTela(
                         onClick = { menuAberto = false; confirmarRemover = true }, modifier = Modifier.testTag("dia:periodo:remover"))
                     if (podeExportarPeriodo) DropdownMenuItem(text = { Text("Exportar só ${rotuloDoPeriodo(dia.periodo) ?: "o período"} (PDF)") },
                         onClick = { menuAberto = false; exportarPeriodo(dia) }, modifier = Modifier.testTag("dia:periodo:exportar"))
+                    if (podeSalvarSessao) DropdownMenuItem(text = { Text("Salvar sessão") },
+                        onClick = { menuAberto = false; pedirNomeSessao = true }, modifier = Modifier.testTag("dia:sessao:salvar"))
+                    if (podeUsarSessao) DropdownMenuItem(text = { Text("Usar sessão salva") },
+                        onClick = { menuAberto = false; escolhendoSessao = true }, modifier = Modifier.testTag("dia:sessao:usar"))
                 }
             }
         }
@@ -559,13 +610,41 @@ fun DiaTela(
             }
         }
         if (dia.tipo == TipoDia.JOGO && !dia.adversario.isNullOrBlank()) {
-            Text("Jogo vs ${dia.adversario}", style = TactiPlan.tipos.cabecalho17, color = c.tinta)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                EscudosDoJogo(amb, dia, tamanho = 34.dp, comHorario = false)
+                Column(Modifier.weight(1f)) {
+                    Text("Jogo vs ${dia.adversario}", style = TactiPlan.tipos.cabecalho17, color = c.tinta)
+                    com.faggin.tactiplan.app.dados.treino.horarioDoJogo(dia)?.let { Text(it, style = TactiPlan.tipos.corpo13, color = c.tinta2) }
+                }
+            }
+        }
+        if (dia.tipo == TipoDia.TREINO) {
+            // treino de transição (migration 068): fora do total do dia e das estatísticas
+            com.faggin.tactiplan.app.ui.comum.LinhaInterruptor(
+                Icones.rota, "Treino de transição", dia.transicao, detalhe = com.faggin.tactiplan.app.dados.treino.TEXTO_TRANSICAO,
+                habilitado = podeEditar && !mudandoTransicao,
+                aoMudar = { liga ->
+                    mudandoTransicao = true
+                    avisar(null)
+                    escopo.launch {
+                        try { treino.mudarTransicao(dia, liga, semana, clubeId); mudou() } catch (e: Exception) {
+                            if (!amb.tratarErro(e)) avisar(mensagemErroTreino(e))
+                        }
+                        mudandoTransicao = false
+                    }
+                },
+            )
         }
         if (dia.tipo != TipoDia.DESCANSO && dia.tipo != TipoDia.AVALIACAO) {
             Cartao {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Info("Pilar", r.rotuloPilares.ifEmpty { "—" }, Modifier.weight(1f))
-                    Info("Tempo", if (r.minutos > 0) "${r.minutos} min" else "—", Modifier.weight(1f))
+                    Info("Tempo", when {
+                        r.transicao -> "Fora do total"
+                        r.minutos > 0 -> "${r.minutos} min" + (if (r.minutosGoleiro > 0) " +${r.minutosGoleiro}′ gol" else "")
+                        r.minutosGoleiro > 0 -> "+${r.minutosGoleiro}′ gol"
+                        else -> "—"
+                    }, Modifier.weight(1f))
                     if (dia.tipo == TipoDia.TREINO) {
                         Row(Modifier.weight(1.2f), verticalAlignment = Alignment.CenterVertically) {
                             Info("Distância ideal", dia.distanciaKm?.let { "${formatarKm(it)} km" } ?: "—", Modifier.weight(1f))
@@ -606,13 +685,45 @@ fun DiaTela(
                 }
             }
             TipoDia.TREINO -> {
-                if (r.atividades == 0) {
+                if (r.blocosComAtividade == 0) {
                     Text(if (podeEditar) "$TITULO_SEM_ATIVIDADE. $TEXTO_SEM_ATIVIDADE_EDITA" else "$TITULO_SEM_ATIVIDADE. $TEXTO_SEM_ATIVIDADE_LE",
                         style = TactiPlan.tipos.corpo13, color = c.tinta2)
                 }
                 dia.blocos.forEach { b -> CartaoBloco(b, "${b.ordem} · ${b.nome.uppercase()}", podeEditar) { editando = b.ordem } }
+                SecaoAnexosDaSessao(amb, treino, semana, clubeId, dia, avisar, mudou)
             }
         }
+    }
+
+    if (pedirNomeSessao) {
+        DialogoSalvarSessao(
+            nomeInicial = com.faggin.tactiplan.app.dados.treino.nomeSugeridoSessao(dia, diaInteiro.temPeriodos), salvando = salvandoSessao,
+            cancelar = { pedirNomeSessao = false },
+            salvar = { nome ->
+                val id = dia.id
+                if (id != null) {
+                    salvandoSessao = true
+                    escopo.launch {
+                        try {
+                            treino.api.salvarSessao(nome, id)
+                            pedirNomeSessao = false
+                            avisar("Sessão \"$nome\" salva. Ela fica em Mais › Sessões salvas.")
+                        } catch (e: Exception) {
+                            pedirNomeSessao = false
+                            if (!amb.tratarErro(e)) avisar(mensagemErroTreino(e))
+                        }
+                        salvandoSessao = false
+                    }
+                }
+            },
+        )
+    }
+    if (escolhendoSessao) {
+        DialogoEscolherSessao(amb, treino, escolher = { s -> escolhendoSessao = false; usarSessao(s, false) }, cancelar = { escolhendoSessao = false })
+    }
+    substituirN?.let { n ->
+        DialogoSubstituir(n, confirmar = { substituirN = null; sessaoParaUsar?.let { usarSessao(it, true) } },
+            cancelar = { substituirN = null; sessaoParaUsar = null })
     }
 
     if (pedirAdversario) {

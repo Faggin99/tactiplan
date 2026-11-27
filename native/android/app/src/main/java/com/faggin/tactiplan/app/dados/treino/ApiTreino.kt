@@ -65,6 +65,13 @@ object CaminhosTreino {
     fun anexo(id: String) = "/files/${codificarComponente(id)}"
     fun relatorio(tipo: String) = "/reports/${codificarComponente(tipo)}"
     fun tema(mes: String, clube: String) = "/themes/adherence?month=${codificarComponente(mes)}&club_id=${codificarComponente(clube)}"
+    const val sessoesSalvas = "/treinos-modelo"
+    fun sessaoSalva(id: String) = "/treinos-modelo/${codificarComponente(id)}"
+    fun aplicarSessaoSalva(id: String) = "/treinos-modelo/${codificarComponente(id)}/aplicar"
+    fun arquivosSemana(semana: String, clube: String) =
+        "/arquivos-semana?week=${codificarComponente(semana)}&club_id=${codificarComponente(clube)}"
+    const val enviarArquivoSemana = "/arquivos-semana"
+    fun arquivoSemana(id: String) = "/arquivos-semana/${codificarComponente(id)}"
 }
 
 const val CAMPO_ANEXO = "file"
@@ -165,6 +172,25 @@ interface ApiTreino {
     suspend fun enviarMidiaAnalise(sessaoId: String, tipo: String, secao: String?, titulo: String?, arquivo: ArquivoUpload, progresso: (Double) -> Unit): List<MidiaAnalise> =
         throw UnsupportedOperationException("mídia da análise")
     suspend fun apagarMidiaAnalise(sessaoId: String, midiaId: String): List<MidiaAnalise> = throw UnsupportedOperationException("mídia da análise")
+    /** Treino de transição (PUT /sessions/:id/type com o tipo treino). */
+    suspend fun mudarTransicao(diaId: String, transicao: Boolean): Unit = throw UnsupportedOperationException("transição")
+    /** Anexo da SESSÃO (sem atividade): multipart session_id + title + file. */
+    suspend fun enviarAnexoDaSessao(sessaoId: String, arquivo: ArquivoUpload, titulo: String?, progresso: (Double) -> Unit): Anexo =
+        throw UnsupportedOperationException("anexo da sessão")
+    // sessões salvas (/api/treinos-modelo)
+    suspend fun sessoesSalvas(): List<SessaoSalva> = emptyList()
+    suspend fun salvarSessao(nome: String, sessaoId: String): String = throw UnsupportedOperationException("salvar sessão")
+    suspend fun renomearSessaoSalva(id: String, nome: String): Unit = throw UnsupportedOperationException("renomear sessão")
+    suspend fun apagarSessaoSalva(id: String): Unit = throw UnsupportedOperationException("apagar sessão")
+    /** 409 TEM_ATIVIDADES (ErroApi.extras["atividades"]) quando o treino já tem atividades e `substituir` é false. */
+    suspend fun aplicarSessaoSalva(id: String, sessaoId: String, substituir: Boolean): Unit = throw UnsupportedOperationException("usar sessão")
+    /** Excluir a conta (DELETE /api/auth/me { password }): apaga a conta e os clubes de que é dono. */
+    suspend fun excluirConta(senha: String?): Unit = throw UnsupportedOperationException("excluir conta")
+    // arquivos da semana (/api/arquivos-semana)
+    suspend fun arquivosDaSemana(semana: String, clubeId: String): List<ArquivoSemana> = emptyList()
+    suspend fun enviarArquivoSemana(semana: String, clubeId: String, arquivo: ArquivoUpload, titulo: String?, progresso: (Double) -> Unit): ArquivoSemana =
+        throw UnsupportedOperationException("arquivo da semana")
+    suspend fun apagarArquivoSemana(id: String): Unit = throw UnsupportedOperationException("arquivo da semana")
     /** Vídeo grande por link: POST .../analise/link { secao, titulo, url }. */
     suspend fun adicionarLinkAnalise(sessaoId: String, secao: String, titulo: String?, url: String): List<MidiaAnalise> =
         throw UnsupportedOperationException("link da análise")
@@ -375,6 +401,68 @@ class ApiTreinoHttp(
 
     override suspend fun apagarMidiaAnalise(sessaoId: String, midiaId: String): List<MidiaAnalise> =
         midias(j("/games/${codificarComponente(sessaoId)}/analise/midia/${codificarComponente(midiaId)}", "DELETE"))
+
+    override suspend fun mudarTransicao(diaId: String, transicao: Boolean) {
+        j(CaminhosTreino.tipoDoDia(diaId), "PUT", buildJsonObject {
+            put("session_type", TipoDia.TREINO.bruto); put("opponent_name", JsonNull); put("treino_transicao", transicao)
+        })
+    }
+
+    /** Multipart com os campos ANTES do arquivo (o multer lê na ordem). */
+    internal fun montarMultipart(caminho: String, campos: List<Pair<String, String>>, arquivo: ArquivoUpload, progresso: (Double) -> Unit): Request {
+        val corpo = MultipartBody.Builder(fronteira()).setType(MultipartBody.FORM)
+        campos.forEach { (k, v) -> corpo.addFormDataPart(k, v) }
+        corpo.addFormDataPart(CAMPO_ANEXO, arquivo.nome, CorpoComProgresso(arquivo, progresso))
+        return Request.Builder().url((api.base + caminho).toHttpUrl()).post(corpo.build())
+            .header("authorization", "Bearer $token").header("X-Workspace-Id", workspaceId).build()
+    }
+
+    private suspend fun enviarMultipart(caminho: String, campos: List<Pair<String, String>>, arquivo: ArquivoUpload, progresso: (Double) -> Unit): JsonElement {
+        val call = try { upload.newCall(montarMultipart(caminho, campos, arquivo, progresso)) } catch (e: IllegalArgumentException) { throw ErroApi.offline() }
+        return respostaOuErro(executarChamada(call), json)
+    }
+
+    override suspend fun enviarAnexoDaSessao(sessaoId: String, arquivo: ArquivoUpload, titulo: String?, progresso: (Double) -> Unit): Anexo {
+        val campos = listOf("session_id" to sessaoId) + (titulo?.trim()?.takeIf { it.isNotEmpty() }?.let { listOf("title" to it) } ?: emptyList())
+        return json.decodeFromJsonElement(Anexo.serializer(), enviarMultipart(CaminhosTreino.enviarAnexo, campos, arquivo, progresso))
+    }
+
+    override suspend fun sessoesSalvas(): List<SessaoSalva> = lerSessoesSalvas(j(CaminhosTreino.sessoesSalvas))
+
+    override suspend fun salvarSessao(nome: String, sessaoId: String): String {
+        val r = j(CaminhosTreino.sessoesSalvas, "POST", buildJsonObject { put("nome", nome.trim().take(MAX_NOME_SESSAO)); put("session_id", sessaoId) })
+        return ((r as? JsonObject)?.get("id") as? JsonPrimitive)?.contentOrNull ?: throw ErroApi(0, null, ErroApi.MSG_FALHA)
+    }
+
+    override suspend fun renomearSessaoSalva(id: String, nome: String) {
+        j(CaminhosTreino.sessaoSalva(id), "PATCH", buildJsonObject { put("nome", nome.trim().take(MAX_NOME_SESSAO)) })
+    }
+
+    override suspend fun apagarSessaoSalva(id: String) { j(CaminhosTreino.sessaoSalva(id), "DELETE") }
+
+    override suspend fun aplicarSessaoSalva(id: String, sessaoId: String, substituir: Boolean) {
+        j(CaminhosTreino.aplicarSessaoSalva(id), "POST", buildJsonObject { put("session_id", sessaoId); if (substituir) put("substituir", true) })
+    }
+
+    override suspend fun arquivosDaSemana(semana: String, clubeId: String): List<ArquivoSemana> =
+        lerArquivosSemana(j(CaminhosTreino.arquivosSemana(semana, clubeId)))
+
+    override suspend fun enviarArquivoSemana(semana: String, clubeId: String, arquivo: ArquivoUpload, titulo: String?, progresso: (Double) -> Unit): ArquivoSemana {
+        val campos = listOf("week" to semana, "club_id" to clubeId) + (titulo?.trim()?.takeIf { it.isNotEmpty() }?.let { listOf("title" to it) } ?: emptyList())
+        return json.decodeFromJsonElement(ArquivoSemana.serializer(), enviarMultipart(CaminhosTreino.enviarArquivoSemana, campos, arquivo, progresso))
+    }
+
+    override suspend fun excluirConta(senha: String?) {
+        try {
+            j("/auth/me", "DELETE", buildJsonObject { if (!senha.isNullOrEmpty()) put("password", senha) })
+        } catch (e: ErroApi) {
+            // 401 aqui é a SENHA errada, não a sessão encerrada (a regra global trataria como "entre de novo")
+            if (e.status == 401 && e.mensagem.contains("Senha", ignoreCase = true)) throw ErroApi(400, "SENHA_INCORRETA", "Senha incorreta.")
+            throw e
+        }
+    }
+
+    override suspend fun apagarArquivoSemana(id: String) { j(CaminhosTreino.arquivoSemana(id), "DELETE") }
 
     override suspend fun pptxDaAnalise(sessaoId: String): ByteArray {
         val corpo = mapOf("session_id" to JsonPrimitive(sessaoId), "formato" to JsonPrimitive("pptx"))

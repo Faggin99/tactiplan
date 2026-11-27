@@ -35,7 +35,24 @@ public protocol ApiApp: Sendable {
     func recusarConvite(token: String, convite: String) async throws -> Me
     func sair(token: String) async throws
     func registrarPush(token: String, tokenPush: String, plataforma: String) async throws
+    /// Excluir a conta (Apple 5.1.1(v)): DELETE /api/auth/me { password } (sem senha = conta só Google/Apple).
+    func excluirConta(token: String, senha: String?) async throws
 }
+
+extension ApiApp {
+    // padrão para os falsos dos testes (o ApiAppHttp implementa de verdade)
+    public func excluirConta(token: String, senha: String?) async throws { throw ErroApi.offline() }
+}
+
+/// Corpo do DELETE /api/auth/me: `{ password }` ou vazio (conta sem senha).
+public func corpoExcluirConta(senha: String?) -> Json {
+    guard let s = senha, !s.isEmpty else { return .objeto([:]) }
+    return .objeto(["password": .texto(s)])
+}
+
+public let TEXTO_EXCLUIR_CONTA = "Isso apaga sua conta e, se você for o dono, todos os clubes, atletas, treinos e jogos dela. Não dá para desfazer."
+public let MSG_SENHA_INCORRETA = "Senha incorreta"
+
 
 /// O de verdade, sobre o [Api] (HTTP).
 public final class ApiAppHttp: ApiApp {
@@ -79,6 +96,10 @@ public final class ApiAppHttp: ApiApp {
 
     public func sair(token: String) async throws {
         _ = try await api.chamarJson("/app/auth/sair", metodo: "POST", token: token)
+    }
+
+    public func excluirConta(token: String, senha: String?) async throws {
+        _ = try await api.chamarJson("/auth/me", metodo: "DELETE", corpo: corpoExcluirConta(senha: senha), token: token)
     }
 
     public func registrarPush(token: String, tokenPush: String, plataforma: String) async throws {

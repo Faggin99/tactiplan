@@ -132,6 +132,32 @@ class ServicoTreino(val api: ApiTreino) {
         api.trocarPeriodo(id, para)
     }
 
+    /** Liga/desliga o treino de transição do período (cria o dia antes, se preciso). */
+    suspend fun mudarTransicao(dia: Dia, transicao: Boolean, semana: SemanaISO, clubeId: String): String {
+        val id = diaReal(dia, semana, clubeId).id ?: throw ErroApi(0, null, ErroApi.MSG_FALHA)
+        api.mudarTransicao(id, transicao)
+        return id
+    }
+
+    /** Usa uma sessão salva no período (cria o dia antes). `substituir` = já confirmou trocar as atividades. */
+    suspend fun usarSessaoSalva(sessaoSalvaId: String, dia: Dia, semana: SemanaISO, clubeId: String, substituir: Boolean): String {
+        if (dia.tipo != TipoDia.TREINO) throw ErroApi(0, "NAO_TREINO", "A sessão salva só entra em período de treino.")
+        val real = diaReal(dia, semana, clubeId)
+        // dia com 2+ períodos: o mesmo período no dia real
+        val alvo = real.listaPeriodos.firstOrNull { it.periodo == dia.periodo && it.tipo == TipoDia.TREINO } ?: real
+        val id = alvo.id ?: throw ErroApi(0, null, ErroApi.MSG_FALHA)
+        api.aplicarSessaoSalva(sessaoSalvaId, id, substituir)
+        return id
+    }
+
+    /** Anexo da sessão (fora das atividades): cria o dia antes, se preciso. */
+    suspend fun enviarAnexoDaSessao(dia: Dia, semana: SemanaISO, clubeId: String, arquivo: ArquivoUpload, titulo: String?, progresso: (Double) -> Unit): Anexo {
+        val real = diaReal(dia, semana, clubeId)
+        val alvo = if (dia.id != null) dia else (real.listaPeriodos.firstOrNull { it.periodo == dia.periodo } ?: real)
+        val id = alvo.id ?: throw ErroApi(0, null, ErroApi.MSG_FALHA)
+        return api.enviarAnexoDaSessao(id, arquivo, titulo, progresso)
+    }
+
     suspend fun mudarDistancia(dia: Dia, km: Double?, semana: SemanaISO, clubeId: String): String {
         val id = diaReal(dia, semana, clubeId).id ?: throw ErroApi(0, null, ErroApi.MSG_FALHA)
         api.mudarDistancia(id, km)

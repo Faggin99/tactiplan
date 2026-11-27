@@ -220,10 +220,10 @@ struct FotosRelatorioTela: View {
                     }
                     if !e.semana {
                         secao("Onde ficam as fotos") {
-                            FlowChips(itens: [ItemChip(id: "fim", rotulo: "No final da ficha"), ItemChip(id: "blocos", rotulo: "Abaixo de cada bloco")],
-                                      marcados: [e.posicao]) { p in mudar { $0.posicao = p } }
-                            if e.posicao == "blocos" {
-                                Text("Cada foto vai logo abaixo do treino a que pertence. Fotos do dia sem bloco ficam no final.")
+                            FlowChips(itens: POSICOES_FOTOS.map { ItemChip(id: $0.id, rotulo: $0.rotulo) },
+                                      marcados: [normalizarPosicaoFotos(e.posicao)]) { p in mudar { $0.posicao = p } }
+                            if normalizarPosicaoFotos(e.posicao) != "fim" {
+                                Text("Cada foto vai ao lado do treino a que pertence. Fotos do dia sem bloco ficam no final.")
                                     .tipo(Tipos.corpo13).foregroundColor(c.tinta2.color)
                             }
                         }

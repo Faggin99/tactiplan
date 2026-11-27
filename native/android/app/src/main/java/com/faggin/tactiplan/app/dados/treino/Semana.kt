@@ -16,6 +16,8 @@ import kotlin.math.roundToLong
 val NOMES_BLOCOS = listOf("Academia", "Ativação", "Atividade 1", "Atividade 2", "Atividade 3", "Treino de goleiro")
 /** Bloco "Treino de goleiro": treino paralelo, fora das contas do grupo (web: lib/periodos.js ehBlocoGoleiro). */
 fun ehBlocoGoleiro(nome: String?): Boolean = nome.orEmpty().trim().equals("Treino de goleiro", ignoreCase = true)
+/** Academia e Ativação (e o antigo Aquecimento): os minutos contam, mas não entram na contagem de "atividades" (web/servidor: ehBlocoAtivacao). */
+fun ehBlocoAtivacao(nome: String?): Boolean = nome.orEmpty().trim().lowercase().let { it == "ativação" || it == "aquecimento" || it == "academia" }
 val NOMES_DIAS = listOf("Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo")
 val SIGLAS_DIAS = listOf("SEG", "TER", "QUA", "QUI", "SEX", "SÁB", "DOM")
 private val MESES_CURTOS = listOf("jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez")
@@ -127,6 +129,10 @@ data class ResumoDia(
     val adversario: String?,
     /** Tipos de avaliação do dia ("Física, Técnica"); null sem período de avaliação. */
     val avaliacao: String? = null,
+    /** Minutos do treino de goleiro (paralelo, fora do total). */
+    val minutosGoleiro: Int = 0,
+    /** Treino de transição (todos os períodos de treino do dia são de transição). */
+    val transicao: Boolean = false,
 ) {
     val rotuloPilares: String
         get() {
@@ -145,14 +151,20 @@ fun resumoDoDia(d: Dia): ResumoDia {
     val cntP = mutableMapOf<String, Int>()
     var total = 0
     var blocos = 0
+    var atividades = 0
+    var goleiro = 0
     var anexos = 0
+    // treino de transição: as atividades aparecem, mas nada soma (minutos, pilares, goleiro) — igual ao web
+    val transicao = d.transicao
     for (b in d.blocos) {
         val a = b.atividade ?: continue
         blocos++
         anexos += maxOf(0, a.anexos ?: 0)
-        // treino de goleiro é paralelo: fora do total do dia e dos pilares (igual ao web)
-        if (ehBlocoGoleiro(b.nome)) continue
+        if (!ehBlocoGoleiro(b.nome) && !ehBlocoAtivacao(b.nome)) atividades++
         val m = maxOf(0, a.minutos ?: 0)
+        // treino de goleiro é paralelo: fora do total do dia e dos pilares (igual ao web)
+        if (ehBlocoGoleiro(b.nome)) { if (!transicao) goleiro += m; continue }
+        if (transicao) continue
         total += m
         val dims = a.conteudos.orEmpty().mapNotNull { it.dimensao }.filter { it.isNotEmpty() }.toSet()
         for (dim in dims) {
@@ -172,22 +184,24 @@ fun resumoDoDia(d: Dia): ResumoDia {
     }
     val ordemBarra = ordem + dims.filter { pilarDe(it) == null }.sorted()
     val barra = ordemBarra.mapNotNull { k -> if (cntP[k] == null) null else k to (minP[k] ?: 0) }
-    return ResumoDia(d.tipo, predominantes, barra, total, blocos, blocos, anexos,
-        if (d.tipo == TipoDia.TREINO) d.distanciaKm else null, d.adversario)
+    return ResumoDia(d.tipo, predominantes, barra, total, blocos, atividades, anexos,
+        if (d.tipo == TipoDia.TREINO) d.distanciaKm else null, d.adversario, minutosGoleiro = goleiro, transicao = transicao)
 }
 
 fun tituloDaLinha(r: ResumoDia): String = when (r.tipo) {
     TipoDia.JOGO -> r.adversario?.trim()?.takeIf { it.isNotEmpty() }?.let { "Jogo vs $it" } ?: "Jogo"
     TipoDia.DESCANSO -> "Descanso"
     TipoDia.AVALIACAO -> "Avaliação"
-    TipoDia.TREINO -> if (r.pilares.isEmpty()) "Treino" else "Treino · ${r.rotuloPilares}"
+    TipoDia.TREINO -> if (r.transicao) "Treino · Transição" else if (r.pilares.isEmpty()) "Treino" else "Treino · ${r.rotuloPilares}"
 }
 
 fun detalheDaLinha(r: ResumoDia): String {
     val p = mutableListOf<String>()
     if (r.minutos > 0) p += "${r.minutos} min"
+    if (r.minutosGoleiro > 0) p += "+${r.minutosGoleiro}′ gol"
+    if (r.transicao) p += "Transição · fora do total"
     r.distanciaKm?.let { p += "${formatarKm(it)} km" }
-    if (r.tipo == TipoDia.TREINO && r.atividades == 0) p += "Sem atividades"
+    if (r.tipo == TipoDia.TREINO && r.blocosComAtividade == 0) p += "Sem atividades"
     r.avaliacao?.let { av -> p += if (av.isEmpty()) "Avaliação" else if (r.tipo == TipoDia.AVALIACAO) av else "Avaliação: $av" }
     return p.joinToString(" · ")
 }
@@ -196,7 +210,7 @@ fun fraseDoHeroi(r: ResumoDia): String = when (r.tipo) {
     TipoDia.DESCANSO -> "Dia de descanso"
     TipoDia.AVALIACAO -> "Dia de avaliação"
     TipoDia.JOGO -> r.adversario?.trim()?.takeIf { it.isNotEmpty() }?.let { "Jogo vs $it" } ?: "Dia de jogo"
-    TipoDia.TREINO -> if (r.atividades == 0) "Nenhuma atividade planejada" else {
+    TipoDia.TREINO -> if (r.blocosComAtividade == 0) "Nenhuma atividade planejada" else {
         val p = mutableListOf<String>()
         if (r.pilares.isNotEmpty()) p += "Pilar predominante ${r.rotuloPilares}"
         p += contagem(r.atividades, "atividade", "atividades")

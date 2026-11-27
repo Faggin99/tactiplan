@@ -194,13 +194,25 @@ fun idadeEm(nascimento: String?, hoje: String): Int? {
 
 /** Linha do atleta: "VOL · 17 anos". */
 fun detalheDoAtleta(a: Atleta, hoje: String): String =
-    listOfNotNull(a.posicao, idadeEm(a.nascimento, hoje)?.let { "$it anos" }, rotuloStatus(a.status).takeIf { a.status != null && a.status != "active" })
+    listOfNotNull(posicaoComLado(a.posicao, a.lado), idadeEm(a.nascimento, hoje)?.let { "$it anos" }, rotuloStatus(a.status).takeIf { a.status != null && a.status != "active" })
         .joinToString(" · ")
 
 // ---------- status, pé ----------
 
 val STATUS_ATLETA = listOf("active" to "Ativo", "injured" to "Lesionado", "suspended" to "Suspenso", "inactive" to "Inativo")
 fun rotuloStatus(s: String?): String = STATUS_ATLETA.firstOrNull { it.first == s }?.second ?: "Ativo"
+
+/** Lado do zagueiro (só ZAG): "Joga por qual lado?". */
+val LADOS = listOf("direita" to "Pela direita", "esquerda" to "Pela esquerda", "ambos" to "Pelos dois lados")
+fun posicaoUsaLado(posicao: String?): Boolean = posicao == "ZAG"
+
+/** "ZAG · D" / "ZAG · E" / "ZAG · D/E" (web: lista do Plantel); outras posições sem o lado. */
+fun posicaoComLado(posicao: String?, lado: String?): String? {
+    if (posicao == null) return null
+    if (!posicaoUsaLado(posicao)) return posicao
+    val l = when (lado) { "direita" -> "D"; "esquerda" -> "E"; "ambos" -> "D/E"; else -> null }
+    return if (l == null) posicao else "$posicao · $l"
+}
 
 val PES = listOf("right" to "Direito", "left" to "Esquerdo", "both" to "Ambidestro")
 fun rotuloPe(p: String?): String? = PES.firstOrNull { it.first == p }?.second
@@ -233,10 +245,11 @@ data class FormAtleta(
     val pe: String? = null,
     val ultimoClube: String = "",
     val observacao: String = "",
+    val lado: String? = null,
 ) {
     companion object {
         fun de(a: Atleta) = FormAtleta(a.nome, a.posicao, a.camisa, a.status ?: "active", a.grupo, a.categoriaId,
-            a.nascimento?.take(10), a.altura, a.pe, a.ultimoClube.orEmpty(), a.observacao.orEmpty())
+            a.nascimento?.take(10), a.altura, a.pe, a.ultimoClube.orEmpty(), a.observacao.orEmpty(), a.lado)
     }
 }
 
@@ -260,6 +273,8 @@ fun corpoAtleta(f: FormAtleta, clubeId: String, fotoUrl: String?): JsonObject = 
     put("height_cm", f.altura?.let { JsonPrimitive(it) } ?: JsonNull)
     put("preferred_foot", texto(f.pe))
     put("previous_club", texto(f.ultimoClube))
+    // só zagueiro tem lado; trocar de posição limpa
+    put("lado_preferido", if (posicaoUsaLado(f.posicao)) texto(f.lado) else JsonNull)
 }
 
 /** PUT /api/athletes/batch-groups. */
@@ -339,6 +354,8 @@ data class Atleta(
     @SerialName("height_cm") val altura: Int? = null,
     @SerialName("preferred_foot") val pe: String? = null,
     @SerialName("previous_club") val ultimoClube: String? = null,
+    /** Zagueiro: por qual lado joga ('direita'|'esquerda'|'ambos'; migration 067). */
+    @SerialName("lado_preferido") val lado: String? = null,
 )
 
 @Serializable

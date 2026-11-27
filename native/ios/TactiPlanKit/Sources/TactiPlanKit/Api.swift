@@ -195,7 +195,11 @@ func respostaOuErro(_ resposta: Resposta) throws -> Json {
         let demo = dados["demo"]?.booleano == true
         var extras: [String: String] = [:]
         if case .objeto(let o) = dados {
-            for (k, v) in o where k != "error" && k != "code" { if let t = v.texto { extras[k] = t } }
+            for (k, v) in o where k != "error" && k != "code" {
+                if let t = v.texto { extras[k] = t }
+                // números inteiros também (ex.: `atividades` do 409 TEM_ATIVIDADES)
+                else if let n = v.numero, n.isFinite, n == n.rounded() { extras[k] = String(Int(n)) }
+            }
         }
         throw ErroApi(
             status: resposta.status, codigo: codigo,

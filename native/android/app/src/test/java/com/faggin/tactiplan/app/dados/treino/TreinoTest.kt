@@ -456,11 +456,14 @@ class FotosRelatorioTest {
         assertEquals("1:1", e.proporcao)
         assertTrue(e.marcada("a") && !e.marcada("b"))
         assertEquals(100, e.tamanho)
-        assertEquals("fim", e.posicao)
+        assertEquals("esquerda", e.posicao) // padrão do web desde 23/11: ao lado do bloco, à esquerda
+        assertEquals("Ficha", e.rotuloPrevia)
+        assertEquals("fim", EscolhaFotos.de(lista(false), PreferenciasFotos(posicao = "fim")).posicao)
+        assertEquals("Fotos", EscolhaFotos.de(lista(false), PreferenciasFotos(posicao = "fim")).rotuloPrevia)
         val p = EscolhaFotos.de(lista(false), PreferenciasFotos("mosaico", "zzz", posicao = "blocos", tamanho = 30))
         assertEquals("mosaico", p.layout)
         assertEquals("1:1", p.proporcao)
-        assertEquals("blocos", p.posicao)
+        assertEquals("direita", p.posicao) // "blocos" antigo = direita
         assertEquals(50, p.tamanho)
         assertEquals("Ficha", p.rotuloPrevia)
     }

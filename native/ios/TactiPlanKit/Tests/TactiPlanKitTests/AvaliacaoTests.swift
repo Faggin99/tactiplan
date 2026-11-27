@@ -79,9 +79,16 @@ let JSON_MICRO_AVALIACAO = """
             let dia = try Json.objeto(o).decodificar(Dia.self)
             #expect(divisaoMinutos(dia) == c["divisao"]?.texto)
         }
+        for c in lista(d["linha"]) where c["sessao"]?["treino_transicao"] == .booleano(true) {
+            let dia = try c["sessao"]!.decodificar(Dia.self)
+            #expect(dia.treinoTransicao, "lê treino_transicao")
+        }
         for c in lista(d["minutos"]) {
             let dia = try c["sessao"]!.decodificar(Dia.self)
-            #expect(minutosDoPeriodo(dia) == Int(c["minutos"]?.numero ?? -1))
+            let id = c["sessao"]?["id"]?.texto ?? ""
+            #expect(minutosDoPeriodo(dia) == Int(c["minutos"]?.numero ?? -1), "\(id)")
+            if let g = c["goleiro"]?.numero { #expect(minutosGoleiroDoPeriodo(dia) == Int(g), "\(id)") }
+            if let t = c["transicao"]?.booleano { #expect(ehTransicao(dia) == t, "\(id)") }
         }
     }
 

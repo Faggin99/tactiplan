@@ -73,7 +73,7 @@ public func rotuloLinhaPeriodo(_ d: Dia, pilares: [String] = []) -> String {
     switch d.tipo {
     case .avaliacao: resto = ["Avaliação"]
     case .jogo: resto = ["Jogo"]
-    default: resto = pilares
+    default: resto = ehTransicao(d) ? ["Transição"] : pilares
     }
     let r = resto.joined(separator: " | ")
     guard let per else { return r }
@@ -82,3 +82,14 @@ public func rotuloLinhaPeriodo(_ d: Dia, pilares: [String] = []) -> String {
 
 /// Minutos do período (avaliação = 0; atividades antigas de quando era treino não contam).
 public func minutosDoPeriodo(_ d: Dia) -> Int { resumoDoDia(d).minutos }
+
+/// Minutos do Treino de goleiro do período (paralelo; 0 em avaliação/transição) — `minutosGoleiro` do web.
+public func minutosGoleiroDoPeriodo(_ d: Dia) -> Int { resumoDoDia(d).minutosGoleiro }
+
+/// Treino de TRANSIÇÃO (migration 068): treino próprio de quem volta do DM. Só vale em treino
+/// (`ehTransicao` do web: session_type training + treino_transicao). Fica fora do total do dia, da
+/// divisão "90+60", dos pilares e das estatísticas; as atividades continuam aparecendo e editáveis.
+public func ehTransicao(_ d: Dia) -> Bool { d.tipo == .treino && d.treinoTransicao }
+
+public let TITULO_TRANSICAO = "Treino de transição"
+public let TEXTO_TRANSICAO = "Treino de quem volta do DM. Fica fora do total do dia e das estatísticas."

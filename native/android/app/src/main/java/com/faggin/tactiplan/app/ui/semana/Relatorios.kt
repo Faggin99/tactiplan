@@ -336,11 +336,10 @@ fun FotosRelatorioTela(
                     }
                     if (!e.semana) {
                         RotuloSecao("Onde ficam as fotos")
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Chip("No final da ficha", e.posicao == "fim") { e = e.copy(posicao = "fim") }
-                            Chip("Abaixo de cada bloco", e.posicao == "blocos") { e = e.copy(posicao = "blocos") }
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            com.faggin.tactiplan.app.dados.treino.POSICOES_FOTOS.forEach { (id, rot) -> Chip(rot, e.posicao == id) { e = e.copy(posicao = id) } }
                         }
-                        if (e.posicao == "blocos") Text("Cada foto vai logo abaixo do treino a que pertence. Fotos do dia sem bloco ficam no final.",
+                        if (e.posicao != "fim") Text("Cada foto vai ao lado do bloco da atividade. Fotos do dia sem bloco ficam no final.",
                             style = TactiPlan.tipos.corpo13, color = c.tinta2)
                     }
                     RotuloSecao("Proporção")

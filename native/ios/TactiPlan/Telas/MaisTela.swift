@@ -1,12 +1,16 @@
 import SwiftUI
 import TactiPlanKit
 
-/// Mais: perfil, clube (trocar, cores e logo), aparência, segurança, conta e sair. Lista agrupada
-/// do Gestsport. Não existe "Assinatura", "Meu plano" nem "Planos" em lugar nenhum do app.
+/// Mais: perfil, clube (trocar, cores e logo), treino (sessões salvas), aparência, segurança, conta (com
+/// "Excluir minha conta", Apple 5.1.1(v)) e sair. Lista agrupada do Gestsport. Não existe "Assinatura",
+/// "Meu plano" nem "Planos" em lugar nenhum do app.
 struct MaisTela: View {
     @EnvironmentObject private var app: AppEstado
     let sessao: Sessao
     let contexto: ContextoClube
+
+    let treino: ServicoTreino
+    let aoSessaoAcabar: (Error) -> Bool
 
     @State private var confirmarSair = false
     @StateObject private var exportar: ExportadorRelatorio
@@ -15,6 +19,8 @@ struct MaisTela: View {
     init(sessao: Sessao, contexto: ContextoClube, treino: ServicoTreino, aoSessaoAcabar: @escaping (Error) -> Bool) {
         self.sessao = sessao
         self.contexto = contexto
+        self.treino = treino
+        self.aoSessaoAcabar = aoSessaoAcabar
         _exportar = StateObject(wrappedValue: ExportadorRelatorio(servico: treino, aoSessaoAcabar: aoSessaoAcabar))
     }
 
@@ -40,6 +46,18 @@ struct MaisTela: View {
                         CoresDoClubeTela(contexto: contexto)
                     } label: {
                         LinhaAgrupada(icone: "paintpalette", titulo: "Cores e logo do clube", detalhe: "Ver")
+                            .overlay(alignment: .trailing) { Seta() }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            if contexto.clube != nil, contexto.pode("training:view") {
+                ListaAgrupada("Treino") {
+                    NavigationLink {
+                        SessoesSalvasTela(sessao: sessao, contexto: contexto, servico: treino, aoSessaoAcabar: aoSessaoAcabar)
+                    } label: {
+                        LinhaAgrupada(icone: "bookmark", titulo: "Sessões salvas", detalhe: "Treinos completos para usar de novo")
                             .overlay(alignment: .trailing) { Seta() }
                     }
                     .buttonStyle(.plain)
@@ -82,6 +100,14 @@ struct MaisTela: View {
                 LinhaAgrupada(icone: "message", titulo: "Suporte", detalhe: "WhatsApp \(SUPORTE_TELEFONE_ROTULO)") {
                     if let u = URL(string: "https://wa.me/\(SUPORTE_TELEFONE)") { abrirUrl(u) }
                 }
+                Divisoria()
+                NavigationLink {
+                    ExcluirContaTela(sessao: sessao)
+                } label: {
+                    LinhaAgrupada(icone: "person.crop.circle.badge.xmark", titulo: "Excluir minha conta", tom: .erro)
+                        .overlay(alignment: .trailing) { Seta() }
+                }
+                .buttonStyle(.plain)
             }
 
             ListaAgrupada {
@@ -160,5 +186,55 @@ private struct Amostra: View {
                 .accessibilityHidden(true)
         }
         .padding(.vertical, 10)
+    }
+}
+
+/// Mais › Conta › Excluir minha conta: aviso claro, senha (conta com senha) e botão destrutivo com confirmação.
+/// Depois de excluir, a sessão é limpa e o app volta ao login. "Senha incorreta" fica na tela (não sai da conta).
+struct ExcluirContaTela: View {
+    @EnvironmentObject private var app: AppEstado
+    let sessao: Sessao
+    @Environment(\.tema) private var tema
+    @State private var senha = ""
+    @State private var confirmar = false
+    @State private var ocupado = false
+    @State private var erro: String?
+
+    /// Conta só Google/Apple não tem senha: o corpo vai vazio.
+    private var pedeSenha: Bool { sessao.me.usuario.temSenha != false }
+
+    var body: some View {
+        let _ = RegistroDeFalhas.marcar("ExcluirContaTela")
+        let c = tema.cores
+        TelaGrande("Excluir conta", empilhada: true) {
+            FaixaTom(icone: "exclamationmark.triangle.fill", texto: TEXTO_EXCLUIR_CONTA, tom: .erro)
+            if pedeSenha {
+                Campo(dica: "Sua senha", valor: $senha, conteudo: .password, secreto: true, habilitado: !ocupado)
+                    .accessibilityLabel("Senha para confirmar")
+                Text("Digite a senha para confirmar.").tipo(Tipos.corpo13).foregroundColor(c.tinta2.color)
+            }
+            if let erro { Text(erro).tipo(Tipos.corpo13.comPeso(.medio)).foregroundColor(c.erroTinta.color) }
+            Botao(texto: ocupado ? "Excluindo…" : "Excluir minha conta", variante: .perigo,
+                  habilitado: !ocupado && (!pedeSenha || !senha.isEmpty)) { confirmar = true }
+        }
+        .alert("Excluir sua conta?", isPresented: $confirmar) {
+            Button("Cancelar", role: .cancel) {}
+            Button("Excluir", role: .destructive) { excluir() }
+        } message: { Text(TEXTO_EXCLUIR_CONTA) }
+    }
+
+    private func excluir() {
+        ocupado = true
+        erro = nil
+        let s = pedeSenha ? senha : nil
+        Task {
+            defer { ocupado = false }
+            do {
+                try await app.controle.excluirConta(senha: s)
+            } catch {
+                if app.controle.tratarErro(error, token: sessao.token) { return }
+                erro = mensagemDeErro(error)
+            }
+        }
     }
 }

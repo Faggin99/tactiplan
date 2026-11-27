@@ -589,11 +589,11 @@ final class TransporteFalso: Transporte, TransporteUpload, @unchecked Sendable {
         #expect(e.proporcao == "1:1")
         #expect(e.marcada("a") && !e.marcada("b"))
         #expect(e.tamanho == 100)
-        #expect(e.posicao == "fim")
+        #expect(e.posicao == "esquerda", "padrão da ficha (v4)")
         let p = EscolhaFotos(lista: lista(semana: false), preferencias: PreferenciasFotos(layout: "mosaico", proporcao: "zzz", posicao: "blocos", tamanho: 30))
         #expect(p.layout == "mosaico")
         #expect(p.proporcao == "1:1")
-        #expect(p.posicao == "blocos")
+        #expect(p.posicao == "direita", "'blocos' antigo = direita")
         #expect(p.tamanho == 50)
         #expect(p.rotuloPrevia == "Ficha")
     }
@@ -635,10 +635,14 @@ final class TransporteFalso: Transporte, TransporteUpload, @unchecked Sendable {
         e.mudarTamanho(74)
         e.posicao = "blocos"
         let c = e.configuracao
+        #expect(c["posicao"]?.texto == "direita")
+        e.posicao = "fim"
+        #expect(e.configuracao["posicao"]?.texto == "fim")
+        #expect(e.rotuloPrevia == "Fotos")
+        e.posicao = "direita"
         #expect(c["ids"] == .lista(["a", "b"]))
         #expect(c["legendasCustom"] == .objeto(["b": "Rondo"]))
         #expect(c["tamanho"] == .numero(70))
-        #expect(c["posicao"]?.texto == "blocos")
         #expect(c["layout"]?.texto == "grande")
         let semana = EscolhaFotos(lista: lista(semana: true)).configuracao
         #expect(semana["posicao"] == nil)

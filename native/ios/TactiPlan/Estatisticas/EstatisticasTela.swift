@@ -224,10 +224,13 @@ struct EstatisticasTela: View {
                 if s.vazio {
                     Cartao { EstadoVazio(icone: "chart.bar", titulo: TITULO_SEM_TREINO_STATS, texto: TEXTO_SEM_TREINO_STATS) }
                     if s.distancia.diasComDado > 0 { CartaoDistancia(d: s.distancia) }
+                    // só treino de goleiro no período: mostra mesmo assim
+                    if s.goleiros.mostrar { CartaoGoleiros(g: s.goleiros) }
                 } else {
                     CardsTreino(s: s)
                     DistribuicaoPilares(s: s, modo: $modelo.modo, pilarSel: $modelo.pilarSel, conteudoSel: $modelo.conteudoSel)
                     if s.distancia.diasComDado > 0 { CartaoDistancia(d: s.distancia) }
+                    if s.goleiros.mostrar { CartaoGoleiros(g: s.goleiros) }
                     TopAtividades(s: s, modo: modelo.modo)
                 }
             }
@@ -539,6 +542,45 @@ struct CartaoDistancia: View {
             Text(r).tipo(Tipos.legenda11).foregroundColor(tema.cores.tinta2.color)
             Text(v).font(Tipos.corpo15.comPeso(.seminegrito).font).foregroundColor(tema.cores.tinta.color).lineLimit(1).minimumScaleFactor(0.7)
             if let s { Text(s).tipo(Tipos.legenda11).foregroundColor(tema.cores.tinta2.color).lineLimit(2) }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// "Treino de goleiro (paralelo)": fora das contas do grupo; minutos, treinos, atividades e os conteúdos (top 5).
+struct CartaoGoleiros: View {
+    let g: GoleirosStats
+    @Environment(\.tema) private var tema
+
+    var body: some View {
+        let c = tema.cores
+        let top = g.topConteudos
+        let maximo = max(1, top.map(\.minutos).max() ?? 1)
+        Cartao {
+            HStack {
+                Label("Treino de goleiro (paralelo)", systemImage: "hand.raised").font(Tipos.cabecalho17.font).foregroundColor(c.tinta.color)
+                Spacer(minLength: 0)
+            }
+            Text("Fora dos minutos, sessões e pilares do grupo.").tipo(Tipos.legenda11).foregroundColor(c.tinta2.color).padding(.top, 2)
+            HStack(spacing: 10) {
+                tile("Tempo", formatarMinutos(g.minutos))
+                tile(g.sessoes == 1 ? "Treino" : "Treinos", "\(g.sessoes)")
+                tile(g.atividades == 1 ? "Atividade" : "Atividades", "\(g.atividades)")
+            }
+            .padding(.top, 8)
+            ForEach(top) { ct in
+                BarraValor(rotulo: ct.nome, valor: formatarMinutos(ct.minutos), fracao: Double(ct.minutos) / Double(maximo),
+                           cor: corHex(pilarStats(ct.dimensao)?.cor ?? "#94a3b8"))
+            }
+            .padding(.top, 4)
+        }
+    }
+
+    private func tile(_ r: String, _ v: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(r).tipo(Tipos.legenda11).foregroundColor(tema.cores.tinta2.color)
+            Text(v).font(Tipos.corpo15.comPeso(.seminegrito).font).foregroundColor(tema.cores.tinta.color).lineLimit(1).minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)

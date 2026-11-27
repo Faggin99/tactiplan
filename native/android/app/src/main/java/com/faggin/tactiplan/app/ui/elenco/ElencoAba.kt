@@ -9,6 +9,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -57,6 +58,7 @@ import com.faggin.tactiplan.app.dados.elenco.CATEGORIA_TODAS
 import com.faggin.tactiplan.app.dados.elenco.CategoriaCadastro
 import com.faggin.tactiplan.app.dados.elenco.FOTO_MAX_BYTES
 import com.faggin.tactiplan.app.dados.elenco.FormAtleta
+import com.faggin.tactiplan.app.dados.elenco.montarCampograma
 import com.faggin.tactiplan.app.dados.elenco.GRUPOS_ELENCO
 import com.faggin.tactiplan.app.dados.elenco.Lesao
 import com.faggin.tactiplan.app.dados.elenco.MSG_FOTO_GRANDE
@@ -142,6 +144,7 @@ fun ElencoAba(amb: AmbienteClube, t3: ServicosT3) {
     var versao by remember { mutableIntStateOf(0) }
     var aviso by remember { mutableStateOf<String?>(null) }
     var exportando by remember { mutableStateOf(false) }
+    var verCampo by rememberSaveable { mutableStateOf(false) }
     val escopo = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -207,7 +210,11 @@ fun ElencoAba(amb: AmbienteClube, t3: ServicosT3) {
             return@TelaRaiz
         }
         Carregavel(carregando, erro, { versao++ }) {
-            ListaAtletas(amb, t3, atletas, lesoesAtivas, categorias, podeEditar,
+            // Lista | Campograma (web: aba Campograma do Plantel)
+            LinhaChips(listOf("lista" to "Lista", "campo" to "Campograma"), if (verCampo) "campo" else "lista",
+                { verCampo = it == "campo" }, "elenco:vista")
+            if (verCampo) CampogramaVista(montarCampograma(atletas, ctx.clube?.modalidade)) { id -> tela = TelaElenco.Ficha(id) }
+            else ListaAtletas(amb, t3, atletas, lesoesAtivas, categorias, podeEditar,
                 abrir = { tela = TelaElenco.Ficha(it.id) },
                 aviso = { aviso = it }, mudou = { versao++ })
         }
@@ -445,6 +452,10 @@ private fun FichaAtletaTela(
             listOf<Pair<String?, String>>(null to "Sem categoria (clube todo)") + categorias.map { it.id to it.rotulo },
             { form = form.copy(categoriaId = it) }, habilitado = podeEditar)
         CampoData("Data de nascimento", form.nascimento, { if (podeEditar) form = form.copy(nascimento = it) })
+        if (com.faggin.tactiplan.app.dados.elenco.posicaoUsaLado(form.posicao)) {
+            Seletor("Joga por qual lado?", form.lado, listOf<Pair<String?, String>>(null to "—") + com.faggin.tactiplan.app.dados.elenco.LADOS,
+                { form = form.copy(lado = it) }, habilitado = podeEditar, tag = "atleta:lado")
+        }
         Seletor("Pé preferencial", form.pe, listOf<Pair<String?, String>>(null to "—") + PES, { form = form.copy(pe = it) }, habilitado = podeEditar)
         Campo(form.ultimoClube, { form = form.copy(ultimoClube = it) }, "Último clube", habilitado = podeEditar)
         CampoLongo(form.observacao, { if (podeEditar) form = form.copy(observacao = it) }, "Observação")
@@ -588,5 +599,57 @@ private fun NovaLesao(cancelar: () -> Unit, registrar: (String, String, String, 
                 }, Modifier.weight(1f).testTag("lesao:salvar"), habilitado = !ocupado && tipo.isNotBlank())
             }
         }
+    }
+}
+
+/** Campograma: o elenco no campo em pé (ataque para cima); DM em vermelho, transição em amarelo; toque abre a ficha. */
+@Composable
+private fun CampogramaVista(cg: com.faggin.tactiplan.app.dados.elenco.Campograma, abrir: (String) -> Unit) {
+    val c = TactiPlan.cores
+    val linha = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.55f)
+    androidx.compose.foundation.layout.BoxWithConstraints(
+        Modifier.fillMaxWidth().aspectRatio(68f / 105f).clip(RoundedCornerShape(16.dp))
+            .background(androidx.compose.ui.graphics.Color(0xFF2E7D32)).testTag("elenco:campograma"),
+    ) {
+        val w = maxWidth
+        val h = maxHeight
+        // marcações do campo
+        androidx.compose.foundation.Canvas(Modifier.matchParentSize()) {
+            val s = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5.dp.toPx())
+            val m = 8.dp.toPx()
+            drawRect(linha, topLeft = androidx.compose.ui.geometry.Offset(m, m),
+                size = androidx.compose.ui.geometry.Size(size.width - 2 * m, size.height - 2 * m), style = s)
+            drawLine(linha, androidx.compose.ui.geometry.Offset(m, size.height / 2), androidx.compose.ui.geometry.Offset(size.width - m, size.height / 2), s.width)
+            drawCircle(linha, radius = size.width * 0.13f, center = androidx.compose.ui.geometry.Offset(size.width / 2, size.height / 2), style = s)
+            val aw = size.width * 0.55f; val ah = size.height * 0.15f
+            drawRect(linha, topLeft = androidx.compose.ui.geometry.Offset((size.width - aw) / 2, m), size = androidx.compose.ui.geometry.Size(aw, ah), style = s)
+            drawRect(linha, topLeft = androidx.compose.ui.geometry.Offset((size.width - aw) / 2, size.height - m - ah), size = androidx.compose.ui.geometry.Size(aw, ah), style = s)
+        }
+        cg.zonas.forEach { z ->
+            androidx.compose.ui.layout.Layout(content = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    z.atletas.forEach { a ->
+                        val fundo = when { a.dm -> c.erro; a.transicao -> androidx.compose.ui.graphics.Color(0xFFF59E0B); else -> androidx.compose.ui.graphics.Color.White }
+                        val tinta = if (a.dm) androidx.compose.ui.graphics.Color.White else androidx.compose.ui.graphics.Color(0xFF0F172A)
+                        Text((a.numero?.let { "$it " } ?: "") + a.nome, style = TactiPlan.tipos.legenda11, fontWeight = FontWeight.SemiBold, color = tinta,
+                            maxLines = 1, modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(fundo)
+                                .clickable(role = Role.Button) { abrir(a.id) }.padding(horizontal = 6.dp, vertical = 2.dp)
+                                .semantics { contentDescription = "${a.nome}, ${z.nome}${if (a.dm) ", no DM" else ""}" })
+                    }
+                }
+            }) { med, rest ->
+                val p = med.first().measure(rest.copy(minWidth = 0, minHeight = 0))
+                layout(rest.maxWidth, rest.maxHeight) {
+                    val x0 = (w.toPx() * z.left / 100).toFloat()
+                    val y0 = (h.toPx() * z.top / 100).toFloat()
+                    val dx = when (z.ax) { com.faggin.tactiplan.app.dados.elenco.Ancora.INICIO -> 0f; com.faggin.tactiplan.app.dados.elenco.Ancora.MEIO -> p.width / 2f; else -> p.width.toFloat() }
+                    val dy = when (z.ay) { com.faggin.tactiplan.app.dados.elenco.Ancora.INICIO -> 0f; com.faggin.tactiplan.app.dados.elenco.Ancora.MEIO -> p.height / 2f; else -> p.height.toFloat() }
+                    p.place((x0 - dx).toInt(), (y0 - dy).toInt())
+                }
+            }
+        }
+    }
+    if (cg.semLugar.isNotEmpty()) {
+        Text("Sem posição no campo: " + cg.semLugar.joinToString(", ") { it.nome }, style = TactiPlan.tipos.corpo13, color = c.tinta2)
     }
 }

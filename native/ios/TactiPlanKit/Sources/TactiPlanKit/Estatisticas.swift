@@ -221,6 +221,32 @@ public struct DistanciaStats: Codable, Equatable, Sendable {
     }
 }
 
+/// Treino de goleiro (paralelo, fora das contas do grupo): `goleiros` do GET /api/stats/training.
+public struct GoleirosStats: Decodable, Equatable, Sendable {
+    public var minutos: Int
+    public var sessoes: Int
+    public var atividades: Int
+    /// Conteúdos, já em ordem de minutos (o servidor ordena).
+    public var porConteudo: [ItemConteudo]
+
+    enum CodingKeys: String, CodingKey { case minutos = "minutes", sessoes = "sessions", atividades = "activities", porConteudo = "byContent" }
+    public init(minutos: Int = 0, sessoes: Int = 0, atividades: Int = 0, porConteudo: [ItemConteudo] = []) {
+        self.minutos = minutos; self.sessoes = sessoes; self.atividades = atividades; self.porConteudo = porConteudo
+    }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        minutos = Int((c.numeroFlex(.minutos) ?? 0).rounded())
+        sessoes = Int(c.numeroFlex(.sessoes) ?? 0)
+        atividades = Int(c.numeroFlex(.atividades) ?? 0)
+        porConteudo = (try? c.decodeIfPresent([ItemConteudo].self, forKey: .porConteudo)) ?? []
+    }
+
+    /// O cartão "Treino de goleiro (paralelo)" aparece? (esconde com 0 minutos e 0 atividades)
+    public var mostrar: Bool { minutos > 0 || atividades > 0 }
+    /// Os 5 conteúdos de mais minutos.
+    public var topConteudos: [ItemConteudo] { Array(porConteudo.sorted { ($0.minutos, $0.quantidade) > ($1.minutos, $1.quantidade) }.prefix(5)) }
+}
+
 public struct StatsTreino: Decodable, Equatable, Sendable {
     public var atividades: Int
     public var minutos: Int
@@ -232,12 +258,13 @@ public struct StatsTreino: Decodable, Equatable, Sendable {
     public var porSubmomento: [ItemConteudo]
     public var topAtividades: [ItemTitulo]
     public var distancia: DistanciaStats
+    public var goleiros: GoleirosStats = GoleirosStats()
 
     struct Totais: Decodable {
         var activities: Double?; var minutes: Double?; var sessions: Double?
     }
     enum CodingKeys: String, CodingKey {
-        case totals, byDimension, byDimensionPredominance, byContent, byContentPredominance, bySubcontent, topTitles, distance
+        case totals, byDimension, byDimensionPredominance, byContent, byContentPredominance, bySubcontent, topTitles, distance, goleiros
     }
     public init(atividades: Int = 0, minutos: Int = 0, sessoes: Int = 0, porPilar: [ItemPilar] = [], porPilarSessoes: [ItemPilar] = [],
                 porConteudo: [ItemConteudo] = [], porConteudoSessoes: [ItemConteudo] = [], porSubmomento: [ItemConteudo] = [],
@@ -257,6 +284,7 @@ public struct StatsTreino: Decodable, Equatable, Sendable {
         porSubmomento = (try? c.decodeIfPresent([ItemConteudo].self, forKey: .bySubcontent)) ?? []
         topAtividades = (try? c.decodeIfPresent([ItemTitulo].self, forKey: .topTitles)) ?? []
         distancia = (try? c.decodeIfPresent(DistanciaStats.self, forKey: .distance)) ?? DistanciaStats()
+        goleiros = ((try? c.decodeIfPresent(GoleirosStats.self, forKey: .goleiros)) ?? nil) ?? GoleirosStats()
     }
     public var vazio: Bool { atividades == 0 }
     public var temDados: Bool { atividades > 0 || distancia.diasComDado > 0 }

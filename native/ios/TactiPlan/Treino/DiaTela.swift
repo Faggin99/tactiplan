@@ -11,6 +11,9 @@ import TactiPlanKit
 // adiciona/remove período, troca o horário (Manhã/Tarde/Noite) e exporta a ficha do dia inteiro ou só do período.
 // Período de AVALIAÇÃO: no lugar dos blocos, o estado "AVALIAÇÃO" + os tipos (Física, Técnica…);
 // a escolha dos tipos abre ao trocar o tipo para Avaliação e ao adicionar um período de avaliação.
+// 27/11 (paridade com o web): interruptor "Treino de transição" embaixo do tipo (fora do total e das estatísticas);
+// "+N′ gol" ao lado do tempo; menu com "Salvar sessão" e "Usar sessão salva"; cartão "Anexos da sessão" depois dos
+// blocos; dia de jogo com os dois escudos (mandante primeiro) e o horário.
 
 struct DiaTela: View {
     let data: String
@@ -41,6 +44,13 @@ struct DiaTela: View {
     @State private var avOutra = ""
     /// O período novo é de avaliação?
     @State private var novoEhAvaliacao = false
+    /// O período novo (de treino) é de transição?
+    @State private var novoEhTransicao = false
+    /// "Salvar sessão": pede o nome.
+    @State private var pedirNomeSessao = false
+    @State private var nomeSessao = ""
+    /// "Usar sessão salva": lista das sessões.
+    @State private var usandoSessao = false
 
     init(data: String, modelo: SemanaModelo, sessao: Sessao, contexto: ContextoClube) {
         self.data = data
@@ -79,6 +89,7 @@ struct DiaTela: View {
                 .accessibilityLabel("Período: \(p.rotulo)")
             }
             seletorDeTipo(d)
+            if d.tipo == .treino { cartaoTransicao(d) }
             if d.tipo == .treino { resumo(r, d) }
             switch d.tipo {
             case .descanso:
@@ -95,7 +106,14 @@ struct DiaTela: View {
                         Cartao {
                             HStack(spacing: 12) {
                                 IconeLinha(icone: "trophy.fill")
-                                VStack(alignment: .leading, spacing: 2) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    // os dois escudos: mandante primeiro × visitante; embaixo, o horário
+                                    HStack(spacing: 8) {
+                                        EscudosDoJogo(clube: contexto.clube, jogo: d, tamanho: 30)
+                                        if let h = horarioDoJogo(d.horario) {
+                                            Text(h).tipo(Tipos.corpo13.comPeso(.seminegrito)).foregroundColor(tema.cores.tinta2.color)
+                                        }
+                                    }
                                     Text("Abrir jogo").font(Tipos.corpo15.comPeso(.seminegrito).font)
                                         .foregroundColor(tema.cores.tinta.color)
                                     Text("Escalação, eventos, minutagem e convocação").tipo(Tipos.corpo13)
@@ -111,11 +129,17 @@ struct DiaTela: View {
                 }
                 if let b = d.blocos.first { cartaoDoBloco(b, rotulo: ROTULO_NAO_RELACIONADOS, nao: true) }
             case .treino:
-                if r.atividades == 0 {
+                if r.blocosComAtividade == 0 {
                     FaixaTom(icone: "calendar.badge.plus",
                              texto: podeEditar ? TEXTO_SEM_ATIVIDADE_EDITA : TEXTO_SEM_ATIVIDADE_LE, tom: .neutro)
                 }
                 ForEach(d.blocos, id: \.ordem) { b in cartaoDoBloco(b, rotulo: "\(b.ordem) · \(b.nome)", nao: false) }
+                if let clube = contexto.clube, d.id != nil || podeEditar {
+                    AnexosDaSessaoCartao(periodo: d, semana: modelo.semana, clubeId: clube.id, servico: modelo.servico, base: app.base,
+                                         podeEnviar: podeEditar, podeApagar: contexto.podeEditar("training:delete"),
+                                         aoSessaoAcabar: modelo.aoSessaoAcabar, aoMudar: { Task { await modelo.invalidar() } })
+                        .id("anexos-\(d.id ?? d.data)-\(d.periodo ?? "")")
+                }
             }
         }
         .toolbar {
@@ -132,6 +156,14 @@ struct DiaTela: View {
                         } label: {
                             Label("Trocar horário (\(periodoEfetivo(d)?.rotulo ?? ""))", systemImage: "clock.arrow.2.circlepath")
                         }
+                    }
+                    if podeEditar, contexto.clube != nil, d.tipo == .treino {
+                        if podeSalvarSessao(d) {
+                            Button { nomeSessao = nomePadraoSessao(d); pedirNomeSessao = true } label: {
+                                Label("Salvar sessão", systemImage: "bookmark")
+                            }
+                        }
+                        Button { usandoSessao = true } label: { Label("Usar sessão salva", systemImage: "square.and.arrow.down.on.square") }
                     }
                     if todo.temPeriodos, contexto.podeEditar("training:delete") {
                         Button(role: .destructive) { confirmarRemover = true } label: {
@@ -184,6 +216,19 @@ struct DiaTela: View {
             Button("Salvar") { salvarKm() }
         } message: { Text("Opcional · por jogador, no dia") }
         .sheet(isPresented: $adicionandoPeriodo) { folhaAdicionarPeriodo(todo).environment(\.tema, tema) }
+        .sheet(isPresented: $usandoSessao) {
+            EscolherSessaoFolha(periodo: d, semana: modelo.semana, clubeId: contexto.clube?.id ?? "", servico: modelo.servico,
+                                aoSessaoAcabar: modelo.aoSessaoAcabar) { msg in
+                aviso = msg
+                Task { await modelo.invalidar() }
+            }
+            .environment(\.tema, tema)
+        }
+        .alert("Salvar sessão", isPresented: $pedirNomeSessao) {
+            TextField("Nome da sessão", text: Binding(get: { nomeSessao }, set: { nomeSessao = String($0.prefix(MAX_NOME_SESSAO)) }))
+            Button("Cancelar", role: .cancel) {}
+            Button("Salvar") { salvarSessao(d) }
+        } message: { Text("O treino deste período fica em Sessões salvas para usar de novo em outro dia.") }
         .sheet(isPresented: $escolhendoAvaliacao) { folhaAvaliacao().environment(\.tema, tema) }
         .confirmationDialog("Remover período", isPresented: $confirmarRemover, titleVisibility: .visible) {
             Button("Remover \(rotuloDoPeriodo(d.periodo) ?? "período")", role: .destructive) { removerPeriodo(d) }
@@ -217,7 +262,7 @@ struct DiaTela: View {
             .pickerStyle(.segmented)
             .accessibilityHint("Escolhe o período do dia")
             // "90+60" só quando 2+ períodos têm minutos (nunca "125+0")
-            Text("Dia: \(total.minutos) min\(divisaoMinutos(todo).map { " · \($0)" } ?? "")\(total.distanciaKm.map { " · \(formatarKm($0)) km" } ?? "")")
+            Text("Dia: \(total.minutos) min\(textoGoleiro(total).map { " \($0)" } ?? "")\(divisaoMinutos(todo).map { " · \($0)" } ?? "")\(total.distanciaKm.map { " · \(formatarKm($0)) km" } ?? "")")
                 .tipo(Tipos.corpo13.comPeso(.medio))
                 .foregroundColor(tema.cores.tinta2.color)
                 .accessibilityLabel("Total do dia: \(total.minutos) minutos, \(ps.count) períodos")
@@ -229,6 +274,7 @@ struct DiaTela: View {
         novoAtual = s.atual ?? .manha
         novoPeriodo = s.novo
         novoEhAvaliacao = false
+        novoEhTransicao = false
         avTipos = []
         avOutra = ""
         adicionandoPeriodo = true
@@ -257,6 +303,9 @@ struct DiaTela: View {
                         Text("Avaliação").tag(true)
                     }
                     .pickerStyle(.segmented)
+                    if !novoEhAvaliacao {
+                        Toggle(TITULO_TRANSICAO, isOn: $novoEhTransicao)
+                    }
                 } footer: {
                     Text(erro ?? (novoEhAvaliacao ? "Avaliação não tem blocos: só o tipo. Máximo de 3 períodos por dia."
                                                  : "O novo período começa com os 6 blocos vazios. Máximo de 3 por dia."))
@@ -280,12 +329,14 @@ struct DiaTela: View {
         let novo = novoPeriodo
         let atual: Periodo? = todo.temPeriodos ? nil : novoAtual
         let av: EscolhaAvaliacao? = novoEhAvaliacao ? normalizarAvaliacao(tipos: Array(avTipos), outra: avOutra) : nil
+        let transicao = !novoEhAvaliacao && novoEhTransicao
         adicionandoPeriodo = false
         ocupado = true
         Task {
             defer { ocupado = false }
             do {
-                try await modelo.servico.adicionarPeriodo(todo, novo: novo, atual: atual, avaliacao: av, semana: modelo.semana, clubeId: clube.id)
+                try await modelo.servico.adicionarPeriodo(todo, novo: novo, atual: atual, avaliacao: av, transicao: transicao,
+                                                          semana: modelo.semana, clubeId: clube.id)
                 await modelo.invalidar()
                 periodoSel = diaInteiro.listaPeriodos.firstIndex { $0.periodo == novo.rawValue } ?? 0
                 aviso = "Período \(novo.rotulo) adicionado."
@@ -360,6 +411,48 @@ struct DiaTela: View {
                 try await modelo.servico.mudarTipo(dia, para: t, adversario: adversario, avaliacao: avaliacao,
                                                    semana: modelo.semana, clubeId: clube.id)
                 await modelo.invalidar()
+            } catch {
+                if app.controle.tratarErro(error, token: sessao.token) { return }
+                aviso = mensagemErroTreino(error)
+            }
+        }
+    }
+
+    // MARK: transição e sessões salvas
+
+    /// "Treino de transição": treino de quem volta do DM (fora do total do dia e das estatísticas).
+    private func cartaoTransicao(_ d: Dia) -> some View {
+        Cartao(preenchimento: PREENCHIMENTO_LISTA) {
+            LinhaInterruptor(icone: "arrow.uturn.backward.circle", titulo: TITULO_TRANSICAO, detalhe: TEXTO_TRANSICAO,
+                             ligado: Binding(get: { d.treinoTransicao }, set: { marcarTransicao(d, $0) }),
+                             habilitado: podeEditar && contexto.clube != nil && !ocupado)
+        }
+    }
+
+    private func marcarTransicao(_ d: Dia, _ v: Bool) {
+        guard let clube = contexto.clube, v != d.treinoTransicao else { return }
+        ocupado = true
+        Task {
+            defer { ocupado = false }
+            do {
+                try await modelo.servico.marcarTransicao(d, v, semana: modelo.semana, clubeId: clube.id)
+                await modelo.invalidar()
+                aviso = v ? "Treino de transição: fora do total do dia." : "Voltou a ser treino do grupo."
+            } catch {
+                if app.controle.tratarErro(error, token: sessao.token) { return }
+                aviso = mensagemErroTreino(error)
+            }
+        }
+    }
+
+    private func salvarSessao(_ d: Dia) {
+        let nome = nomeSessao
+        ocupado = true
+        Task {
+            defer { ocupado = false }
+            do {
+                try await modelo.servico.salvarSessao(d, nome: nome)
+                aviso = "\"\(nome.trimmingCharacters(in: .whitespacesAndNewlines))\" está em Sessões salvas."
             } catch {
                 if app.controle.tratarErro(error, token: sessao.token) { return }
                 aviso = mensagemErroTreino(error)
@@ -442,7 +535,7 @@ struct DiaTela: View {
         return Cartao {
             HStack(alignment: .top, spacing: 0) {
                 item("Pilar", r.pilares.isEmpty ? "—" : r.rotuloPilares, cor: r.pilares.first.map(corDoPilar))
-                item("Tempo", r.minutos > 0 ? "\(r.minutos) min" : "—")
+                item("Tempo", r.transicao ? "Transição · fora do total" : (textoTotalComGoleiro(r) ?? "—"))
                 Button {
                     guard podeEditar else { return }
                     kmTexto = formatarKm(d.distanciaKm)

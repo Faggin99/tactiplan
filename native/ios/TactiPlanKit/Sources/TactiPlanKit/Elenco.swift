@@ -131,11 +131,14 @@ public struct Atleta: Codable, Equatable, Sendable, Identifiable, Hashable {
     public var alturaCm: Int?
     public var pe: String?
     public var clubeAnterior: String?
+    /// Lado do ZAGUEIRO (migration 067): "direita" | "esquerda" | "ambos" | nil (não informado).
+    public var ladoPreferido: String?
 
     public init(id: String, nome: String, posicao: String? = nil, camisa: Int? = nil, status: String? = "active",
                 observacao: String? = nil, grupo: String? = nil, fotoUrl: String? = nil, clubeId: String? = nil,
                 categoriaId: String? = nil, nascimento: String? = nil, alturaCm: Int? = nil, pe: String? = nil,
-                clubeAnterior: String? = nil) {
+                clubeAnterior: String? = nil, ladoPreferido: String? = nil) {
+        self.ladoPreferido = ladoPreferido
         self.id = id; self.nome = nome; self.posicao = posicao; self.camisa = camisa; self.status = status
         self.observacao = observacao; self.grupo = grupo; self.fotoUrl = fotoUrl; self.clubeId = clubeId
         self.categoriaId = categoriaId; self.nascimento = nascimento; self.alturaCm = alturaCm; self.pe = pe
@@ -145,7 +148,8 @@ public struct Atleta: Codable, Equatable, Sendable, Identifiable, Hashable {
     enum CodingKeys: String, CodingKey {
         case id, nome = "name", posicao = "position", camisa = "jersey_number", status, observacao = "observation",
              grupo = "group", fotoUrl = "photo_url", clubeId = "club_id", categoriaId = "category_id",
-             nascimento = "birthdate", alturaCm = "height_cm", pe = "preferred_foot", clubeAnterior = "previous_club"
+             nascimento = "birthdate", alturaCm = "height_cm", pe = "preferred_foot", clubeAnterior = "previous_club",
+             ladoPreferido = "lado_preferido"
     }
 
     public init(from decoder: Decoder) throws {
@@ -165,7 +169,37 @@ public struct Atleta: Codable, Equatable, Sendable, Identifiable, Hashable {
         alturaCm = c.numeroFlex(.alturaCm).map { Int($0) }
         pe = try? c.decodeIfPresent(String.self, forKey: .pe)
         clubeAnterior = try? c.decodeIfPresent(String.self, forKey: .clubeAnterior)
+        ladoPreferido = (try? c.decodeIfPresent(String.self, forKey: .ladoPreferido)).flatMap { l in
+            LADOS_PREFERIDOS.contains { $0.valor == l } ? l : nil
+        }
     }
+}
+
+// MARK: lado do zagueiro (migration 067)
+
+public struct LadoPreferido: Equatable, Sendable, Hashable {
+    public let valor: String
+    public let rotulo: String
+    /// Sigla da lista ("ZAG · D").
+    public let curto: String
+}
+
+public let LADOS_PREFERIDOS = [
+    LadoPreferido(valor: "direita", rotulo: "Pela direita", curto: "D"),
+    LadoPreferido(valor: "esquerda", rotulo: "Pela esquerda", curto: "E"),
+    LadoPreferido(valor: "ambos", rotulo: "Pelos dois lados", curto: "D/E"),
+]
+public let PERGUNTA_LADO = "Joga por qual lado?"
+public let ROTULO_LADO_NAO_INFORMADO = "Não informado"
+
+/// A ficha pergunta o lado? (só zagueiro)
+public func perguntaLado(_ posicao: String?) -> Bool { posicao == "ZAG" }
+
+/// "ZAG · D" quando o zagueiro tem lado; senão a posição.
+public func rotuloPosicaoAtleta(_ a: Atleta) -> String? {
+    guard let p = a.posicao else { return nil }
+    guard p == "ZAG", let l = LADOS_PREFERIDOS.first(where: { $0.valor == a.ladoPreferido }) else { return p }
+    return "\(p) · \(l.curto)"
 }
 
 /// Ordena como o web: por posição (999 = desconhecida) e nome, ou só por nome.
@@ -283,7 +317,7 @@ public func idadeEm(_ nascimento: String?, hoje: String) -> Int? {
 /// "MEI · 17 anos" (a linha do atleta).
 public func detalheAtleta(_ a: Atleta, hoje: String) -> String {
     var partes: [String] = []
-    if let p = a.posicao { partes.append(p) }
+    if let p = rotuloPosicaoAtleta(a) { partes.append(p) }
     if let i = idadeEm(a.nascimento, hoje: hoje) { partes.append("\(i) anos") }
     if let s = a.status, s != "active", let r = ROTULO_STATUS[s] { partes.append(r) }
     return partes.isEmpty ? "Sem posição" : partes.joined(separator: " · ")
@@ -332,6 +366,8 @@ public func corpoAtleta(_ a: Atleta, clubeId: String) -> Json {
         "height_cm": a.alturaCm.map { .numero(Double($0)) } ?? .nulo,
         "preferred_foot": textoOuNulo(a.pe),
         "previous_club": textoOuNulo(a.clubeAnterior),
+        // só zagueiro tem lado (outra posição limpa, como o web)
+        "lado_preferido": a.posicao == "ZAG" ? textoOuNulo(a.ladoPreferido) : .nulo,
     ])
 }
 

@@ -69,18 +69,21 @@ public func resumoDoDiaInteiro(_ d: Dia) -> ResumoDia {
     guard d.temPeriodos else { return resumoDoDia(d) }
     let ps = d.listaPeriodos
     let jogo = ps.first { $0.tipo == .jogo }
-    // avaliação não soma blocos nem minutos
+    // avaliação não soma blocos nem minutos; transição mostra as atividades, mas fica fora do total e dos pilares
     let avaliacoes = ps.filter { $0.tipo == .avaliacao }
+    let transicoes = ps.filter(ehTransicao).map(resumoDoDia)
     let todos = Dia(id: d.id, data: d.data, nomeDia: d.nomeDia, diaDaSemana: d.diaDaSemana, tipoBruto: TipoDia.treino.rawValue,
-                    blocos: ps.filter { $0.tipo != .avaliacao }.flatMap(\.blocos))
+                    blocos: ps.filter { $0.tipo != .avaliacao && !ehTransicao($0) }.flatMap(\.blocos))
     let r = resumoDoDia(todos)
     let tipo: TipoDia = jogo != nil ? .jogo : (avaliacoes.count == ps.count ? .avaliacao : .treino)
     var tiposAv: [String] = []
     for a in avaliacoes { for t in rotulosAvaliacao(a) where !tiposAv.contains(t) { tiposAv.append(t) } }
     return ResumoDia(tipo: tipo, pilares: r.pilares, minutosPorPilar: r.minutosPorPilar,
-                     minutos: r.minutos, blocosComAtividade: r.blocosComAtividade, atividades: r.atividades,
-                     anexos: r.anexos, distanciaKm: distanciaDoDia(d), adversario: jogo?.adversario,
-                     avaliacao: avaliacoes.isEmpty ? nil : tiposAv.joined(separator: ", "))
+                     minutos: r.minutos, blocosComAtividade: r.blocosComAtividade + transicoes.map(\.blocosComAtividade).reduce(0, +),
+                     atividades: r.atividades + transicoes.map(\.atividades).reduce(0, +),
+                     anexos: r.anexos + transicoes.map(\.anexos).reduce(0, +), distanciaKm: distanciaDoDia(d), adversario: jogo?.adversario,
+                     avaliacao: avaliacoes.isEmpty ? nil : tiposAv.joined(separator: ", "),
+                     minutosGoleiro: r.minutosGoleiro, transicao: !transicoes.isEmpty)
 }
 
 /// Os nomes que ainda cabem no dia (vazio = não dá para adicionar: descanso ou já tem 3).
@@ -104,8 +107,8 @@ public func periodoEfetivo(_ d: Dia) -> Periodo? {
 /// dia com 2+ períodos, jogo e descanso = como antes (o selo "2 períodos" mostra a divisão).
 public func tituloDaLinhaDoDia(_ d: Dia) -> String {
     if d.temPeriodos {
-        // com avaliação: cada período na linha ("Manhã · Avaliação + Tarde · Tático")
-        if d.listaPeriodos.contains(where: { $0.tipo == .avaliacao }) {
+        // com avaliação ou transição: cada período na linha ("Manhã · Avaliação + Tarde · Tático")
+        if d.listaPeriodos.contains(where: { $0.tipo == .avaliacao || ehTransicao($0) }) {
             return d.listaPeriodos.map { p -> String in
                 let r = resumoDoDia(p)
                 return rotuloLinhaPeriodo(p, pilares: p.tipo == .treino ? [r.pilares.isEmpty ? "Treino" : r.rotuloPilares] : [])
@@ -114,7 +117,7 @@ public func tituloDaLinhaDoDia(_ d: Dia) -> String {
         return tituloDaLinha(resumoDoDiaInteiro(d))
     }
     let r = resumoDoDia(d)
-    if r.tipo == .avaliacao { return rotuloLinhaPeriodo(d) }
+    if r.tipo == .avaliacao || r.transicao { return rotuloLinhaPeriodo(d) }
     guard r.tipo == .treino, let p = periodoEfetivo(d) else { return tituloDaLinha(r) }
     return "\(p.rotulo) · \(r.pilares.isEmpty ? "Treino" : r.rotuloPilares)"
 }
@@ -153,8 +156,8 @@ public func textoRemoverPeriodo(_ p: Dia) -> String {
     let r = resumoDoDia(p)
     var t = "Remover o período \(rotuloDoPeriodo(p.periodo) ?? "")? "
     if p.tipo == .jogo { t += "O jogo deste período (escalação e eventos) também será apagado. " }
-    if r.atividades > 0 || r.anexos > 0 {
-        t += "Serão apagados \(contagem(r.atividades, "atividade", "atividades"))"
+    if r.blocosComAtividade > 0 || r.anexos > 0 {
+        t += "Serão apagados \(contagem(r.blocosComAtividade, "atividade", "atividades"))"
         if r.anexos > 0 { t += " e \(contagem(r.anexos, "anexo", "anexos"))" }
         t += ". "
     }

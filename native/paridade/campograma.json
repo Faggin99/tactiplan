@@ -1,0 +1,563 @@
+{
+  "casos": [
+    {
+      "modalidade": "football_11",
+      "atletas": [
+        {
+          "id": "1",
+          "name": "Carlos Alberto Souza",
+          "position": "GOL",
+          "jersey_number": 1,
+          "status": "active",
+          "group": "1"
+        },
+        {
+          "id": "2",
+          "name": "Bruno",
+          "position": "GR",
+          "jersey_number": 12,
+          "status": "active",
+          "group": "1"
+        },
+        {
+          "id": "3",
+          "name": "Diego Lima",
+          "position": "ZAG",
+          "jersey_number": 4,
+          "status": "active",
+          "group": "1",
+          "lado_preferido": "direita"
+        },
+        {
+          "id": "4",
+          "name": "Edu Costa",
+          "position": "ZAG",
+          "jersey_number": 3,
+          "status": "active",
+          "group": "1",
+          "lado_preferido": "esquerda"
+        },
+        {
+          "id": "5",
+          "name": "Fábio Reis",
+          "position": "ZAG",
+          "jersey_number": 14,
+          "status": "active",
+          "group": "1"
+        },
+        {
+          "id": "6",
+          "name": "Gustavo",
+          "position": "LD",
+          "jersey_number": 2,
+          "status": "active",
+          "group": "DM"
+        },
+        {
+          "id": "7",
+          "name": "Hugo Alves",
+          "position": "LD",
+          "jersey_number": 22,
+          "status": "active",
+          "group": "1"
+        },
+        {
+          "id": "8",
+          "name": "Ivan Moura",
+          "position": "VOL",
+          "jersey_number": 5,
+          "status": "injured",
+          "group": "1"
+        },
+        {
+          "id": "9",
+          "name": "João Pedro Silva",
+          "position": "VOL2",
+          "jersey_number": 8,
+          "status": "active",
+          "group": "1"
+        },
+        {
+          "id": "10",
+          "name": "Kleber",
+          "position": "MC",
+          "jersey_number": 15,
+          "status": "active",
+          "group": "Transição"
+        },
+        {
+          "id": "11",
+          "name": "Lucas Neto",
+          "position": "MEI",
+          "jersey_number": 10,
+          "status": "active",
+          "group": "1"
+        },
+        {
+          "id": "12",
+          "name": "Marcos",
+          "position": "EE",
+          "jersey_number": 11,
+          "status": "active",
+          "group": "1"
+        },
+        {
+          "id": "13",
+          "name": "Nilo",
+          "position": "ED",
+          "jersey_number": 7,
+          "status": "active",
+          "group": "1"
+        },
+        {
+          "id": "14",
+          "name": "Otávio Ramos",
+          "position": "CA",
+          "jersey_number": 9,
+          "status": "active",
+          "group": "1"
+        },
+        {
+          "id": "15",
+          "name": "Paulo",
+          "position": "PL",
+          "jersey_number": 19,
+          "status": "active",
+          "group": "1"
+        },
+        {
+          "id": "16",
+          "name": "Quirino Sem Posição",
+          "position": null,
+          "jersey_number": null,
+          "status": "active",
+          "group": "1"
+        },
+        {
+          "id": "17",
+          "name": "Rafael",
+          "position": "XYZ",
+          "jersey_number": null,
+          "status": "active",
+          "group": "1"
+        },
+        {
+          "id": "18",
+          "name": "Abel",
+          "position": "CA",
+          "jersey_number": 9,
+          "status": "active",
+          "group": "1"
+        }
+      ],
+      "saida": {
+        "zonas": [
+          {
+            "key": "GOL",
+            "nome": "Goleiros",
+            "left": 50,
+            "top": 98.5,
+            "tx": "-50%",
+            "ty": "-100%",
+            "atletas": [
+              {
+                "id": "1",
+                "nome": "Carlos S.",
+                "numero": 1,
+                "dm": false,
+                "trans": false,
+                "photoKey": null
+              },
+              {
+                "id": "2",
+                "nome": "Bruno",
+                "numero": 12,
+                "dm": false,
+                "trans": false,
+                "photoKey": null
+              }
+            ]
+          },
+          {
+            "key": "ZAG-E",
+            "nome": "Zagueiros · esquerda",
+            "left": 30,
+            "top": 78,
+            "tx": "-50%",
+            "ty": "-50%",
+            "atletas": [
+              {
+                "id": "4",
+                "nome": "Edu C.",
+                "numero": 3,
+                "dm": false,
+                "trans": false,
+                "photoKey": null
+              }
+            ]
+          },
+          {
+            "key": "ZAG-A",
+            "nome": "Zagueiros",
+            "left": 50,
+            "top": 78,
+            "tx": "-50%",
+            "ty": "-50%",
+            "atletas": [
+              {
+                "id": "5",
+                "nome": "Fábio R.",
+                "numero": 14,
+                "dm": false,
+                "trans": false,
+                "photoKey": null
+              }
+            ]
+          },
+          {
+            "key": "ZAG-D",
+            "nome": "Zagueiros · direita",
+            "left": 70,
+            "top": 78,
+            "tx": "-50%",
+            "ty": "-50%",
+            "atletas": [
+              {
+                "id": "3",
+                "nome": "Diego L.",
+                "numero": 4,
+                "dm": false,
+                "trans": false,
+                "photoKey": null
+              }
+            ]
+          },
+          {
+            "key": "LD",
+            "nome": "Lateral direito",
+            "left": 98.5,
+            "top": 69,
+            "tx": "-100%",
+            "ty": "-50%",
+            "atletas": [
+              {
+                "id": "7",
+                "nome": "Hugo A.",
+                "numero": 22,
+                "dm": false,
+                "trans": false,
+                "photoKey": null
+              },
+              {
+                "id": "6",
+                "nome": "Gustavo",
+                "numero": 2,
+                "dm": true,
+                "trans": false,
+                "photoKey": null
+              }
+            ]
+          },
+          {
+            "key": "VOL",
+            "nome": "1º volante",
+            "left": 50,
+            "top": 56,
+            "tx": "-50%",
+            "ty": "-50%",
+            "atletas": [
+              {
+                "id": "10",
+                "nome": "Kleber",
+                "numero": 15,
+                "dm": false,
+                "trans": true,
+                "photoKey": null
+              },
+              {
+                "id": "8",
+                "nome": "Ivan M.",
+                "numero": 5,
+                "dm": true,
+                "trans": false,
+                "photoKey": null
+              }
+            ]
+          },
+          {
+            "key": "VOL2",
+            "nome": "2º volante",
+            "left": 36,
+            "top": 45,
+            "tx": "-50%",
+            "ty": "-50%",
+            "atletas": [
+              {
+                "id": "9",
+                "nome": "João S.",
+                "numero": 8,
+                "dm": false,
+                "trans": false,
+                "photoKey": null
+              }
+            ]
+          },
+          {
+            "key": "MEI",
+            "nome": "Meia",
+            "left": 58,
+            "top": 34,
+            "tx": "-50%",
+            "ty": "-50%",
+            "atletas": [
+              {
+                "id": "11",
+                "nome": "Lucas N.",
+                "numero": 10,
+                "dm": false,
+                "trans": false,
+                "photoKey": null
+              }
+            ]
+          },
+          {
+            "key": "EE",
+            "nome": "Extremo esquerdo",
+            "left": 1.5,
+            "top": 22,
+            "tx": "0%",
+            "ty": "-50%",
+            "atletas": [
+              {
+                "id": "12",
+                "nome": "Marcos",
+                "numero": 11,
+                "dm": false,
+                "trans": false,
+                "photoKey": null
+              }
+            ]
+          },
+          {
+            "key": "ED",
+            "nome": "Extremo direito",
+            "left": 98.5,
+            "top": 22,
+            "tx": "-100%",
+            "ty": "-50%",
+            "atletas": [
+              {
+                "id": "13",
+                "nome": "Nilo",
+                "numero": 7,
+                "dm": false,
+                "trans": false,
+                "photoKey": null
+              }
+            ]
+          },
+          {
+            "key": "CA",
+            "nome": "Centroavante",
+            "left": 50,
+            "top": 1.5,
+            "tx": "-50%",
+            "ty": "0%",
+            "atletas": [
+              {
+                "id": "18",
+                "nome": "Abel",
+                "numero": 9,
+                "dm": false,
+                "trans": false,
+                "photoKey": null
+              },
+              {
+                "id": "14",
+                "nome": "Otávio R.",
+                "numero": 9,
+                "dm": false,
+                "trans": false,
+                "photoKey": null
+              },
+              {
+                "id": "15",
+                "nome": "Paulo",
+                "numero": 19,
+                "dm": false,
+                "trans": false,
+                "photoKey": null
+              }
+            ]
+          }
+        ],
+        "semLugar": [
+          {
+            "id": "16",
+            "name": "Quirino Sem Posição",
+            "position": null
+          },
+          {
+            "id": "17",
+            "name": "Rafael",
+            "position": "XYZ"
+          }
+        ]
+      }
+    },
+    {
+      "modalidade": "futsal",
+      "atletas": [
+        {
+          "id": "f1",
+          "name": "Ari",
+          "position": "GOL",
+          "jersey_number": null,
+          "status": "active",
+          "group": "1"
+        },
+        {
+          "id": "f2",
+          "name": "Beto",
+          "position": "FIX",
+          "jersey_number": null,
+          "status": "active",
+          "group": "1"
+        },
+        {
+          "id": "f3",
+          "name": "Caio",
+          "position": "ALA-E",
+          "jersey_number": null,
+          "status": "active",
+          "group": "1"
+        },
+        {
+          "id": "f4",
+          "name": "Davi",
+          "position": "ALA-D",
+          "jersey_number": null,
+          "status": "active",
+          "group": "1"
+        },
+        {
+          "id": "f5",
+          "name": "Enzo",
+          "position": "PIV",
+          "jersey_number": null,
+          "status": "active",
+          "group": "1"
+        },
+        {
+          "id": "f6",
+          "name": "Fred",
+          "position": "ZAG",
+          "jersey_number": null,
+          "status": "active",
+          "group": "1"
+        }
+      ],
+      "saida": {
+        "zonas": [
+          {
+            "key": "GOL",
+            "nome": "Goleiros",
+            "left": 50,
+            "top": 98.5,
+            "tx": "-50%",
+            "ty": "-100%",
+            "atletas": [
+              {
+                "id": "f1",
+                "nome": "Ari",
+                "numero": null,
+                "dm": false,
+                "trans": false,
+                "photoKey": null
+              }
+            ]
+          },
+          {
+            "key": "FIX",
+            "nome": "Fixo",
+            "left": 50,
+            "top": 70,
+            "tx": "-50%",
+            "ty": "-50%",
+            "atletas": [
+              {
+                "id": "f2",
+                "nome": "Beto",
+                "numero": null,
+                "dm": false,
+                "trans": false,
+                "photoKey": null
+              }
+            ]
+          },
+          {
+            "key": "ALA-E",
+            "nome": "Ala esquerdo",
+            "left": 15,
+            "top": 44,
+            "tx": "-50%",
+            "ty": "-50%",
+            "atletas": [
+              {
+                "id": "f3",
+                "nome": "Caio",
+                "numero": null,
+                "dm": false,
+                "trans": false,
+                "photoKey": null
+              }
+            ]
+          },
+          {
+            "key": "ALA-D",
+            "nome": "Ala direito",
+            "left": 85,
+            "top": 44,
+            "tx": "-50%",
+            "ty": "-50%",
+            "atletas": [
+              {
+                "id": "f4",
+                "nome": "Davi",
+                "numero": null,
+                "dm": false,
+                "trans": false,
+                "photoKey": null
+              }
+            ]
+          },
+          {
+            "key": "PIV",
+            "nome": "Pivô",
+            "left": 50,
+            "top": 14,
+            "tx": "-50%",
+            "ty": "-50%",
+            "atletas": [
+              {
+                "id": "f5",
+                "nome": "Enzo",
+                "numero": null,
+                "dm": false,
+                "trans": false,
+                "photoKey": null
+              }
+            ]
+          }
+        ],
+        "semLugar": [
+          {
+            "id": "f6",
+            "name": "Fred",
+            "position": "ZAG"
+          }
+        ]
+      }
+    }
+  ]
+}

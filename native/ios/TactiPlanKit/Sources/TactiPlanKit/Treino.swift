@@ -170,15 +170,25 @@ public struct Dia: Codable, Equatable, Sendable {
     /// Período de avaliação: os tipos (assessment_types: "fisica", "tecnica"…, "outra") e o texto da "Outra".
     public var tiposAvaliacao: [String]?
     public var outraAvaliacao: String?
+    /// Treino de TRANSIÇÃO (migration 068): treino de quem volta do DM — fora do total do dia e das
+    /// estatísticas. Só vale em treino (ver `ehTransicao`).
+    public var treinoTransicao: Bool
+    /// Jogo: escudo do adversário (url relativa), mando ('home'|'away'|'neutral') e horário ("19:30").
+    public var adversarioLogo: String?
+    public var mando: String?
+    public var horario: String?
 
     public init(id: String? = nil, data: String, nomeDia: String? = nil, diaDaSemana: Int, tipoBruto: String? = nil,
                 adversario: String? = nil, distanciaKm: Double? = nil, blocos: [Bloco] = [],
                 periodo: String? = nil, periodos: [Dia]? = nil,
-                tiposAvaliacao: [String]? = nil, outraAvaliacao: String? = nil) {
+                tiposAvaliacao: [String]? = nil, outraAvaliacao: String? = nil, treinoTransicao: Bool = false,
+                adversarioLogo: String? = nil, mando: String? = nil, horario: String? = nil) {
         self.id = id; self.data = data; self.nomeDia = nomeDia; self.diaDaSemana = diaDaSemana; self.tipoBruto = tipoBruto
         self.adversario = adversario; self.distanciaKm = distanciaKm; self.blocos = blocos
         self.periodo = periodo; self.periodos = periodos
         self.tiposAvaliacao = tiposAvaliacao; self.outraAvaliacao = outraAvaliacao
+        self.treinoTransicao = treinoTransicao
+        self.adversarioLogo = adversarioLogo; self.mando = mando; self.horario = horario
     }
 
     enum CodingKeys: String, CodingKey {
@@ -186,6 +196,8 @@ public struct Dia: Codable, Equatable, Sendable {
         case adversario = "opponent_name", distanciaKm = "avg_distance_km", blocos = "blocks"
         case periodo, periodos
         case tiposAvaliacao = "assessment_types", outraAvaliacao = "assessment_other"
+        case treinoTransicao = "treino_transicao"
+        case adversarioLogo = "opponent_logo", mando = "match_location", horario = "match_kickoff"
     }
 
     public init(from decoder: Decoder) throws {
@@ -205,6 +217,10 @@ public struct Dia: Codable, Equatable, Sendable {
         periodos = ps.count > 1 ? ps : nil
         tiposAvaliacao = try? c.decodeIfPresent([String].self, forKey: .tiposAvaliacao)
         outraAvaliacao = try? c.decodeIfPresent(String.self, forKey: .outraAvaliacao)
+        treinoTransicao = ((try? c.decodeIfPresent(Bool.self, forKey: .treinoTransicao)) ?? nil) ?? false
+        adversarioLogo = (try? c.decodeIfPresent(String.self, forKey: .adversarioLogo)).flatMap { $0?.isEmpty == true ? nil : $0 }
+        mando = try? c.decodeIfPresent(String.self, forKey: .mando)
+        horario = (try? c.decodeIfPresent(String.self, forKey: .horario)).flatMap { $0?.isEmpty == true ? nil : $0 }
     }
 
     public var tipo: TipoDia { TipoDia.de(tipoBruto) }

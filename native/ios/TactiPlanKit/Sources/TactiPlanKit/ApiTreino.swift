@@ -31,6 +31,14 @@ public enum CaminhosTreino {
     public static let enviarAnexo = "/files/upload"
     public static func anexo(_ id: String) -> String { "/files/\(codificarComponente(id))" }
     public static func relatorio(_ tipo: String) -> String { "/reports/\(codificarComponente(tipo))" }
+    public static let sessoesSalvas = "/treinos-modelo"
+    public static func sessaoSalva(_ id: String) -> String { "/treinos-modelo/\(codificarComponente(id))" }
+    public static func aplicarSessao(_ id: String) -> String { "/treinos-modelo/\(codificarComponente(id))/aplicar" }
+    public static let enviarArquivoSemana = "/arquivos-semana"
+    public static func arquivosSemana(_ semana: String, clube: String) -> String {
+        "/arquivos-semana?week=\(codificarComponente(semana))&club_id=\(codificarComponente(clube))"
+    }
+    public static func arquivoSemana(_ id: String) -> String { "/arquivos-semana/\(codificarComponente(id))" }
     public static func tema(_ mes: String, clube: String) -> String {
         "/themes/adherence?month=\(codificarComponente(mes))&club_id=\(codificarComponente(clube))"
     }
@@ -135,6 +143,10 @@ public struct ListaFotosRelatorio: Codable, Equatable, Sendable {
 }
 
 extension ApiTreino {
+    /// Período novo sem transição (o de sempre).
+    public func adicionarPeriodo(_ diaId: String, novo: Periodo, atual: Periodo?, avaliacao: EscolhaAvaliacao?, transicao: Bool) async throws -> String {
+        try await adicionarPeriodo(diaId, novo: novo, atual: atual, avaliacao: avaliacao)
+    }
     /// Tipo sem avaliação (jogo, treino, descanso).
     public func mudarTipo(_ diaId: String, tipo: TipoDia, adversario: String?) async throws {
         try await mudarTipo(diaId, tipo: tipo, adversario: adversario, avaliacao: nil)
@@ -185,6 +197,27 @@ public protocol ApiTreino: Sendable {
     func apagarMidiaAnalise(_ sessaoId: String, midiaId: String) async throws -> [MidiaAnalise]
     /// Vídeo grande por link: POST .../analise/link { secao, titulo, url }.
     func adicionarLinkAnalise(_ sessaoId: String, secao: String, titulo: String?, url: String) async throws -> [MidiaAnalise]
+
+    // MARK: paridade de 27/11/2026
+    /// POST /api/sessions/:id/periodos com `treino_transicao` (período novo já nasce de transição).
+    func adicionarPeriodo(_ diaId: String, novo: Periodo, atual: Periodo?, avaliacao: EscolhaAvaliacao?, transicao: Bool) async throws -> String
+    /// Treino de transição: PUT /api/sessions/:id/type { session_type: 'training', opponent_name: null, treino_transicao }.
+    func marcarTransicao(_ diaId: String, _ transicao: Bool) async throws
+    /// Sessões salvas (/api/treinos-modelo).
+    func sessoesSalvas() async throws -> [SessaoSalva]
+    func salvarSessao(nome: String, sessaoId: String) async throws -> String
+    func renomearSessao(_ id: String, nome: String) async throws
+    func excluirSessao(_ id: String) async throws
+    /// 409 TEM_ATIVIDADES (ErroApi.extras["atividades"]) quando o treino já tem atividades e `substituir` é false.
+    func aplicarSessao(_ id: String, sessaoId: String, substituir: Bool) async throws
+    /// Anexo da SESSÃO (sem atividade): POST /api/files/upload { session_id, title?, file }.
+    func enviarAnexoDaSessao(sessaoId: String, arquivo: ArquivoUpload, titulo: String?,
+                             progresso: @escaping @Sendable (Double) -> Void) async throws -> Anexo
+    /// Arquivos da semana (/api/arquivos-semana).
+    func arquivosDaSemana(semana: String, clubeId: String) async throws -> [ArquivoSemana]
+    func enviarArquivoSemana(semana: String, clubeId: String, arquivo: ArquivoUpload, titulo: String?,
+                             progresso: @escaping @Sendable (Double) -> Void) async throws -> ArquivoSemana
+    func apagarArquivoSemana(_ id: String) async throws
 }
 
 // Padrões para os falsos dos testes (o ApiTreinoHttp implementa de verdade).
@@ -195,6 +228,18 @@ extension ApiTreino {
                                    progresso: @escaping @Sendable (Double) -> Void) async throws -> [MidiaAnalise] { throw ErroApi.offline() }
     public func apagarMidiaAnalise(_ sessaoId: String, midiaId: String) async throws -> [MidiaAnalise] { throw ErroApi.offline() }
     public func adicionarLinkAnalise(_ sessaoId: String, secao: String, titulo: String?, url: String) async throws -> [MidiaAnalise] { throw ErroApi.offline() }
+    public func marcarTransicao(_ diaId: String, _ transicao: Bool) async throws { throw ErroApi.offline() }
+    public func sessoesSalvas() async throws -> [SessaoSalva] { [] }
+    public func salvarSessao(nome: String, sessaoId: String) async throws -> String { throw ErroApi.offline() }
+    public func renomearSessao(_ id: String, nome: String) async throws { throw ErroApi.offline() }
+    public func excluirSessao(_ id: String) async throws { throw ErroApi.offline() }
+    public func aplicarSessao(_ id: String, sessaoId: String, substituir: Bool) async throws { throw ErroApi.offline() }
+    public func enviarAnexoDaSessao(sessaoId: String, arquivo: ArquivoUpload, titulo: String?,
+                                    progresso: @escaping @Sendable (Double) -> Void) async throws -> Anexo { throw ErroApi.offline() }
+    public func arquivosDaSemana(semana: String, clubeId: String) async throws -> [ArquivoSemana] { [] }
+    public func enviarArquivoSemana(semana: String, clubeId: String, arquivo: ArquivoUpload, titulo: String?,
+                                    progresso: @escaping @Sendable (Double) -> Void) async throws -> ArquivoSemana { throw ErroApi.offline() }
+    public func apagarArquivoSemana(_ id: String) async throws { throw ErroApi.offline() }
 }
 
 /// O de verdade, sobre o [Api]. `token`/`workspaceId` da sessão em uso.
@@ -286,12 +331,18 @@ public final class ApiTreinoHttp: ApiTreino {
     }
 
     public func adicionarPeriodo(_ diaId: String, novo: Periodo, atual: Periodo?, avaliacao: EscolhaAvaliacao?) async throws -> String {
+        try await adicionarPeriodo(diaId, novo: novo, atual: atual, avaliacao: avaliacao, transicao: false)
+    }
+
+    public func adicionarPeriodo(_ diaId: String, novo: Periodo, atual: Periodo?, avaliacao: EscolhaAvaliacao?, transicao: Bool) async throws -> String {
         var corpo: [String: Json] = ["novo": .texto(novo.rawValue)]
         if let atual { corpo["atual"] = .texto(atual.rawValue) }
         if let avaliacao {
             corpo["tipo"] = .texto(TipoDia.avaliacao.rawValue)
             corpo["assessment_types"] = .lista(avaliacao.tipos.map { .texto($0) })
             corpo["assessment_other"] = avaliacao.outra.map { .texto($0) } ?? .nulo
+        } else if transicao {
+            corpo["treino_transicao"] = .booleano(true)
         }
         let j = try await json(CaminhosTreino.periodos(diaId), "POST", .objeto(corpo))
         guard let id = j["id"]?.texto else { throw ErroApi(status: 0, codigo: nil, mensagem: ErroApi.MSG_FALHA) }
@@ -430,6 +481,101 @@ extension ApiTreinoHttp {
         try midias(try await api.chamarJson(caminhoAnalise(sessaoId) + "/midia/\(codificarComponente(midiaId))", metodo: "DELETE",
                                             corpo: nil, token: token, cabecalhos: cabecalhos))
     }
+}
+
+extension ApiTreinoHttp {
+    public func marcarTransicao(_ diaId: String, _ transicao: Bool) async throws {
+        _ = try await api.chamarJson(CaminhosTreino.tipoDoDia(diaId), metodo: "PUT", corpo: corpoTransicao(transicao),
+                                     token: token, cabecalhos: cabecalhos)
+    }
+
+    public func sessoesSalvas() async throws -> [SessaoSalva] {
+        try lerSessoesSalvas(try await api.chamarJson(CaminhosTreino.sessoesSalvas, token: token, cabecalhos: cabecalhos))
+    }
+
+    public func salvarSessao(nome: String, sessaoId: String) async throws -> String {
+        let j = try await api.chamarJson(CaminhosTreino.sessoesSalvas, metodo: "POST",
+                                         corpo: ["nome": .texto(nome), "session_id": .texto(sessaoId)], token: token, cabecalhos: cabecalhos)
+        guard let id = j["id"]?.texto else { throw ErroApi(status: 0, codigo: nil, mensagem: ErroApi.MSG_FALHA) }
+        return id
+    }
+
+    public func renomearSessao(_ id: String, nome: String) async throws {
+        _ = try await api.chamarJson(CaminhosTreino.sessaoSalva(id), metodo: "PATCH", corpo: ["nome": .texto(nome)],
+                                     token: token, cabecalhos: cabecalhos)
+    }
+
+    public func excluirSessao(_ id: String) async throws {
+        _ = try await api.chamarJson(CaminhosTreino.sessaoSalva(id), metodo: "DELETE", token: token, cabecalhos: cabecalhos)
+    }
+
+    public func aplicarSessao(_ id: String, sessaoId: String, substituir: Bool) async throws {
+        _ = try await api.chamarJson(CaminhosTreino.aplicarSessao(id), metodo: "POST",
+                                     corpo: corpoAplicarSessao(sessaoId: sessaoId, substituir: substituir), token: token, cabecalhos: cabecalhos)
+    }
+
+    public func enviarAnexoDaSessao(sessaoId: String, arquivo: ArquivoUpload, titulo: String?,
+                                    progresso: @escaping @Sendable (Double) -> Void) async throws -> Anexo {
+        var campos: [(String, String)] = [("session_id", sessaoId)]
+        if let t = titulo?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty { campos.append(("title", t)) }
+        return try await multipart(CaminhosTreino.enviarAnexo, arquivo: arquivo, campos: campos, progresso: progresso)
+            .decodificar(Anexo.self)
+    }
+
+    public func arquivosDaSemana(semana: String, clubeId: String) async throws -> [ArquivoSemana] {
+        try lerArquivosSemana(try await api.chamarJson(CaminhosTreino.arquivosSemana(semana, clube: clubeId), token: token, cabecalhos: cabecalhos))
+    }
+
+    public func enviarArquivoSemana(semana: String, clubeId: String, arquivo: ArquivoUpload, titulo: String?,
+                                    progresso: @escaping @Sendable (Double) -> Void) async throws -> ArquivoSemana {
+        var campos: [(String, String)] = [("week", semana), ("club_id", clubeId)]
+        if let t = titulo?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty { campos.append(("title", t)) }
+        return try await multipart(CaminhosTreino.enviarArquivoSemana, arquivo: arquivo, campos: campos, progresso: progresso)
+            .decodificar(ArquivoSemana.self)
+    }
+
+    public func apagarArquivoSemana(_ id: String) async throws {
+        _ = try await api.chamarJson(CaminhosTreino.arquivoSemana(id), metodo: "DELETE", token: token, cabecalhos: cabecalhos)
+    }
+
+    /// Multipart com os campos ANTES do arquivo (o multer lê na ordem) e a mesma semântica de erro.
+    func montarMultipart(_ caminho: String, arquivo: ArquivoUpload, campos: [(String, String)]) -> Requisicao? {
+        guard let url = urlHttp(api.base + caminho), valorCabecalhoValido(arquivo.tipo) else { return nil }
+        let f = fronteira()
+        let hs: [(nome: String, valor: String)] = [
+            ("content-type", "multipart/form-data; boundary=\(f)"),
+            ("X-Workspace-Id", workspaceId),
+            ("authorization", "Bearer \(token)"),
+        ]
+        guard hs.allSatisfy({ valorCabecalhoValido($0.valor) }) else { return nil }
+        return Requisicao(url: url, metodo: "POST", cabecalhos: hs,
+                          corpo: corpoMultipart(campo: CAMPO_ANEXO, arquivo: arquivo, fronteira: f, campos: campos))
+    }
+
+    private func multipart(_ caminho: String, arquivo: ArquivoUpload, campos: [(String, String)],
+                           progresso: @escaping @Sendable (Double) -> Void) async throws -> Json {
+        guard let upload, let req = montarMultipart(caminho, arquivo: arquivo, campos: campos) else { throw ErroApi.offline() }
+        let resposta: Resposta
+        do {
+            resposta = try await upload.enviar(req, progresso: progresso)
+        } catch {
+            if error is CancellationError || Task.isCancelled { throw CancellationError() }
+            throw ErroApi.offline()
+        }
+        return try respostaOuErro(resposta)
+    }
+}
+
+/// Corpo do PUT /api/sessions/:id/type que marca/desmarca o treino de transição (continua treino).
+public func corpoTransicao(_ transicao: Bool) -> Json {
+    .objeto(["session_type": .texto(TipoDia.treino.rawValue), "opponent_name": .nulo, "treino_transicao": .booleano(transicao)])
+}
+
+/// Corpo do POST /api/treinos-modelo/:id/aplicar (`substituir` só quando true).
+public func corpoAplicarSessao(sessaoId: String, substituir: Bool) -> Json {
+    var o: [String: Json] = ["session_id": .texto(sessaoId)]
+    if substituir { o["substituir"] = .booleano(true) }
+    return .objeto(o)
 }
 
 public let MSG_PDF_FALHOU = "Não foi possível gerar o PDF agora. Tente de novo."

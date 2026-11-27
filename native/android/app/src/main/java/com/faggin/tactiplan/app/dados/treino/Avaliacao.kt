@@ -56,7 +56,7 @@ fun rotuloLinhaPeriodo(d: Dia, pilares: List<String> = emptyList()): String {
     val resto = when (d.tipo) {
         TipoDia.AVALIACAO -> listOf("Avaliação")
         TipoDia.JOGO -> listOf("Jogo")
-        else -> pilares
+        else -> if (d.transicao) listOf("Transição") else pilares
     }.joinToString(" | ")
     if (per == null) return resto
     return if (resto.isEmpty()) per else "$per · $resto"

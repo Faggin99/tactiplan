@@ -303,6 +303,36 @@
       },
       "pilares": [],
       "texto": "Manhã"
+    },
+    {
+      "sessao": {
+        "id": "l7",
+        "date": "2026-10-19",
+        "day_name": "Segunda",
+        "day_of_week": 1,
+        "session_type": "training",
+        "periodo": "tarde",
+        "blocks": [],
+        "treino_transicao": true
+      },
+      "pilares": [
+        "Tático"
+      ],
+      "texto": "Tarde · Transição"
+    },
+    {
+      "sessao": {
+        "id": "l8",
+        "date": "2026-10-19",
+        "day_name": "Segunda",
+        "day_of_week": 1,
+        "session_type": "training",
+        "periodo": null,
+        "blocks": [],
+        "treino_transicao": true
+      },
+      "pilares": [],
+      "texto": "Manhã · Transição"
     }
   ],
   "divisao": [
@@ -485,6 +515,50 @@
         }
       ],
       "divisao": "90+30"
+    },
+    {
+      "periodos": [
+        {
+          "id": "d10",
+          "date": "2026-10-19",
+          "day_name": "Segunda",
+          "day_of_week": 1,
+          "session_type": "training",
+          "periodo": "manha",
+          "blocks": [
+            {
+              "id": "b1",
+              "name": "Bloco 1",
+              "order": 1,
+              "activity": {
+                "id": "a1",
+                "duration_minutes": 90
+              }
+            }
+          ]
+        },
+        {
+          "id": "d11",
+          "date": "2026-10-19",
+          "day_name": "Segunda",
+          "day_of_week": 1,
+          "session_type": "training",
+          "periodo": "tarde",
+          "blocks": [
+            {
+              "id": "b1",
+              "name": "Bloco 1",
+              "order": 1,
+              "activity": {
+                "id": "a1",
+                "duration_minutes": 45
+              }
+            }
+          ],
+          "treino_transicao": true
+        }
+      ],
+      "divisao": null
     }
   ],
   "minutos": [
@@ -509,7 +583,8 @@
         ]
       },
       "minutos": 0,
-      "goleiro": 0
+      "goleiro": 0,
+      "transicao": false
     },
     {
       "sessao": {
@@ -541,7 +616,8 @@
         ]
       },
       "minutos": 60,
-      "goleiro": 0
+      "goleiro": 0,
+      "transicao": false
     },
     {
       "sessao": {
@@ -564,7 +640,8 @@
         ]
       },
       "minutos": 15,
-      "goleiro": 0
+      "goleiro": 0,
+      "transicao": false
     },
     {
       "sessao": {
@@ -596,7 +673,67 @@
         ]
       },
       "minutos": 30,
-      "goleiro": 25
+      "goleiro": 25,
+      "transicao": false
+    },
+    {
+      "sessao": {
+        "id": "m5",
+        "date": "2026-10-19",
+        "day_name": "Segunda",
+        "day_of_week": 1,
+        "session_type": "training",
+        "periodo": "manha",
+        "blocks": [
+          {
+            "id": "b1",
+            "name": "Bloco 1",
+            "order": 1,
+            "activity": {
+              "id": "a1",
+              "duration_minutes": 50
+            }
+          },
+          {
+            "id": "b6",
+            "name": "Treino de goleiro",
+            "order": 6,
+            "activity": {
+              "id": "a6",
+              "duration_minutes": 20
+            }
+          }
+        ],
+        "treino_transicao": true
+      },
+      "minutos": 0,
+      "goleiro": 0,
+      "transicao": true
+    },
+    {
+      "sessao": {
+        "id": "m6",
+        "date": "2026-10-19",
+        "day_name": "Segunda",
+        "day_of_week": 1,
+        "session_type": "match",
+        "periodo": null,
+        "blocks": [
+          {
+            "id": "b1",
+            "name": "Bloco 1",
+            "order": 1,
+            "activity": {
+              "id": "a1",
+              "duration_minutes": 15
+            }
+          }
+        ],
+        "treino_transicao": true
+      },
+      "minutos": 15,
+      "goleiro": 0,
+      "transicao": false
     }
   ]
 }

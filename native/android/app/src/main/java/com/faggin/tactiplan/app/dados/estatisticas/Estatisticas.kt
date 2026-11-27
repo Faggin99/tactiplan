@@ -264,7 +264,22 @@ data class StatsTreino(
     val byContentPredominance: List<ConteudoStats> = emptyList(),
     val topTitles: List<TituloStats> = emptyList(),
     val distance: DistanciaStats? = null,
+    /** Treino de goleiro (paralelo, fora das contas do grupo): minutos, treinos, atividades e conteúdos. */
+    val goleiros: GoleirosStats? = null,
 )
+
+@Serializable
+data class GoleirosStats(
+    val minutes: Int = 0,
+    val sessions: Int = 0,
+    val activities: Int = 0,
+    val byContent: List<ConteudoStats> = emptyList(),
+) {
+    /** Tem o que mostrar (o web esconde o cartão sem treino de goleiro). */
+    val temDados: Boolean get() = minutes > 0 || activities > 0
+    /** Os 5 conteúdos com mais minutos. */
+    val principais: List<ConteudoStats> get() = byContent.sortedWith(compareByDescending<ConteudoStats> { it.minutes }.thenByDescending { it.count }).take(5)
+}
 
 @Serializable
 data class JogoPlacar(

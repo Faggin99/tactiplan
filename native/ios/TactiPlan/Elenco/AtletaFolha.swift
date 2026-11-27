@@ -61,6 +61,14 @@ struct AtletaFolha: View {
                         Text("Selecione a posição").tag("")
                         ForEach(opcoesPosicao, id: \.codigo) { p in Text(p.rotulo).tag(p.codigo) }
                     }
+                    // zagueiro: por qual lado joga (o campograma divide os zagueiros por lado)
+                    if perguntaLado(rascunho.posicao) {
+                        Picker(PERGUNTA_LADO, selection: Binding(get: { rascunho.ladoPreferido ?? "" },
+                                                                 set: { rascunho.ladoPreferido = $0.isEmpty ? nil : $0 })) {
+                            Text(ROTULO_LADO_NAO_INFORMADO).tag("")
+                            ForEach(LADOS_PREFERIDOS, id: \.valor) { l in Text(l.rotulo).tag(l.valor) }
+                        }
+                    }
                     TextField("Camisa (1 a 99)", text: $camisaTexto).keyboardType(.numberPad)
                 } header: { Text("Atleta") }
                 Section {
