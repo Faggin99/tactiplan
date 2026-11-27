@@ -302,6 +302,15 @@ html[data-estilo="placar"] .tp-total {
   background: #151517 !important; border: 1px solid #26262b !important; border-radius: 2px !important; color: #fbbf24 !important;
   font-family: var(--fonte-titulo); font-size: 1.3rem !important; font-weight: 700 !important; letter-spacing: 0.04em;
 }
+/* Total do dia com 2+ períodos no Placar (27/11): a letra grande não cabe em "⏱119′ · 90+29 · 📍5,7" numa linha.
+   Vira duas linhas como os dias simples: "⏱ 119 min" em cima; divisão (menor, apagada) + distância embaixo. */
+html[data-estilo="placar"] .tp-total-dia { flex-wrap: wrap !important; white-space: normal !important; row-gap: 0.1rem; column-gap: 0.6rem !important; line-height: 1.15; }
+html[data-estilo="placar"] .tp-total-dia .tp-td-curto, html[data-estilo="placar"] .tp-total-dia .tp-td-sep { display: none !important; }
+html[data-estilo="placar"] .tp-total-dia .tp-td-longo { display: block !important; flex-basis: 100%; }
+html[data-estilo="placar"] .tp-total-dia .tp-td-un { display: inline !important; }
+html[data-estilo="placar"] .tp-total-dia .tp-td-div { font-size: 0.95rem; color: #8b8b93 !important; overflow: visible !important; }
+html[data-estilo="placar"] .tp-total-dia .tp-td-div::before { content: "("; } 
+html[data-estilo="placar"] .tp-total-dia .tp-td-div::after { content: ")"; }
 html[data-estilo="placar"] .tp-jogo { background: #1a0b0b !important; border: 1px solid #C62D2D !important; color: #f87171 !important; }
 html[data-estilo="placar"] .tp-jogo-txt { font-family: var(--fonte-titulo); font-size: 2rem !important; letter-spacing: 0.08em; color: #f87171; }
 html[data-estilo="placar"] .tp-folga-txt { font-family: var(--fonte-titulo); text-transform: uppercase; letter-spacing: 0.08em; color: #8b8b93; }

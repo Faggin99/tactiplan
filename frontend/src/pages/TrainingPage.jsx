@@ -1211,22 +1211,24 @@ export function TrainingPage() {
                   // containerType: a largura não vem do texto (a coluna não alarga). Se ainda
                   // faltar espaço, só a divisão (90+60) encolhe com reticências; total e
                   // distância nunca somem.
-                  className="tp-total" style={{ ...durationBadgeStyle, flexWrap: 'nowrap', whiteSpace: 'nowrap', overflow: 'hidden', gap: '0.15rem', containerType: 'inline-size', paddingLeft: '0.25rem', paddingRight: '0.25rem', fontSize: isMobile ? '0.68rem' : '0.76rem' }}
+                  className="tp-total tp-total-dia" style={{ ...durationBadgeStyle, flexWrap: 'nowrap', whiteSpace: 'nowrap', overflow: 'hidden', gap: '0.15rem', containerType: 'inline-size', paddingLeft: '0.25rem', paddingRight: '0.25rem', fontSize: isMobile ? '0.68rem' : '0.76rem' }}
                   title={[
                     ...periodos.map((p) => (p.session_type === 'assessment' ? `${rotuloPeriodo(p.periodo)}: avaliação` : ehTransicao(p) ? `${rotuloPeriodo(p.periodo)}: transição (fora do total)` : `${rotuloPeriodo(p.periodo)}: ${minutosDaSessao(p)} min`)),
                     ...(distanciaDoDia(periodos) !== null ? [`Distância ideal do dia: ${formatKm(distanciaDoDia(periodos), 1)} km`] : []),
                   ].join(' · ')}
                 >
                   {/* forma curta (150′) só quando há divisão/distância disputando espaço; senão igual aos outros dias */}
-                  <span style={{ flexShrink: 0 }}>{(divisaoMinutos(periodos) || distanciaDoDia(periodos) !== null)
+                  <span className="tp-td-curto" style={{ flexShrink: 0 }}>{(divisaoMinutos(periodos) || distanciaDoDia(periodos) !== null)
                     ? `⏱${periodos.reduce((t, p) => t + minutosDaSessao(p), 0)}′`
                     : `⏱ ${periodos.reduce((t, p) => t + minutosDaSessao(p), 0)} min`}</span>
+                  {/* forma longa: só o Placar mostra (total numa linha, divisão + distância na outra) */}
+                  <span className="tp-td-longo" style={{ display: 'none' }}>⏱ {periodos.reduce((t, p) => t + minutosDaSessao(p), 0)} min</span>
                   {/* "90+60" só quando 2+ períodos têm minutos (nunca "125+0") */}
                   {divisaoMinutos(periodos) && (
-                    <span style={{ color: colors.textSecondary, fontWeight: 500, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>· {divisaoMinutos(periodos)}</span>
+                    <span className="tp-td-div" style={{ color: colors.textSecondary, fontWeight: 500, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}><span className="tp-td-sep">· </span>{divisaoMinutos(periodos)}</span>
                   )}
                   {distanciaDoDia(periodos) !== null && (
-                    <span style={{ flexShrink: 0 }}><span style={{ color: colors.textSecondary, fontWeight: 500 }}>· </span>📍{formatKm(distanciaDoDia(periodos), 1)}</span>
+                    <span className="tp-td-km" style={{ flexShrink: 0 }}><span className="tp-td-sep" style={{ color: colors.textSecondary, fontWeight: 500 }}>· </span>📍{formatKm(distanciaDoDia(periodos), 1)}<span className="tp-td-un" style={{ display: 'none' }}> km</span></span>
                   )}
                 </div>
               ) : (
