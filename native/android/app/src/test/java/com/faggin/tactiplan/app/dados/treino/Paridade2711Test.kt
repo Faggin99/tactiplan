@@ -262,4 +262,21 @@ class Paridade2711Test {
         srv.enqueue(MockResponse().setResponseCode(401).setBody("""{"error":"Sessão expirada"}"""))
         try { api.excluirConta(null); fail() } catch (e: ErroApi) { assertEquals(401, e.status) }
     }
+
+    @Test fun `link nos anexos da sessao`() = runBlocking {
+        assertEquals("https://youtube.com/watch?v=1", linkValido(" youtube.com/watch?v=1 "))
+        assertEquals("http://a.co", linkValido("http://a.co"))
+        assertNull(linkValido("javascript:alert(1)"))
+        assertNull(linkValido("ftp://a.b"))
+        assertNull(linkValido("abc"))
+        assertEquals("drive.google.com", hostDoLink("https://www.drive.google.com/x"))
+        srv.enqueue(MockResponse().setResponseCode(201).setBody("""{"id":"l1","activity_id":null,"title":"Vídeo","url":"https://youtube.com/x","file_path":null,"mime_type":"text/uri-list"}"""))
+        val a = api.adicionarLinkDaSessao("s1", "https://youtube.com/x", "Vídeo")
+        assertTrue(a.ehLink)
+        val r = srv.takeRequest()
+        assertEquals("/api/files/link", r.path)
+        val o = JsonApp.parseToJsonElement(r.body.readUtf8()).jsonObject
+        assertEquals("s1", o["session_id"]!!.jsonPrimitive.content)
+        assertEquals("Vídeo", o["title"]!!.jsonPrimitive.content)
+    }
 }

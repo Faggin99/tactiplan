@@ -75,6 +75,10 @@ import com.faggin.tactiplan.app.dados.treino.rotuloDiaCurto
 import com.faggin.tactiplan.app.dados.treino.rotuloDoPeriodo
 import com.faggin.tactiplan.app.dados.treino.rotuloPilar
 import com.faggin.tactiplan.app.dados.treino.tamanhoLegivel
+import com.faggin.tactiplan.app.dados.treino.ehLink
+import com.faggin.tactiplan.app.dados.treino.MSG_LINK_INVALIDO
+import com.faggin.tactiplan.app.dados.treino.linkValido
+import com.faggin.tactiplan.app.dados.treino.hostDoLink
 import com.faggin.tactiplan.app.dados.treino.textoSubstituir
 import com.faggin.tactiplan.app.dados.urlDoServidor
 import com.faggin.tactiplan.app.design.TactiPlan
@@ -129,9 +133,9 @@ fun EscudosDoJogo(amb: AmbienteClube, dia: Dia, tamanho: Dp = 28.dp, comHorario:
 // ---------------------------------------------------------------- linha de arquivo
 
 @Composable
-private fun LinhaArquivo(especie: EspecieAnexo, titulo: String, detalhe: String, abrir: () -> Unit, apagar: (() -> Unit)?, tag: String) {
+private fun LinhaArquivo(especie: EspecieAnexo, titulo: String, detalhe: String, abrir: () -> Unit, apagar: (() -> Unit)?, tag: String, link: Boolean = false) {
     val c = TactiPlan.cores
-    val icone = when (especie) {
+    val icone = if (link) Icones.link else when (especie) {
         EspecieAnexo.FOTO -> Icones.imagem
         EspecieAnexo.VIDEO -> Icones.video
         else -> Icones.documento
@@ -188,6 +192,8 @@ fun SecaoAnexosDaSessao(amb: AmbienteClube, treino: ServicoTreino, semana: Seman
     var versao by remember { mutableIntStateOf(0) }
     var enviando by remember { mutableStateOf<String?>(null) }
     var apagar by remember { mutableStateOf<Anexo?>(null) }
+    var pedindoLink by remember { mutableStateOf(false) }
+    val abrirLink = com.faggin.tactiplan.app.ui.comum.rememberAbrirLink()
     LaunchedEffect(periodo.id, versao) {
         val id = periodo.id ?: return@LaunchedEffect
         lista = try { treino.api.anexosDoDia(id).filter { it.atividadeId == null } } catch (e: Exception) {
@@ -226,10 +232,14 @@ fun SecaoAnexosDaSessao(amb: AmbienteClube, treino: ServicoTreino, semana: Seman
             atual == null -> CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = c.acaoTinta)
             else -> Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 atual.forEach { a ->
-                    LinhaArquivo(a.especie, a.rotulo, tamanhoLegivel(a.tamanho), tag = "anexo-sessao:${a.id}",
+                    LinhaArquivo(a.especie, a.rotulo, if (a.ehLink) hostDoLink(a.url) else tamanhoLegivel(a.tamanho), tag = "anexo-sessao:${a.id}",
+                        link = a.ehLink,
                         abrir = {
-                            val url = urlDoServidor(a.caminho, amb.apiBase)
-                            if (url != null) escopo.launch { abrirAnexoNoSistema(context, url, a.nomeArquivo ?: a.rotulo, a.tipo)?.let(avisar) }
+                            if (a.ehLink) a.url?.let { abrirLink.abrir(it) }
+                            else {
+                                val url = urlDoServidor(a.caminho, amb.apiBase)
+                                if (url != null) escopo.launch { abrirAnexoNoSistema(context, url, a.nomeArquivo ?: a.rotulo, a.tipo)?.let(avisar) }
+                            }
                         },
                         apagar = if (podeApagar) ({ apagar = a }) else null)
                 }
@@ -238,7 +248,44 @@ fun SecaoAnexosDaSessao(amb: AmbienteClube, treino: ServicoTreino, semana: Seman
         enviando?.let { Text("Enviando $it…", style = TactiPlan.tipos.corpo13, color = c.tinta2, modifier = Modifier.padding(top = 6.dp)) }
         if (podeEnviar && periodo.tipo == TipoDia.TREINO) {
             Box(Modifier.padding(top = 8.dp)) { BotoesEnviar(acoes, habilitado = enviando == null && n < MAX_ANEXOS_SESSAO, prefixoTag = "anexo-sessao") }
+            Botao("Link", { pedindoLink = true }, Modifier.padding(top = 8.dp).width(110.dp).testTag("anexo-sessao:link"), VarianteBotao.SECUNDARIO,
+                habilitado = enviando == null && n < MAX_ANEXOS_SESSAO, icone = Icones.link)
         }
+    }
+    if (pedindoLink) {
+        var url by remember { mutableStateOf("") }
+        var titulo by remember { mutableStateOf("") }
+        var erroLink by remember { mutableStateOf<String?>(null) }
+        AlertDialog(
+            onDismissRequest = { pedindoLink = false },
+            title = { Text("Adicionar link") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(url, { url = it.take(2000); erroLink = null }, singleLine = true, label = { Text("Link (YouTube, Drive…)") },
+                        isError = erroLink != null, supportingText = erroLink?.let { e -> { Text(e) } },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Uri),
+                        modifier = Modifier.testTag("anexo-sessao:link:url"))
+                    OutlinedTextField(titulo, { titulo = it.take(255) }, singleLine = true, label = { Text("Título (opcional)") })
+                }
+            },
+            confirmButton = {
+                TextButton(enabled = url.isNotBlank() && enviando == null, modifier = Modifier.testTag("anexo-sessao:link:salvar"), onClick = {
+                    val ok = linkValido(url)
+                    if (ok == null) { erroLink = MSG_LINK_INVALIDO; return@TextButton }
+                    pedindoLink = false
+                    enviando = titulo.ifBlank { hostDoLink(ok) }
+                    escopo.launch {
+                        try {
+                            treino.adicionarLinkDaSessao(periodo, semana, clubeId, ok, titulo)
+                            avisar(null)
+                            if (periodo.id == null) mudou() else versao++
+                        } catch (e: Exception) { if (!amb.tratarErro(e)) avisar(mensagemErroTreino(e)) }
+                        enviando = null
+                    }
+                }) { Text("Adicionar") }
+            },
+            dismissButton = { TextButton(onClick = { pedindoLink = false }) { Text("Cancelar") } },
+        )
     }
     apagar?.let { a ->
         ConfirmarExclusao("Excluir anexo", "Excluir \"${a.rotulo}\"? Não dá para desfazer.", cancelar = { apagar = null }, confirmar = {

@@ -158,6 +158,14 @@ class ServicoTreino(val api: ApiTreino) {
         return api.enviarAnexoDaSessao(id, arquivo, titulo, progresso)
     }
 
+    /** Link nos anexos da sessão (cria o dia antes, se preciso). */
+    suspend fun adicionarLinkDaSessao(dia: Dia, semana: SemanaISO, clubeId: String, url: String, titulo: String?): Anexo {
+        val real = diaReal(dia, semana, clubeId)
+        val alvo = if (dia.id != null) dia else (real.listaPeriodos.firstOrNull { it.periodo == dia.periodo } ?: real)
+        val id = alvo.id ?: throw ErroApi(0, null, ErroApi.MSG_FALHA)
+        return api.adicionarLinkDaSessao(id, url, titulo)
+    }
+
     suspend fun mudarDistancia(dia: Dia, km: Double?, semana: SemanaISO, clubeId: String): String {
         val id = diaReal(dia, semana, clubeId).id ?: throw ErroApi(0, null, ErroApi.MSG_FALHA)
         api.mudarDistancia(id, km)

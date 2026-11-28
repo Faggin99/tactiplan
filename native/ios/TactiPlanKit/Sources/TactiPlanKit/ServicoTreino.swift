@@ -197,6 +197,13 @@ public struct ServicoTreino: Sendable {
         return try await api.enviarAnexoDaSessao(sessaoId: id, arquivo: arquivo, titulo: titulo, progresso: progresso)
     }
 
+    /// Link nos anexos da sessão (cria o dia antes, se preciso).
+    public func adicionarLinkDaSessao(_ periodo: Dia, url: String, titulo: String?, semana: SemanaISO, clubeId: String) async throws -> Anexo {
+        let real = try await diaReal(periodo, semana: semana, clubeId: clubeId)
+        guard let id = real.id else { throw ErroApi(status: 0, codigo: nil, mensagem: ErroApi.MSG_FALHA) }
+        return try await api.adicionarLinkDaSessao(sessaoId: id, url: url, titulo: titulo)
+    }
+
     /// Remove um período (só no dia com 2+). Devolve os anexos apagados.
     @discardableResult
     public func removerPeriodo(_ periodo: Dia) async throws -> Int {

@@ -29,6 +29,7 @@ public enum CaminhosTreino {
     public static func periodo(_ id: String) -> String { "/sessions/\(codificarComponente(id))/periodo" }
     public static func anexosDoDia(_ id: String) -> String { "/files/session/\(codificarComponente(id))" }
     public static let enviarAnexo = "/files/upload"
+    public static let linkDaSessao = "/files/link"
     public static func anexo(_ id: String) -> String { "/files/\(codificarComponente(id))" }
     public static func relatorio(_ tipo: String) -> String { "/reports/\(codificarComponente(tipo))" }
     public static let sessoesSalvas = "/treinos-modelo"
@@ -213,6 +214,8 @@ public protocol ApiTreino: Sendable {
     /// Anexo da SESSÃO (sem atividade): POST /api/files/upload { session_id, title?, file }.
     func enviarAnexoDaSessao(sessaoId: String, arquivo: ArquivoUpload, titulo: String?,
                              progresso: @escaping @Sendable (Double) -> Void) async throws -> Anexo
+    /// Link nos anexos da sessão: POST /api/files/link { session_id, url, title? }.
+    func adicionarLinkDaSessao(sessaoId: String, url: String, titulo: String?) async throws -> Anexo
     /// Arquivos da semana (/api/arquivos-semana).
     func arquivosDaSemana(semana: String, clubeId: String) async throws -> [ArquivoSemana]
     func enviarArquivoSemana(semana: String, clubeId: String, arquivo: ArquivoUpload, titulo: String?,
@@ -236,6 +239,7 @@ extension ApiTreino {
     public func aplicarSessao(_ id: String, sessaoId: String, substituir: Bool) async throws { throw ErroApi.offline() }
     public func enviarAnexoDaSessao(sessaoId: String, arquivo: ArquivoUpload, titulo: String?,
                                     progresso: @escaping @Sendable (Double) -> Void) async throws -> Anexo { throw ErroApi.offline() }
+    public func adicionarLinkDaSessao(sessaoId: String, url: String, titulo: String?) async throws -> Anexo { throw ErroApi.offline() }
     public func arquivosDaSemana(semana: String, clubeId: String) async throws -> [ArquivoSemana] { [] }
     public func enviarArquivoSemana(semana: String, clubeId: String, arquivo: ArquivoUpload, titulo: String?,
                                     progresso: @escaping @Sendable (Double) -> Void) async throws -> ArquivoSemana { throw ErroApi.offline() }
@@ -519,6 +523,13 @@ extension ApiTreinoHttp {
         var campos: [(String, String)] = [("session_id", sessaoId)]
         if let t = titulo?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty { campos.append(("title", t)) }
         return try await multipart(CaminhosTreino.enviarAnexo, arquivo: arquivo, campos: campos, progresso: progresso)
+            .decodificar(Anexo.self)
+    }
+
+    public func adicionarLinkDaSessao(sessaoId: String, url: String, titulo: String?) async throws -> Anexo {
+        var corpo: [String: Json] = ["session_id": .texto(sessaoId), "url": .texto(url)]
+        if let t = titulo?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty { corpo["title"] = .texto(t) }
+        return try await api.chamarJson(CaminhosTreino.linkDaSessao, metodo: "POST", corpo: .objeto(corpo), token: token, cabecalhos: cabecalhos)
             .decodificar(Anexo.self)
     }
 

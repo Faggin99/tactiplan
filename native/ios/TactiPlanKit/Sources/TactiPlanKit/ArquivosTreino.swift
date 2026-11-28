@@ -148,3 +148,35 @@ public func lerArquivosSemana(_ j: Json) throws -> [ArquivoSemana] { try listaOu
 
 /// "Arquivos da semana (3)" — o número só quando > 0.
 public func rotuloArquivosSemana(_ n: Int) -> String { n > 0 ? "Arquivos da semana (\(n))" : "Arquivos da semana" }
+
+// MARK: link nos anexos da sessão (28/11/2026)
+
+/// Link (YouTube, Drive…) guardado como anexo da sessão sem arquivo (POST /api/files/link). `caminho` = o link.
+public let MIME_LINK = "text/uri-list"
+public let MSG_LINK_INVALIDO = "Link inválido. Cole o endereço completo (ex.: https://youtube.com/...)."
+
+extension Anexo {
+    public var ehLink: Bool { tipo == MIME_LINK }
+}
+
+/// "youtube.com" (sem o www); vazio se não for um endereço.
+public func hostDoLink(_ url: String?) -> String {
+    let s = (url ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+    guard let r = s.range(of: "://") else { return "" }
+    let resto = s[r.upperBound...]
+    let fim = resto.firstIndex(where: { "/?#:".contains($0) }) ?? resto.endIndex
+    var h = String(resto[..<fim]).lowercased()
+    if h.hasPrefix("www.") { h.removeFirst(4) }
+    return h
+}
+
+/// Confere antes de mandar (o servidor confere de novo): http(s), domínio com ponto. Sem esquema = https.
+public func linkValido(_ bruto: String) -> String? {
+    let s = bruto.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !s.isEmpty, s.count <= 2000 else { return nil }
+    let temEsquema = s.range(of: "^[A-Za-z][A-Za-z0-9+.-]*:", options: .regularExpression) != nil
+    let u = temEsquema ? s : "https://" + s
+    let minus = u.lowercased()
+    guard minus.hasPrefix("http://") || minus.hasPrefix("https://") else { return nil }
+    return hostDoLink(u).contains(".") ? u : nil
+}

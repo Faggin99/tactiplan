@@ -423,3 +423,10 @@ Spec única: `native/PARIDADE-27-11.md`. Android e iOS (Kit + telas) ganharam:
 - Paridade: `native/paridade/avaliacao.json` (casos de transição) e `campograma.json` (gerar-campograma.js, do
   reports/campograma.js); `backend-node/tests/paridade-app-27-11.test.js` falha se ficarem velhos.
 - Testes: Android 231, Kit iOS 227. As telas SwiftUI só passaram em `swiftc -parse` → 1º build real no Codemagic.
+
+## Ajustes de 28/11/2026
+- LINK nos ANEXOS DA SESSÃO (YouTube, Drive, planilha online): `POST /api/files/link {session_id, url, title?}` grava em
+  `training_activity_files` SEM arquivo (`file_path` NULL, `url` = o link, `mime_type` = 'text/uri-list', `file_name` = domínio).
+  Valida http(s) com domínio (sem esquema = https; `linkValido` exportado de routes/files.js). Conta no limite de 15 da sessão;
+  não entra em estatísticas nem nas fotos do PDF; excluir pelo DELETE de sempre. Web: botão "Link" na gaveta (AnexosSessao.jsx);
+  apps: botão "Link" no cartão Anexos da sessão (abre no navegador do aparelho).

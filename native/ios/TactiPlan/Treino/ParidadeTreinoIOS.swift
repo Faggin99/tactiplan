@@ -173,6 +173,11 @@ struct AnexosDaSessaoCartao: View {
     @State private var camera = false
     @State private var arquivos = false
     @State private var galeria: [PhotosPickerItem] = []
+    // link (28/11): YouTube, Drive… sem arquivo
+    @State private var pedindoLink = false
+    @State private var linkUrl = ""
+    @State private var linkTitulo = ""
+    @Environment(\.openURL) private var abrirURL
 
     var body: some View {
         let c = tema.cores
@@ -189,14 +194,26 @@ struct AnexosDaSessaoCartao: View {
                 Text(TEXTO_ANEXOS_SESSAO).tipo(Tipos.corpo13).foregroundColor(c.tinta2.color)
                     .fixedSize(horizontal: false, vertical: true)
                 ForEach(lista) { a in
-                    LinhaArquivoTreino(icone: iconeDoArquivo(especieDoArquivo(a.tipo)), titulo: a.rotulo,
-                                       detalhe: tamanhoLegivel(a.tamanho), aoVer: { ver(a) },
+                    LinhaArquivoTreino(icone: a.ehLink ? "link" : iconeDoArquivo(especieDoArquivo(a.tipo)), titulo: a.rotulo,
+                                       detalhe: a.ehLink ? hostDoLink(a.caminho) : tamanhoLegivel(a.tamanho), aoVer: { ver(a) },
                                        aoApagar: podeApagar ? { apagar = a } : nil)
                 }
                 if podeEnviar {
                     if cheio { Text(MSG_MAX_ANEXOS_SESSAO).tipo(Tipos.corpo13).foregroundColor(c.tinta2.color) }
                     BotoesEnviarTreino(camera: $camera, arquivos: $arquivos, galeria: $galeria,
                                        maximo: MAX_ANEXOS_SESSAO - lista.count, desabilitado: cheio || enviando > 0)
+                    Button {
+                        linkUrl = ""; linkTitulo = ""; pedindoLink = true
+                    } label: {
+                        Label("Link", systemImage: "link")
+                            .font(Tipos.corpo13.comPeso(.seminegrito).font)
+                            .frame(maxWidth: .infinity, minHeight: ALVO_TOQUE)
+                            .foregroundColor(c.acaoTinta.color)
+                            .background(RoundedRectangle(cornerRadius: 12).stroke(c.acaoTinta.color, lineWidth: 1.5))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(cheio || enviando > 0)
+                    .opacity(cheio || enviando > 0 ? 0.5 : 1)
                 }
             }
         }
@@ -209,7 +226,32 @@ struct AnexosDaSessaoCartao: View {
             Button("Cancelar", role: .cancel) {}
         } message: { Text("Esta ação não pode ser desfeita.") }
         .sheet(item: $vendo) { a in VisualizadorArquivo(url: a.url).ignoresSafeArea() }
+        .alert("Adicionar link", isPresented: $pedindoLink) {
+            TextField("Link (YouTube, Drive…)", text: $linkUrl)
+                .keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
+            TextField("Título (opcional)", text: $linkTitulo)
+            Button("Adicionar") { adicionarLink() }
+            Button("Cancelar", role: .cancel) {}
+        } message: { Text("Vídeo, pasta ou planilha online deste treino.") }
         .avisoTemporario($aviso)
+    }
+
+    private func adicionarLink() {
+        guard let url = linkValido(linkUrl) else { aviso = MSG_LINK_INVALIDO; return }
+        guard lista.count + enviando < MAX_ANEXOS_SESSAO else { aviso = MSG_MAX_ANEXOS_SESSAO; return }
+        let titulo = linkTitulo
+        enviando += 1
+        Task {
+            defer { enviando -= 1 }
+            do {
+                let a = try await servico.adicionarLinkDaSessao(periodo, url: url, titulo: titulo, semana: semana, clubeId: clubeId)
+                lista.append(a)
+                if periodo.id == nil { aoMudar() }
+            } catch {
+                if aoSessaoAcabar(error) { return }
+                aviso = mensagemErroTreino(error)
+            }
+        }
     }
 
     private func carregar() async {
@@ -253,6 +295,10 @@ struct AnexosDaSessaoCartao: View {
     }
 
     private func ver(_ a: Anexo) {
+        if a.ehLink {
+            if let s = a.caminho, let u = URL(string: s) { abrirURL(u) } else { aviso = MSG_LINK_INVALIDO }
+            return
+        }
         Task {
             do { vendo = ArquivoLocal(url: try await baixarAnexo(a, base: base)) } catch { aviso = "Não foi possível abrir o anexo agora." }
         }

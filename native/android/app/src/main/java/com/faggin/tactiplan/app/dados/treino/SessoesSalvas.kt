@@ -147,6 +147,27 @@ fun detalheArquivoSemana(a: ArquivoSemana): String {
 }
 
 const val MAX_ARQUIVOS_SEMANA = 30
+
+// ---------- link nos anexos da sessão (28/11) ----------
+
+/** Link (YouTube, Drive…) guardado como anexo da sessão sem arquivo (POST /api/files/link). */
+const val MIME_LINK = "text/uri-list"
+val Anexo.ehLink: Boolean get() = tipo == MIME_LINK
+
+/** "youtube.com" (sem o www); vazio se não for um endereço. */
+fun hostDoLink(url: String?): String =
+    Regex("""^[a-z][a-z0-9+.-]*://([^/?#:]+)""", RegexOption.IGNORE_CASE).find(url.orEmpty().trim())?.groupValues?.get(1)?.lowercase()?.removePrefix("www.") ?: ""
+
+/** Confere antes de mandar (o servidor confere de novo): http(s), com ponto no domínio. Sem esquema = https. */
+fun linkValido(bruto: String): String? {
+    val s = bruto.trim()
+    if (s.isEmpty() || s.length > 2000) return null
+    val comEsquema = if (Regex("""^[a-z][a-z0-9+.-]*:""", RegexOption.IGNORE_CASE).containsMatchIn(s)) s else "https://$s"
+    if (!Regex("""^https?://""", RegexOption.IGNORE_CASE).containsMatchIn(comEsquema)) return null
+    return comEsquema.takeIf { hostDoLink(it).contains('.') }
+}
+
+const val MSG_LINK_INVALIDO = "Link inválido. Cole o endereço completo (ex.: https://youtube.com/...)."
 const val MAX_ANEXOS_SESSAO = 15
 const val TEXTO_ARQUIVOS_SEMANA = "Material da comissão para esta semana. Não entra nas estatísticas nem nos relatórios."
 const val TEXTO_ANEXOS_SESSAO = "Material extra do treino, fora das atividades. Não entra nas estatísticas; as fotos saem no fim da ficha."

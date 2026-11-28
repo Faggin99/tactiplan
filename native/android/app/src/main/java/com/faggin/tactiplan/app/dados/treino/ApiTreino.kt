@@ -177,6 +177,8 @@ interface ApiTreino {
     /** Anexo da SESSÃO (sem atividade): multipart session_id + title + file. */
     suspend fun enviarAnexoDaSessao(sessaoId: String, arquivo: ArquivoUpload, titulo: String?, progresso: (Double) -> Unit): Anexo =
         throw UnsupportedOperationException("anexo da sessão")
+    /** Link nos anexos da sessão: POST /api/files/link { session_id, url, title? }. */
+    suspend fun adicionarLinkDaSessao(sessaoId: String, url: String, titulo: String?): Anexo = throw UnsupportedOperationException("link da sessão")
     // sessões salvas (/api/treinos-modelo)
     suspend fun sessoesSalvas(): List<SessaoSalva> = emptyList()
     suspend fun salvarSessao(nome: String, sessaoId: String): String = throw UnsupportedOperationException("salvar sessão")
@@ -426,6 +428,11 @@ class ApiTreinoHttp(
         val campos = listOf("session_id" to sessaoId) + (titulo?.trim()?.takeIf { it.isNotEmpty() }?.let { listOf("title" to it) } ?: emptyList())
         return json.decodeFromJsonElement(Anexo.serializer(), enviarMultipart(CaminhosTreino.enviarAnexo, campos, arquivo, progresso))
     }
+
+    override suspend fun adicionarLinkDaSessao(sessaoId: String, url: String, titulo: String?): Anexo =
+        json.decodeFromJsonElement(Anexo.serializer(), j("/files/link", "POST", buildJsonObject {
+            put("session_id", sessaoId); put("url", url); titulo?.trim()?.takeIf { it.isNotEmpty() }?.let { put("title", it) }
+        }))
 
     override suspend fun sessoesSalvas(): List<SessaoSalva> = lerSessoesSalvas(j(CaminhosTreino.sessoesSalvas))
 

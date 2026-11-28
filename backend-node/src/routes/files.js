@@ -105,6 +105,44 @@ router.post('/upload', (req, res) => {
   });
 });
 
+// POST /api/files/link  { session_id, url, title? } — LINK nos anexos da sessão (28/11/2026): vídeo no YouTube,
+// pasta do Drive, planilha online… Fica na mesma tabela, sem arquivo: file_path NULL, url = o link,
+// mime_type = MIME_LINK. Conta no limite de anexos da sessão; não entra em estatísticas nem nas fotos do PDF.
+const MIME_LINK = 'text/uri-list';
+function linkValido(bruto) {
+  const s = String(bruto || '').trim();
+  if (!s || s.length > 2000) return null;
+  let u;
+  try { u = new URL(/^[a-z][a-z0-9+.-]*:/i.test(s) ? s : `https://${s}`); } catch { return null; }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+  if (!u.hostname.includes('.')) return null;
+  return u.toString();
+}
+router.post('/link', async (req, res) => {
+  try {
+    if (!req.user.can('training:edit')) return res.status(403).json({ error: 'Sem permissão pra editar treinos' });
+    const url = linkValido(req.body?.url);
+    if (!url) return res.status(400).json({ error: 'Link inválido. Cole o endereço completo (ex.: https://youtube.com/...).' });
+    const ctx = await sessionContext(req.body?.session_id, req.user.workspaceIds || []);
+    if (!ctx) return res.status(404).json({ error: 'Sessão não encontrada' });
+    if (!canWriteActivity(req.user, ctx)) return res.status(403).json({ error: 'Sem permissão de escrita nesta sessão' });
+    const arquivado = (await clubesArquivados([ctx.club_id]))[0];
+    if (arquivado) return res.status(409).json({ error: mensagemArquivado(arquivado.name) });
+    const n = await query('SELECT COUNT(*)::int AS n FROM training_activity_files WHERE session_id = $1 AND activity_id IS NULL', [ctx.session_id]);
+    if ((n.rows[0]?.n || 0) >= MAX_FILES_PER_SESSION) return res.status(409).json({ error: `Máximo de ${MAX_FILES_PER_SESSION} anexos por sessão` });
+    const host = new URL(url).hostname.replace(/^www\./, '');
+    const title = String(req.body?.title || '').replace(/\s+/g, ' ').trim().slice(0, 255) || host;
+    const r = await query(
+      `INSERT INTO training_activity_files (session_id, activity_id, title, file_path, url, file_name, file_size, mime_type, workspace_id)
+       VALUES ($1, NULL, $2, NULL, $3, $4, NULL, $5, $6) RETURNING *`,
+      [ctx.session_id, title, url, host, MIME_LINK, ctx.workspace_id]);
+    res.status(201).json(r.rows[0]);
+  } catch (err) {
+    console.error('Session link error:', err);
+    res.status(500).json({ error: 'Falha ao salvar o link' });
+  }
+});
+
 // Ensure file records always have url populated (fallback to file_path)
 function normalizeFileRow(row) {
   if (row && !row.url && row.file_path) {
@@ -217,3 +255,5 @@ router.delete('/:id', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.linkValido = linkValido;
+module.exports.MIME_LINK = MIME_LINK;

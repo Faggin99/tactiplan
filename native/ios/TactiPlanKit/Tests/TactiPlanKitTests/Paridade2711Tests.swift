@@ -387,3 +387,16 @@ let JSON_SESSOES_SALVAS = """
         #expect(try Json.ler(t.pedidos[0].corpo!) == ["password": "errada"])
     }
 }
+
+@Suite struct LinkDaSessaoTests {
+    @Test func validaEHost() {
+        #expect(linkValido(" youtube.com/watch?v=1 ") == "https://youtube.com/watch?v=1")
+        #expect(linkValido("http://a.co") == "http://a.co")
+        #expect(linkValido("javascript:alert(1)") == nil)
+        #expect(linkValido("ftp://a.b") == nil)
+        #expect(linkValido("abc") == nil)
+        #expect(hostDoLink("https://www.drive.google.com/x") == "drive.google.com")
+        let a = Anexo(id: "l1", atividadeId: nil, titulo: "Vídeo", caminho: "https://youtube.com/x", tipo: MIME_LINK)
+        #expect(a.ehLink)
+    }
+}
